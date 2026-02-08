@@ -1,5 +1,7 @@
 # Split (React + Tailwind + Google Gemini)
 
+https://thunderous-pasca-a43443.netlify.app/
+
 Ever paid the full bill and then struggled to calculate exactly how much each person owes, especially when everyone ordered different items?
 
 Split uses Google Gemini to scan receipt images and split costs at the line-item level, so each person pays for exactly what they ordered and you know precisely how much to collect from everyone.
