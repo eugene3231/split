@@ -1,0 +1,25 @@
+import type { ChargeState } from './types'
+
+export const defaultServiceChargeState: ChargeState = {
+  enabled: true,
+  mode: 'percent',
+  amountInput: '',
+  percentInput: '10',
+  detectedConfidence: null,
+  detectedSource: null,
+}
+
+export const defaultGstState: ChargeState = {
+  enabled: true,
+  mode: 'percent',
+  amountInput: '',
+  percentInput: '9',
+  detectedConfidence: null,
+  detectedSource: null,
+}
+
+export const GEMINI_MODELS = ['gemini-3-flash-preview'] as const
+export const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0]
+export const LOCAL_STORAGE_DRAFT_KEY = 'split:receipt-draft:v1'
+export const LOCAL_STORAGE_OCR_SETTINGS_KEY = 'split:ocr-settings:v1'
+export const SESSION_STORAGE_GEMINI_API_KEY = 'split:gemini-api-key:session'
