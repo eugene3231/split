@@ -1,6 +1,10 @@
-# Receipt Splitter (React + Tailwind + Gemini)
+# Split (React + Tailwind + Gemini)
 
-One-screen app to split individual bill items by person.
+Ever paid the full bill and then struggled to calculate exactly how much each person owes?
+
+Split uses Google Gemini to scan receipt images and splits costs at the line-item level, so you can see precisely how much to collect from each person.
+
+<img width="924" height="900" alt="Screenshot 2026-02-08 at 23-08-14 split" src="https://github.com/user-attachments/assets/c9b5f2f0-34c0-410c-94ae-f7a4b6b82a3b" />
 
 ## What it does
 
@@ -36,21 +40,21 @@ pnpm dev
 
 3. Open the Vite URL and use the app.
 
-4. In `Receipt OCR (Gemini)`:
+4. In `Scan Receipt Image`:
 - Enter your Gemini API key
 - Select model (`gemini-3-flash-preview`)
 - Optional: enable `Remember API key for this browser session`
 
 ## Mock receipt
 
-Use the `Load Mock Receipt` button in the UI to populate sample items and charges instantly.
+Use the `Load Mock Receipt` button in the UI to populate sample items and charges instantly to test out how it works
 
 ## Notes
 
 - In this setup, Gemini is called directly from the browser.
 - API key is never persisted to localStorage. If enabled, it is stored only in `sessionStorage` for the current browser session.
-- For production, consider routing through your own backend so API keys are not exposed client-side.
-- OCR extraction can still be imperfect; edit items/amounts before finalizing.
+- To consider routing through your a dedicated backend so API keys are not exposed client-side.
+- OCR extraction can still be imperfect; users are able to edit items/amounts before finalizing.
 - Draft fields reset when a new receipt image is uploaded.
 
 ## Build
