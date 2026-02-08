@@ -1,6 +1,6 @@
 # Receipt Splitter (React + Tailwind + Gemini)
 
-One-screen app to split bill items by person.
+One-screen app to split individual bill items by person.
 
 ## What it does
 
