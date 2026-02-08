@@ -1,15 +1,15 @@
-# Split (React + Tailwind + Gemini)
+# Split (React + Tailwind + Google Gemini)
 
-Ever paid the full bill and then struggled to calculate exactly how much each person owes?
+Ever paid the full bill and then struggled to calculate exactly how much each person owes, especially when everyone ordered different items?
 
-Split uses Google Gemini to scan receipt images and splits costs at the line-item level, so you can see precisely how much to collect from each person.
+Split uses Google Gemini to scan receipt images and split costs at the line-item level, so each person pays for exactly what they ordered and you know precisely how much to collect from everyone.
 
 <img width="924" height="900" alt="Screenshot 2026-02-08 at 23-08-14 split" src="https://github.com/user-attachments/assets/c9b5f2f0-34c0-410c-94ae-f7a4b6b82a3b" />
 
 ## What it does
 
 - Manually add people (no invites/accounts)
-- Scan a receipt with Gemini vision extraction
+- Scan a receipt with Google Gemini GAI extraction
 - Auto-detect line items, GST/tax, and service charge
 - Override GST/service toggles and values manually
 - Assign each line item to one person or equal-split across selected people
@@ -17,6 +17,7 @@ Split uses Google Gemini to scan receipt images and splits costs at the line-ite
 - Apply percentage discount on each line item
 - Autosave line items, charges, and final split snapshot to localStorage
 - Show final per-person payable amount with item, service, and GST breakdown
+- Generate a single sharable image to send to your group chat for bill collection
 
 ## Stack
 
