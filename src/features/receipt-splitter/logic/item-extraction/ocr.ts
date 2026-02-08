@@ -20,7 +20,7 @@ export async function analyzeReceiptWithGemini(
 ): Promise<OcrResponse> {
   const apiKey = apiKeyInput.trim()
   if (!apiKey) {
-    throw new Error('Missing Gemini API key. Enter it in the OCR section.')
+    throw new Error('Missing Gemini API key. Enter it above.')
   }
 
   const selectedModel = model.trim()

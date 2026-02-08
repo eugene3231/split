@@ -61,7 +61,7 @@ export function SetupPanel({
 }: SetupPanelProps) {
   return (
     <section className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-      <h2 className="text-lg font-semibold">Setup</h2>
+      <h2 className="text-lg font-semibold">Configure</h2>
 
       <form onSubmit={onPeopleSubmit} className="space-y-3">
         <label className="block text-sm font-medium text-slate-200" htmlFor="people-input">
@@ -103,9 +103,9 @@ export function SetupPanel({
       </div>
 
       <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-        <h3 className="font-medium">Receipt OCR (Gemini)</h3>
+        <h3 className="font-medium">Scan Receipt Image</h3>
         <p className="text-xs text-slate-400">
-          Sends your receipt to Gemini for structured extraction. You can override everything.
+          Scans your receipt using Google Gemini to prefill line items.
         </p>
         <div className="space-y-1">
           <label className="text-xs font-medium text-slate-300" htmlFor="gemini-api-key">
@@ -119,6 +119,18 @@ export function SetupPanel({
             placeholder="AIza..."
             className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm outline-none ring-sky-400 transition focus:ring-2"
           />
+          <p className="text-xs text-slate-400">
+            Generate your own key at{' '}
+            <a
+              href="https://aistudio.google.com/app/api-keys"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-sky-300 underline decoration-sky-500/60 underline-offset-2 hover:text-sky-200"
+            >
+              Google AI Studio
+            </a>{' '}
+            and paste it above. Your key is stored locally on-device and is used to call Google's Gemini APIs only.
+          </p>
         </div>
         <label className="inline-flex items-center gap-2 text-xs text-slate-300">
           <input

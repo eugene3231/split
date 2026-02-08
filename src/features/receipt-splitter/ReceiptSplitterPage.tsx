@@ -214,7 +214,7 @@ export function ReceiptSplitterPage() {
     }
 
     if (!geminiApiKeyInput.trim()) {
-      setScanError('Missing Gemini API key. Enter it in the OCR section.')
+      setScanError('Missing Gemini API key. Enter it above.')
       return
     }
 
@@ -271,7 +271,7 @@ export function ReceiptSplitterPage() {
         <header className="space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-400">Split Bills</p>
           <h1 className="text-3xl font-bold tracking-tight">Receipt Splitter</h1>
-          <p className="max-w-3xl text-slate-300">
+          <p className="w-full text-slate-300">
             Add people manually, scan a receipt, assign each line item, and get each person's final
             payable amount including service charge and GST.
           </p>

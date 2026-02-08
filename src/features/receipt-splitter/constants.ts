@@ -18,7 +18,7 @@ export const defaultGstState: ChargeState = {
   detectedSource: null,
 }
 
-export const GEMINI_MODELS = ['gemini-3-flash-preview'] as const
+export const GEMINI_MODELS = ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-2.5-flash-lite','gemini-2.5-pro'] as const
 export const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0]
 export const LOCAL_STORAGE_DRAFT_KEY = 'split:receipt-draft:v1'
 export const LOCAL_STORAGE_OCR_SETTINGS_KEY = 'split:ocr-settings:v1'

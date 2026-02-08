@@ -45,7 +45,7 @@ export function ChargeControl({ label, value, onChange }: ChargeControlProps) {
       </div>
       {value.detectedSource ? (
         <p className="text-[11px] text-slate-400">
-          OCR detected via {value.detectedSource}
+          Gemini detected via {value.detectedSource}
           {value.detectedConfidence !== null
             ? ` (${Math.round(value.detectedConfidence * 100)}% confidence)`
             : ''}
