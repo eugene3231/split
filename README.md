@@ -1,6 +1,6 @@
 # Split (React + Tailwind + Google Gemini)
 
-https://thunderous-pasca-a43443.netlify.app/
+https://split-receipt.netlify.app/
 
 Ever paid the full bill and then struggled to calculate exactly how much each person owes, especially when everyone ordered different items?
 
