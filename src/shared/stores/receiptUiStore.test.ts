@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_GEMINI_MODEL } from '../constants'
 import { useReceiptUiStore } from './receiptUiStore'
 
@@ -25,8 +25,14 @@ beforeEach(() => {
   resetStore()
 })
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe('receiptUiStore', () => {
-  it('startScan sets loading baseline and first loading message', () => {
+  it('startScan sets loading baseline and randomized loading message', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+
     useReceiptUiStore.getState().startScan()
     const state = useReceiptUiStore.getState()
 
@@ -38,21 +44,21 @@ describe('receiptUiStore', () => {
     expect(state.loadingMessageIndex).toBe(0)
   })
 
-  it('advanceLoadingMessage cycles messages', () => {
+  it('advanceLoadingMessage picks a different random message', () => {
+    const randomSpy = vi.spyOn(Math, 'random')
+    randomSpy.mockReturnValueOnce(0)
+    randomSpy.mockReturnValueOnce(0)
+
     const actions = useReceiptUiStore.getState()
     actions.startScan()
-    actions.advanceLoadingMessage()
-    let state = useReceiptUiStore.getState()
-    expect(state.loadingMessageIndex).toBe(1)
-    expect(state.loadingMessage).toBe(SECOND_LOADING_MESSAGE)
+    const firstState = useReceiptUiStore.getState()
 
     actions.advanceLoadingMessage()
-    actions.advanceLoadingMessage()
-    actions.advanceLoadingMessage()
-    actions.advanceLoadingMessage()
-    state = useReceiptUiStore.getState()
-    expect(state.loadingMessageIndex).toBe(0)
-    expect(state.loadingMessage).toBe(FIRST_LOADING_MESSAGE)
+    const state = useReceiptUiStore.getState()
+
+    expect(state.loadingMessageIndex).toBe(1)
+    expect(state.loadingMessage).toBe(SECOND_LOADING_MESSAGE)
+    expect(state.loadingMessage).not.toBe(firstState.loadingMessage)
   })
 
   it('finishScan clears active loading state', () => {
