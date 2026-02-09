@@ -1,4 +1,4 @@
-import { ReceiptSplitterPage } from './features/receipt-splitter/ReceiptSplitterPage'
+import { ReceiptSplitterPage } from './pages/ReceiptSplitterPage'
 
 function App() {
   return <ReceiptSplitterPage />

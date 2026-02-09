@@ -1,0 +1,47 @@
+import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
+import { ReceiptScanSection } from './ReceiptScanSection'
+
+type ReceiptImportPanelProps = {
+  onReceiptFileSelected: (file: File | null) => void
+  onScanReceipt: () => void
+  onLoadMockReceipt: () => void
+}
+
+export function ReceiptImportPanel({
+  onReceiptFileSelected,
+  onScanReceipt,
+  onLoadMockReceipt,
+}: ReceiptImportPanelProps) {
+  const geminiApiKeyInput = useReceiptUiStore((state) => state.geminiApiKeyInput)
+  const rememberGeminiApiKey = useReceiptUiStore((state) => state.rememberGeminiApiKey)
+  const geminiModel = useReceiptUiStore((state) => state.geminiModel)
+  const receiptFile = useReceiptUiStore((state) => state.receiptFile)
+  const isScanning = useReceiptUiStore((state) => state.isScanning)
+  const scanStatus = useReceiptUiStore((state) => state.scanStatus)
+  const scanError = useReceiptUiStore((state) => state.scanError)
+  const scanWarnings = useReceiptUiStore((state) => state.scanWarnings)
+  const loadingMessage = useReceiptUiStore((state) => state.loadingMessage)
+  const setGeminiApiKeyInput = useReceiptUiStore((state) => state.setGeminiApiKeyInput)
+  const setRememberGeminiApiKey = useReceiptUiStore((state) => state.setRememberGeminiApiKey)
+  const setGeminiModel = useReceiptUiStore((state) => state.setGeminiModel)
+
+  return (
+    <ReceiptScanSection
+      geminiApiKeyInput={geminiApiKeyInput}
+      onGeminiApiKeyInputChange={setGeminiApiKeyInput}
+      rememberGeminiApiKey={rememberGeminiApiKey}
+      onRememberGeminiApiKeyChange={setRememberGeminiApiKey}
+      geminiModel={geminiModel}
+      onGeminiModelChange={setGeminiModel}
+      receiptFile={receiptFile}
+      onReceiptFileSelected={onReceiptFileSelected}
+      isScanning={isScanning}
+      loadingMessage={loadingMessage}
+      scanStatus={scanStatus}
+      scanError={scanError}
+      scanWarnings={scanWarnings}
+      onScanReceipt={onScanReceipt}
+      onLoadMockReceipt={onLoadMockReceipt}
+    />
+  )
+}
