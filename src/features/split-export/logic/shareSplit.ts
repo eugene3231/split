@@ -6,7 +6,6 @@ type ShareNavigator = Pick<Navigator, 'share' | 'canShare' | 'clipboard'>
 type ShareSupport = 'native' | 'fallback'
 
 type ShareFinalSplitOptions = {
-  text: string
   image: Blob
   fileName: string
   navigator?: ShareNavigator
@@ -30,11 +29,12 @@ export function getShareSupport(
   }
 
   if (typeof File === 'undefined') {
-    return 'native'
+    return 'fallback'
   }
 
-  if (typeof navigatorLike.canShare !== 'function') {
-    return 'native'
+  if (typeof navigatorLike.canShare === 'function') {
+    const probeFile = new File([''], 'split-final.png', { type: 'image/png' })
+    return navigatorLike.canShare({ files: [probeFile] }) ? 'native' : 'fallback'
   }
 
   return 'native'
@@ -57,24 +57,18 @@ export async function shareFinalSplit(options: ShareFinalSplitOptions): Promise<
     return 'fallback'
   }
 
-  const textOnlyPayload = { text: options.text }
   if (typeof File === 'undefined') {
-    await navigatorLike.share(textOnlyPayload)
-    return 'native'
+    return 'fallback'
   }
 
   const file = new File([options.image], options.fileName, { type: options.image.type || 'image/png' })
 
   if (typeof navigatorLike.canShare === 'function' && !navigatorLike.canShare({ files: [file] })) {
-    await navigatorLike.share(textOnlyPayload)
-    return 'native'
+    return 'fallback'
   }
 
   try {
-    await navigatorLike.share({
-      ...textOnlyPayload,
-      files: [file],
-    })
+    await navigatorLike.share({ files: [file] })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error
