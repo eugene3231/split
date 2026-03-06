@@ -54,9 +54,9 @@ export function ReceiptScanSection({
 
   return (
     <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-      <h3 className="font-medium">Scan Receipt Image</h3>
+      <h3 className="font-medium">Scan Image</h3>
       <p className="text-xs text-slate-400">
-        Scans your receipt using Google Gemini to prefill line items.
+        Uses Google Gemini to prefill line items, subtotal, service charge, and taxes.
       </p>
       <div className="space-y-1">
         <label className="text-xs font-medium text-slate-300" htmlFor="gemini-api-key">

@@ -35,16 +35,7 @@ export function FinalSplitPanel({
           : 'space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5'
       }
     >
-      <div className="flex items-center justify-between gap-3">
-        {variant === 'standalone' ? <h2 className="text-lg font-semibold">Final Split</h2> : <div />}
-        <button
-          type="button"
-          onClick={() => setShowItemMeta((current) => !current)}
-          className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
-        >
-          {showItemMeta ? 'Hide item details' : 'Show item details'}
-        </button>
-      </div>
+      {variant === 'standalone' ? <h2 className="text-lg font-semibold">Final Split</h2> : null}
       {exportSection}
       <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm">
         <SummaryRow label="Subtotal" value={formatCurrencyFromCents(split.subtotalCents)} />
@@ -65,6 +56,16 @@ export function FinalSplitPanel({
       </div>
 
       <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-slate-200">Per-person breakdown</p>
+          <button
+            type="button"
+            onClick={() => setShowItemMeta((current) => !current)}
+            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+          >
+            {showItemMeta ? 'Hide item details' : 'Show item details'}
+          </button>
+        </div>
         {people.length === 0 ? (
           <p className="text-sm text-slate-400">Add people to see totals.</p>
         ) : (

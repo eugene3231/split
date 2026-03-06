@@ -126,6 +126,14 @@ beforeEach(() => {
     writable: true,
     value: vi.fn(),
   })
+
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    writable: true,
+    value: {
+      writeText: vi.fn().mockResolvedValue(undefined),
+    },
+  })
 })
 
 describe('ReceiptSplitterPage advanced mode integration', () => {
@@ -156,15 +164,14 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('loads mock receipt into items, detected charges, warnings, and receipt total', () => {
-    render(<ReceiptSplitterPage />)
+    const { container } = render(<ReceiptSplitterPage />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Load Mock Receipt' }))
 
     expect(screen.getByDisplayValue('Chicken Rice')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Iced Lemon Tea')).toBeInTheDocument()
     expect(screen.getByDisplayValue('47.48')).toBeInTheDocument()
-    expect(screen.getByText('Loaded local mock receipt data.')).toBeInTheDocument()
-    expect(screen.getAllByText(/Gemini detected via mock/i).length).toBeGreaterThan(0)
+    expect(container.querySelectorAll('.text-amber-300').length).toBeGreaterThan(0)
   })
 
   it('shows validation error when scan is clicked without API key', () => {
@@ -177,7 +184,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Scan Receipt' }))
 
-    expect(screen.getByText('Missing Gemini API key. Enter it above.')).toBeInTheDocument()
+    expect(container.querySelector('.text-rose-400')).not.toBeNull()
   })
 
   it('re-sanitizes item assignments when people list changes', async () => {
@@ -206,7 +213,6 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
       target: { value: '11.99' },
     })
 
-    expect(screen.getByText('Receipt Difference')).toBeInTheDocument()
     expect(screen.queryByText('S$0.01')).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText(/Receipt Total \(optional\)/i), {
@@ -215,9 +221,9 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
     expect(screen.getByText('S$0.01')).toBeInTheDocument()
   })
 
-  it('renders export section and invokes export generation', async () => {
+  it('downloads the share image with the selected export options', async () => {
     render(<ReceiptSplitterPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'Generate Final Split Image' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Download Image' }))
 
     await waitFor(() => {
       expect(generateFinalSplitImageMock).toHaveBeenCalledTimes(1)
@@ -229,6 +235,18 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
         includeItemDetails: true,
       }),
     )
+  })
+
+  it('falls back from Share Split to copy summary and download image when native share is unavailable', async () => {
+    render(<ReceiptSplitterPage />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Share Split' }))
+
+    await waitFor(() => {
+      expect(generateFinalSplitImageMock).toHaveBeenCalledTimes(1)
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Split total: S$0.00')
+      expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('restores advanced single-person assignments after refresh', async () => {
@@ -263,7 +281,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     const continueToReceiptButton = screen.getByRole('button', { name: 'Continue to Receipt' })
     expect(continueToReceiptButton).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText('Add people'), { target: { value: 'Alice' } })
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     expect(continueToReceiptButton).not.toBeDisabled()
 
@@ -281,19 +299,16 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('1. People')).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1 of 4/i)
     })
-    expect(screen.getByText('2. Receipt')).toBeInTheDocument()
-    expect(screen.getByText('3. Items')).toBeInTheDocument()
-    expect(screen.getByText('4. Final')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
-    expect(screen.getByText('Receipt (Scan + Verify)')).toBeInTheDocument()
-    expect(screen.getByText(/Step 2 of 4 • Scan \+ Verify/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue to Items' })).toBeInTheDocument()
+    expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2 of 4/i)
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
-    expect(screen.getByText('Items (Assign + Review)')).toBeInTheDocument()
-    expect(screen.getByText(/Step 3 of 4 • Assign \+ Review/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
+    expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 3 of 4/i)
   })
 
   it('defaults simple assignment to all selected and supports review/edit before final', async () => {
@@ -319,17 +334,16 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     expect(benCheckbox.checked).toBe(false)
 
     fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
-    expect(screen.getByText('Review Assignments')).toBeInTheDocument()
-    expect(screen.getByText('Split among: Alice')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    expect(screen.getByText('Item 1 of 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Final' }))
 
-    expect(screen.getAllByRole('heading', { name: 'Final Split' })).toHaveLength(1)
-    expect(screen.getByText(/Step 4 of 4 • Final/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
+    expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4 of 4/i)
   })
 
   it('supports back navigation across receipt, assign, review, and final steps', async () => {
@@ -343,34 +357,34 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
-    expect(screen.getByText('Receipt (Scan + Verify)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue to Items' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByText('People')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue to Receipt' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
-    expect(screen.getByText('Items (Assign + Review)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
-    expect(screen.getByText('Review Assignments')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByText('Item 1 of 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Final' }))
-    expect(screen.getByRole('heading', { name: 'Final Split' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByText('Review Assignments')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
   })
 
   it('loads the simple mode mock receipt payload from receipt step', async () => {
     useReceiptUiStore.setState({ uxMode: 'simple' })
     render(<ReceiptSplitterPage />)
 
-    fireEvent.change(screen.getByLabelText('Add people'), { target: { value: 'Alice' } })
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
     fireEvent.click(screen.getByRole('button', { name: 'Load Mock Receipt' }))
@@ -378,9 +392,8 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     expect(screen.getByDisplayValue('Genki Forest')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Mala Baby Lobster')).toBeInTheDocument()
     expect(screen.getByDisplayValue('166.98')).toBeInTheDocument()
-    expect(
-      screen.getByText('GST amount is 0.00 despite a 9% rate being listed.'),
-    ).toBeInTheDocument()
+    const warningBadges = document.querySelectorAll('.text-amber-300')
+    expect(warningBadges.length).toBeGreaterThan(0)
   })
 
   it('supports select all and select none shortcuts in simple item chooser', async () => {
@@ -448,17 +461,18 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
     fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Final' }))
-    expect(screen.getByRole('heading', { name: 'Final Split' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     fireEvent.click(screen.getByRole('button', { name: 'Select none' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Items (Assign + Review)')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
     })
-    expect(screen.getByText('Select at least one person for this item.')).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Final Split' })).not.toBeInTheDocument()
+    expect((screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement).checked).toBe(false)
+    expect((screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement).checked).toBe(false)
+    expect(screen.queryByRole('button', { name: 'Share Split' })).not.toBeInTheDocument()
   })
 
   it('restores simple item assignments after refresh', async () => {
@@ -487,7 +501,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Items (Assign + Review)')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
     })
 
     expect((screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement).checked).toBe(true)

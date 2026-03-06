@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import type { ChargeState, Person, SplitResult } from '../../../shared/types'
 import { generateFinalSplitImage } from '../api/finalSplitImage'
+import {
+  buildSplitShareText,
+  copyShareText,
+  downloadImage,
+  getShareSupport,
+  shareFinalSplit,
+} from '../logic/shareSplit'
 
 type ExportImageSectionProps = {
   people: Person[]
@@ -19,45 +26,104 @@ export function ExportImageSection({
 }: ExportImageSectionProps) {
   const [includeExportLineItems, setIncludeExportLineItems] = useState(true)
   const [includeExportItemDetails, setIncludeExportItemDetails] = useState(true)
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
-  const [exportError, setExportError] = useState<string | null>(null)
+  const [isSharing, setIsSharing] = useState(false)
+  const [isDownloadingImage, setIsDownloadingImage] = useState(false)
+  const [isCopyingSummary, setIsCopyingSummary] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [shareMessage, setShareMessage] = useState<string | null>(null)
 
-  const handleGenerateImage = async () => {
+  const shareText = buildSplitShareText({ people, split })
+  const shareSupport = getShareSupport()
+
+  const getExportBlob = async () => {
+    setImageError(null)
+
+    return generateFinalSplitImage({
+      people,
+      split,
+      serviceCharge,
+      gst,
+      reconciliationCents,
+      includeLineItems: includeExportLineItems,
+      includeItemDetails: includeExportLineItems && includeExportItemDetails,
+    })
+  }
+
+  const handleDownloadImage = async () => {
     try {
-      setIsGeneratingImage(true)
-      setExportError(null)
-
-      const blob = await generateFinalSplitImage({
-        people,
-        split,
-        serviceCharge,
-        gst,
-        reconciliationCents,
-        includeLineItems: includeExportLineItems,
-        includeItemDetails: includeExportLineItems && includeExportItemDetails,
-      })
+      setIsDownloadingImage(true)
+      setShareError(null)
+      setShareMessage(null)
+      const blob = await getExportBlob()
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = `split-final-${timestamp}.png`
-      anchor.click()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      downloadImage(blob, `split-final-${timestamp}.png`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate image.'
-      setExportError(message)
+      setImageError(message)
     } finally {
-      setIsGeneratingImage(false)
+      setIsDownloadingImage(false)
+    }
+  }
+
+  const handleCopySummary = async () => {
+    try {
+      setIsCopyingSummary(true)
+      setShareError(null)
+      setShareMessage(null)
+      await copyShareText(shareText)
+      setShareMessage('Summary copied.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to copy summary.'
+      setShareError(message)
+    } finally {
+      setIsCopyingSummary(false)
+    }
+  }
+
+  const handleShareSplit = async () => {
+    try {
+      setIsSharing(true)
+      setImageError(null)
+      setShareError(null)
+      setShareMessage(null)
+
+      const blob = await getExportBlob()
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const fileName = `split-final-${timestamp}.png`
+      const mode = await shareFinalSplit({
+        text: shareText,
+        image: blob,
+        fileName,
+      })
+
+      if (mode === 'native') {
+        setShareMessage('Opened native share.')
+        return
+      }
+
+      await copyShareText(shareText)
+      downloadImage(blob, fileName)
+      setShareMessage('Summary copied and image downloaded.')
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return
+      }
+
+      const message = error instanceof Error ? error.message : 'Failed to share split.'
+      setShareError(message)
+    } finally {
+      setIsSharing(false)
     }
   }
 
   return (
     <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
       <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Export Image</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Share Split</p>
         <p className="text-xs text-slate-500">
-          Choose what to include in the image, then generate the final shareable summary.
+          Share the final split with ready-to-paste text and image summary.
         </p>
       </div>
 
@@ -70,10 +136,8 @@ export function ExportImageSection({
             className="mt-0.5"
           />
           <span className="space-y-1">
-            <span className="block font-medium text-slate-100">Include line item breakdown</span>
-            <span className="block text-slate-500">
-              Show each assigned item under every person in the export image.
-            </span>
+            <span className="block font-medium text-slate-100">Show items</span>
+            <span className="block text-slate-500">Include each person&apos;s assigned items.</span>
           </span>
         </label>
 
@@ -92,33 +156,49 @@ export function ExportImageSection({
             className="mt-0.5"
           />
           <span className="space-y-1">
-            <span className="block font-medium text-slate-100">Include item details</span>
-            <span className="block text-slate-500">
-              Add discount and split-count notes below each exported line item.
-            </span>
+            <span className="block font-medium text-slate-100">Show item notes</span>
+            <span className="block text-slate-500">Include discount and split notes.</span>
           </span>
         </label>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-800 pt-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-3 border-t border-slate-800 pt-3">
         <div className="text-[11px] text-slate-500">
-          {includeExportLineItems
-            ? includeExportItemDetails
-              ? 'Export will include line items and item details.'
-              : 'Export will include line items only.'
-            : 'Export will include totals only.'}
+          {shareSupport === 'native'
+            ? 'Share Split will use your device share sheet.'
+            : 'Share Split will copy the summary and download the image.'}
         </div>
-        <button
-          type="button"
-          onClick={handleGenerateImage}
-          disabled={isGeneratingImage}
-          className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-        >
-          {isGeneratingImage ? 'Generating image...' : 'Generate Final Split Image'}
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={handleShareSplit}
+            disabled={isSharing || isDownloadingImage}
+            className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {isSharing ? 'Sharing...' : 'Share Split'}
+          </button>
+          <button
+            type="button"
+            onClick={handleCopySummary}
+            disabled={isCopyingSummary}
+            className="w-full rounded-md border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-100 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {isCopyingSummary ? 'Copying...' : 'Copy Summary'}
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadImage}
+            disabled={isSharing || isDownloadingImage}
+            className="w-full rounded-md border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-xs font-semibold text-sky-200 transition hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {isDownloadingImage ? 'Downloading...' : 'Download Image'}
+          </button>
+        </div>
       </div>
 
-      {exportError ? <p className="text-xs text-rose-400">{exportError}</p> : null}
+      {shareMessage ? <p className="text-xs text-emerald-300">{shareMessage}</p> : null}
+      {shareError ? <p className="text-xs text-rose-400">{shareError}</p> : null}
+      {imageError ? <p className="text-xs text-rose-400">{imageError}</p> : null}
     </div>
   )
 }

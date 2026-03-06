@@ -195,10 +195,10 @@ export function SimpleWizardShell({
       <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
         {activeStep === 'people' ? (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">People</h2>
+            <h2 className="text-lg font-semibold">Add People</h2>
             <form onSubmit={handlePeopleSubmit} className="space-y-3">
               <label className="block text-sm font-medium text-slate-200" htmlFor="simple-people-input">
-                Add people
+                People involved
               </label>
               <div className="flex gap-2">
                 <input
@@ -238,7 +238,7 @@ export function SimpleWizardShell({
 
         {activeStep === 'receipt' ? (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Receipt (Scan + Verify)</h2>
+            <h2 className="text-lg font-semibold">Add Receipt</h2>
             <ReceiptImportPanel
               onReceiptFileSelected={onReceiptFileSelected}
               onScanReceipt={onScanReceipt}
@@ -332,7 +332,7 @@ export function SimpleWizardShell({
 
         {activeStep === 'items' ? (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Items (Assign + Review)</h2>
+            <h2 className="text-lg font-semibold">Assign Items & Review</h2>
             {itemsSubPhase === 'assign' ? (
               <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
                 {activeItem ? (
@@ -487,9 +487,9 @@ export function SimpleWizardShell({
 
         {activeStep === 'final' ? (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Final Split</h2>
+            <h2 className="text-lg font-semibold">Split Result</h2>
             <p className="text-sm text-slate-400">
-              Review each person&apos;s total, check the receipt difference, and export when ready.
+              Review each person&apos;s total, check the receipt difference, and share the split to get your $ back.
             </p>
             <FinalSplitPanel
               people={people}

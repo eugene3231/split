@@ -267,11 +267,10 @@ export function ReceiptSplitterPage() {
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-7xl space-y-6 p-4 pb-10 sm:p-6 lg:p-8">
         <header className="space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-400">Split Bills</p>
-          <h1 className="text-3xl font-bold tracking-tight">Receipt Splitter</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-400">Split Receipts</p>
+          <h1 className="text-3xl font-bold tracking-tight">Split</h1>
           <p className="w-full text-slate-300">
-            Add people manually, scan a receipt, assign each line item, and get each person's final
-            payable amount including service charge and GST.
+            Item-level splits with discounts, charges, and shareable text and image summaries.
           </p>
           <div className="inline-flex rounded-lg border border-slate-700 bg-slate-900 p-1 text-xs font-semibold">
             <button
