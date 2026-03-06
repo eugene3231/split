@@ -12,8 +12,6 @@ type ShareFinalSplitOptions = {
   navigator?: ShareNavigator
 }
 
-const FALLBACK_FILE_NAME = 'split-final.png'
-
 export function buildSplitShareText(args: { people: Person[]; split: SplitResult }): string {
   const lines = [`Split total: ${formatCurrencyFromCents(args.split.grandTotalCents)}`]
 
@@ -26,7 +24,6 @@ export function buildSplitShareText(args: { people: Person[]; split: SplitResult
 
 export function getShareSupport(
   navigatorLike: ShareNavigator | undefined = getNavigator(),
-  _fileName = FALLBACK_FILE_NAME,
 ): ShareSupport {
   if (!navigatorLike || typeof navigatorLike.share !== 'function') {
     return 'fallback'
