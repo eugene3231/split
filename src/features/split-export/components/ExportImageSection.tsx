@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChargeState, Person, SplitResult } from '../../../shared/types'
 import { generateFinalSplitImage } from '../api/finalSplitImage'
 import {
@@ -29,12 +29,22 @@ export function ExportImageSection({
   const [isSharing, setIsSharing] = useState(false)
   const [isDownloadingImage, setIsDownloadingImage] = useState(false)
   const [isCopyingSummary, setIsCopyingSummary] = useState(false)
+  const [isSummaryCopied, setIsSummaryCopied] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
   const [shareMessage, setShareMessage] = useState<string | null>(null)
+  const copySuccessTimeoutRef = useRef<number | null>(null)
 
   const shareText = buildSplitShareText({ people, split })
   const shareSupport = getShareSupport()
+
+  useEffect(() => {
+    return () => {
+      if (copySuccessTimeoutRef.current !== null) {
+        window.clearTimeout(copySuccessTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const getExportBlob = async () => {
     setImageError(null)
@@ -74,6 +84,13 @@ export function ExportImageSection({
       setShareMessage(null)
       await copyShareText(shareText)
       setShareMessage('Summary copied.')
+      setIsSummaryCopied(true)
+      if (copySuccessTimeoutRef.current !== null) {
+        window.clearTimeout(copySuccessTimeoutRef.current)
+      }
+      copySuccessTimeoutRef.current = window.setTimeout(() => {
+        setIsSummaryCopied(false)
+      }, 2500)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to copy summary.'
       setShareError(message)
@@ -181,9 +198,13 @@ export function ExportImageSection({
             type="button"
             onClick={handleCopySummary}
             disabled={isCopyingSummary}
-            className="w-full rounded-md border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-100 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            className={`w-full rounded-md border px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto ${
+              isSummaryCopied
+                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                : 'border-slate-700 bg-slate-900 text-slate-100 hover:border-slate-500'
+            }`}
           >
-            {isCopyingSummary ? 'Copying...' : 'Copy Summary'}
+            {isCopyingSummary ? 'Copying...' : isSummaryCopied ? 'Copied ✓' : 'Copy Summary'}
           </button>
           <button
             type="button"

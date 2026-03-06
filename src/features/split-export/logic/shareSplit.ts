@@ -26,18 +26,21 @@ export function buildSplitShareText(args: { people: Person[]; split: SplitResult
 
 export function getShareSupport(
   navigatorLike: ShareNavigator | undefined = getNavigator(),
-  fileName = FALLBACK_FILE_NAME,
+  _fileName = FALLBACK_FILE_NAME,
 ): ShareSupport {
-  if (!navigatorLike || typeof navigatorLike.share !== 'function' || typeof File === 'undefined') {
+  if (!navigatorLike || typeof navigatorLike.share !== 'function') {
     return 'fallback'
+  }
+
+  if (typeof File === 'undefined') {
+    return 'native'
   }
 
   if (typeof navigatorLike.canShare !== 'function') {
     return 'native'
   }
 
-  const probeFile = new File([''], fileName, { type: 'image/png' })
-  return navigatorLike.canShare({ files: [probeFile] }) ? 'native' : 'fallback'
+  return 'native'
 }
 
 export async function copyShareText(
@@ -53,17 +56,37 @@ export async function copyShareText(
 
 export async function shareFinalSplit(options: ShareFinalSplitOptions): Promise<ShareSupport> {
   const navigatorLike = options.navigator ?? getNavigator()
-  const support = getShareSupport(navigatorLike, options.fileName)
-
-  if (support !== 'native') {
+  if (!navigatorLike || typeof navigatorLike.share !== 'function') {
     return 'fallback'
   }
 
+  const textOnlyPayload = { text: options.text }
+  const supportsFiles =
+    typeof File !== 'undefined' &&
+    (typeof navigatorLike.canShare !== 'function' ||
+      navigatorLike.canShare({
+        files: [new File([''], options.fileName, { type: options.image.type || 'image/png' })],
+      }))
+
+  if (!supportsFiles) {
+    await navigatorLike.share(textOnlyPayload)
+    return 'native'
+  }
+
   const file = new File([options.image], options.fileName, { type: options.image.type || 'image/png' })
-  await navigatorLike!.share!({
-    text: options.text,
-    files: [file],
-  })
+
+  try {
+    await navigatorLike.share({
+      ...textOnlyPayload,
+      files: [file],
+    })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error
+    }
+
+    await navigatorLike.share(textOnlyPayload)
+  }
 
   return 'native'
 }
