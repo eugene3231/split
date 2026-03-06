@@ -6,7 +6,7 @@ type WizardProgressHeaderProps = {
   context: WizardProgressContext
 }
 
-export const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: string }> = {
+const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: string }> = {
   people: {
     label: 'Add People',
     description: 'The oweing parties.',
