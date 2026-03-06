@@ -58,14 +58,7 @@ export async function shareFinalSplit(options: ShareFinalSplitOptions): Promise<
   }
 
   const textOnlyPayload = { text: options.text }
-  const supportsFiles =
-    typeof File !== 'undefined' &&
-    (typeof navigatorLike.canShare !== 'function' ||
-      navigatorLike.canShare({
-        files: [new File([''], options.fileName, { type: options.image.type || 'image/png' })],
-      }))
-
-  if (!supportsFiles) {
+  if (typeof File === 'undefined') {
     await navigatorLike.share(textOnlyPayload)
     return 'native'
   }
