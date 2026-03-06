@@ -41,12 +41,7 @@ describe('getShareSupport', () => {
   })
 
   it('returns fallback when navigator.share is unavailable', () => {
-    expect(
-      getShareSupport({
-        canShare: vi.fn(),
-        clipboard: {} as Navigator['clipboard'],
-      } as Navigator),
-    ).toBe('fallback')
+    expect(getShareSupport(undefined)).toBe('fallback')
   })
 })
 
