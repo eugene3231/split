@@ -6,11 +6,23 @@ type WizardProgressHeaderProps = {
   context: WizardProgressContext
 }
 
-const STEP_LABELS: Record<SimpleWizardStep, string> = {
-  people: 'People',
-  receipt: 'Receipt',
-  items: 'Items',
-  final: 'Final',
+const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: string }> = {
+  people: {
+    label: 'Add People',
+    description: 'The oweing parties.',
+  },
+  receipt: {
+    label: 'Add Receipt',
+    description: 'Import line items and other charges using Gemini.',
+  },
+  items: {
+    label: 'Assign Items',
+    description: 'Pick who shares each item.',
+  },
+  final: {
+    label: 'Review & Share',
+    description: 'Check final amounts, then share the split result.',
+  },
 }
 
 export function WizardProgressHeader({ activeStep, context }: WizardProgressHeaderProps) {
@@ -32,7 +44,8 @@ export function WizardProgressHeader({ activeStep, context }: WizardProgressHead
                 state === 'pending' ? 'border-slate-700 bg-slate-950/60 text-slate-400' : '',
               ].join(' ')}
             >
-              <p className="font-semibold">{index + 1}. {STEP_LABELS[step]}</p>
+              <p className="font-semibold">{index + 1}. {STEP_CONTENT[step].label}</p>
+              <p className="mt-1 text-[11px] leading-snug">{STEP_CONTENT[step].description}</p>
             </div>
           )
         })}
@@ -52,7 +65,7 @@ function buildContextText(step: SimpleWizardStep, context: WizardProgressContext
 
   if (step === 'items') {
     const itemNumber = context.detectedItemsCount === 0 ? 0 : Math.min(context.activeItemIndex + 1, context.detectedItemsCount)
-    return `Step 3 of 4 • Assign + Review • Item ${itemNumber}/${context.detectedItemsCount} • Assigned ${context.assignedItemCount}/${context.detectedItemsCount}`
+    return `Step 3 of 4 • Assign Items • Item ${itemNumber}/${context.detectedItemsCount} • Assigned ${context.assignedItemCount}/${context.detectedItemsCount}`
   }
 
   if (step === 'final') {
