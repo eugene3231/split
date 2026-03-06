@@ -6,7 +6,7 @@ type WizardProgressHeaderProps = {
   context: WizardProgressContext
 }
 
-const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: string }> = {
+export const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: string }> = {
   people: {
     label: 'Add People',
     description: 'The oweing parties.',
@@ -20,7 +20,7 @@ const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: strin
     description: 'Pick who shares each item.',
   },
   final: {
-    label: 'Review & Share',
+    label: 'Split Result',
     description: 'Check final amounts, then share the split result.',
   },
 }
@@ -29,7 +29,7 @@ export function WizardProgressHeader({ activeStep, context }: WizardProgressHead
   const activeStepIndex = SIMPLE_WIZARD_STEPS.indexOf(activeStep)
 
   return (
-    <section className="sticky top-3 z-10 space-y-3 rounded-2xl border border-slate-800 bg-slate-900/95 p-4 backdrop-blur">
+    <section className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/95 p-4 backdrop-blur">
       <div className="grid gap-2 sm:grid-cols-4">
         {SIMPLE_WIZARD_STEPS.map((step, index) => {
           const state = index < activeStepIndex ? 'completed' : index === activeStepIndex ? 'active' : 'pending'
