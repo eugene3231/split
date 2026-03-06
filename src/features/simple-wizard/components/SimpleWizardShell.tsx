@@ -522,12 +522,12 @@ export function SimpleWizardShell({
             className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
           >
             {activeStep === 'people'
-              ? 'Continue to Receipt'
+              ? 'Continue to Add Receipt'
               : activeStep === 'receipt'
-                ? 'Continue to Items'
+                ? 'Continue to Assign Items'
                 : itemsSubPhase === 'assign'
                   ? 'Review Items'
-                  : 'Continue to Final'}
+                  : 'Continue to Split Result'}
           </button>
         ) : null}
       </div>
