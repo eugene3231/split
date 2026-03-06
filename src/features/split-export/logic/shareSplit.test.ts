@@ -46,7 +46,7 @@ describe('getShareSupport', () => {
 })
 
 describe('shareFinalSplit', () => {
-  it('still attempts file share when canShare rejects files', async () => {
+  it('shares text only when canShare rejects files', async () => {
     const share = vi.fn().mockResolvedValue(undefined)
     const canShare = vi.fn(() => false)
 
@@ -63,19 +63,13 @@ describe('shareFinalSplit', () => {
 
     expect(mode).toBe('native')
     expect(share).toHaveBeenCalledTimes(1)
-    expect(share).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: 'Split total: S$0.00',
-        files: expect.any(Array),
-      }),
-    )
+    expect(share).toHaveBeenCalledWith({
+      text: 'Split total: S$0.00',
+    })
   })
 
-  it('retries with text-only share when share with files fails', async () => {
-    const share = vi
-      .fn()
-      .mockRejectedValueOnce(new TypeError('files not supported'))
-      .mockResolvedValueOnce(undefined)
+  it('returns fallback when share with files fails', async () => {
+    const share = vi.fn().mockRejectedValueOnce(new TypeError('files not supported'))
     const canShare = vi.fn(() => true)
 
     const mode = await shareFinalSplit({
@@ -89,10 +83,7 @@ describe('shareFinalSplit', () => {
       },
     })
 
-    expect(mode).toBe('native')
-    expect(share).toHaveBeenCalledTimes(2)
-    expect(share).toHaveBeenLastCalledWith({
-      text: 'Split total: S$0.00',
-    })
+    expect(mode).toBe('fallback')
+    expect(share).toHaveBeenCalledTimes(1)
   })
 })

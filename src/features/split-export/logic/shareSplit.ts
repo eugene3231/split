@@ -65,6 +65,11 @@ export async function shareFinalSplit(options: ShareFinalSplitOptions): Promise<
 
   const file = new File([options.image], options.fileName, { type: options.image.type || 'image/png' })
 
+  if (typeof navigatorLike.canShare === 'function' && !navigatorLike.canShare({ files: [file] })) {
+    await navigatorLike.share(textOnlyPayload)
+    return 'native'
+  }
+
   try {
     await navigatorLike.share({
       ...textOnlyPayload,
@@ -74,8 +79,7 @@ export async function shareFinalSplit(options: ShareFinalSplitOptions): Promise<
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error
     }
-
-    await navigatorLike.share(textOnlyPayload)
+    return 'fallback'
   }
 
   return 'native'
