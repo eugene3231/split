@@ -46,7 +46,7 @@ describe('getShareSupport', () => {
 })
 
 describe('shareFinalSplit', () => {
-  it('shares text only when canShare rejects files', async () => {
+  it('still attempts file share when canShare rejects files', async () => {
     const share = vi.fn().mockResolvedValue(undefined)
     const canShare = vi.fn(() => false)
 
@@ -62,9 +62,13 @@ describe('shareFinalSplit', () => {
     })
 
     expect(mode).toBe('native')
-    expect(share).toHaveBeenCalledWith({
-      text: 'Split total: S$0.00',
-    })
+    expect(share).toHaveBeenCalledTimes(1)
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'Split total: S$0.00',
+        files: expect.any(Array),
+      }),
+    )
   })
 
   it('retries with text-only share when share with files fails', async () => {
