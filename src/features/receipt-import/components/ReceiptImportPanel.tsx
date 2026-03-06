@@ -5,12 +5,18 @@ type ReceiptImportPanelProps = {
   onReceiptFileSelected: (file: File | null) => void
   onScanReceipt: () => void
   onLoadMockReceipt: () => void
+  hideModelInAdvancedSettings?: boolean
+  enableCameraCapture?: boolean
+  showLoadMockButton?: boolean
 }
 
 export function ReceiptImportPanel({
   onReceiptFileSelected,
   onScanReceipt,
   onLoadMockReceipt,
+  hideModelInAdvancedSettings = false,
+  enableCameraCapture = false,
+  showLoadMockButton = true,
 }: ReceiptImportPanelProps) {
   const geminiApiKeyInput = useReceiptUiStore((state) => state.geminiApiKeyInput)
   const rememberGeminiApiKey = useReceiptUiStore((state) => state.rememberGeminiApiKey)
@@ -42,6 +48,9 @@ export function ReceiptImportPanel({
       scanWarnings={scanWarnings}
       onScanReceipt={onScanReceipt}
       onLoadMockReceipt={onLoadMockReceipt}
+      hideModelInAdvancedSettings={hideModelInAdvancedSettings}
+      enableCameraCapture={enableCameraCapture}
+      showLoadMockButton={showLoadMockButton}
     />
   )
 }
