@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_GEMINI_MODEL } from '../constants'
+import {
+  DEFAULT_GEMINI_MODEL,
+  LOCAL_STORAGE_OCR_SETTINGS_KEY,
+  SESSION_STORAGE_GEMINI_API_KEY,
+} from '../constants'
 import { useReceiptUiStore } from './receiptUiStore'
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...'
@@ -7,6 +11,7 @@ const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...'
 
 function resetStore() {
   useReceiptUiStore.setState({
+    uxMode: 'simple',
     peopleInput: '',
     geminiApiKeyInput: '',
     rememberGeminiApiKey: false,
@@ -126,5 +131,36 @@ describe('receiptUiStore', () => {
     expect(state.scanStatus).toBe('Encoding receipt... done')
     expect(state.scanError).toBe('first!')
     expect(state.scanWarnings).toEqual(['a', 'b'])
+  })
+
+  it('setUxMode updates mode state', () => {
+    const actions = useReceiptUiStore.getState()
+    actions.setUxMode('advanced')
+
+    expect(useReceiptUiStore.getState().uxMode).toBe('advanced')
+  })
+
+  it('persists gemini model changes through the store action', () => {
+    useReceiptUiStore.getState().setGeminiModel('gemini-2.5-flash')
+
+    expect(useReceiptUiStore.getState().geminiModel).toBe('gemini-2.5-flash')
+    expect(window.localStorage.getItem(LOCAL_STORAGE_OCR_SETTINGS_KEY)).toContain(
+      '"geminiModel":"gemini-2.5-flash"',
+    )
+  })
+
+  it('persists and clears the session gemini api key through store actions', () => {
+    const actions = useReceiptUiStore.getState()
+
+    actions.setRememberGeminiApiKey(true)
+    actions.setGeminiApiKeyInput('session-key')
+    expect(window.sessionStorage.getItem(SESSION_STORAGE_GEMINI_API_KEY)).toBe('session-key')
+
+    actions.setGeminiApiKeyInput('')
+    expect(window.sessionStorage.getItem(SESSION_STORAGE_GEMINI_API_KEY)).toBeNull()
+
+    actions.setGeminiApiKeyInput('session-key')
+    actions.setRememberGeminiApiKey(false)
+    expect(window.sessionStorage.getItem(SESSION_STORAGE_GEMINI_API_KEY)).toBeNull()
   })
 })

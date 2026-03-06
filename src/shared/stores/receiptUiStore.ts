@@ -1,6 +1,13 @@
 import type { SetStateAction } from 'react'
 import { create } from 'zustand'
-import { DEFAULT_GEMINI_MODEL } from '../constants'
+import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS, LOCAL_STORAGE_UX_MODE_KEY } from '../constants'
+import {
+  clearSessionGeminiApiKey,
+  loadPersistedOcrSettings,
+  loadSessionGeminiApiKey,
+  savePersistedOcrSettings,
+  saveSessionGeminiApiKey,
+} from '../api/storage'
 
 const FUNNY_LOADING_MESSAGES = [
   'Asking Gemini to decipher cryptic cashier handwriting...',
@@ -39,6 +46,7 @@ function getRandomLoadingMessageIndex(excludeIndex?: number): number {
 }
 
 type ReceiptUiState = {
+  uxMode: 'simple' | 'advanced'
   peopleInput: string
   geminiApiKeyInput: string
   rememberGeminiApiKey: boolean
@@ -53,6 +61,7 @@ type ReceiptUiState = {
 }
 
 type ReceiptUiActions = {
+  setUxMode: (next: 'simple' | 'advanced') => void
   setPeopleInput: (next: string) => void
   setGeminiApiKeyInput: (next: string) => void
   setRememberGeminiApiKey: (next: boolean) => void
@@ -68,12 +77,14 @@ type ReceiptUiActions = {
 }
 
 type ReceiptUiStore = ReceiptUiState & ReceiptUiActions
+const initialGeminiApiKey = loadInitialGeminiApiKey()
 
 const initialState: ReceiptUiState = {
+  uxMode: loadPersistedUxMode(),
   peopleInput: '',
-  geminiApiKeyInput: '',
-  rememberGeminiApiKey: false,
-  geminiModel: DEFAULT_GEMINI_MODEL,
+  geminiApiKeyInput: initialGeminiApiKey,
+  rememberGeminiApiKey: initialGeminiApiKey.trim().length > 0,
+  geminiModel: loadInitialGeminiModel(),
   receiptFile: null,
   isScanning: false,
   scanStatus: '',
@@ -87,12 +98,85 @@ function resolveSetStateAction<T>(current: T, next: SetStateAction<T>): T {
   return typeof next === 'function' ? (next as (previous: T) => T)(current) : next
 }
 
+function loadPersistedUxMode(): 'simple' | 'advanced' {
+  if (typeof window === 'undefined') {
+    return 'simple'
+  }
+
+  try {
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_UX_MODE_KEY)
+    if (raw === 'advanced') {
+      return 'advanced'
+    }
+  } catch {
+    // Ignore storage read failures.
+  }
+
+  return 'simple'
+}
+
+function savePersistedUxMode(mode: 'simple' | 'advanced'): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(LOCAL_STORAGE_UX_MODE_KEY, mode)
+  } catch {
+    // Ignore storage write failures.
+  }
+}
+
+function normalizeGeminiModel(candidate: string): string {
+  return GEMINI_MODELS.includes(candidate as (typeof GEMINI_MODELS)[number])
+    ? candidate
+    : DEFAULT_GEMINI_MODEL
+}
+
+function loadInitialGeminiModel(): string {
+  const persistedSettings = loadPersistedOcrSettings()
+  return normalizeGeminiModel(persistedSettings?.geminiModel ?? DEFAULT_GEMINI_MODEL)
+}
+
+function loadInitialGeminiApiKey(): string {
+  return loadSessionGeminiApiKey()
+}
+
+function syncGeminiApiKeyPersistence(apiKey: string, rememberApiKey: boolean): void {
+  if (rememberApiKey && apiKey.trim()) {
+    saveSessionGeminiApiKey(apiKey)
+    return
+  }
+
+  clearSessionGeminiApiKey()
+}
+
 export const useReceiptUiStore = create<ReceiptUiStore>((set) => ({
   ...initialState,
+  setUxMode: (next) => {
+    savePersistedUxMode(next)
+    set({ uxMode: next })
+  },
   setPeopleInput: (next) => set({ peopleInput: next }),
-  setGeminiApiKeyInput: (next) => set({ geminiApiKeyInput: next }),
-  setRememberGeminiApiKey: (next) => set({ rememberGeminiApiKey: next }),
-  setGeminiModel: (next) => set({ geminiModel: next }),
+  setGeminiApiKeyInput: (next) =>
+    set((state) => {
+      syncGeminiApiKeyPersistence(next, state.rememberGeminiApiKey)
+      return { geminiApiKeyInput: next }
+    }),
+  setRememberGeminiApiKey: (next) =>
+    set((state) => {
+      syncGeminiApiKeyPersistence(state.geminiApiKeyInput, next)
+      return { rememberGeminiApiKey: next }
+    }),
+  setGeminiModel: (next) => {
+    const normalizedModel = normalizeGeminiModel(next)
+    savePersistedOcrSettings({
+      version: 1,
+      geminiModel: normalizedModel,
+      savedAt: new Date().toISOString(),
+    })
+    set({ geminiModel: normalizedModel })
+  },
   setReceiptFile: (next) => set({ receiptFile: next }),
   setScanStatus: (next) =>
     set((state) => ({ scanStatus: resolveSetStateAction(state.scanStatus, next) })),

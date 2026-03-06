@@ -15,6 +15,7 @@ import { ReceiptSplitterPage } from './ReceiptSplitterPage'
 
 function resetUiStore() {
   useReceiptUiStore.setState({
+    uxMode: 'advanced',
     peopleInput: '',
     geminiApiKeyInput: '',
     rememberGeminiApiKey: false,
@@ -27,6 +28,60 @@ function resetUiStore() {
     loadingMessage: '',
     loadingMessageIndex: 0,
   })
+}
+
+function seedSimpleDraftWithSingleAssignment() {
+  window.localStorage.setItem(
+    'split:receipt-draft:v1',
+    JSON.stringify({
+      version: 1,
+      people: [
+        { id: 'p1', name: 'Alice' },
+        { id: 'p2', name: 'Ben' },
+      ],
+      items: [
+        {
+          id: 'i1',
+          name: 'Chicken Rice',
+          amountInput: '10.00',
+          discountPercentInput: '',
+          assignment: {
+            mode: 'single',
+            personId: 'p1',
+            personIds: ['p1', 'p2'],
+          },
+        },
+      ],
+      serviceCharge: {
+        enabled: true,
+        mode: 'percent',
+        amountInput: '',
+        percentInput: '10',
+        detectedConfidence: null,
+        detectedSource: null,
+      },
+      gst: {
+        enabled: true,
+        mode: 'percent',
+        amountInput: '',
+        percentInput: '9',
+        detectedConfidence: null,
+        detectedSource: null,
+      },
+      receiptTotalInput: '11.90',
+      finalSplit: {
+        subtotalCents: 1000,
+        serviceChargeCents: 100,
+        gstCents: 90,
+        grandTotalCents: 1190,
+        totalByPersonCents: {
+          p1: 1190,
+          p2: 0,
+        },
+      },
+      savedAt: '2026-03-05T00:00:00.000Z',
+    }),
+  )
 }
 
 function addPeople(raw: string) {
@@ -73,7 +128,7 @@ beforeEach(() => {
   })
 })
 
-describe('ReceiptSplitterPage integration', () => {
+describe('ReceiptSplitterPage advanced mode integration', () => {
   it('adds people from input and ignores duplicates case-insensitively', () => {
     render(<ReceiptSplitterPage />)
 
@@ -174,5 +229,268 @@ describe('ReceiptSplitterPage integration', () => {
         includeItemDetails: true,
       }),
     )
+  })
+
+  it('restores advanced single-person assignments after refresh', async () => {
+    const { unmount } = render(<ReceiptSplitterPage />)
+    addPeople('Alice, Bob')
+
+    const assigneeSelect = getAssigneeSelect()
+    const bobOption = Array.from(assigneeSelect.options).find((option) => option.textContent === 'Bob')
+    expect(bobOption).toBeDefined()
+
+    fireEvent.change(assigneeSelect, { target: { value: bobOption?.value } })
+
+    await waitFor(() => {
+      const savedDraft = window.localStorage.getItem('split:receipt-draft:v1')
+      expect(savedDraft).toContain(`"personId":"${bobOption?.value}"`)
+    })
+
+    unmount()
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(getAssigneeSelect().selectedOptions[0].textContent).toBe('Bob')
+    })
+  })
+})
+
+describe('ReceiptSplitterPage simple wizard integration', () => {
+  it('blocks progression until each simple wizard step is valid', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    render(<ReceiptSplitterPage />)
+
+    const continueToReceiptButton = screen.getByRole('button', { name: 'Continue to Receipt' })
+    expect(continueToReceiptButton).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('Add people'), { target: { value: 'Alice' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(continueToReceiptButton).not.toBeDisabled()
+
+    fireEvent.click(continueToReceiptButton)
+    expect(screen.getByRole('button', { name: 'Continue to Items' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load Mock Receipt' }))
+    expect(screen.getByRole('button', { name: 'Continue to Items' })).not.toBeDisabled()
+  })
+
+  it('renders grouped 4-step wizard header and progresses across grouped steps', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    seedSimpleDraftWithSingleAssignment()
+
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('1. People')).toBeInTheDocument()
+    })
+    expect(screen.getByText('2. Receipt')).toBeInTheDocument()
+    expect(screen.getByText('3. Items')).toBeInTheDocument()
+    expect(screen.getByText('4. Final')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    expect(screen.getByText('Receipt (Scan + Verify)')).toBeInTheDocument()
+    expect(screen.getByText(/Step 2 of 4 • Scan \+ Verify/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
+    expect(screen.getByText('Items (Assign + Review)')).toBeInTheDocument()
+    expect(screen.getByText(/Step 3 of 4 • Assign \+ Review/i)).toBeInTheDocument()
+  })
+
+  it('defaults simple assignment to all selected and supports review/edit before final', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    seedSimpleDraftWithSingleAssignment()
+
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue to Receipt' })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
+
+    const aliceCheckbox = screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement
+    const benCheckbox = screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement
+
+    expect(aliceCheckbox.checked).toBe(true)
+    expect(benCheckbox.checked).toBe(true)
+
+    fireEvent.click(benCheckbox)
+    expect(benCheckbox.checked).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
+    expect(screen.getByText('Review Assignments')).toBeInTheDocument()
+    expect(screen.getByText('Split among: Alice')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByText('Item 1 of 1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Final' }))
+
+    expect(screen.getAllByRole('heading', { name: 'Final Split' })).toHaveLength(1)
+    expect(screen.getByText(/Step 4 of 4 • Final/i)).toBeInTheDocument()
+  })
+
+  it('supports back navigation across receipt, assign, review, and final steps', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    seedSimpleDraftWithSingleAssignment()
+
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue to Receipt' })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    expect(screen.getByText('Receipt (Scan + Verify)')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByText('People')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
+    expect(screen.getByText('Items (Assign + Review)')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
+    expect(screen.getByText('Review Assignments')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByText('Item 1 of 1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Final' }))
+    expect(screen.getByRole('heading', { name: 'Final Split' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByText('Review Assignments')).toBeInTheDocument()
+  })
+
+  it('loads the simple mode mock receipt payload from receipt step', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    render(<ReceiptSplitterPage />)
+
+    fireEvent.change(screen.getByLabelText('Add people'), { target: { value: 'Alice' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load Mock Receipt' }))
+
+    expect(screen.getByDisplayValue('Genki Forest')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Mala Baby Lobster')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('166.98')).toBeInTheDocument()
+    expect(
+      screen.getByText('GST amount is 0.00 despite a 9% rate being listed.'),
+    ).toBeInTheDocument()
+  })
+
+  it('supports select all and select none shortcuts in simple item chooser', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    seedSimpleDraftWithSingleAssignment()
+
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue to Receipt' })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
+
+    const aliceCheckbox = screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement
+    const benCheckbox = screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select none' }))
+    expect(aliceCheckbox.checked).toBe(false)
+    expect(benCheckbox.checked).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
+    expect(aliceCheckbox.checked).toBe(true)
+    expect(benCheckbox.checked).toBe(true)
+  })
+
+  it('returns to the people step and blocks progression when everyone is removed', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    seedSimpleDraftWithSingleAssignment()
+
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue to Receipt' })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Final' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Alice ×' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ben ×' }))
+
+    expect(screen.getByRole('button', { name: 'Continue to Receipt' })).toBeDisabled()
+    expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument()
+  })
+
+  it('falls back from final to items when assignments become incomplete', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    seedSimpleDraftWithSingleAssignment()
+
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue to Receipt' })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Final' }))
+    expect(screen.getByRole('heading', { name: 'Final Split' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select none' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Items (Assign + Review)')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Select at least one person for this item.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Final Split' })).not.toBeInTheDocument()
+  })
+
+  it('restores simple item assignments after refresh', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple' })
+    seedSimpleDraftWithSingleAssignment()
+
+    const { unmount } = render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue to Receipt' })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Receipt' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Items' }))
+
+    const benCheckbox = screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement
+    fireEvent.click(benCheckbox)
+    expect(benCheckbox.checked).toBe(false)
+
+    await waitFor(() => {
+      const savedDraft = window.localStorage.getItem('split:receipt-draft:v1')
+      expect(savedDraft).toContain('"personIds":["p1"]')
+    })
+
+    unmount()
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Items (Assign + Review)')).toBeInTheDocument()
+    })
+
+    expect((screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement).checked).toBe(false)
   })
 })

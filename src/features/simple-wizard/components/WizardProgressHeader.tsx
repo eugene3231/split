@@ -1,0 +1,63 @@
+import type { SimpleWizardStep, WizardProgressContext } from '../types'
+import { SIMPLE_WIZARD_STEPS } from '../types'
+
+type WizardProgressHeaderProps = {
+  activeStep: SimpleWizardStep
+  context: WizardProgressContext
+}
+
+const STEP_LABELS: Record<SimpleWizardStep, string> = {
+  people: 'People',
+  receipt: 'Receipt',
+  items: 'Items',
+  final: 'Final',
+}
+
+export function WizardProgressHeader({ activeStep, context }: WizardProgressHeaderProps) {
+  const activeStepIndex = SIMPLE_WIZARD_STEPS.indexOf(activeStep)
+
+  return (
+    <section className="sticky top-3 z-10 space-y-3 rounded-2xl border border-slate-800 bg-slate-900/95 p-4 backdrop-blur">
+      <div className="grid gap-2 sm:grid-cols-4">
+        {SIMPLE_WIZARD_STEPS.map((step, index) => {
+          const state = index < activeStepIndex ? 'completed' : index === activeStepIndex ? 'active' : 'pending'
+
+          return (
+            <div
+              key={step}
+              className={[
+                'rounded-lg border px-3 py-2 text-xs',
+                state === 'active' ? 'border-sky-400 bg-sky-500/10 text-sky-200' : '',
+                state === 'completed' ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200' : '',
+                state === 'pending' ? 'border-slate-700 bg-slate-950/60 text-slate-400' : '',
+              ].join(' ')}
+            >
+              <p className="font-semibold">{index + 1}. {STEP_LABELS[step]}</p>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-300" data-testid="wizard-step-context">
+        {buildContextText(activeStep, context)}
+      </div>
+    </section>
+  )
+}
+
+function buildContextText(step: SimpleWizardStep, context: WizardProgressContext): string {
+  if (step === 'receipt') {
+    return `Step 2 of 4 • Scan + Verify • Detected ${context.detectedItemsCount} item(s)`
+  }
+
+  if (step === 'items') {
+    const itemNumber = context.detectedItemsCount === 0 ? 0 : Math.min(context.activeItemIndex + 1, context.detectedItemsCount)
+    return `Step 3 of 4 • Assign + Review • Item ${itemNumber}/${context.detectedItemsCount} • Assigned ${context.assignedItemCount}/${context.detectedItemsCount}`
+  }
+
+  if (step === 'final') {
+    return `Step 4 of 4 • Final • ${context.detectedItemsCount}/${context.detectedItemsCount} complete`
+  }
+
+  return 'Step 1 of 4 • Add the people involved in this receipt split'
+}

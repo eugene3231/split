@@ -11,6 +11,7 @@ type FinalSplitPanelProps = {
   serviceCharge: ChargeState
   gst: ChargeState
   exportSection?: ReactNode
+  variant?: 'standalone' | 'embedded'
 }
 
 export function FinalSplitPanel({
@@ -20,15 +21,22 @@ export function FinalSplitPanel({
   serviceCharge,
   gst,
   exportSection,
+  variant = 'standalone',
 }: FinalSplitPanelProps) {
   const serviceLabel = buildChargeLabel('Service Charge', serviceCharge)
   const gstLabel = buildChargeLabel('GST / Tax', gst)
   const [showItemMeta, setShowItemMeta] = useState(true)
 
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+    <section
+      className={
+        variant === 'embedded'
+          ? 'space-y-4'
+          : 'space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5'
+      }
+    >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Final Split</h2>
+        {variant === 'standalone' ? <h2 className="text-lg font-semibold">Final Split</h2> : <div />}
         <button
           type="button"
           onClick={() => setShowItemMeta((current) => !current)}
