@@ -34,7 +34,7 @@ describe('getShareSupport', () => {
     expect(
       getShareSupport({
         share: vi.fn(),
-        canShare: vi.fn(() => false),
+        canShare: vi.fn(() => true),
         clipboard: {} as Navigator['clipboard'],
       }),
     ).toBe('native')
@@ -46,12 +46,11 @@ describe('getShareSupport', () => {
 })
 
 describe('shareFinalSplit', () => {
-  it('shares text only when canShare rejects files', async () => {
+  it('returns fallback when canShare rejects files', async () => {
     const share = vi.fn().mockResolvedValue(undefined)
     const canShare = vi.fn(() => false)
 
     const mode = await shareFinalSplit({
-      text: 'Split total: S$0.00',
       image: new Blob(['image'], { type: 'image/png' }),
       fileName: 'split-final.png',
       navigator: {
@@ -61,11 +60,8 @@ describe('shareFinalSplit', () => {
       },
     })
 
-    expect(mode).toBe('native')
-    expect(share).toHaveBeenCalledTimes(1)
-    expect(share).toHaveBeenCalledWith({
-      text: 'Split total: S$0.00',
-    })
+    expect(mode).toBe('fallback')
+    expect(share).not.toHaveBeenCalled()
   })
 
   it('returns fallback when share with files fails', async () => {
@@ -73,7 +69,6 @@ describe('shareFinalSplit', () => {
     const canShare = vi.fn(() => true)
 
     const mode = await shareFinalSplit({
-      text: 'Split total: S$0.00',
       image: new Blob(['image'], { type: 'image/png' }),
       fileName: 'split-final.png',
       navigator: {
@@ -85,5 +80,28 @@ describe('shareFinalSplit', () => {
 
     expect(mode).toBe('fallback')
     expect(share).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares image file when supported', async () => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    const canShare = vi.fn(() => true)
+
+    const mode = await shareFinalSplit({
+      image: new Blob(['image'], { type: 'image/png' }),
+      fileName: 'split-final.png',
+      navigator: {
+        share,
+        canShare,
+        clipboard: {} as Navigator['clipboard'],
+      },
+    })
+
+    expect(mode).toBe('native')
+    expect(share).toHaveBeenCalledTimes(1)
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: expect.any(Array),
+      }),
+    )
   })
 })

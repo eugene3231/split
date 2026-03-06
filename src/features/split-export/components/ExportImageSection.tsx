@@ -110,7 +110,6 @@ export function ExportImageSection({
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
       const fileName = `split-final-${timestamp}.png`
       const mode = await shareFinalSplit({
-        text: shareText,
         image: blob,
         fileName,
       })
