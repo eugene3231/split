@@ -25,7 +25,7 @@ const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: strin
   },
 }
 
-export function WizardProgressHeader({ activeStep, context }: WizardProgressHeaderProps) {
+export function SimpleProgressHeader({ activeStep, context }: WizardProgressHeaderProps) {
   const activeStepIndex = SIMPLE_WIZARD_STEPS.indexOf(activeStep)
 
   return (

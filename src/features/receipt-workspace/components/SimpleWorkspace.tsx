@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import type { ChargeState, EditableItem, Person, SplitResult } from '../../../shared/types'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useShallow } from 'zustand/shallow'
 import { formatCurrencyFromCents, parseCurrencyToCents } from '../../../shared/logic/core/money'
+import { computeSplit } from '../../../shared/logic/computation/split'
 import { GlobalChargesSection } from '../../receipt-setup/components/GlobalChargesSection'
 import { ReceiptImportPanel } from '../../receipt-import/components/ReceiptImportPanel'
 import { FinalSplitPanel } from '../../split-summary/components/FinalSplitPanel'
+import { ExportImageSection } from '../../split-export'
 import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
+import { useReceiptWorkspaceStore } from '../store/receiptWorkspaceStore'
 import {
   getAssignedItemsCount,
   getDetectedItemsCount,
@@ -12,55 +15,58 @@ import {
   isSimpleItemAssigned,
   isStepValid,
 } from '../logic/wizardValidation'
-import { WizardProgressHeader } from './WizardProgressHeader'
+import { SimpleProgressHeader } from './SimpleProgressHeader'
 import { loadSimpleWizardState, saveSimpleWizardState } from '../logic/persistence'
 import type { ItemsSubPhase, SimpleWizardStep } from '../types'
 
-type SimpleWizardShellProps = {
-  people: Person[]
-  items: EditableItem[]
-  serviceCharge: ChargeState
-  gst: ChargeState
-  receiptTotalInput: string
-  split: SplitResult
-  reconciliationCents: number | null
-  onAddPeople: (rawInput: string) => void
-  onRemovePerson: (personId: string) => void
-  onReceiptFileSelected: (file: File | null) => void
-  onScanReceipt: () => void
-  onLoadMockReceipt: () => void
-  onAddSimpleItem: () => void
-  onRemoveItem: (itemId: string) => void
-  onUpdateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void
-  onNormalizeItemsForSimpleMode: () => void
-  onServiceChargeChange: (next: ChargeState) => void
-  onGstChange: (next: ChargeState) => void
-  onReceiptTotalInputChange: (value: string) => void
-  exportSection: ReactNode
-}
+export function SimpleWorkspace() {
+  const {
+    people,
+    items,
+    serviceCharge,
+    gst,
+    receiptTotalInput,
+    addPeopleFromInput,
+    removePerson,
+    handleReceiptFileSelected,
+    handleScanReceipt,
+    handleLoadSimpleMockReceipt,
+    addSimpleItem,
+    removeItem,
+    updateItem,
+    normalizeItemsForSimpleMode,
+    setServiceCharge,
+    setGst,
+    setReceiptTotalInput,
+  } = useReceiptWorkspaceStore(
+    useShallow((state) => ({
+      people: state.people,
+      items: state.items,
+      serviceCharge: state.serviceCharge,
+      gst: state.gst,
+      receiptTotalInput: state.receiptTotalInput,
+      addPeopleFromInput: state.addPeopleFromInput,
+      removePerson: state.removePerson,
+      handleReceiptFileSelected: state.handleReceiptFileSelected,
+      handleScanReceipt: state.handleScanReceipt,
+      handleLoadSimpleMockReceipt: state.handleLoadSimpleMockReceipt,
+      addSimpleItem: state.addSimpleItem,
+      removeItem: state.removeItem,
+      updateItem: state.updateItem,
+      normalizeItemsForSimpleMode: state.normalizeItemsForSimpleMode,
+      setServiceCharge: state.setServiceCharge,
+      setGst: state.setGst,
+      setReceiptTotalInput: state.setReceiptTotalInput,
+    })),
+  )
+  const split = useMemo(
+    () => computeSplit({ people, items, serviceCharge, gst }),
+    [people, items, serviceCharge, gst],
+  )
+  const receiptTotalCents = parseCurrencyToCents(receiptTotalInput)
+  const reconciliationCents =
+    receiptTotalCents === null ? null : receiptTotalCents - split.grandTotalCents
 
-export function SimpleWizardShell({
-  people,
-  items,
-  serviceCharge,
-  gst,
-  receiptTotalInput,
-  split,
-  reconciliationCents,
-  onAddPeople,
-  onRemovePerson,
-  onReceiptFileSelected,
-  onScanReceipt,
-  onLoadMockReceipt,
-  onAddSimpleItem,
-  onRemoveItem,
-  onUpdateItem,
-  onNormalizeItemsForSimpleMode,
-  onServiceChargeChange,
-  onGstChange,
-  onReceiptTotalInputChange,
-  exportSection,
-}: SimpleWizardShellProps) {
   const [initialWizardState] = useState(() => loadSimpleWizardState())
   const [activeStepState, setActiveStep] = useState<SimpleWizardStep>(
     initialWizardState?.step ?? 'people',
@@ -109,7 +115,7 @@ export function SimpleWizardShell({
       if (!isStepValid('receipt', { items, people })) {
         return
       }
-      onNormalizeItemsForSimpleMode()
+      normalizeItemsForSimpleMode()
       setItemsSubPhase('assign')
       setActiveItemIndex(0)
       setActiveStep('items')
@@ -154,7 +160,7 @@ export function SimpleWizardShell({
 
   const handlePeopleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onAddPeople(peopleInput)
+    addPeopleFromInput(peopleInput)
   }
 
   const handleTogglePersonOnActiveItem = (personId: string, checked: boolean) => {
@@ -162,7 +168,7 @@ export function SimpleWizardShell({
       return
     }
 
-    onUpdateItem(activeItem.id, (currentItem) => {
+    updateItem(activeItem.id, (currentItem) => {
       const currentIds = new Set(currentItem.assignment.personIds)
       if (checked) {
         currentIds.add(personId)
@@ -183,7 +189,7 @@ export function SimpleWizardShell({
 
   return (
     <section className="space-y-4" data-testid="simple-wizard">
-      <WizardProgressHeader
+      <SimpleProgressHeader
         activeStep={activeStep}
         context={{
           detectedItemsCount,
@@ -225,7 +231,7 @@ export function SimpleWizardShell({
                   <button
                     key={person.id}
                     type="button"
-                    onClick={() => onRemovePerson(person.id)}
+                    onClick={() => removePerson(person.id)}
                     className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs text-slate-200 hover:border-slate-500"
                   >
                     {person.name} ×
@@ -240,9 +246,9 @@ export function SimpleWizardShell({
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Add Receipt</h2>
             <ReceiptImportPanel
-              onReceiptFileSelected={onReceiptFileSelected}
-              onScanReceipt={onScanReceipt}
-              onLoadMockReceipt={onLoadMockReceipt}
+              onReceiptFileSelected={handleReceiptFileSelected}
+              onScanReceipt={handleScanReceipt}
+              onLoadMockReceipt={handleLoadSimpleMockReceipt}
               hideModelInAdvancedSettings
               enableCameraCapture
               showLoadMockButton
@@ -253,11 +259,11 @@ export function SimpleWizardShell({
                 <h3 className="font-medium">Verify Parsed Results</h3>
                 <GlobalChargesSection
                   serviceCharge={serviceCharge}
-                  onServiceChargeChange={onServiceChargeChange}
+                  onServiceChargeChange={setServiceCharge}
                   gst={gst}
-                  onGstChange={onGstChange}
+                  onGstChange={setGst}
                   receiptTotalInput={receiptTotalInput}
-                  onReceiptTotalInputChange={onReceiptTotalInputChange}
+                  onReceiptTotalInputChange={setReceiptTotalInput}
                 />
 
                 <div className="space-y-3">
@@ -265,7 +271,7 @@ export function SimpleWizardShell({
                     <p className="text-sm font-medium">Items</p>
                     <button
                       type="button"
-                      onClick={onAddSimpleItem}
+                      onClick={addSimpleItem}
                       className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold hover:border-slate-500"
                     >
                       + Add Item
@@ -278,7 +284,7 @@ export function SimpleWizardShell({
                         <input
                           value={item.name}
                           onChange={(event) =>
-                            onUpdateItem(item.id, (current) => ({
+                            updateItem(item.id, (current) => ({
                               ...current,
                               name: event.target.value,
                             }))
@@ -289,7 +295,7 @@ export function SimpleWizardShell({
                         <input
                           value={item.amountInput}
                           onChange={(event) =>
-                            onUpdateItem(item.id, (current) => ({
+                            updateItem(item.id, (current) => ({
                               ...current,
                               amountInput: event.target.value,
                             }))
@@ -301,7 +307,7 @@ export function SimpleWizardShell({
                         <input
                           value={item.discountPercentInput}
                           onChange={(event) =>
-                            onUpdateItem(item.id, (current) => ({
+                            updateItem(item.id, (current) => ({
                               ...current,
                               discountPercentInput: event.target.value,
                             }))
@@ -313,7 +319,7 @@ export function SimpleWizardShell({
                       </div>
                       <button
                         type="button"
-                        onClick={() => onRemoveItem(item.id)}
+                        onClick={() => removeItem(item.id)}
                         className="text-xs text-rose-300 hover:text-rose-200"
                       >
                         Remove item
@@ -358,7 +364,7 @@ export function SimpleWizardShell({
                             return
                           }
 
-                          onUpdateItem(activeItem.id, (currentItem) => ({
+                          updateItem(activeItem.id, (currentItem) => ({
                             ...currentItem,
                             assignment: {
                               mode: 'equal',
@@ -379,7 +385,7 @@ export function SimpleWizardShell({
                             return
                           }
 
-                          onUpdateItem(activeItem.id, (currentItem) => ({
+                          updateItem(activeItem.id, (currentItem) => ({
                             ...currentItem,
                             assignment: {
                               mode: 'equal',
@@ -497,7 +503,15 @@ export function SimpleWizardShell({
               reconciliationCents={reconciliationCents}
               serviceCharge={serviceCharge}
               gst={gst}
-              exportSection={exportSection}
+              exportSection={
+                <ExportImageSection
+                  people={people}
+                  split={split}
+                  serviceCharge={serviceCharge}
+                  gst={gst}
+                  reconciliationCents={reconciliationCents}
+                />
+              }
               variant="embedded"
             />
           </div>
@@ -546,8 +560,8 @@ function clampActiveItemIndex(index: number, itemCount: number): number {
 function resolveWizardState(
   activeStep: SimpleWizardStep,
   itemsSubPhase: ItemsSubPhase,
-  items: EditableItem[],
-  people: Person[],
+  items: ReturnType<typeof useReceiptWorkspaceStore.getState>['items'],
+  people: ReturnType<typeof useReceiptWorkspaceStore.getState>['people'],
 ): {
   activeStep: SimpleWizardStep
   itemsSubPhase: ItemsSubPhase
