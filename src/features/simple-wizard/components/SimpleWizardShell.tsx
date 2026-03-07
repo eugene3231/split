@@ -332,7 +332,7 @@ export function SimpleWizardShell({
 
         {activeStep === 'items' ? (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Assign Items & Review</h2>
+            <h2 className="text-lg font-semibold">Assign Items</h2>
             {itemsSubPhase === 'assign' ? (
               <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
                 {activeItem ? (
