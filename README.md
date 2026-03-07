@@ -2,28 +2,25 @@
 
 https://split-receipt.netlify.app/
 
-Ever paid the full bill and then struggled to calculate exactly how much each person owes, especially when everyone ordered different items?
+Ever paid the full bill and had to figure out who owes what — when everyone ordered different things, some dishes were shared, and others weren't? Split uses Google Gemini to split costs at the line-item level. 
 
-Split uses Google Gemini to scan receipt images and split costs at the line-item level, so each person pays for exactly what they ordered and you know precisely how much to collect from everyone.
+Scan a receipt, assign items, and share the result — no accounts or invites needed.
 
-<img width="2926" height="3458" alt="Screenshot 2026-03-07 at 19-00-44 split" src="https://github.com/user-attachments/assets/61748992-d4c1-4b10-b004-355736b98db6" />
+<img width="600" height="709" alt="Screenshot 2026-03-07 at 19-00-44 split" src="https://github.com/user-attachments/assets/61748992-d4c1-4b10-b004-355736b98db6" />
 
-## What it does
+## Key Features
 
-- Manually add people (no invites/accounts)
-- Scan a receipt with Google Gemini GAI extraction
-- Auto-detect line items, GST/tax, and service charge
-- Override GST/service toggles and values manually
-- Assign each line item to one person or equal-split across selected people
-- Select all / select none members per item when in equal-split mode
-- Apply percentage discount on each line item
-- Autosave line items, charges, and final split snapshot to localStorage
-- Show final per-person payable amount with item, service, and GST breakdown
-- Generate a single sharable image to send to your group chat for bill collection
+- **Receipt scanning** — scan a receipt image using Google Gemini to auto-detect line items, taxes, and service charge
+- **Flexible item assignment** — assign items to one person or split equally across selected people, with per-item discount support
+- **Manual overrides** — edit any extracted item or charge before finalising
+- **Per-person breakdown** — view each person's total with a full item, taxes, and service charge breakdown
+- **Auto-save** — progress is saved to localStorage so nothing is lost on refresh
+- **Shareable summary** — export as an image or text summary to send to your group chat for easy bill collection
 
 ## Stack
 
 - Vite + React + TypeScript
+- Zustand for state management
 - Tailwind CSS v4
 - Gemini API (`generateContent`) for receipt extraction
 
