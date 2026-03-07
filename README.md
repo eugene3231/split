@@ -6,10 +6,9 @@ Ever paid the full bill and then struggled to calculate exactly how much each pe
 
 Split uses Google Gemini to scan receipt images and split costs at the line-item level, so each person pays for exactly what they ordered and you know precisely how much to collect from everyone.
 
-<img width="924" height="900" alt="Screenshot 2026-02-08 at 23-08-14 split" src="https://github.com/user-attachments/assets/a3446062-ca21-4b24-b2e0-a7bcd8ff849d" />
+<img width="2926" height="3458" alt="Screenshot 2026-03-07 at 19-00-44 split" src="https://github.com/user-attachments/assets/61748992-d4c1-4b10-b004-355736b98db6" />
 
 ## What it does
-<img width="2926" height="3458" alt="Screenshot 2026-03-07 at 18-19-40 split" src="https://github.com/user-attachments/assets/a3446062-ca21-4b24-b2e0-a7bcd8ff849d" />
 
 - Manually add people (no invites/accounts)
 - Scan a receipt with Google Gemini GAI extraction
