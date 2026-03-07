@@ -213,12 +213,12 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
       target: { value: '11.99' },
     })
 
-    expect(screen.queryByText('S$0.01')).not.toBeInTheDocument()
+    expect(screen.queryByText('$0.01')).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText(/Receipt Total \(optional\)/i), {
       target: { value: '12.00' },
     })
-    expect(screen.getByText('S$0.01')).toBeInTheDocument()
+    expect(screen.getByText('$0.01')).toBeInTheDocument()
   })
 
   it('downloads the share image with the selected export options', async () => {
@@ -244,7 +244,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
 
     await waitFor(() => {
       expect(generateFinalSplitImageMock).toHaveBeenCalledTimes(1)
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Split total: S$0.00')
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Split total: $0.00')
       expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1)
     })
   })

@@ -25,7 +25,7 @@ describe('buildSplitShareText', () => {
           unassignedItemCount: 0,
         },
       }),
-    ).toBe('Split total: S$37.50\nAlice: S$12.50\nBen: S$25.00')
+    ).toBe('Split total: $37.50\nAlice: $12.50\nBen: $25.00')
   })
 })
 

@@ -77,7 +77,7 @@ export function LineItemCard({
       </div>
       <p className="text-xs text-slate-400">
         Net after discount:{' '}
-        {itemNetAmountCents === null ? 'S$0.00' : formatCurrencyFromCents(itemNetAmountCents)}
+        {itemNetAmountCents === null ? '$0.00' : formatCurrencyFromCents(itemNetAmountCents)}
       </p>
 
       <div className="grid gap-2 sm:grid-cols-2">
