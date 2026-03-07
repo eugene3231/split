@@ -56,9 +56,3 @@ Use the `Load Mock Receipt` button in the UI to populate sample items and charge
 - To consider routing through your a dedicated backend so API keys are not exposed client-side.
 - OCR extraction can still be imperfect; users are able to edit items/amounts before finalizing.
 - Draft fields reset when a new receipt image is uploaded.
-
-## Build
-
-```bash
-pnpm build
-```
