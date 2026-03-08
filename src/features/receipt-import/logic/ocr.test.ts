@@ -1,14 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Dispatch, SetStateAction } from 'react'
-import { GoogleGenAI } from '@google/genai'
 import { defaultGstState, defaultServiceChargeState } from '../../../shared/constants'
 import type { ChargeState, EditableItem, OcrResponse, Person } from '../../../shared/types'
 import { analyzeReceiptWithGemini, applyOcrPayload } from './ocr'
-
-vi.mock('@google/genai', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  GoogleGenAI: vi.fn(function (this: any) {}),
-}))
 
 function createFile(): File {
   return new File(['receipt-bytes'], 'receipt.jpg', { type: 'image/jpeg' })
@@ -18,21 +12,34 @@ function setStateValue<T>(current: T, next: SetStateAction<T>): T {
   return typeof next === 'function' ? (next as (prev: T) => T)(current) : next
 }
 
-function stubGenerateContent(text: string | null) {
-  const generateContent = vi.fn().mockResolvedValue({ text })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  vi.mocked(GoogleGenAI).mockImplementation(function (this: any) {
-    this.models = { generateContent }
-  })
-  return generateContent
+function stubFetch(candidatesText: string | null) {
+  const body =
+    candidatesText === null
+      ? ''
+      : JSON.stringify({ candidates: [{ content: { parts: [{ text: candidatesText }] } }] })
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: vi.fn().mockResolvedValue(body),
+    }),
+  )
 }
 
-function stubGenerateContentError(message: string) {
-  const generateContent = vi.fn().mockRejectedValue(new Error(message))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  vi.mocked(GoogleGenAI).mockImplementation(function (this: any) {
-    this.models = { generateContent }
-  })
+function stubFetchApiError(message: string) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: vi.fn().mockResolvedValue(JSON.stringify({ error: { message } })),
+    }),
+  )
+}
+
+function stubFetchNetworkError(message: string) {
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error(message)))
 }
 
 describe('analyzeReceiptWithGemini', () => {
@@ -46,29 +53,37 @@ describe('analyzeReceiptWithGemini', () => {
     )
   })
 
-  it('throws when Gemini response text is empty or non-JSON', async () => {
-    stubGenerateContent('')
+  it('throws when Gemini response is empty or not parseable', async () => {
+    stubFetch(null)
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini response did not include extractable content.')
+    ).rejects.toThrow('Gemini returned an empty response.')
 
-    stubGenerateContent('not-json')
+    stubFetch('not-json')
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
     ).rejects.toThrow('Gemini output was not valid JSON.')
   })
 
   it('propagates Gemini API errors', async () => {
-    stubGenerateContentError('Invalid API key')
+    stubFetchApiError('Invalid API key')
 
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
     ).rejects.toThrow('Invalid API key')
   })
 
+  it('throws when fetch itself fails', async () => {
+    stubFetchNetworkError('Network error')
+
+    await expect(
+      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
+    ).rejects.toThrow('Network error')
+  })
+
   it('parses valid Gemini output into normalized OCR payload', async () => {
     const statuses: string[] = []
-    stubGenerateContent(
+    stubFetch(
       JSON.stringify({
         items: [
           { description: '  Chicken Rice  ', amount: 8.5 },
@@ -113,7 +128,7 @@ describe('analyzeReceiptWithGemini', () => {
   })
 
   it('adds fallback warning when no line items are returned', async () => {
-    stubGenerateContent(
+    stubFetch(
       JSON.stringify({
         items: [],
         subtotal: null,
