@@ -65,6 +65,17 @@ export function AdvancedWorkspace() {
   const reconciliationCents =
     receiptTotalCents === null ? null : receiptTotalCents - split.grandTotalCents
 
+  const handleApplyReconciliationDiscount = () => {
+    if (reconciliationCents === null || reconciliationCents >= 0) return
+    const totalDiscountCents = split.discountCents + Math.abs(reconciliationCents)
+    setDiscount({
+      ...discount,
+      enabled: true,
+      mode: 'amount',
+      amountInput: (totalDiscountCents / 100).toFixed(2),
+    })
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr_1fr]">
       <SetupPanel
@@ -100,6 +111,7 @@ export function AdvancedWorkspace() {
         onAddItem={addAdvancedItem}
         onRemoveItem={removeItem}
         onUpdateItem={updateItem}
+        globalDiscount={discount}
       />
 
       <FinalSplitPanel
@@ -109,6 +121,7 @@ export function AdvancedWorkspace() {
         discount={discount}
         serviceCharge={serviceCharge}
         gst={gst}
+        onApplyDiscount={handleApplyReconciliationDiscount}
         exportSection={
           <ExportImageSection
             people={people}

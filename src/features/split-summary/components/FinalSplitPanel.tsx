@@ -13,6 +13,7 @@ type FinalSplitPanelProps = {
   gst: ChargeState
   exportSection?: ReactNode
   variant?: 'standalone' | 'embedded'
+  onApplyDiscount?: () => void
 }
 
 export function FinalSplitPanel({
@@ -24,6 +25,7 @@ export function FinalSplitPanel({
   gst,
   exportSection,
   variant = 'standalone',
+  onApplyDiscount,
 }: FinalSplitPanelProps) {
   const [showItemMeta, setShowItemMeta] = useState(true)
 
@@ -43,6 +45,7 @@ export function FinalSplitPanel({
         serviceCharge={serviceCharge}
         gst={gst}
         reconciliationCents={reconciliationCents}
+        onApplyDiscount={onApplyDiscount}
       />
 
       <div className="space-y-3">

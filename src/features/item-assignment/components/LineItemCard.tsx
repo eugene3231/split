@@ -1,4 +1,4 @@
-import type { AssignmentMode, EditableItem, Person } from '../../../shared/types'
+import type { AssignmentMode, ChargeState, EditableItem, Person } from '../../../shared/types'
 import { formatCurrencyFromCents } from '../../../shared/logic/core/money'
 import { isItemAssigned, pickDefaultPersonId } from '../../../shared/logic/assignment/items'
 import { resolveDiscountedAmountCents } from '../../../shared/logic/computation/pricing'
@@ -10,6 +10,7 @@ type LineItemCardProps = {
   peopleSet: Set<string>
   onRemoveItem: (itemId: string) => void
   onUpdateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void
+  globalDiscount?: ChargeState
 }
 
 export function LineItemCard({
@@ -19,6 +20,7 @@ export function LineItemCard({
   peopleSet,
   onRemoveItem,
   onUpdateItem,
+  globalDiscount,
 }: LineItemCardProps) {
   const itemAssigned = isItemAssigned(item, peopleSet)
   const itemNetAmountCents = resolveDiscountedAmountCents(item)
@@ -75,10 +77,22 @@ export function LineItemCard({
           />
         </div>
       </div>
-      <p className="text-xs text-slate-400">
-        Net after discount:{' '}
-        {itemNetAmountCents === null ? '$0.00' : formatCurrencyFromCents(itemNetAmountCents)}
-      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-xs text-slate-400">
+          Net after discount:{' '}
+          {itemNetAmountCents === null ? '$0.00' : formatCurrencyFromCents(itemNetAmountCents)}
+        </p>
+        {globalDiscount?.enabled ? (
+          <span
+            data-testid="global-discount-badge"
+            className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400"
+          >
+            {globalDiscount.mode === 'percent'
+              ? `+${globalDiscount.percentInput || '0'}% whole-bill discount`
+              : 'Whole-bill discount applied'}
+          </span>
+        ) : null}
+      </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
         <select
