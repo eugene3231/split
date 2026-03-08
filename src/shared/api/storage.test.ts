@@ -3,6 +3,7 @@ import {
   LOCAL_STORAGE_DRAFT_KEY,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
+  defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
 } from '../constants'
@@ -155,6 +156,7 @@ describe('storage availability failures', () => {
         version: 1,
         people: [],
         items: [],
+        discount: defaultDiscountState,
         serviceCharge: defaultServiceChargeState,
         gst: defaultGstState,
         receiptTotalInput: '',

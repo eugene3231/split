@@ -12,6 +12,7 @@ describe('buildSplitShareText', () => {
         split: {
           lineItemsByPerson: {},
           subtotalByPersonCents: {},
+          discountByPersonCents: {},
           serviceByPersonCents: {},
           gstByPersonCents: {},
           totalByPersonCents: {
@@ -19,6 +20,7 @@ describe('buildSplitShareText', () => {
             p2: 2500,
           },
           subtotalCents: 0,
+          discountCents: 0,
           serviceChargeCents: 0,
           gstCents: 0,
           grandTotalCents: 3750,
