@@ -3,14 +3,18 @@ import type {
   ChargeDetection,
   ChargeState,
   EditableItem,
-  GeminiGenerateContentResponse,
   OcrResponse,
   Person,
 } from '../../../shared/types'
 import { applyChargeDetection } from '../../../shared/logic/computation/charges'
 import { createItemFromOcr } from './itemMapper'
 import { toNullableNumber, roundMoney } from '../../../shared/logic/core/money'
-import { isRecord } from '../../../shared/logic/core/guards'
+import {
+  geminiReceiptSchema,
+  GEMINI_RECEIPT_RESPONSE_SCHEMA,
+} from './gemini-schema'
+import type { GeminiChargePayload } from './gemini-schema'
+import { GoogleGenAI } from '@google/genai'
 
 export async function analyzeReceiptWithGemini(
   file: File,
@@ -31,70 +35,39 @@ export async function analyzeReceiptWithGemini(
   onStatus('Encoding receipt...')
   const contentBase64 = await fileToBase64(file)
   const mimeType = file.type || 'image/jpeg'
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${encodeURIComponent(apiKey)}`
 
-  const instruction = [
+  const prompt = [
     'Extract structured receipt data from the attached file.',
-    'Return valid JSON only, no markdown, no explanation.',
-    'Use exactly this schema:',
-    '{"items":[{"description":"string","amount":number}],"subtotal":number|null,"total":number|null,"detected":{"gst":{"enabled":boolean,"amount":number|null,"percent":number|null,"confidence":number|null,"source":"string"},"serviceCharge":{"enabled":boolean,"amount":number|null,"percent":number|null,"confidence":number|null,"source":"string"}},"warnings":["string"]}',
     'If unsure, set nullable fields to null and add a warning.',
     'Amounts must be numbers, not strings.',
   ].join('\n')
 
   onStatus('Calling Gemini...')
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: instruction },
-            {
-              inline_data: {
-                mime_type: mimeType,
-                data: contentBase64,
-              },
-            },
-          ],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json',
+
+  const ai = new GoogleGenAI({ apiKey })
+  const response = await ai.models.generateContent({
+    model: selectedModel,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType, data: contentBase64 } },
+        ],
       },
-    }),
+    ],
+    config: {
+      responseMimeType: 'application/json',
+      responseJsonSchema: GEMINI_RECEIPT_RESPONSE_SCHEMA,
+    },
   })
 
-  const rawBody = await response.text()
-  if (!rawBody.trim()) {
-    throw new Error('Gemini returned an empty response.')
-  }
-
-  let geminiPayload: GeminiGenerateContentResponse
-  try {
-    geminiPayload = JSON.parse(rawBody) as GeminiGenerateContentResponse
-  } catch {
-    throw new Error('Gemini returned non-JSON response.')
-  }
-
-  if (!response.ok || geminiPayload.error) {
-    const errorMessage =
-      geminiPayload.error?.message ?? `Gemini request failed (${response.status}).`
-    throw new Error(errorMessage)
-  }
-
-  const modelText = extractGeminiText(geminiPayload)
-  if (!modelText) {
+  if (!response.text) {
     throw new Error('Gemini response did not include extractable content.')
   }
 
   onStatus('Parsing Gemini output...')
-  return parseGeminiReceiptResponse(modelText)
+  return parseGeminiReceiptResponse(response.text)
 }
 
 export function applyOcrPayload(
@@ -198,53 +171,26 @@ export function buildSimpleModeMockOcrResponse(): OcrResponse {
   }
 }
 
-function extractGeminiText(payload: GeminiGenerateContentResponse): string {
-  const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
 
-  for (const candidate of candidates) {
-    const parts = candidate.content?.parts
-    if (!Array.isArray(parts)) {
-      continue
-    }
-
-    const text = parts
-      .map((part) => (typeof part.text === 'string' ? part.text : ''))
-      .join('\n')
-      .trim()
-
-    if (text) {
-      return text
-    }
-  }
-
-  return ''
-}
-
-function parseGeminiReceiptResponse(modelText: string): OcrResponse {
-  const jsonBody = extractJsonObject(modelText)
-
-  let parsed: unknown
+function parseGeminiReceiptResponse(text: string): OcrResponse {
+  let raw: unknown
   try {
-    parsed = JSON.parse(jsonBody)
+    raw = JSON.parse(text)
   } catch {
     throw new Error('Gemini output was not valid JSON.')
   }
 
-  if (!isRecord(parsed)) {
-    throw new Error('Gemini JSON payload must be an object.')
+  const result = geminiReceiptSchema.safeParse(raw)
+  if (!result.success) {
+    throw new Error('Gemini response did not match expected schema.')
   }
+  const parsed = result.data
 
-  const itemsRaw = Array.isArray(parsed.items) ? parsed.items : []
-  const items = itemsRaw
-    .map((item) => normalizeGeminiItem(item))
+  const items = parsed.items
+    .map(normalizeGeminiItem)
     .filter((item): item is { description: string; amount: number } => item !== null)
 
-  const detected = isRecord(parsed.detected) ? parsed.detected : {}
-  const subtotal = toNullableNumber(parsed.subtotal)
-  const total = toNullableNumber(parsed.total)
-  const warnings = Array.isArray(parsed.warnings)
-    ? parsed.warnings.filter((warning): warning is string => typeof warning === 'string')
-    : []
+  const warnings = [...parsed.warnings]
 
   if (items.length === 0) {
     warnings.push('Gemini did not return line items confidently. Add/edit items manually.')
@@ -252,21 +198,20 @@ function parseGeminiReceiptResponse(modelText: string): OcrResponse {
 
   return {
     items,
-    subtotal,
-    total,
+    subtotal: toNullableNumber(parsed.subtotal),
+    total: toNullableNumber(parsed.total),
     detected: {
-      gst: normalizeGeminiChargeDetection(detected.gst),
-      serviceCharge: normalizeGeminiChargeDetection(detected.serviceCharge),
+      gst: normalizeGeminiChargeDetection(parsed.detected.gst),
+      serviceCharge: normalizeGeminiChargeDetection(parsed.detected.serviceCharge),
     },
     warnings,
   }
 }
 
-function normalizeGeminiItem(value: unknown): { description: string; amount: number } | null {
-  if (!isRecord(value)) {
-    return null
-  }
-
+function normalizeGeminiItem(value: {
+  description: string | null
+  amount: number | null
+}): { description: string; amount: number } | null {
   const description =
     typeof value.description === 'string' ? value.description.replace(/\s+/g, ' ').trim() : ''
   const amount = toNullableNumber(value.amount)
@@ -281,17 +226,7 @@ function normalizeGeminiItem(value: unknown): { description: string; amount: num
   }
 }
 
-function normalizeGeminiChargeDetection(value: unknown): ChargeDetection {
-  if (!isRecord(value)) {
-    return {
-      enabled: false,
-      amount: null,
-      percent: null,
-      confidence: null,
-      source: 'none',
-    }
-  }
-
+function normalizeGeminiChargeDetection(value: GeminiChargePayload): ChargeDetection {
   const amount = toNullableNumber(value.amount)
   const percent = toNullableNumber(value.percent)
   const confidenceRaw = toNullableNumber(value.confidence)
@@ -316,23 +251,6 @@ function normalizeGeminiChargeDetection(value: unknown): ChargeDetection {
   }
 }
 
-function extractJsonObject(value: string): string {
-  const trimmed = value.trim()
-  if (!trimmed) {
-    throw new Error('Gemini output was empty.')
-  }
-
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  const candidate = fenced ? fenced[1].trim() : trimmed
-  const objectStart = candidate.indexOf('{')
-  const objectEnd = candidate.lastIndexOf('}')
-
-  if (objectStart < 0 || objectEnd <= objectStart) {
-    throw new Error('Gemini output did not include a JSON object.')
-  }
-
-  return candidate.slice(objectStart, objectEnd + 1)
-}
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -8,7 +8,7 @@ import { computeSplit } from "../../../shared/logic/computation/split";
 import { GlobalChargesSection } from "../../receipt-setup/components/GlobalChargesSection";
 import { ReceiptImportPanel } from "../../receipt-import/components/ReceiptImportPanel";
 import { ExportImageSection } from "../../split-export";
-import { SummaryRow } from "../../split-summary/components/SummaryRow";
+import { SplitTotalsCard } from "../../split-summary/components/SplitTotalsCard";
 import { useReceiptUiStore } from "../../../shared/stores/receiptUiStore";
 import { useReceiptWorkspaceStore } from "../store/receiptWorkspaceStore";
 import { SimplePersonBreakdown } from "./SimplePersonBreakdown";
@@ -318,6 +318,13 @@ export function SimpleWorkspace() {
 
             {hasAnyValidReceiptItem(items) ? (
               <div className="space-y-4">
+                <SplitTotalsCard
+                  split={split}
+                  serviceCharge={serviceCharge}
+                  gst={gst}
+                  reconciliationCents={reconciliationCents}
+                />
+
                 <GlobalChargesSection
                   serviceCharge={serviceCharge}
                   onServiceChargeChange={setServiceCharge}
@@ -329,7 +336,7 @@ export function SimpleWorkspace() {
 
                 {/* Card 3: Items */}
                 <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 p-5">
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-3 flex items-center justify-between">
                     <p className="text-sm font-semibold text-slate-200">
                       Items
                     </p>
@@ -342,14 +349,27 @@ export function SimpleWorkspace() {
                     </button>
                   </div>
 
-                  <div className="divide-y divide-slate-700/40">
-                    {items.map((item) => (
-                      <article
-                        key={item.id}
-                        className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
-                      >
-                        <div className="flex-1 space-y-2">
-                          <div className="grid grid-cols-2 gap-2">
+                  {/* Column headers */}
+                  <div className="mb-1.5 grid grid-cols-[1fr_auto_auto] items-center gap-2 px-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Item
+                    </span>
+                    <span className="w-16 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Price ($)
+                    </span>
+                    <span className="w-7" />
+                  </div>
+
+                  <div className="space-y-2">
+                    {items.map((item) => {
+                      const discountVisible = isDiscountVisible(item);
+                      return (
+                        <article
+                          key={item.id}
+                          className="rounded-xl border border-slate-700/60 bg-slate-900/60 focus-within:border-slate-600"
+                        >
+                          {/* Row 1: name | price | × */}
+                          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 p-1">
                             <input
                               value={item.name}
                               onChange={(event) =>
@@ -359,84 +379,99 @@ export function SimpleWorkspace() {
                                 }))
                               }
                               placeholder="Item name"
-                              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm outline-none ring-sky-400/70 transition focus:ring-2"
+                              className="min-w-0 rounded-lg border border-transparent bg-transparent px-1 py-1.5 text-sm text-slate-100 outline-none ring-sky-400/70 placeholder:text-slate-600 transition hover:border-slate-700 focus:border-slate-600 focus:ring-2"
                             />
-                            <input
-                              value={item.amountInput}
-                              onChange={(event) =>
-                                updateItem(item.id, (current) => ({
-                                  ...current,
-                                  amountInput: event.target.value,
-                                }))
-                              }
-                              inputMode="decimal"
-                              placeholder="Amount"
-                              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm outline-none ring-sky-400/70 transition focus:ring-2"
-                            />
-                          </div>
-                          {isDiscountVisible(item) ? (
-                            <div className="flex items-center gap-2">
+                            {/* Price with $ prefix */}
+                            <div className="flex w-16 items-center gap-1 rounded-lg border border-transparent px-1 py-1.5 text-sm transition hover:border-slate-700 focus-within:border-slate-600 focus-within:ring-2 focus-within:ring-sky-400/70">
+                              <span className="select-none text-slate-500">$</span>
                               <input
-                                ref={(el) => {
-                                  if (el)
-                                    discountInputRefs.current.set(item.id, el);
-                                  else
-                                    discountInputRefs.current.delete(item.id);
-                                }}
-                                value={item.discountPercentInput}
+                                value={item.amountInput}
                                 onChange={(event) =>
                                   updateItem(item.id, (current) => ({
                                     ...current,
-                                    discountPercentInput: event.target.value,
+                                    amountInput: event.target.value,
                                   }))
                                 }
                                 inputMode="decimal"
-                                placeholder="Discount %"
-                                className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm outline-none ring-sky-400/70 transition focus:ring-2"
+                                placeholder="0.00"
+                                className="w-full bg-transparent text-right text-slate-100 outline-none placeholder:text-slate-600"
                               />
-                              <button
-                                type="button"
-                                onClick={() => handleHideDiscount(item.id)}
-                                className="text-xs text-slate-500 transition hover:text-slate-300 hover:underline"
-                              >
-                                Remove discount
-                              </button>
                             </div>
-                          ) : (
                             <button
                               type="button"
-                              onClick={() => handleShowDiscount(item.id)}
-                              className="text-xs text-slate-500 transition hover:text-slate-300 hover:underline"
+                              onClick={() => removeItem(item.id)}
+                              aria-label="Remove item"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-400"
                             >
-                              + Add discount
+                              <svg
+                                width="14"
+                                height="14"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2.5}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
                             </button>
-                          )}
-                        </div>
+                          </div>
 
-                        {/* ✕ remove button */}
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.id)}
-                          aria-label="Remove item"
-                          className="mt-1.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-400"
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </article>
-                    ))}
+                          {/* Row 2: discount (conditional) or add-discount link */}
+                          {discountVisible ? (
+                            <>
+                              <div className="border-t border-slate-700/40" />
+                              <div className="flex items-center gap-2 px-3 py-2">
+                                <span className="shrink-0 text-xs text-slate-500">
+                                  Discount
+                                </span>
+                                <div className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/60 p-1 text-sm focus-within:ring-2 focus-within:ring-sky-400/70">
+                                  <input
+                                    ref={(el) => {
+                                      if (el)
+                                        discountInputRefs.current.set(item.id, el);
+                                      else
+                                        discountInputRefs.current.delete(item.id);
+                                    }}
+                                    value={item.discountPercentInput}
+                                    onChange={(event) =>
+                                      updateItem(item.id, (current) => ({
+                                        ...current,
+                                        discountPercentInput: event.target.value,
+                                      }))
+                                    }
+                                    inputMode="decimal"
+                                    placeholder="0"
+                                    className="w-12 bg-transparent text-right text-slate-100 outline-none placeholder:text-slate-600"
+                                  />
+                                  <span className="select-none text-slate-500">%</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleHideDiscount(item.id)}
+                                  className="ml-auto text-xs text-slate-500 transition hover:text-slate-300 hover:underline"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="px-3 pb-2">
+                              <button
+                                type="button"
+                                onClick={() => handleShowDiscount(item.id)}
+                                className="text-xs text-slate-600 transition hover:text-slate-400 hover:underline"
+                              >
+                                + Add discount
+                              </button>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -684,48 +719,12 @@ export function SimpleWorkspace() {
               reconciliationCents={reconciliationCents}
             />
 
-            <article className="overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
-              <div className="border-b border-sky-500/50 bg-sky-500/15 px-4 py-3">
-                <p className="text-sm font-bold text-slate-100">Total</p>
-                <p className="text-lg font-bold text-sky-300">
-                  {formatCurrencyFromCents(split.grandTotalCents)}
-                </p>
-              </div>
-              <div className="space-y-2 p-4 text-sm">
-                <SummaryRow
-                  label="Subtotal"
-                  value={formatCurrencyFromCents(split.subtotalCents)}
-                />
-                <SummaryRow
-                  label={
-                    serviceCharge.enabled
-                      ? `Service Charge (${serviceCharge.mode === "percent" ? serviceCharge.percentInput + "%" : "amount"})`
-                      : "Service Charge (off)"
-                  }
-                  value={formatCurrencyFromCents(split.serviceChargeCents)}
-                />
-                <SummaryRow
-                  label={
-                    gst.enabled
-                      ? `GST / Tax (${gst.mode === "percent" ? gst.percentInput + "%" : "amount"})`
-                      : "GST / Tax (off)"
-                  }
-                  value={formatCurrencyFromCents(split.gstCents)}
-                />
-                <SummaryRow
-                  label="Grand Total"
-                  value={formatCurrencyFromCents(split.grandTotalCents)}
-                  emphasized
-                />
-                {reconciliationCents !== null ? (
-                  <SummaryRow
-                    label="Receipt Difference"
-                    value={formatCurrencyFromCents(reconciliationCents)}
-                    tone={reconciliationCents === 0 ? "ok" : "warn"}
-                  />
-                ) : null}
-              </div>
-            </article>
+            <SplitTotalsCard
+              split={split}
+              serviceCharge={serviceCharge}
+              gst={gst}
+              reconciliationCents={reconciliationCents}
+            />
 
             <div className="space-y-3">
               <p className="text-sm font-semibold text-slate-200">

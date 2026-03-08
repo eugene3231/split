@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { ChargeState, Person, SplitResult } from '../../../shared/types'
-import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core/money'
-import { SummaryRow } from './SummaryRow'
+import { SplitTotalsCard } from './SplitTotalsCard'
 import { PersonCard } from '../../receipt-workspace/components/SimplePersonBreakdown'
 
 type FinalSplitPanelProps = {
@@ -24,8 +23,6 @@ export function FinalSplitPanel({
   exportSection,
   variant = 'standalone',
 }: FinalSplitPanelProps) {
-  const serviceLabel = buildChargeLabel('Service Charge', serviceCharge)
-  const gstLabel = buildChargeLabel('GST / Tax', gst)
   const [showItemMeta, setShowItemMeta] = useState(true)
 
   return (
@@ -38,29 +35,12 @@ export function FinalSplitPanel({
     >
       {variant === 'standalone' ? <h2 className="text-lg font-semibold">Final Split</h2> : null}
       {exportSection}
-      <article className="overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
-        <div className="border-b border-sky-500/50 bg-sky-500/15 px-4 py-3">
-          <p className="text-sm font-bold text-slate-100">Total</p>
-          <p className="text-lg font-bold text-sky-300">{formatCurrencyFromCents(split.grandTotalCents)}</p>
-        </div>
-        <div className="space-y-2 p-4 text-sm">
-          <SummaryRow label="Subtotal" value={formatCurrencyFromCents(split.subtotalCents)} />
-          <SummaryRow label={serviceLabel} value={formatCurrencyFromCents(split.serviceChargeCents)} />
-          <SummaryRow label={gstLabel} value={formatCurrencyFromCents(split.gstCents)} />
-          <SummaryRow
-            label="Grand Total"
-            value={formatCurrencyFromCents(split.grandTotalCents)}
-            emphasized
-          />
-          {reconciliationCents !== null ? (
-            <SummaryRow
-              label="Receipt Difference"
-              value={formatCurrencyFromCents(reconciliationCents)}
-              tone={reconciliationCents === 0 ? 'ok' : 'warn'}
-            />
-          ) : null}
-        </div>
-      </article>
+      <SplitTotalsCard
+        split={split}
+        serviceCharge={serviceCharge}
+        gst={gst}
+        reconciliationCents={reconciliationCents}
+      />
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
@@ -99,23 +79,3 @@ export function FinalSplitPanel({
   )
 }
 
-function buildChargeLabel(label: string, charge: ChargeState): string {
-  if (!charge.enabled) {
-    return `${label} (off)`
-  }
-
-  if (charge.mode === 'percent') {
-    const parsed = parseNumber(charge.percentInput)
-    if (parsed !== null) {
-      return `${label} (${formatPercent(parsed)}%)`
-    }
-
-    return `${label} (%)`
-  }
-
-  return `${label} (amount)`
-}
-
-function formatPercent(value: number): string {
-  return value.toFixed(2).replace(/\.?0+$/, '')
-}

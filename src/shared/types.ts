@@ -97,13 +97,4 @@ export type PersistedOcrSettings = {
   savedAt: string
 }
 
-export type GeminiGenerateContentResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>
-    }
-  }>
-  error?: {
-    message?: string
-  }
-}
+
