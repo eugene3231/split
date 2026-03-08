@@ -31,4 +31,22 @@ export const geminiReceiptSchema = z.object({
 export type GeminiChargePayload = z.infer<typeof geminiChargeSchema>
 export type GeminiReceiptPayload = z.infer<typeof geminiReceiptSchema>
 
-export const GEMINI_RECEIPT_RESPONSE_SCHEMA = z.toJSONSchema(geminiReceiptSchema)
+const UNSUPPORTED_KEYS = new Set(['$schema', 'additionalProperties'])
+
+function stripUnsupportedSchemaFields(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(stripUnsupportedSchemaFields)
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([k]) => !UNSUPPORTED_KEYS.has(k))
+        .map(([k, v]) => [k, stripUnsupportedSchemaFields(v)]),
+    )
+  }
+  return value
+}
+
+export const GEMINI_RECEIPT_RESPONSE_SCHEMA = stripUnsupportedSchemaFields(
+  z.toJSONSchema(geminiReceiptSchema),
+)

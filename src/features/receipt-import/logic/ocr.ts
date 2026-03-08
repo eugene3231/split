@@ -14,7 +14,16 @@ import {
   GEMINI_RECEIPT_RESPONSE_SCHEMA,
 } from './gemini-schema'
 import type { GeminiChargePayload } from './gemini-schema'
-import { GoogleGenAI } from '@google/genai'
+interface GeminiGenerateContentResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>
+    }
+  }>
+  error?: {
+    message?: string
+  }
+}
 
 export async function analyzeReceiptWithGemini(
   file: File,
@@ -44,30 +53,56 @@ export async function analyzeReceiptWithGemini(
 
   onStatus('Calling Gemini...')
 
-  const ai = new GoogleGenAI({ apiKey })
-  const response = await ai.models.generateContent({
-    model: selectedModel,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          { text: prompt },
-          { inlineData: { mimeType, data: contentBase64 } },
-        ],
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType, data: contentBase64 } },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: GEMINI_RECEIPT_RESPONSE_SCHEMA,
       },
-    ],
-    config: {
-      responseMimeType: 'application/json',
-      responseJsonSchema: GEMINI_RECEIPT_RESPONSE_SCHEMA,
-    },
+    }),
   })
 
-  if (!response.text) {
+  const rawBody = await response.text()
+  if (!rawBody.trim()) {
+    throw new Error('Gemini returned an empty response.')
+  }
+
+  let geminiPayload: GeminiGenerateContentResponse
+  try {
+    geminiPayload = JSON.parse(rawBody) as GeminiGenerateContentResponse
+  } catch {
+    throw new Error('Gemini returned non-JSON response.')
+  }
+
+  if (!response.ok || geminiPayload.error) {
+    const errorMessage =
+      geminiPayload.error?.message ?? `Gemini request failed (${response.status}).`
+    throw new Error(errorMessage)
+  }
+
+  const modelText = extractGeminiText(geminiPayload)
+  if (!modelText) {
     throw new Error('Gemini response did not include extractable content.')
   }
 
   onStatus('Parsing Gemini output...')
-  return parseGeminiReceiptResponse(response.text)
+  return parseGeminiReceiptResponse(modelText)
+}
+
+function extractGeminiText(payload: GeminiGenerateContentResponse): string | null {
+  return payload.candidates?.[0]?.content?.parts?.[0]?.text ?? null
 }
 
 export function applyOcrPayload(
