@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { defaultGstState, defaultServiceChargeState } from '../../../shared/constants'
-import { clearPersistedDraft, loadPersistedDraft } from '../../../shared/api/storage'
+import {
+  clearPersistedDraft,
+  exportDraftToJson,
+  importDraftFromJson,
+  loadPersistedDraft,
+} from '../../../shared/api/storage'
 import { createEmptyItem, sanitizeItemAssignment } from '../../../shared/logic/assignment/items'
 import { createId } from '../../../shared/logic/core/id'
 import type { ChargeState, EditableItem, Person } from '../../../shared/types'
@@ -36,6 +41,8 @@ type ReceiptWorkspaceState = {
   handleScanReceipt: () => Promise<void>
   handleLoadMockReceipt: () => void
   handleLoadSimpleMockReceipt: () => void
+  getExportJson: () => string
+  importFromJson: (raw: string) => void
 }
 
 export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get) => ({
@@ -238,10 +245,15 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
     const uiState = useReceiptUiStore.getState()
     uiState.clearScanFeedback()
     const payload = buildLocalMockOcrResponse('Loaded local mock receipt data.')
-    const { people } = get()
+    const mockPeople = [
+      { id: createId(), name: 'Alice' },
+      { id: createId(), name: 'Bob' },
+      { id: createId(), name: 'Charlie' },
+    ]
+    set((state) => ({ ...state, people: mockPeople }))
     applyOcrPayload(
       payload,
-      people,
+      mockPeople,
       (updater) => {
         set((state) => ({
           ...state,
@@ -276,10 +288,16 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
     const uiState = useReceiptUiStore.getState()
     uiState.clearScanFeedback()
     const payload = buildSimpleModeMockOcrResponse()
-    const { people } = get()
+    const mockPeople = [
+      { id: createId(), name: 'Alice' },
+      { id: createId(), name: 'Bob' },
+      { id: createId(), name: 'Charlie' },
+      { id: createId(), name: 'David' },
+    ]
+    set((state) => ({ ...state, people: mockPeople }))
     applyOcrPayload(
       payload,
-      people,
+      mockPeople,
       (updater) => {
         set((state) => ({
           ...state,
@@ -307,6 +325,24 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
       ...state,
       items: convertItemsToSimpleEqualMode(state.items, state.people),
     }))
+  },
+  getExportJson: () => {
+    const { people, items, serviceCharge, gst, receiptTotalInput } = get()
+    return exportDraftToJson({ people, items, serviceCharge, gst, receiptTotalInput })
+  },
+  importFromJson: (raw) => {
+    const draft = importDraftFromJson(raw)
+    if (!draft) {
+      return
+    }
+    const uxMode = useReceiptUiStore.getState().uxMode
+    set({
+      people: draft.people,
+      items: buildInitialItems(draft.items, draft.people, uxMode),
+      serviceCharge: draft.serviceCharge,
+      gst: draft.gst,
+      receiptTotalInput: draft.receiptTotalInput,
+    })
   },
 }))
 

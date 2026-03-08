@@ -20,6 +20,57 @@ import { toNullableNumber } from '../logic/core/money'
 import { isRecord } from '../logic/core/guards'
 import { createId } from '../logic/core/id'
 
+export function exportDraftToJson(state: {
+  people: Person[]
+  items: EditableItem[]
+  serviceCharge: ChargeState
+  gst: ChargeState
+  receiptTotalInput: string
+}): string {
+  const draft: PersistedDraft = {
+    version: 1,
+    people: state.people,
+    items: state.items,
+    serviceCharge: state.serviceCharge,
+    gst: state.gst,
+    receiptTotalInput: state.receiptTotalInput,
+    finalSplit: {
+      subtotalCents: 0,
+      serviceChargeCents: 0,
+      gstCents: 0,
+      grandTotalCents: 0,
+      totalByPersonCents: {},
+    },
+    savedAt: new Date().toISOString(),
+  }
+  return JSON.stringify(draft, null, 2)
+}
+
+export function importDraftFromJson(raw: string): PersistedDraft | null {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!isRecord(parsed) || parsed.version !== 1) {
+      return null
+    }
+
+    const people = normalizeDraftPeople(parsed.people)
+    const items = normalizeDraftItems(parsed.items, people)
+
+    return {
+      version: 1,
+      people,
+      items,
+      serviceCharge: normalizeDraftChargeState(parsed.serviceCharge, defaultServiceChargeState),
+      gst: normalizeDraftChargeState(parsed.gst, defaultGstState),
+      receiptTotalInput: typeof parsed.receiptTotalInput === 'string' ? parsed.receiptTotalInput : '',
+      finalSplit: normalizePersistedFinalSplit(parsed.finalSplit),
+      savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : '',
+    }
+  } catch {
+    return null
+  }
+}
+
 export function savePersistedDraft(draft: PersistedDraft): void {
   const storage = getBrowserStorage()
   if (!storage) {

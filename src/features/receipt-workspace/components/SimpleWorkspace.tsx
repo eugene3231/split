@@ -4,10 +4,11 @@ import { formatCurrencyFromCents, parseCurrencyToCents } from '../../../shared/l
 import { computeSplit } from '../../../shared/logic/computation/split'
 import { GlobalChargesSection } from '../../receipt-setup/components/GlobalChargesSection'
 import { ReceiptImportPanel } from '../../receipt-import/components/ReceiptImportPanel'
-import { FinalSplitPanel } from '../../split-summary/components/FinalSplitPanel'
 import { ExportImageSection } from '../../split-export'
+import { SummaryRow } from '../../split-summary/components/SummaryRow'
 import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
 import { useReceiptWorkspaceStore } from '../store/receiptWorkspaceStore'
+import { SimplePersonBreakdown } from './SimplePersonBreakdown'
 import {
   getAssignedItemsCount,
   getDetectedItemsCount,
@@ -16,6 +17,7 @@ import {
   isStepValid,
 } from '../logic/wizardValidation'
 import { SimpleProgressHeader } from './SimpleProgressHeader'
+import { JsonImportExportSection } from './JsonImportExportSection'
 import { loadSimpleWizardState, saveSimpleWizardState } from '../logic/persistence'
 import type { ItemsSubPhase, SimpleWizardStep } from '../types'
 
@@ -31,6 +33,8 @@ export function SimpleWorkspace() {
     handleReceiptFileSelected,
     handleScanReceipt,
     handleLoadSimpleMockReceipt,
+    getExportJson,
+    importFromJson,
     addSimpleItem,
     removeItem,
     updateItem,
@@ -50,6 +54,8 @@ export function SimpleWorkspace() {
       handleReceiptFileSelected: state.handleReceiptFileSelected,
       handleScanReceipt: state.handleScanReceipt,
       handleLoadSimpleMockReceipt: state.handleLoadSimpleMockReceipt,
+      getExportJson: state.getExportJson,
+      importFromJson: state.importFromJson,
       addSimpleItem: state.addSimpleItem,
       removeItem: state.removeItem,
       updateItem: state.updateItem,
@@ -239,6 +245,23 @@ export function SimpleWorkspace() {
                 ))
               )}
             </div>
+
+            <div className="space-y-2 border-t border-slate-800 pt-3">
+              <p className="text-xs text-slate-500">Or load a demo / saved session:</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleLoadSimpleMockReceipt}
+                  className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-500"
+                >
+                  Load Mock Receipt
+                </button>
+              </div>
+              <JsonImportExportSection
+                onGetJson={getExportJson}
+                onImportJson={importFromJson}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -251,7 +274,7 @@ export function SimpleWorkspace() {
               onLoadMockReceipt={handleLoadSimpleMockReceipt}
               hideModelInAdvancedSettings
               enableCameraCapture
-              showLoadMockButton
+              showLoadMockButton={false}
             />
 
             {hasAnyValidReceiptItem(items) ? (
@@ -497,23 +520,54 @@ export function SimpleWorkspace() {
             <p className="text-sm text-slate-400">
               Review each person&apos;s total, check the receipt difference, and share the split to get your $ back.
             </p>
-            <FinalSplitPanel
+
+            <ExportImageSection
               people={people}
               split={split}
-              reconciliationCents={reconciliationCents}
               serviceCharge={serviceCharge}
               gst={gst}
-              exportSection={
-                <ExportImageSection
-                  people={people}
-                  split={split}
-                  serviceCharge={serviceCharge}
-                  gst={gst}
-                  reconciliationCents={reconciliationCents}
-                />
-              }
-              variant="embedded"
+              reconciliationCents={reconciliationCents}
             />
+
+            <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm">
+              <SummaryRow label="Subtotal" value={formatCurrencyFromCents(split.subtotalCents)} />
+              <SummaryRow
+                label={serviceCharge.enabled ? `Service Charge (${serviceCharge.mode === 'percent' ? serviceCharge.percentInput + '%' : 'amount'})` : 'Service Charge (off)'}
+                value={formatCurrencyFromCents(split.serviceChargeCents)}
+              />
+              <SummaryRow
+                label={gst.enabled ? `GST / Tax (${gst.mode === 'percent' ? gst.percentInput + '%' : 'amount'})` : 'GST / Tax (off)'}
+                value={formatCurrencyFromCents(split.gstCents)}
+              />
+              <SummaryRow
+                label="Grand Total"
+                value={formatCurrencyFromCents(split.grandTotalCents)}
+                emphasized
+              />
+              {reconciliationCents !== null ? (
+                <SummaryRow
+                  label="Receipt Difference"
+                  value={formatCurrencyFromCents(reconciliationCents)}
+                  tone={reconciliationCents === 0 ? 'ok' : 'warn'}
+                />
+              ) : null}
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-slate-200">Per-person breakdown</p>
+              <SimplePersonBreakdown
+                people={people}
+                split={split}
+                serviceCharge={serviceCharge}
+                gst={gst}
+              />
+            </div>
+
+            {split.unassignedItemCount > 0 ? (
+              <p className="rounded-lg border border-amber-700/60 bg-amber-900/20 px-3 py-2 text-xs text-amber-200">
+                {split.unassignedItemCount} item(s) are unassigned and not included in person totals yet.
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>

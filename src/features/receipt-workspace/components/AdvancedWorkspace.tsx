@@ -8,6 +8,7 @@ import { FinalSplitPanel } from '../../split-summary'
 import { computeSplit } from '../../../shared/logic/computation/split'
 import { parseCurrencyToCents } from '../../../shared/logic/core/money'
 import { useReceiptWorkspaceStore } from '../store/receiptWorkspaceStore'
+import { JsonImportExportSection } from './JsonImportExportSection'
 
 export function AdvancedWorkspace() {
   const {
@@ -24,6 +25,8 @@ export function AdvancedWorkspace() {
     handleReceiptFileSelected,
     handleScanReceipt,
     handleLoadMockReceipt,
+    getExportJson,
+    importFromJson,
     addAdvancedItem,
     removeItem,
     updateItem,
@@ -42,6 +45,8 @@ export function AdvancedWorkspace() {
       handleReceiptFileSelected: state.handleReceiptFileSelected,
       handleScanReceipt: state.handleScanReceipt,
       handleLoadMockReceipt: state.handleLoadMockReceipt,
+      getExportJson: state.getExportJson,
+      importFromJson: state.importFromJson,
       addAdvancedItem: state.addAdvancedItem,
       removeItem: state.removeItem,
       updateItem: state.updateItem,
@@ -69,11 +74,17 @@ export function AdvancedWorkspace() {
         receiptTotalInput={receiptTotalInput}
         onReceiptTotalInputChange={setReceiptTotalInput}
         importSection={
-          <ReceiptImportPanel
-            onReceiptFileSelected={handleReceiptFileSelected}
-            onScanReceipt={handleScanReceipt}
-            onLoadMockReceipt={handleLoadMockReceipt}
-          />
+          <>
+            <ReceiptImportPanel
+              onReceiptFileSelected={handleReceiptFileSelected}
+              onScanReceipt={handleScanReceipt}
+              onLoadMockReceipt={handleLoadMockReceipt}
+            />
+            <JsonImportExportSection
+              onGetJson={getExportJson}
+              onImportJson={importFromJson}
+            />
+          </>
         }
       />
 
