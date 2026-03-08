@@ -8,20 +8,20 @@ type WizardProgressHeaderProps = {
 
 const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: string }> = {
   people: {
-    label: 'Add People',
-    description: 'The oweing parties.',
+    label: 'People',
+    description: 'Who is splitting?',
   },
   receipt: {
-    label: 'Add Receipt',
-    description: 'Import line items and other charges using Gemini.',
+    label: 'Receipt',
+    description: 'Scan with Gemini',
   },
   items: {
-    label: 'Assign Items',
-    description: 'Pick who shares each item.',
+    label: 'Assign',
+    description: 'Who gets what?',
   },
   final: {
-    label: 'Split Result',
-    description: 'Check final amounts, then share the split result.',
+    label: 'Result',
+    description: 'Review & share',
   },
 }
 
@@ -29,8 +29,8 @@ export function SimpleProgressHeader({ activeStep, context }: WizardProgressHead
   const activeStepIndex = SIMPLE_WIZARD_STEPS.indexOf(activeStep)
 
   return (
-    <section className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/95 p-4 backdrop-blur">
-      <div className="grid gap-2 sm:grid-cols-4">
+    <section className="space-y-3 rounded-2xl border border-white/8 bg-slate-900/80 p-4 shadow-lg shadow-black/20 backdrop-blur-sm">
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {SIMPLE_WIZARD_STEPS.map((step, index) => {
           const state = index < activeStepIndex ? 'completed' : index === activeStepIndex ? 'active' : 'pending'
 
@@ -38,39 +38,76 @@ export function SimpleProgressHeader({ activeStep, context }: WizardProgressHead
             <div
               key={step}
               className={[
-                'rounded-lg border px-3 py-2 text-xs',
-                state === 'active' ? 'border-sky-400 bg-sky-500/10 text-sky-200' : '',
-                state === 'completed' ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200' : '',
-                state === 'pending' ? 'border-slate-700 bg-slate-950/60 text-slate-400' : '',
+                'rounded-xl border px-3 py-2.5 transition-all',
+                state === 'active'    ? 'border-sky-500/40 bg-sky-500/10'     : '',
+                state === 'completed' ? 'border-emerald-500/25 bg-emerald-500/8' : '',
+                state === 'pending'   ? 'border-slate-800 bg-slate-900/50'      : '',
               ].join(' ')}
             >
-              <p className="font-semibold">{index + 1}. {STEP_CONTENT[step].label}</p>
-              <p className="mt-1 text-[11px] leading-snug">{STEP_CONTENT[step].description}</p>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={[
+                    'flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold',
+                    state === 'active'    ? 'bg-sky-500 text-slate-950'      : '',
+                    state === 'completed' ? 'bg-emerald-500 text-emerald-950' : '',
+                    state === 'pending'   ? 'bg-slate-800 text-slate-500'      : '',
+                  ].join(' ')}
+                >
+                  {state === 'completed' ? '✓' : index + 1}
+                </span>
+                <p
+                  className={[
+                    'text-[11px] font-semibold leading-none',
+                    state === 'active'    ? 'text-sky-200'    : '',
+                    state === 'completed' ? 'text-emerald-300' : '',
+                    state === 'pending'   ? 'text-slate-600'   : '',
+                  ].join(' ')}
+                >
+                  {STEP_CONTENT[step].label}
+                </p>
+              </div>
+              <p
+                className={[
+                  'mt-1 text-[10px] leading-snug',
+                  state === 'active'    ? 'text-sky-300/70'    : '',
+                  state === 'completed' ? 'text-emerald-400/60' : '',
+                  state === 'pending'   ? 'text-slate-700'      : '',
+                ].join(' ')}
+              >
+                {STEP_CONTENT[step].description}
+              </p>
             </div>
           )
         })}
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-300" data-testid="wizard-step-context">
+      <p
+        className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-[11px] text-slate-400"
+        data-testid="wizard-step-context"
+      >
         {buildContextText(activeStep, context)}
-      </div>
+      </p>
     </section>
   )
 }
 
 function buildContextText(step: SimpleWizardStep, context: WizardProgressContext): string {
-  if (step === 'receipt') {
-    return `Step 2 of 4 • Scan + Verify • Detected ${context.detectedItemsCount} item(s)`
-  }
+  const stepNumber = SIMPLE_WIZARD_STEPS.indexOf(step) + 1
+  const total = SIMPLE_WIZARD_STEPS.length
+  const prefix = `Step ${stepNumber} of ${total}`
 
-  if (step === 'items') {
-    const itemNumber = context.detectedItemsCount === 0 ? 0 : Math.min(context.activeItemIndex + 1, context.detectedItemsCount)
-    return `Step 3 of 4 • Assign Items • Item ${itemNumber}/${context.detectedItemsCount} • Assigned ${context.assignedItemCount}/${context.detectedItemsCount}`
+  switch (step) {
+    case 'people':
+      return `${prefix} · Add everyone splitting this bill`
+    case 'receipt': {
+      const n = context.detectedItemsCount
+      return `${prefix} · Scan + Verify · Found ${n} ${n === 1 ? 'item' : 'items'}`
+    }
+    case 'items': {
+      const itemNumber = context.detectedItemsCount === 0 ? 0 : Math.min(context.activeItemIndex + 1, context.detectedItemsCount)
+      return `${prefix} · Item ${itemNumber} of ${context.detectedItemsCount} · ${context.assignedItemCount} assigned so far`
+    }
+    case 'final':
+      return `${prefix} · All ${context.detectedItemsCount} items assigned — split summary ready`
   }
-
-  if (step === 'final') {
-    return `Step 4 of 4 • Final • ${context.detectedItemsCount}/${context.detectedItemsCount} complete`
-  }
-
-  return 'Step 1 of 4 • Add the people involved in this receipt split'
 }

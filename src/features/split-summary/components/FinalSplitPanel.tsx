@@ -36,28 +36,34 @@ export function FinalSplitPanel({
       }
     >
       {variant === 'standalone' ? <h2 className="text-lg font-semibold">Final Split</h2> : null}
-      {exportSection}
-      <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm">
-        <SummaryRow label="Subtotal" value={formatCurrencyFromCents(split.subtotalCents)} />
-        <SummaryRow label={serviceLabel} value={formatCurrencyFromCents(split.serviceChargeCents)} />
-        <SummaryRow label={gstLabel} value={formatCurrencyFromCents(split.gstCents)} />
-        <SummaryRow
-          label="Grand Total"
-          value={formatCurrencyFromCents(split.grandTotalCents)}
-          emphasized
-        />
-        {reconciliationCents !== null ? (
+      {exportSection ?? null}
+      <article className="overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
+        <div className="border-b border-sky-500/50 bg-sky-500/15 px-4 py-3">
+          <p className="text-sm font-bold text-slate-100">Total</p>
+          <p className="text-lg font-bold text-sky-300">{formatCurrencyFromCents(split.grandTotalCents)}</p>
+        </div>
+        <div className="space-y-2 p-4 text-sm">
+          <SummaryRow label="Subtotal" value={formatCurrencyFromCents(split.subtotalCents)} />
+          <SummaryRow label={serviceLabel} value={formatCurrencyFromCents(split.serviceChargeCents)} />
+          <SummaryRow label={gstLabel} value={formatCurrencyFromCents(split.gstCents)} />
           <SummaryRow
-            label="Receipt Difference"
-            value={formatCurrencyFromCents(reconciliationCents)}
-            tone={reconciliationCents === 0 ? 'ok' : 'warn'}
+            label="Grand Total"
+            value={formatCurrencyFromCents(split.grandTotalCents)}
+            emphasized
           />
-        ) : null}
-      </div>
+          {reconciliationCents !== null ? (
+            <SummaryRow
+              label="Receipt Difference"
+              value={formatCurrencyFromCents(reconciliationCents)}
+              tone={reconciliationCents === 0 ? 'ok' : 'warn'}
+            />
+          ) : null}
+        </div>
+      </article>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-slate-200">Per-person breakdown</p>
+          <p className="text-sm font-semibold text-slate-200">Per-person breakdown</p>
           <button
             type="button"
             onClick={() => setShowItemMeta((current) => !current)}

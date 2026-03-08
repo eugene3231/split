@@ -135,14 +135,12 @@ export function ExportImageSection({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-      <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Share Split</p>
-        <p className="text-xs text-slate-500">
-          Share the final split with ready-to-paste text and image summary.
-        </p>
+    <div className="overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
+      <div className="border-b border-emerald-500/50 bg-emerald-500/15 px-4 py-3">
+        <p className="text-sm font-bold text-slate-100">Share Split</p>
+        <p className="text-xs text-emerald-300">Copy or download the final summary</p>
       </div>
-
+      <div className="space-y-4 p-4">
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-3 text-xs text-slate-300 transition hover:border-slate-700">
           <input
@@ -219,6 +217,7 @@ export function ExportImageSection({
       {shareMessage ? <p className="text-xs text-emerald-300">{shareMessage}</p> : null}
       {shareError ? <p className="text-xs text-rose-400">{shareError}</p> : null}
       {imageError ? <p className="text-xs text-rose-400">{imageError}</p> : null}
+      </div>
     </div>
   )
 }
