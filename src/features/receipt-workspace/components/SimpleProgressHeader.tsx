@@ -108,6 +108,6 @@ function buildContextText(step: SimpleWizardStep, context: WizardProgressContext
       return `${prefix} · Item ${itemNumber} of ${context.detectedItemsCount} · ${context.assignedItemCount} assigned so far`
     }
     case 'final':
-      return `${prefix} · All ${context.detectedItemsCount} items assigned — split summary ready`
+      return `${prefix} · All ${context.detectedItemsCount} items assigned — split result ready`
   }
 }
