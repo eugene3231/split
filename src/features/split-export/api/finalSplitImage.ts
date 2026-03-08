@@ -91,13 +91,16 @@ export async function generateFinalSplitImage(options: GenerateFinalSplitImageOp
       // Calculate max card height for this row so cards are aligned vertically
       let rowHeight = 0
       for (const person of rowPeople) {
-        const personLines = options.split.lineItemsByPerson[person.id] ?? []
-        rowHeight = Math.max(rowHeight, measurePersonCardHeight(personLines.length, options.includeLineItems, includeItemDetails))
+        const allLines = options.split.lineItemsByPerson[person.id] ?? []
+        const involvedCount = options.split.involvedCountByPerson[person.id] ?? 0
+        const notInvolvedCount = allLines.length - involvedCount
+        const hasDiscount = (options.split.discountByPersonCents[person.id] ?? 0) > 0
+        rowHeight = Math.max(rowHeight, measurePersonCardHeight(involvedCount, notInvolvedCount, options.includeLineItems, includeItemDetails, hasDiscount))
       }
 
       for (let col = 0; col < rowPeople.length; col++) {
         const person = rowPeople[col]
-        const personLines = options.split.lineItemsByPerson[person.id] ?? []
+        const allLines = options.split.lineItemsByPerson[person.id] ?? []
         drawPersonCard(context, {
           x: x + col * (colWidth + COL_GAP),
           y,
@@ -105,11 +108,12 @@ export async function generateFinalSplitImage(options: GenerateFinalSplitImageOp
           height: rowHeight,
           colorIndex: rowStart + col,
           personName: person.name,
-          personLines,
+          allLines,
           split: options.split,
           personId: person.id,
           includeLineItems: options.includeLineItems,
           includeItemDetails,
+          discount: options.discount,
           serviceCharge: options.serviceCharge,
           gst: options.gst,
         })
@@ -161,38 +165,43 @@ type SummaryCardArgs = {
 }
 
 function drawSummaryCard(context: CanvasRenderingContext2D, args: SummaryCardArgs): number {
-  const rows: string[][] = [
-    ['Subtotal', formatCurrencyFromCents(args.split.subtotalCents)],
+  type Row = { label: string; value: string; emphasized?: boolean; valueColor?: string }
+
+  const rows: Row[] = [
+    { label: 'Subtotal', value: formatCurrencyFromCents(args.split.subtotalCents) },
   ]
 
   if (args.split.discountCents > 0) {
-    rows.push([buildChargeLabel('Whole-Bill Discount', args.discount), `−${formatCurrencyFromCents(args.split.discountCents)}`])
+    rows.push({ label: buildChargeLabel('Whole-Bill Discount', args.discount), value: `−${formatCurrencyFromCents(args.split.discountCents)}`, valueColor: '#6ee7b7' })
   }
 
   rows.push(
-    [buildChargeLabel('Service Charge', args.serviceCharge), formatCurrencyFromCents(args.split.serviceChargeCents)],
-    [buildChargeLabel('GST / Tax', args.gst), formatCurrencyFromCents(args.split.gstCents)],
-    ['Grand Total', formatCurrencyFromCents(args.split.grandTotalCents)],
+    { label: buildChargeLabel('Service Charge', args.serviceCharge), value: formatCurrencyFromCents(args.split.serviceChargeCents) },
+    { label: buildChargeLabel('GST / Tax', args.gst), value: formatCurrencyFromCents(args.split.gstCents) },
+    { label: 'Total Assigned', value: formatCurrencyFromCents(args.split.grandTotalCents), emphasized: true },
   )
 
   if (args.reconciliationCents !== null) {
-    rows.push(['Receipt Difference', formatCurrencyFromCents(args.reconciliationCents)])
+    const receiptTotalCents = args.reconciliationCents + args.split.grandTotalCents
+    rows.push(
+      { label: 'Receipt Total', value: formatCurrencyFromCents(receiptTotalCents) },
+      { label: 'Difference', value: formatCurrencyFromCents(args.reconciliationCents), valueColor: args.reconciliationCents === 0 ? '#6ee7b7' : '#fcd34d' },
+    )
   }
 
   const height = 32 + rows.length * 34 + 10
   const afterY = drawCardShell(context, args.x, args.y, args.width, height)
 
   let rowY = args.y + 38
-  for (let index = 0; index < rows.length; index += 1) {
-    const [label, value] = rows[index]
+  for (const row of rows) {
     drawTwoColumnRow(context, {
       x: args.x + 20,
       y: rowY,
       width: args.width - 40,
-      label,
-      value,
-      emphasized: label === 'Grand Total',
-      valueColor: label === 'Receipt Difference' ? '#fbbf24' : '#e2e8f0',
+      label: row.label,
+      value: row.value,
+      emphasized: row.emphasized ?? false,
+      valueColor: row.valueColor ?? '#e2e8f0',
       size: 22,
     })
     rowY += 34
@@ -208,31 +217,34 @@ type PersonCardArgs = {
   height: number
   colorIndex: number
   personName: string
-  personLines: PersonReceiptLineItem[]
+  allLines: PersonReceiptLineItem[]
   split: SplitResult
   personId: string
   includeLineItems: boolean
   includeItemDetails: boolean
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
 }
 
 const HEADER_HEIGHT = 104
 const LINE_ROW_H = 32         // height per line item row (no details)
-const LINE_ROW_DETAIL_H = 26  // extra height for the detail sub-row
+const LINE_TO_DETAIL_H = 20   // advance from item baseline to its detail sub-row baseline
+const LINE_ROW_DETAIL_H = 26  // advance from detail sub-row baseline to next item baseline
+const ITEM_GAP = 8            // extra spacing between items
 const TOTAL_ROW_H = 38        // height per totals row
 const BODY_TOP_PAD = 32       // gap between header and first line item
 const BODY_BOTTOM_PAD = 32    // padding below last totals row
 const CARD_PAD = 28           // horizontal inner padding
 
-function measurePersonCardHeight(lineCount: number, includeLineItems: boolean, includeItemDetails: boolean): number {
-  const lineRows = includeLineItems ? Math.max(lineCount, 1) : 0
-  const lineItemHeight = includeLineItems
-    ? lineRows * (includeItemDetails ? LINE_ROW_H + LINE_ROW_DETAIL_H : LINE_ROW_H)
-    : 0
-  const totalsHeight = 4 * TOTAL_ROW_H
+function measurePersonCardHeight(involvedCount: number, notInvolvedCount: number, includeLineItems: boolean, includeItemDetails: boolean, hasDiscount: boolean): number {
+  const perRow = includeItemDetails ? LINE_TO_DETAIL_H + LINE_ROW_DETAIL_H + ITEM_GAP : LINE_ROW_H + ITEM_GAP
+  const involvedRows = includeLineItems ? Math.max(involvedCount, 1) : 0
+  const involvedHeight = includeLineItems ? involvedRows * perRow : 0
+  const notInvolvedHeight = includeLineItems ? notInvolvedCount * perRow : 0
+  const totalsHeight = (hasDiscount ? 5 : 4) * TOTAL_ROW_H
   const dividerHeight = includeLineItems ? 24 : 8
-  return HEADER_HEIGHT + BODY_TOP_PAD + lineItemHeight + dividerHeight + totalsHeight + BODY_BOTTOM_PAD
+  return HEADER_HEIGHT + BODY_TOP_PAD + involvedHeight + notInvolvedHeight + dividerHeight + totalsHeight + BODY_BOTTOM_PAD
 }
 
 function drawPersonCard(context: CanvasRenderingContext2D, args: PersonCardArgs): void {
@@ -267,30 +279,59 @@ function drawPersonCard(context: CanvasRenderingContext2D, args: PersonCardArgs)
   let rowY = args.y + HEADER_HEIGHT + BODY_TOP_PAD
 
   if (args.includeLineItems) {
-    if (args.personLines.length === 0) {
+    const involvedCount = args.split.involvedCountByPerson[args.personId] ?? 0
+    if (involvedCount === 0) {
       context.fillStyle = '#94a3b8'
       context.font = '500 19px system-ui, -apple-system, sans-serif'
       context.fillText('No assigned line items yet.', args.x + CARD_PAD, rowY)
-      rowY += LINE_ROW_H + (args.includeItemDetails ? LINE_ROW_DETAIL_H : 0)
+      rowY += LINE_ROW_H
     } else {
-      for (const line of args.personLines) {
-        drawTwoColumnRow(context, {
-          x: args.x + CARD_PAD,
-          y: rowY,
-          width: args.width - CARD_PAD * 2,
-          label: line.name,
-          value: formatCurrencyFromCents(line.assignedAmountCents),
-          emphasized: false,
-          valueColor: '#f8fafc',
-          size: 20,
-        })
-        rowY += LINE_ROW_H
+      for (const line of args.allLines) {
+        if (line.involved) {
+          drawTwoColumnRow(context, {
+            x: args.x + CARD_PAD,
+            y: rowY,
+            width: args.width - CARD_PAD * 2,
+            label: line.name,
+            value: formatCurrencyFromCents(line.assignedAmountCents),
+            emphasized: false,
+            valueColor: '#f8fafc',
+            size: 20,
+          })
+          rowY += LINE_TO_DETAIL_H
 
-        if (args.includeItemDetails) {
-          context.fillStyle = '#64748b'
-          context.font = '500 16px system-ui, -apple-system, sans-serif'
-          context.fillText(buildItemSubMeta(line), args.x + CARD_PAD + 12, rowY)
-          rowY += LINE_ROW_DETAIL_H
+          if (args.includeItemDetails) {
+            context.fillStyle = '#64748b'
+            context.font = '500 16px system-ui, -apple-system, sans-serif'
+            context.fillText(buildItemSubMeta(line), args.x + CARD_PAD + 12, rowY)
+            rowY += LINE_ROW_DETAIL_H + ITEM_GAP
+          } else {
+            rowY += LINE_ROW_H - LINE_TO_DETAIL_H + ITEM_GAP
+          }
+        } else {
+          context.globalAlpha = 0.35
+          drawTwoColumnRow(context, {
+            x: args.x + CARD_PAD,
+            y: rowY,
+            width: args.width - CARD_PAD * 2,
+            label: line.name,
+            value: formatCurrencyFromCents(line.grossAmountCents),
+            emphasized: false,
+            valueColor: '#94a3b8',
+            size: 18,
+            italic: true,
+          })
+          rowY += LINE_TO_DETAIL_H
+
+          if (args.includeItemDetails) {
+            context.fillStyle = '#94a3b8'
+            context.font = 'italic 500 16px system-ui, -apple-system, sans-serif'
+            context.fillText('not involved', args.x + CARD_PAD + 12, rowY)
+            rowY += LINE_ROW_DETAIL_H + ITEM_GAP
+          } else {
+            rowY += LINE_ROW_H - LINE_TO_DETAIL_H + ITEM_GAP
+          }
+          context.globalAlpha = 1
         }
       }
     }
@@ -316,6 +357,21 @@ function drawPersonCard(context: CanvasRenderingContext2D, args: PersonCardArgs)
     size: 21,
   })
   rowY += TOTAL_ROW_H
+
+  const discountCents = args.split.discountByPersonCents[args.personId] ?? 0
+  if (discountCents > 0) {
+    drawTwoColumnRow(context, {
+      x: args.x + CARD_PAD,
+      y: rowY,
+      width: args.width - CARD_PAD * 2,
+      label: buildChargeLabel('Discount', args.discount),
+      value: `−${formatCurrencyFromCents(discountCents)}`,
+      emphasized: false,
+      valueColor: '#6ee7b7',
+      size: 21,
+    })
+    rowY += TOTAL_ROW_H
+  }
 
   drawTwoColumnRow(context, {
     x: args.x + CARD_PAD,
@@ -377,11 +433,13 @@ type TwoColumnRowArgs = {
   emphasized: boolean
   valueColor: string
   size: number
+  italic?: boolean
 }
 
 function drawTwoColumnRow(context: CanvasRenderingContext2D, args: TwoColumnRowArgs): void {
-  const valueFont = `${args.emphasized ? 700 : 600} ${args.size}px system-ui, -apple-system, sans-serif`
-  const labelFont = `500 ${Math.max(15, args.size - 2)}px system-ui, -apple-system, sans-serif`
+  const style = args.italic ? 'italic ' : ''
+  const valueFont = `${style}${args.emphasized ? 700 : 600} ${args.size}px system-ui, -apple-system, sans-serif`
+  const labelFont = `${style}500 ${Math.max(15, args.size - 2)}px system-ui, -apple-system, sans-serif`
 
   context.font = valueFont
   const valueWidth = context.measureText(args.value).width

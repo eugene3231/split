@@ -25,6 +25,7 @@ describe('buildSplitShareText', () => {
           gstCents: 0,
           grandTotalCents: 3750,
           unassignedItemCount: 0,
+          involvedCountByPerson: {},
         },
       }),
     ).toBe('Split total: $37.50\nAlice: $12.50\nBen: $25.00')

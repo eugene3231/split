@@ -47,7 +47,8 @@ function formatPercent(value: number): string {
 }
 
 export function PersonCard({ person, colorIndex, split, discount, serviceCharge, gst, showItemMeta = true }: PersonCardProps) {
-  const personLines = split.lineItemsByPerson[person.id] ?? []
+  const allPersonLines = split.lineItemsByPerson[person.id] ?? []
+  const involvedCount = split.involvedCountByPerson[person.id] ?? 0
   const total = split.totalByPersonCents[person.id] ?? 0
   const color = getPersonColor(colorIndex)
 
@@ -64,10 +65,11 @@ export function PersonCard({ person, colorIndex, split, discount, serviceCharge,
       {/* Body */}
       <div className="flex flex-1 flex-col p-4 pb-5 text-sm">
         <div className="space-y-1.5 pb-3">
-          {personLines.length === 0 ? (
+          {involvedCount === 0 ? (
             <p className="text-xs text-slate-500">No assigned line items yet.</p>
-          ) : (
-            personLines.map((line, index) => (
+          ) : null}
+          {allPersonLines.map((line, index) =>
+            line.involved ? (
               <div key={`${line.itemId}-${index}`} className="space-y-0.5">
                 <div className="flex items-start justify-between gap-3 text-xs leading-tight">
                   <p className="break-words text-slate-300">{line.name}</p>
@@ -76,12 +78,22 @@ export function PersonCard({ person, colorIndex, split, discount, serviceCharge,
                   </p>
                 </div>
                 {showItemMeta ? (
-                  <p className="pl-3 text-[10px] leading-tight text-slate-600">
+                  <p className="pl-3 text-[10px] leading-tight text-slate-500">
                     {buildItemSubMeta(line)}
                   </p>
                 ) : null}
               </div>
-            ))
+            ) : (
+              <div key={`${line.itemId}-ni-${index}`} className="space-y-0.5 opacity-35">
+                <div className="flex items-start justify-between gap-3 text-xs leading-tight">
+                  <p className="break-words italic text-slate-400">{line.name}</p>
+                  <p className="shrink-0 italic text-slate-400">{formatCurrencyFromCents(line.grossAmountCents)}</p>
+                </div>
+                {showItemMeta ? (
+                  <p className="pl-3 text-[10px] italic leading-tight text-slate-400">not involved</p>
+                ) : null}
+              </div>
+            )
           )}
         </div>
 
