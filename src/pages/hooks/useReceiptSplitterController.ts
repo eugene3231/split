@@ -64,6 +64,7 @@ export function useReceiptSplitterController() {
   )
 
   useDraftPersistence({
+    initialized,
     people,
     items,
     serviceCharge,

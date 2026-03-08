@@ -11,8 +11,22 @@ type GenerateFinalSplitImageOptions = {
   includeItemDetails: boolean
 }
 
-const CANVAS_WIDTH = 1080
+const CANVAS_WIDTH = 1800
 const SCRATCH_HEIGHT = 24000
+
+// Raw canvas equivalents of PERSON_COLORS from personColors.ts
+const PERSON_CANVAS_COLORS = [
+  { headerBg: 'rgba(6, 182, 212, 0.15)',   headerBorder: 'rgba(6, 182, 212, 0.5)',   accent: '#67e8f9' },  // cyan
+  { headerBg: 'rgba(139, 92, 246, 0.15)',  headerBorder: 'rgba(139, 92, 246, 0.5)',  accent: '#c4b5fd' }, // violet
+  { headerBg: 'rgba(251, 191, 36, 0.15)',  headerBorder: 'rgba(251, 191, 36, 0.5)',  accent: '#fcd34d' }, // amber
+  { headerBg: 'rgba(16, 185, 129, 0.15)',  headerBorder: 'rgba(16, 185, 129, 0.5)',  accent: '#6ee7b7' }, // emerald
+  { headerBg: 'rgba(244, 63, 94, 0.15)',   headerBorder: 'rgba(244, 63, 94, 0.5)',   accent: '#fda4af' },  // rose
+  { headerBg: 'rgba(249, 115, 22, 0.15)',  headerBorder: 'rgba(249, 115, 22, 0.5)',  accent: '#fdba74' }, // orange
+]
+
+function getPersonCanvasColor(index: number) {
+  return PERSON_CANVAS_COLORS[index % PERSON_CANVAS_COLORS.length]
+}
 
 export async function generateFinalSplitImage(options: GenerateFinalSplitImageOptions): Promise<Blob> {
   if (typeof document === 'undefined') {
@@ -65,23 +79,41 @@ export async function generateFinalSplitImage(options: GenerateFinalSplitImageOp
     context.font = '500 20px system-ui, -apple-system, sans-serif'
     context.fillText('No people added yet.', x + 20, y - 26)
   } else {
-    for (const person of options.people) {
-      const personLines = options.split.lineItemsByPerson[person.id] ?? []
+    const COLS = 3
+    const COL_GAP = 24
+    const colWidth = Math.floor((cardWidth - COL_GAP * (COLS - 1)) / COLS)
 
-      y = drawPersonCard(context, {
-        x,
-        y,
-        width: cardWidth,
-        personName: person.name,
-        personLines,
-        split: options.split,
-        personId: person.id,
-        includeLineItems: options.includeLineItems,
-        includeItemDetails,
-        serviceCharge: options.serviceCharge,
-        gst: options.gst,
-      })
-      y += 16
+    for (let rowStart = 0; rowStart < options.people.length; rowStart += COLS) {
+      const rowPeople = options.people.slice(rowStart, Math.min(rowStart + COLS, options.people.length))
+
+      // Calculate max card height for this row so cards are aligned vertically
+      let rowHeight = 0
+      for (const person of rowPeople) {
+        const personLines = options.split.lineItemsByPerson[person.id] ?? []
+        rowHeight = Math.max(rowHeight, measurePersonCardHeight(personLines.length, options.includeLineItems, includeItemDetails))
+      }
+
+      for (let col = 0; col < rowPeople.length; col++) {
+        const person = rowPeople[col]
+        const personLines = options.split.lineItemsByPerson[person.id] ?? []
+        drawPersonCard(context, {
+          x: x + col * (colWidth + COL_GAP),
+          y,
+          width: colWidth,
+          height: rowHeight,
+          colorIndex: rowStart + col,
+          personName: person.name,
+          personLines,
+          split: options.split,
+          personId: person.id,
+          includeLineItems: options.includeLineItems,
+          includeItemDetails,
+          serviceCharge: options.serviceCharge,
+          gst: options.gst,
+        })
+      }
+
+      y += rowHeight + 16
     }
   }
 
@@ -111,7 +143,7 @@ export async function generateFinalSplitImage(options: GenerateFinalSplitImageOp
     throw new Error('Unable to finalize image export.')
   }
 
-  outputContext.drawImage(scratch, 0, 0, CANVAS_WIDTH, usedHeight, 0, 0, CANVAS_WIDTH, usedHeight)
+  outputContext.drawImage(scratch, 0, 0, CANVAS_WIDTH, usedHeight, 0, 0, output.width, output.height)
   return canvasToBlob(output)
 }
 
@@ -163,6 +195,8 @@ type PersonCardArgs = {
   x: number
   y: number
   width: number
+  height: number
+  colorIndex: number
   personName: string
   personLines: PersonReceiptLineItem[]
   split: SplitResult
@@ -173,112 +207,140 @@ type PersonCardArgs = {
   gst: ChargeState
 }
 
-function drawPersonCard(context: CanvasRenderingContext2D, args: PersonCardArgs): number {
-  const lineRows = args.includeLineItems ? Math.max(args.personLines.length, 1) : 0
-  const lineItemHeight = args.includeLineItems
-    ? lineRows * (args.includeItemDetails ? 46 : 30)
+const HEADER_HEIGHT = 104
+const LINE_ROW_H = 32         // height per line item row (no details)
+const LINE_ROW_DETAIL_H = 26  // extra height for the detail sub-row
+const TOTAL_ROW_H = 38        // height per totals row
+const BODY_TOP_PAD = 32       // gap between header and first line item
+const BODY_BOTTOM_PAD = 32    // padding below last totals row
+const CARD_PAD = 28           // horizontal inner padding
+
+function measurePersonCardHeight(lineCount: number, includeLineItems: boolean, includeItemDetails: boolean): number {
+  const lineRows = includeLineItems ? Math.max(lineCount, 1) : 0
+  const lineItemHeight = includeLineItems
+    ? lineRows * (includeItemDetails ? LINE_ROW_H + LINE_ROW_DETAIL_H : LINE_ROW_H)
     : 0
-  const totalsHeight = 4 * 34
-  const dividerHeight = args.includeLineItems ? 18 : 8
-  const height = 26 + 30 + lineItemHeight + dividerHeight + totalsHeight + 20
+  const totalsHeight = 4 * TOTAL_ROW_H
+  const dividerHeight = includeLineItems ? 24 : 8
+  return HEADER_HEIGHT + BODY_TOP_PAD + lineItemHeight + dividerHeight + totalsHeight + BODY_BOTTOM_PAD
+}
 
-  const afterY = drawCardShell(context, args.x, args.y, args.width, height)
+function drawPersonCard(context: CanvasRenderingContext2D, args: PersonCardArgs): void {
+  const color = getPersonCanvasColor(args.colorIndex)
 
+  // Card shell
+  drawCardShell(context, args.x, args.y, args.width, args.height)
+
+  // Colored header background
+  context.fillStyle = color.headerBg
+  context.fillRect(args.x, args.y, args.width, HEADER_HEIGHT)
+
+  // Colored header bottom border
+  context.strokeStyle = color.headerBorder
+  context.lineWidth = 2
+  context.beginPath()
+  context.moveTo(args.x, args.y + HEADER_HEIGHT)
+  context.lineTo(args.x + args.width, args.y + HEADER_HEIGHT)
+  context.stroke()
+
+  // Person name
   context.fillStyle = '#f8fafc'
-  context.font = '700 25px system-ui, -apple-system, sans-serif'
-  context.fillText(args.personName, args.x + 20, args.y + 34)
+  context.font = '700 26px system-ui, -apple-system, sans-serif'
+  context.fillText(args.personName, args.x + CARD_PAD, args.y + 38)
 
-  let rowY = args.y + 64
+  // Person total (accent colored)
+  const total = args.split.totalByPersonCents[args.personId] ?? 0
+  context.fillStyle = color.accent
+  context.font = '700 32px system-ui, -apple-system, sans-serif'
+  context.fillText(formatCurrencyFromCents(total), args.x + CARD_PAD, args.y + 82)
+
+  let rowY = args.y + HEADER_HEIGHT + BODY_TOP_PAD
 
   if (args.includeLineItems) {
     if (args.personLines.length === 0) {
       context.fillStyle = '#94a3b8'
-      context.font = '500 18px system-ui, -apple-system, sans-serif'
-      context.fillText('No assigned line items yet.', args.x + 20, rowY)
-      rowY += args.includeItemDetails ? 42 : 28
+      context.font = '500 19px system-ui, -apple-system, sans-serif'
+      context.fillText('No assigned line items yet.', args.x + CARD_PAD, rowY)
+      rowY += LINE_ROW_H + (args.includeItemDetails ? LINE_ROW_DETAIL_H : 0)
     } else {
       for (const line of args.personLines) {
         drawTwoColumnRow(context, {
-          x: args.x + 20,
+          x: args.x + CARD_PAD,
           y: rowY,
-          width: args.width - 40,
+          width: args.width - CARD_PAD * 2,
           label: line.name,
           value: formatCurrencyFromCents(line.assignedAmountCents),
           emphasized: false,
           valueColor: '#f8fafc',
-          size: 19,
+          size: 20,
         })
-        rowY += 24
+        rowY += LINE_ROW_H
 
         if (args.includeItemDetails) {
           context.fillStyle = '#64748b'
-          context.font = '500 15px system-ui, -apple-system, sans-serif'
-          context.fillText(buildItemSubMeta(line), args.x + 36, rowY)
-          rowY += 22
+          context.font = '500 16px system-ui, -apple-system, sans-serif'
+          context.fillText(buildItemSubMeta(line), args.x + CARD_PAD + 12, rowY)
+          rowY += LINE_ROW_DETAIL_H
         }
       }
     }
 
-    // Position divider closer to the end of line items and leave a clearer gap
-    // before totals, so the section break reads as centered.
-    const dividerY = rowY - 8
+    const dividerY = rowY + 4
     context.strokeStyle = '#1e293b'
     context.lineWidth = 1
     context.beginPath()
-    context.moveTo(args.x + 20, dividerY)
-    context.lineTo(args.x + args.width - 20, dividerY)
+    context.moveTo(args.x + CARD_PAD, dividerY)
+    context.lineTo(args.x + args.width - CARD_PAD, dividerY)
     context.stroke()
-    rowY = dividerY + 24
+    rowY = dividerY + 20
   }
 
   drawTwoColumnRow(context, {
-    x: args.x + 20,
+    x: args.x + CARD_PAD,
     y: rowY,
-    width: args.width - 40,
+    width: args.width - CARD_PAD * 2,
     label: 'Items',
     value: formatCurrencyFromCents(args.split.subtotalByPersonCents[args.personId] ?? 0),
     emphasized: false,
     valueColor: '#e2e8f0',
-    size: 22,
+    size: 21,
   })
-  rowY += 34
+  rowY += TOTAL_ROW_H
 
   drawTwoColumnRow(context, {
-    x: args.x + 20,
+    x: args.x + CARD_PAD,
     y: rowY,
-    width: args.width - 40,
+    width: args.width - CARD_PAD * 2,
     label: buildChargeLabel('Service', args.serviceCharge),
     value: formatCurrencyFromCents(args.split.serviceByPersonCents[args.personId] ?? 0),
     emphasized: false,
     valueColor: '#e2e8f0',
-    size: 22,
+    size: 21,
   })
-  rowY += 34
+  rowY += TOTAL_ROW_H
 
   drawTwoColumnRow(context, {
-    x: args.x + 20,
+    x: args.x + CARD_PAD,
     y: rowY,
-    width: args.width - 40,
+    width: args.width - CARD_PAD * 2,
     label: buildChargeLabel('GST', args.gst),
     value: formatCurrencyFromCents(args.split.gstByPersonCents[args.personId] ?? 0),
     emphasized: false,
     valueColor: '#e2e8f0',
-    size: 22,
+    size: 21,
   })
-  rowY += 34
+  rowY += TOTAL_ROW_H
 
   drawTwoColumnRow(context, {
-    x: args.x + 20,
+    x: args.x + CARD_PAD,
     y: rowY,
-    width: args.width - 40,
+    width: args.width - CARD_PAD * 2,
     label: 'Pay',
-    value: formatCurrencyFromCents(args.split.totalByPersonCents[args.personId] ?? 0),
+    value: formatCurrencyFromCents(total),
     emphasized: true,
     valueColor: '#f8fafc',
     size: 23,
   })
-
-  return afterY
 }
 
 function drawCardShell(

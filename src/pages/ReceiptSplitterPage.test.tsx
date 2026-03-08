@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_GEMINI_MODEL } from '../shared/constants'
 import { useReceiptUiStore } from '../shared/stores/receiptUiStore'
@@ -247,6 +248,31 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Split total: $0.00')
       expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('does not overwrite localStorage with empty state during Strict Mode double-invocation on initial mount', async () => {
+    // Regression: useLayoutEffect + reset() cleanup caused useDraftPersistence to
+    // save empty state between Strict Mode's unmount and remount phases, wiping
+    // any data that was already in localStorage before the component mounted.
+    seedSimpleDraftWithSingleAssignment()
+
+    render(
+      <StrictMode>
+        <ReceiptSplitterPage />
+      </StrictMode>,
+    )
+
+    // Wait for the component to fully initialize and settle
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: 'Alice ×' })).toHaveLength(1)
+    })
+
+    const saved = window.localStorage.getItem('split:receipt-draft:v1')
+    expect(saved).not.toBeNull()
+    const parsed = JSON.parse(saved!)
+    expect(parsed.people).toHaveLength(2)
+    expect(parsed.items).toHaveLength(1)
+    expect(parsed.items[0].name).toBe('Chicken Rice')
   })
 
   it('restores advanced single-person assignments after refresh', async () => {

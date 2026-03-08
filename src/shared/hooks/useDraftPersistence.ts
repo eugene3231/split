@@ -3,6 +3,7 @@ import type { ChargeState, EditableItem, Person, SplitResult } from '../types'
 import { savePersistedDraft } from '../api/storage'
 
 type UseDraftPersistenceArgs = {
+  initialized: boolean
   people: Person[]
   items: EditableItem[]
   serviceCharge: ChargeState
@@ -12,6 +13,7 @@ type UseDraftPersistenceArgs = {
 }
 
 export function useDraftPersistence({
+  initialized,
   people,
   items,
   serviceCharge,
@@ -20,6 +22,7 @@ export function useDraftPersistence({
   split,
 }: UseDraftPersistenceArgs): void {
   useEffect(() => {
+    if (!initialized) return
     savePersistedDraft({
       version: 1,
       people,
@@ -36,5 +39,5 @@ export function useDraftPersistence({
       },
       savedAt: new Date().toISOString(),
     })
-  }, [gst, items, people, receiptTotalInput, serviceCharge, split])
+  }, [initialized, gst, items, people, receiptTotalInput, serviceCharge, split])
 }
