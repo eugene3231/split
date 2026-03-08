@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { EditableItem, Person } from '../../../shared/types'
+import type { ChargeState, EditableItem, Person } from '../../../shared/types'
 import { LineItemCard } from './LineItemCard'
 
 type LineItemsPanelProps = {
@@ -8,6 +8,7 @@ type LineItemsPanelProps = {
   onAddItem: () => void
   onRemoveItem: (itemId: string) => void
   onUpdateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void
+  globalDiscount?: ChargeState
 }
 
 export function LineItemsPanel({
@@ -16,6 +17,7 @@ export function LineItemsPanel({
   onAddItem,
   onRemoveItem,
   onUpdateItem,
+  globalDiscount,
 }: LineItemsPanelProps) {
   const peopleSet = useMemo(() => new Set(people.map((person) => person.id)), [people])
 
@@ -42,6 +44,7 @@ export function LineItemsPanel({
             peopleSet={peopleSet}
             onRemoveItem={onRemoveItem}
             onUpdateItem={onUpdateItem}
+            globalDiscount={globalDiscount}
           />
         ))}
       </div>

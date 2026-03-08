@@ -31,6 +31,53 @@ function resetUiStore() {
   })
 }
 
+const disabledChargeState = {
+  enabled: false,
+  mode: 'amount',
+  amountInput: '',
+  percentInput: '',
+  detectedConfidence: null,
+  detectedSource: null,
+}
+
+function seedDraft(overrides: {
+  discount?: object
+  serviceCharge?: object
+  gst?: object
+  receiptTotalInput?: string
+  people?: object[]
+  items?: object[]
+}) {
+  window.localStorage.setItem(
+    'split:receipt-draft:v1',
+    JSON.stringify({
+      version: 1,
+      people: overrides.people ?? [{ id: 'p1', name: 'Alice' }],
+      items: overrides.items ?? [
+        {
+          id: 'i1',
+          name: 'Pizza',
+          amountInput: '10.00',
+          discountPercentInput: '',
+          assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
+        },
+      ],
+      discount: overrides.discount ?? disabledChargeState,
+      serviceCharge: overrides.serviceCharge ?? disabledChargeState,
+      gst: overrides.gst ?? disabledChargeState,
+      receiptTotalInput: overrides.receiptTotalInput ?? '',
+      finalSplit: {
+        subtotalCents: 0,
+        serviceChargeCents: 0,
+        gstCents: 0,
+        grandTotalCents: 0,
+        totalByPersonCents: {},
+      },
+      savedAt: '2026-03-08T00:00:00.000Z',
+    }),
+  )
+}
+
 function seedSimpleDraftWithSingleAssignment() {
   window.localStorage.setItem(
     'split:receipt-draft:v1',
@@ -531,5 +578,125 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
 
     expect(screen.getByRole('button', { name: 'Alice', pressed: true })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
+describe('Apply-discount-to-reconcile button', () => {
+  it('appears in advanced mode when computed total exceeds receipt total', () => {
+    // $10 item, no service/GST → grand total $10.00; receipt total $8.00 → reconciliation −$2.00
+    seedDraft({ receiptTotalInput: '8.00' })
+    render(<ReceiptSplitterPage />)
+    expect(screen.getByTestId('apply-discount-reconcile-btn')).toBeInTheDocument()
+  })
+
+  it('does not appear when receipt total matches grand total', () => {
+    seedDraft({ receiptTotalInput: '10.00' })
+    render(<ReceiptSplitterPage />)
+    expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
+  })
+
+  it('does not appear when receipt total is not set', () => {
+    seedDraft({ receiptTotalInput: '' })
+    render(<ReceiptSplitterPage />)
+    expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
+  })
+
+  it('clicking it applies a whole-bill discount that zeroes the receipt difference', () => {
+    seedDraft({ receiptTotalInput: '8.00' })
+    render(<ReceiptSplitterPage />)
+
+    fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'))
+
+    // Reconciliation is now 0 → button disappears
+    expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
+  })
+
+  it('appears on the simple wizard receipt step when computed total exceeds receipt total', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple', geminiApiKeyInput: 'test-key' })
+    seedDraft({
+      items: [
+        {
+          id: 'i1',
+          name: 'Pizza',
+          amountInput: '10.00',
+          discountPercentInput: '',
+          assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+        },
+      ],
+      receiptTotalInput: '8.00',
+    })
+
+    render(<ReceiptSplitterPage />)
+    await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+
+    expect(screen.getByTestId('apply-discount-reconcile-btn')).toBeInTheDocument()
+  })
+})
+
+describe('Global whole-bill discount indicator on items', () => {
+  it('shows a badge on each line item in advanced mode when percent discount is enabled', () => {
+    seedDraft({
+      discount: {
+        enabled: true,
+        mode: 'percent',
+        amountInput: '',
+        percentInput: '15',
+        detectedConfidence: null,
+        detectedSource: null,
+      },
+    })
+    render(<ReceiptSplitterPage />)
+    expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
+  })
+
+  it('shows a badge on each line item in advanced mode when amount discount is enabled', () => {
+    seedDraft({
+      discount: {
+        enabled: true,
+        mode: 'amount',
+        amountInput: '2.00',
+        percentInput: '',
+        detectedConfidence: null,
+        detectedSource: null,
+      },
+    })
+    render(<ReceiptSplitterPage />)
+    expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
+  })
+
+  it('does not show a badge when discount is disabled', () => {
+    seedDraft({ discount: disabledChargeState })
+    render(<ReceiptSplitterPage />)
+    expect(screen.queryByTestId('global-discount-badge')).not.toBeInTheDocument()
+  })
+
+  it('shows the badge on items in the simple wizard receipt step when discount is enabled', async () => {
+    useReceiptUiStore.setState({ uxMode: 'simple', geminiApiKeyInput: 'test-key' })
+    seedDraft({
+      items: [
+        {
+          id: 'i1',
+          name: 'Pizza',
+          amountInput: '10.00',
+          discountPercentInput: '',
+          assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+        },
+      ],
+      discount: {
+        enabled: true,
+        mode: 'percent',
+        amountInput: '',
+        percentInput: '10',
+        detectedConfidence: null,
+        detectedSource: null,
+      },
+    })
+
+    render(<ReceiptSplitterPage />)
+    await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+
+    expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
   })
 })

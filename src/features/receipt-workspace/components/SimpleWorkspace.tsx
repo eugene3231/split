@@ -81,6 +81,17 @@ export function SimpleWorkspace() {
       ? null
       : receiptTotalCents - split.grandTotalCents;
 
+  const handleApplyReconciliationDiscount = () => {
+    if (reconciliationCents === null || reconciliationCents >= 0) return;
+    const totalDiscountCents = split.discountCents + Math.abs(reconciliationCents);
+    setDiscount({
+      ...discount,
+      enabled: true,
+      mode: "amount",
+      amountInput: (totalDiscountCents / 100).toFixed(2),
+    });
+  };
+
   const [showDiscountIds, setShowDiscountIds] = useState<Set<string>>(
     new Set(),
   );
@@ -328,6 +339,7 @@ export function SimpleWorkspace() {
                   serviceCharge={serviceCharge}
                   gst={gst}
                   reconciliationCents={reconciliationCents}
+                  onApplyDiscount={handleApplyReconciliationDiscount}
                 />
 
                 <GlobalChargesSection
@@ -476,6 +488,23 @@ export function SimpleWorkspace() {
                               </button>
                             </div>
                           )}
+
+                          {/* Row 3: global discount indicator */}
+                          {discount.enabled ? (
+                            <>
+                              <div className="border-t border-slate-700/40" />
+                              <div className="flex items-center gap-2 px-3 py-1.5">
+                                <span
+                                  data-testid="global-discount-badge"
+                                  className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400"
+                                >
+                                  {discount.mode === "percent"
+                                    ? `${discount.percentInput || "0"}% whole-bill discount applied`
+                                    : "Whole-bill discount applied"}
+                                </span>
+                              </div>
+                            </>
+                          ) : null}
                         </article>
                       );
                     })}
@@ -733,6 +762,7 @@ export function SimpleWorkspace() {
               serviceCharge={serviceCharge}
               gst={gst}
               reconciliationCents={reconciliationCents}
+              onApplyDiscount={handleApplyReconciliationDiscount}
             />
 
             <div className="space-y-3">

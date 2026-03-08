@@ -8,9 +8,10 @@ type SplitTotalsCardProps = {
   serviceCharge: ChargeState
   gst: ChargeState
   reconciliationCents: number | null
+  onApplyDiscount?: () => void
 }
 
-export function SplitTotalsCard({ split, discount, serviceCharge, gst, reconciliationCents }: SplitTotalsCardProps) {
+export function SplitTotalsCard({ split, discount, serviceCharge, gst, reconciliationCents, onApplyDiscount }: SplitTotalsCardProps) {
   const discountLabel = buildChargeLabel('Whole-Bill Discount', discount)
   const serviceLabel = buildChargeLabel('Service Charge', serviceCharge)
   const gstLabel = buildChargeLabel('GST / Tax', gst)
@@ -34,11 +35,23 @@ export function SplitTotalsCard({ split, discount, serviceCharge, gst, reconcili
           emphasized
         />
         {reconciliationCents !== null ? (
-          <SummaryRow
-            label="Receipt Difference"
-            value={formatCurrencyFromCents(reconciliationCents)}
-            tone={reconciliationCents === 0 ? 'ok' : 'warn'}
-          />
+          <>
+            <SummaryRow
+              label="Receipt Difference"
+              value={formatCurrencyFromCents(reconciliationCents)}
+              tone={reconciliationCents === 0 ? 'ok' : 'warn'}
+            />
+            {reconciliationCents < 0 && onApplyDiscount ? (
+              <button
+                type="button"
+                data-testid="apply-discount-reconcile-btn"
+                onClick={onApplyDiscount}
+                className="mt-1 w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/20"
+              >
+                Apply {formatCurrencyFromCents(Math.abs(reconciliationCents))} discount to reconcile
+              </button>
+            ) : null}
+          </>
         ) : null}
       </div>
     </article>
