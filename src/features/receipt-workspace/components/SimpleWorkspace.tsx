@@ -493,6 +493,7 @@ export function SimpleWorkspace() {
                           <button
                             key={person.id}
                             type="button"
+                            aria-pressed={isSelected}
                             onClick={() =>
                               handleTogglePersonOnActiveItem(
                                 person.id,
@@ -652,6 +653,7 @@ export function SimpleWorkspace() {
                       </div>
                       <button
                         type="button"
+                        data-testid="wizard-edit-btn"
                         onClick={() => {
                           setActiveItemIndex(index);
                           setItemsSubPhase("assign");
@@ -754,6 +756,7 @@ export function SimpleWorkspace() {
       <div className="flex items-center justify-between gap-3">
         <button
           type="button"
+          data-testid="wizard-back-btn"
           onClick={handleBack}
           disabled={activeStep === "people"}
           className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
@@ -764,6 +767,7 @@ export function SimpleWorkspace() {
         {activeStep !== "final" ? (
           <button
             type="button"
+            data-testid="wizard-continue-btn"
             onClick={handleNext}
             disabled={
               !canContinue &&

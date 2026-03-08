@@ -176,7 +176,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
 
   it('shows validation error when scan is clicked without API key', () => {
     const { container } = render(<ReceiptSplitterPage />)
-    const fileInput = container.querySelector('input[type="file"]')
+    const fileInput = container.querySelector('[data-testid="receipt-file-input"]')
     expect(fileInput).not.toBeNull()
 
     fireEvent.change(fileInput as HTMLInputElement, {
@@ -278,7 +278,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     useReceiptUiStore.setState({ uxMode: 'simple' })
     render(<ReceiptSplitterPage />)
 
-    const continueToReceiptButton = screen.getByRole('button', { name: 'Continue to Add Receipt' })
+    const continueToReceiptButton = screen.getByTestId('wizard-continue-btn')
     expect(continueToReceiptButton).toBeDisabled()
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
@@ -286,10 +286,11 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     expect(continueToReceiptButton).not.toBeDisabled()
 
     fireEvent.click(continueToReceiptButton)
-    expect(screen.getByRole('button', { name: 'Continue to Assign Items' })).toBeDisabled()
+    expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Mock Receipt' }))
-    expect(screen.getByRole('button', { name: 'Continue to Assign Items' })).not.toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Load Mock Receipt/i }))
+    expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled()
   })
 
   it('renders grouped 4-step wizard header and progresses across grouped steps', async () => {
@@ -302,12 +303,12 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1 of 4/i)
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    expect(screen.getByRole('button', { name: 'Continue to Assign Items' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2 of 4/i)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Assign Items' }))
-    expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 3 of 4/i)
   })
 
@@ -318,29 +319,29 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Continue to Add Receipt' })).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Assign Items' }))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
-    const aliceCheckbox = screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement
-    const benCheckbox = screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement
+    const aliceBtn = screen.getByRole('button', { name: 'Alice', pressed: true })
+    const benBtn = screen.getByRole('button', { name: 'Ben', pressed: true })
 
-    expect(aliceCheckbox.checked).toBe(true)
-    expect(benCheckbox.checked).toBe(true)
+    expect(aliceBtn).toHaveAttribute('aria-pressed', 'true')
+    expect(benBtn).toHaveAttribute('aria-pressed', 'true')
 
-    fireEvent.click(benCheckbox)
-    expect(benCheckbox.checked).toBe(false)
+    fireEvent.click(benBtn)
+    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-edit-btn'))
+    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Split Result' }))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
     expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
     expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4 of 4/i)
@@ -353,31 +354,31 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Continue to Add Receipt' })).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    expect(screen.getByRole('button', { name: 'Continue to Assign Items' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByRole('button', { name: 'Continue to Add Receipt' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-back-btn'))
+    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Assign Items' }))
-    expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-back-btn'))
+    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Split Result' }))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
     expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-back-btn'))
+    expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
   })
 
   it('loads the simple mode mock receipt payload from receipt step', async () => {
@@ -386,8 +387,9 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Load Mock Receipt' }))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Load Mock Receipt/i }))
 
     expect(screen.getByDisplayValue('Genki Forest')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Mala Baby Lobster')).toBeInTheDocument()
@@ -403,22 +405,19 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Continue to Add Receipt' })).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Assign Items' }))
-
-    const aliceCheckbox = screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement
-    const benCheckbox = screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Select none' }))
-    expect(aliceCheckbox.checked).toBe(false)
-    expect(benCheckbox.checked).toBe(false)
+    expect(screen.getByRole('button', { name: 'Alice', pressed: false })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
 
     fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
-    expect(aliceCheckbox.checked).toBe(true)
-    expect(benCheckbox.checked).toBe(true)
+    expect(screen.getByRole('button', { name: 'Alice', pressed: true })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Ben', pressed: true })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('returns to the people step and blocks progression when everyone is removed', async () => {
@@ -428,22 +427,22 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Continue to Add Receipt' })).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Assign Items' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Split Result' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-back-btn'))
+    fireEvent.click(screen.getByTestId('wizard-back-btn'))
+    fireEvent.click(screen.getByTestId('wizard-back-btn'))
+    fireEvent.click(screen.getByTestId('wizard-back-btn'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Alice ×' }))
     fireEvent.click(screen.getByRole('button', { name: 'Ben ×' }))
 
-    expect(screen.getByRole('button', { name: 'Continue to Add Receipt' })).toBeDisabled()
+    expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
     expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument()
   })
 
@@ -454,24 +453,24 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Continue to Add Receipt' })).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Assign Items' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Review Items' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Split Result' }))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
     expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByTestId('wizard-back-btn'))
+    fireEvent.click(screen.getByTestId('wizard-edit-btn'))
     fireEvent.click(screen.getByRole('button', { name: 'Select none' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     })
-    expect((screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement).checked).toBe(false)
-    expect((screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement).checked).toBe(false)
+    expect(screen.getByRole('button', { name: 'Alice', pressed: false })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.queryByRole('button', { name: 'Share Split' })).not.toBeInTheDocument()
   })
 
@@ -482,15 +481,15 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     const { unmount } = render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Continue to Add Receipt' })).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Add Receipt' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Assign Items' }))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
-    const benCheckbox = screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement
-    fireEvent.click(benCheckbox)
-    expect(benCheckbox.checked).toBe(false)
+    const benBtn = screen.getByRole('button', { name: 'Ben', pressed: true })
+    fireEvent.click(benBtn)
+    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
 
     await waitFor(() => {
       const savedDraft = window.localStorage.getItem('split:receipt-draft:v1')
@@ -501,10 +500,10 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     render(<ReceiptSplitterPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Review Items' })).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
     })
 
-    expect((screen.getByRole('checkbox', { name: 'Alice' }) as HTMLInputElement).checked).toBe(true)
-    expect((screen.getByRole('checkbox', { name: 'Ben' }) as HTMLInputElement).checked).toBe(false)
+    expect(screen.getByRole('button', { name: 'Alice', pressed: true })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
   })
 })
