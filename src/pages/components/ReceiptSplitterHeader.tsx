@@ -1,3 +1,5 @@
+import { AppMenu } from './AppMenu'
+
 type ReceiptSplitterHeaderProps = {
   uxMode: 'simple' | 'advanced'
   onUxModeChange: (nextMode: 'simple' | 'advanced') => void
@@ -5,32 +7,42 @@ type ReceiptSplitterHeaderProps = {
 
 export function ReceiptSplitterHeader({ uxMode, onUxModeChange }: ReceiptSplitterHeaderProps) {
   return (
-    <header className="space-y-2">
-      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-400">Split Receipt</p>
-      <h1 className="text-3xl font-bold tracking-tight">Split</h1>
-      <p className="w-full text-slate-300">
-        Item-level splits with discounts, charges, and shareable text and image summaries.
-      </p>
-      <div className="inline-flex rounded-lg border border-slate-700 bg-slate-900 p-1 text-xs font-semibold">
-        <button
-          type="button"
-          onClick={() => onUxModeChange('simple')}
-          className={`rounded-md px-3 py-1.5 transition ${
-            uxMode === 'simple' ? 'bg-sky-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-          }`}
-        >
-          Simple Mode
-        </button>
-        <button
-          type="button"
-          onClick={() => onUxModeChange('advanced')}
-          className={`rounded-md px-3 py-1.5 transition ${
-            uxMode === 'advanced' ? 'bg-sky-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-          }`}
-        >
-          Advanced Mode
-        </button>
+    <header className="flex items-start justify-between gap-4">
+      <div className="space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-500/80">
+          Receipt Splitter
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">Split</h1>
+        <p className="text-xs text-slate-500 sm:text-sm mb-2">
+          Item-level splits with discounts, charges, and shareable summaries.
+        </p>
+        <div className="inline-flex rounded-lg border border-white/8 bg-slate-900 p-0.5 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => onUxModeChange('simple')}
+            className={`rounded-md px-3 py-1.5 transition-all ${
+              uxMode === 'simple'
+                ? 'bg-sky-500 text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+            }`}
+          >
+            Simple
+          </button>
+          <button
+            type="button"
+            onClick={() => onUxModeChange('advanced')}
+            className={`rounded-md px-3 py-1.5 transition-all ${
+              uxMode === 'advanced'
+                ? 'bg-sky-500 text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+            }`}
+          >
+            Advanced
+          </button>
+        </div>
       </div>
+
+      <AppMenu />
     </header>
   )
 }

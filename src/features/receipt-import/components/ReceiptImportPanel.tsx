@@ -19,7 +19,6 @@ export function ReceiptImportPanel({
   showLoadMockButton = true,
 }: ReceiptImportPanelProps) {
   const geminiApiKeyInput = useReceiptUiStore((state) => state.geminiApiKeyInput)
-  const rememberGeminiApiKey = useReceiptUiStore((state) => state.rememberGeminiApiKey)
   const geminiModel = useReceiptUiStore((state) => state.geminiModel)
   const receiptFile = useReceiptUiStore((state) => state.receiptFile)
   const isScanning = useReceiptUiStore((state) => state.isScanning)
@@ -27,16 +26,13 @@ export function ReceiptImportPanel({
   const scanError = useReceiptUiStore((state) => state.scanError)
   const scanWarnings = useReceiptUiStore((state) => state.scanWarnings)
   const loadingMessage = useReceiptUiStore((state) => state.loadingMessage)
-  const setGeminiApiKeyInput = useReceiptUiStore((state) => state.setGeminiApiKeyInput)
-  const setRememberGeminiApiKey = useReceiptUiStore((state) => state.setRememberGeminiApiKey)
   const setGeminiModel = useReceiptUiStore((state) => state.setGeminiModel)
+  const setShowApiKeyModal = useReceiptUiStore((state) => state.setShowApiKeyModal)
 
   return (
     <ReceiptScanSection
-      geminiApiKeyInput={geminiApiKeyInput}
-      onGeminiApiKeyInputChange={setGeminiApiKeyInput}
-      rememberGeminiApiKey={rememberGeminiApiKey}
-      onRememberGeminiApiKeyChange={setRememberGeminiApiKey}
+      hasApiKey={geminiApiKeyInput.trim().length > 0}
+      onEditApiKey={() => setShowApiKeyModal(true)}
       geminiModel={geminiModel}
       onGeminiModelChange={setGeminiModel}
       receiptFile={receiptFile}

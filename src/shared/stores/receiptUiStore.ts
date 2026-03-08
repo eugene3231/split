@@ -58,6 +58,7 @@ type ReceiptUiState = {
   scanWarnings: string[]
   loadingMessage: string
   loadingMessageIndex: number
+  showApiKeyModal: boolean
 }
 
 type ReceiptUiActions = {
@@ -74,6 +75,7 @@ type ReceiptUiActions = {
   startScan: () => void
   advanceLoadingMessage: () => void
   finishScan: () => void
+  setShowApiKeyModal: (show: boolean) => void
 }
 
 type ReceiptUiStore = ReceiptUiState & ReceiptUiActions
@@ -92,6 +94,7 @@ const initialState: ReceiptUiState = {
   scanWarnings: [],
   loadingMessage: '',
   loadingMessageIndex: 0,
+  showApiKeyModal: false,
 }
 
 function resolveSetStateAction<T>(current: T, next: SetStateAction<T>): T {
@@ -218,4 +221,5 @@ export const useReceiptUiStore = create<ReceiptUiStore>((set) => ({
       loadingMessage: '',
       loadingMessageIndex: 0,
     }),
+  setShowApiKeyModal: (show) => set({ showApiKeyModal: show }),
 }))

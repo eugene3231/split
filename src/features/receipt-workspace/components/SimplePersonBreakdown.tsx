@@ -3,6 +3,7 @@ import useEmblaCarousel from 'embla-carousel-react'
 import type { ChargeState, Person, PersonReceiptLineItem, SplitResult } from '../../../shared/types'
 import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core/money'
 import { SummaryRow } from '../../split-summary/components/SummaryRow'
+import { getPersonColor } from '../../../shared/utils/personColors'
 
 type Props = {
   people: Person[]
@@ -13,6 +14,7 @@ type Props = {
 
 type PersonCardProps = {
   person: Person
+  colorIndex: number
   split: SplitResult
   serviceCharge: ChargeState
   gst: ChargeState
@@ -34,40 +36,43 @@ function buildItemSubMeta(line: PersonReceiptLineItem): string {
     details.push(`discount ${formatPercent(line.discountPercent)}%`)
   }
   details.push(`split among ${line.splitCount}`)
-  return details.join(' • ')
+  return details.join(' · ')
 }
 
 function formatPercent(value: number): string {
   return value.toFixed(2).replace(/\.?0+$/, '')
 }
 
-function PersonCard({ person, split, serviceCharge, gst }: PersonCardProps) {
+function PersonCard({ person, colorIndex, split, serviceCharge, gst }: PersonCardProps) {
   const personLines = split.lineItemsByPerson[person.id] ?? []
   const total = split.totalByPersonCents[person.id] ?? 0
+  const color = getPersonColor(colorIndex)
 
   return (
-    <article className="flex h-full flex-col rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm">
-      <div>
-        <p className="text-base font-bold text-slate-100">{person.name}</p>
-        <p className="mt-0.5 text-lg font-semibold text-sky-300">
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
+      {/* Colored header */}
+      <div className={`${color.lightBg} ${color.border} border-b px-4 py-3`}>
+        <p className="text-sm font-bold text-slate-100">{person.name}</p>
+        <p className={`text-lg font-bold ${color.accent}`}>
           {formatCurrencyFromCents(total)}
         </p>
       </div>
 
-      <div className="mt-4 space-y-3">
-        <div className="space-y-1.5">
+      {/* Body */}
+      <div className="flex flex-1 flex-col p-4 pb-5 text-sm">
+        <div className="space-y-1.5 pb-3">
           {personLines.length === 0 ? (
-            <p className="text-xs text-slate-400">No assigned line items yet.</p>
+            <p className="text-xs text-slate-500">No assigned line items yet.</p>
           ) : (
             personLines.map((line, index) => (
               <div key={`${line.itemId}-${index}`} className="space-y-0.5">
-                <div className="flex items-center justify-between gap-3 text-xs leading-tight">
-                  <p className="truncate text-slate-300">{line.name}</p>
-                  <p className="shrink-0 font-medium text-slate-100">
+                <div className="flex items-start justify-between gap-3 text-xs leading-tight">
+                  <p className="break-words text-slate-300">{line.name}</p>
+                  <p className="shrink-0 font-medium text-slate-200">
                     {formatCurrencyFromCents(line.assignedAmountCents)}
                   </p>
                 </div>
-                <p className="pl-4 text-[10px] leading-tight text-slate-500">
+                <p className="pl-3 text-[10px] leading-tight text-slate-600">
                   {buildItemSubMeta(line)}
                 </p>
               </div>
@@ -75,7 +80,7 @@ function PersonCard({ person, split, serviceCharge, gst }: PersonCardProps) {
           )}
         </div>
 
-        <div className="border-t border-slate-800 pt-3 space-y-1.5">
+        <div className="mt-auto border-t border-slate-800 pt-3 space-y-1.5">
           <SummaryRow
             label="Items"
             value={formatCurrencyFromCents(split.subtotalByPersonCents[person.id] ?? 0)}
@@ -117,7 +122,7 @@ export function SimplePersonBreakdown({ people, split, serviceCharge, gst }: Pro
   }, [emblaApi, onSelect])
 
   if (people.length === 0) {
-    return <p className="text-sm text-slate-400">Add people to see totals.</p>
+    return <p className="text-sm text-slate-500">Add people to see totals.</p>
   }
 
   return (
@@ -126,10 +131,11 @@ export function SimplePersonBreakdown({ people, split, serviceCharge, gst }: Pro
       <div className="sm:hidden">
         <div className="overflow-hidden" ref={emblaRef}>
           <div className="flex gap-3">
-            {people.map((person) => (
+            {people.map((person, index) => (
               <div key={person.id} className="min-w-0 flex-[0_0_100%]">
                 <PersonCard
                   person={person}
+                  colorIndex={index}
                   split={split}
                   serviceCharge={serviceCharge}
                   gst={gst}
@@ -150,7 +156,7 @@ export function SimplePersonBreakdown({ people, split, serviceCharge, gst }: Pro
                 className={
                   i === selectedIndex
                     ? 'h-2 w-2 rounded-full bg-sky-400 transition'
-                    : 'h-2 w-2 rounded-full bg-slate-600 transition hover:bg-slate-500'
+                    : 'h-2 w-2 rounded-full bg-slate-700 transition hover:bg-slate-500'
                 }
               />
             ))}
@@ -160,10 +166,11 @@ export function SimplePersonBreakdown({ people, split, serviceCharge, gst }: Pro
 
       {/* Tablet (sm-md): 2-column grid, Desktop (lg+): 3-column grid */}
       <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {people.map((person) => (
+        {people.map((person, index) => (
           <PersonCard
             key={person.id}
             person={person}
+            colorIndex={index}
             split={split}
             serviceCharge={serviceCharge}
             gst={gst}
