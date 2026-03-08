@@ -1,3 +1,68 @@
+# Project Overview
+
+## What Is This?
+
+**Split** is a browser-only bill-splitting app that uses Google Gemini's vision AI to scan receipts and automatically divide costs between people.
+
+**User workflow:**
+1. **Add people** — Enter names for everyone splitting the bill
+2. **Scan receipt** — Upload a receipt image; Gemini extracts line items, tax, and service charges
+3. **Assign items** — Assign each item to one or more people (equal split or custom)
+4. **View summary** — See each person's itemized total including their share of tax/service/discounts
+5. **Export/share** — Download as a PNG image or copy a text summary
+
+**Key features:**
+- Gemini-powered OCR (no backend — calls Gemini directly from the browser)
+- Simple mode (4-step wizard) and Advanced mode (more granular control)
+- Per-item discounts and global charges (tax, service charge, global discount)
+- Auto-save to localStorage — progress persists across page refreshes
+- Export as PNG or text summary for sharing in group chats
+
+## Tech Stack
+
+- **React 19 + TypeScript + Vite** — UI framework and build tooling
+- **Tailwind CSS 4** — Utility-first styling
+- **Zustand** — State management (`receiptWorkspaceStore` for receipt data, `receiptUiStore` for UI state)
+- **Zod** — Schema validation for Gemini API responses
+- **Vitest + Testing Library** — Unit testing
+
+## Repository Structure
+
+```
+src/
+  features/
+    item-assignment/       # UI for assigning items to people
+    receipt-import/        # Gemini API integration and OCR parsing
+    receipt-setup/         # Add people, configure global charges
+    receipt-workspace/     # Central store (Zustand), Simple/Advanced workspace UIs
+    split-summary/         # Per-person breakdown display and export (PNG/text)
+  pages/
+    ReceiptSplitterPage.tsx          # Root page component
+    hooks/useReceiptSplitterController.ts
+  shared/
+    types.ts               # Core types: Person, EditableItem, ChargeState, SplitResult
+    constants.ts           # Defaults, Gemini model IDs, storage keys
+    logic/
+      computation/         # computeSplit() and charge calculation engine
+      assignment/          # Item assignment utilities
+      core/                # ID generation, money parsing/formatting
+    stores/                # receiptUiStore (Gemini API key, scan state, UX mode)
+    utils/                 # personColors (per-person colour palette)
+```
+
+**Key files:**
+- `src/features/receipt-workspace/store/receiptWorkspaceStore.ts` — Central state
+- `src/features/receipt-import/logic/ocr.ts` — Gemini API call
+- `src/shared/logic/computation/split.ts` — Split calculation engine
+- `src/shared/types.ts` — All core types
+
+## Best Practices
+- Recompute as much of the data that needs to be displayed as much as possible e.g. in shared/logic/computation/split.ts
+- Design the components in the way that they are as dumb as possible as they should just render what is given to them without any computation logic as much as possible
+
+
+---
+
 # React + Tailwind Best Practices
 
 ## Core Philosophy

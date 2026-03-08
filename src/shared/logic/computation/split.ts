@@ -3,6 +3,7 @@ import type {
   EditableItem,
   Person,
   PersonReceiptLineItem,
+  ResolvedItem,
   SplitResult,
 } from '../../types'
 import { parseCurrencyToCents } from '../core/money'
@@ -25,69 +26,90 @@ export function computeSplit({
   const personIds = people.map((person) => person.id)
   const validPeopleSet = new Set(personIds)
 
-  const lineItemsByPerson = initializeLineItemMap(personIds)
   const subtotalByPersonCents = initializeCentsMap(personIds)
   let unassignedItemCount = 0
 
+  // --- Phase 1: Resolve valid items (O(N × A)) ---
+  // Each resolved item captures who is assigned and their per-person amounts,
+  // without yet writing into per-person structures.
+  const resolvedItems: ResolvedItem[] = []
+
   for (const item of items) {
     const netAmountCents = resolveDiscountedAmountCents(item)
-
-    if (netAmountCents === null || netAmountCents === 0) {
-      continue
-    }
+    if (netAmountCents === null || netAmountCents === 0) continue
 
     const grossAmountCents = parseCurrencyToCents(item.amountInput) ?? netAmountCents
     const discountPercent = parseDiscountPercent(item.discountPercentInput)
-    const itemName = item.name.trim() || 'Untitled item'
+    const discountAmountCents = Math.max(0, grossAmountCents - netAmountCents)
+    const name = item.name.trim() || 'Untitled item'
+
+    let assignedPersonIds: Set<string>
+    let netByPerson: Record<string, number>
+    let grossByPerson: Record<string, number>
 
     if (item.assignment.mode === 'single') {
       if (!validPeopleSet.has(item.assignment.personId)) {
         unassignedItemCount += 1
         continue
       }
-
-      subtotalByPersonCents[item.assignment.personId] += netAmountCents
-      lineItemsByPerson[item.assignment.personId].push({
-        itemId: item.id,
-        name: itemName,
-        grossAmountCents,
-        discountPercent,
-        discountAmountCents: Math.max(0, grossAmountCents - netAmountCents),
-        netAmountCents,
-        assignedAmountCents: netAmountCents,
-        splitCount: 1,
-      })
-      continue
+      assignedPersonIds = new Set([item.assignment.personId])
+      netByPerson = { [item.assignment.personId]: netAmountCents }
+      grossByPerson = { [item.assignment.personId]: grossAmountCents }
+    } else {
+      const selectedIds = Array.from(
+        new Set(item.assignment.personIds.filter((id) => validPeopleSet.has(id))),
+      )
+      if (selectedIds.length === 0) {
+        unassignedItemCount += 1
+        continue
+      }
+      const equalWeights = Object.fromEntries(selectedIds.map((id) => [id, 1]))
+      netByPerson = allocateCents(netAmountCents, selectedIds, equalWeights)
+      grossByPerson = allocateCents(grossAmountCents, selectedIds, equalWeights)
+      assignedPersonIds = new Set(selectedIds)
     }
 
-    const selectedIds = Array.from(
-      new Set(item.assignment.personIds.filter((personId) => validPeopleSet.has(personId))),
-    )
+    resolvedItems.push({ itemId: item.id, name, grossAmountCents, discountPercent, discountAmountCents, assignedPersonIds, netByPerson, grossByPerson })
+  }
 
-    if (selectedIds.length === 0) {
-      unassignedItemCount += 1
-      continue
-    }
+  // --- Phase 2: Populate lineItemsByPerson (O(N × P)) ---
+  // Single pass preserves original item order. involvedCountByPerson is computed
+  // alongside so components can O(1) check whether a person has any assigned items
+  // and the canvas renderer can measure card heights without re-scanning.
+  const lineItemsByPerson = initializeLineItemMap(personIds)
+  const involvedCountByPerson = initializeCentsMap(personIds)
 
-    const equalWeights = Object.fromEntries(selectedIds.map((personId) => [personId, 1]))
-    const netSplitAmounts = allocateCents(netAmountCents, selectedIds, equalWeights)
-    const grossSplitAmounts = allocateCents(grossAmountCents, selectedIds, equalWeights)
-
-    for (const personId of selectedIds) {
-      const assignedAmountCents = netSplitAmounts[personId]
-      const grossShareCents = grossSplitAmounts[personId]
-
-      subtotalByPersonCents[personId] += assignedAmountCents
-      lineItemsByPerson[personId].push({
-        itemId: item.id,
-        name: itemName,
-        grossAmountCents: grossShareCents,
-        discountPercent,
-        discountAmountCents: Math.max(0, grossShareCents - assignedAmountCents),
-        netAmountCents: assignedAmountCents,
-        assignedAmountCents,
-        splitCount: selectedIds.length,
-      })
+  for (const personId of personIds) {
+    for (const resolved of resolvedItems) {
+      if (resolved.assignedPersonIds.has(personId)) {
+        const net = resolved.netByPerson[personId]
+        const gross = resolved.grossByPerson[personId]
+        subtotalByPersonCents[personId] += net
+        involvedCountByPerson[personId] += 1
+        lineItemsByPerson[personId].push({
+          itemId: resolved.itemId,
+          name: resolved.name,
+          grossAmountCents: gross,
+          discountPercent: resolved.discountPercent,
+          discountAmountCents: Math.max(0, gross - net),
+          netAmountCents: net,
+          assignedAmountCents: net,
+          splitCount: resolved.assignedPersonIds.size,
+          involved: true,
+        })
+      } else {
+        lineItemsByPerson[personId].push({
+          itemId: resolved.itemId,
+          name: resolved.name,
+          grossAmountCents: resolved.grossAmountCents,
+          discountPercent: resolved.discountPercent,
+          discountAmountCents: resolved.discountAmountCents,
+          netAmountCents: 0,
+          assignedAmountCents: 0,
+          splitCount: resolved.assignedPersonIds.size,
+          involved: false,
+        })
+      }
     }
   }
 
@@ -133,6 +155,7 @@ export function computeSplit({
 
   return {
     lineItemsByPerson,
+    involvedCountByPerson,
     subtotalByPersonCents,
     discountByPersonCents,
     serviceByPersonCents,

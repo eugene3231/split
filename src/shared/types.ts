@@ -50,6 +50,7 @@ export type OcrResponse = {
 
 export type SplitResult = {
   lineItemsByPerson: Record<string, PersonReceiptLineItem[]>
+  involvedCountByPerson: Record<string, number>
   subtotalByPersonCents: Record<string, number>
   discountByPersonCents: Record<string, number>
   serviceByPersonCents: Record<string, number>
@@ -63,6 +64,17 @@ export type SplitResult = {
   unassignedItemCount: number
 }
 
+export type ResolvedItem = {
+  itemId: string
+  name: string
+  grossAmountCents: number
+  discountPercent: number
+  discountAmountCents: number
+  assignedPersonIds: Set<string>
+  netByPerson: Record<string, number>
+  grossByPerson: Record<string, number>
+}
+
 export type PersonReceiptLineItem = {
   itemId: string
   name: string
@@ -72,6 +84,7 @@ export type PersonReceiptLineItem = {
   netAmountCents: number
   assignedAmountCents: number
   splitCount: number
+  involved: boolean
 }
 
 export type PersistedFinalSplit = {
