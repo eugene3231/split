@@ -3,13 +3,13 @@ import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
 
 // jsdom doesn't implement IntersectionObserver, ResizeObserver, or matchMedia — all required by embla-carousel
-global.IntersectionObserver = class {
+globalThis.IntersectionObserver = class {
   observe() {}
   unobserve() {}
   disconnect() {}
 } as unknown as typeof IntersectionObserver
 
-global.ResizeObserver = class {
+globalThis.ResizeObserver = class {
   observe() {}
   unobserve() {}
   disconnect() {}
