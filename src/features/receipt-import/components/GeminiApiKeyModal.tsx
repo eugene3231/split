@@ -8,31 +8,41 @@ export function GeminiApiKeyModal() {
   const setRememberGeminiApiKey = useReceiptUiStore((state) => state.setRememberGeminiApiKey)
   const setShowApiKeyModal = useReceiptUiStore((state) => state.setShowApiKeyModal)
 
-  const [localKey, setLocalKey] = useState(geminiApiKeyInput)
+  if (!isOpen) return null
+
+  return (
+    <GeminiApiKeyModalContent
+      initialKey={geminiApiKeyInput}
+      onSave={(key) => {
+        setGeminiApiKeyInput(key)
+        if (key) setRememberGeminiApiKey(true)
+        setShowApiKeyModal(false)
+      }}
+      onClose={() => setShowApiKeyModal(false)}
+    />
+  )
+}
+
+interface GeminiApiKeyModalContentProps {
+  initialKey: string
+  onSave: (key: string) => void
+  onClose: () => void
+}
+
+function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyModalContentProps) {
+  const [localKey, setLocalKey] = useState(initialKey)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (isOpen) {
-      setLocalKey(geminiApiKeyInput)
-      const id = window.setTimeout(() => inputRef.current?.focus(), 50)
-      return () => window.clearTimeout(id)
-    }
-  }, [isOpen, geminiApiKeyInput])
+    const id = window.setTimeout(() => inputRef.current?.focus(), 50)
+    return () => window.clearTimeout(id)
+  }, [])
 
-  const handleClose = () => setShowApiKeyModal(false)
-
-  const handleSave = () => {
-    const trimmed = localKey.trim()
-    setGeminiApiKeyInput(trimmed)
-    if (trimmed) setRememberGeminiApiKey(true)
-    handleClose()
-  }
+  const handleSave = () => onSave(localKey.trim())
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') handleClose()
+    if (e.key === 'Escape') onClose()
   }
-
-  if (!isOpen) return null
 
   return (
     <div
@@ -42,7 +52,7 @@ export function GeminiApiKeyModal() {
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={handleClose}
+        onClick={onClose}
         aria-hidden="true"
       />
 
@@ -56,7 +66,7 @@ export function GeminiApiKeyModal() {
           </div>
           <button
             type="button"
-            onClick={handleClose}
+            onClick={onClose}
             aria-label="Close"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/8 hover:text-slate-200"
           >
@@ -114,7 +124,7 @@ export function GeminiApiKeyModal() {
           </button>
           <button
             type="button"
-            onClick={handleClose}
+            onClick={onClose}
             className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-400 transition hover:border-slate-500 hover:text-slate-200"
           >
             Skip

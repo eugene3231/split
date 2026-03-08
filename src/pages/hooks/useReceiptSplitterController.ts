@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { computeSplit } from '../../shared/logic/computation/split'
 import { useDraftPersistence } from '../../shared/hooks/useDraftPersistence'
@@ -45,9 +45,12 @@ export function useReceiptSplitterController() {
     })),
   )
 
-  if (!initialized) {
-    initialize(uxMode)
-  }
+  useLayoutEffect(() => {
+    if (!initialized) {
+      initialize(uxMode)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     return () => {
