@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Dispatch, SetStateAction } from 'react'
+import { GoogleGenAI } from '@google/genai'
 import { defaultGstState, defaultServiceChargeState } from '../../../shared/constants'
 import type { ChargeState, EditableItem, OcrResponse, Person } from '../../../shared/types'
 import { analyzeReceiptWithGemini, applyOcrPayload } from './ocr'
+
+vi.mock('@google/genai', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  GoogleGenAI: vi.fn(function (this: any) {}),
+}))
 
 function createFile(): File {
   return new File(['receipt-bytes'], 'receipt.jpg', { type: 'image/jpeg' })
@@ -12,20 +18,21 @@ function setStateValue<T>(current: T, next: SetStateAction<T>): T {
   return typeof next === 'function' ? (next as (prev: T) => T)(current) : next
 }
 
-function createFetchResponse({
-  ok = true,
-  status = 200,
-  body = '',
-}: {
-  ok?: boolean
-  status?: number
-  body?: string
-}): Response {
-  return {
-    ok,
-    status,
-    text: async () => body,
-  } as Response
+function stubGenerateContent(text: string | null) {
+  const generateContent = vi.fn().mockResolvedValue({ text })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(GoogleGenAI).mockImplementation(function (this: any) {
+    this.models = { generateContent }
+  })
+  return generateContent
+}
+
+function stubGenerateContentError(message: string) {
+  const generateContent = vi.fn().mockRejectedValue(new Error(message))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(GoogleGenAI).mockImplementation(function (this: any) {
+    this.models = { generateContent }
+  })
 }
 
 describe('analyzeReceiptWithGemini', () => {
@@ -39,31 +46,20 @@ describe('analyzeReceiptWithGemini', () => {
     )
   })
 
-  it('throws when Gemini response body is empty or non-JSON', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(createFetchResponse({ body: '' }))
-    vi.stubGlobal('fetch', fetchMock)
-
+  it('throws when Gemini response text is empty or non-JSON', async () => {
+    stubGenerateContent('')
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini returned an empty response.')
+    ).rejects.toThrow('Gemini response did not include extractable content.')
 
-    fetchMock.mockResolvedValue(createFetchResponse({ body: 'not-json' }))
+    stubGenerateContent('not-json')
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini returned non-JSON response.')
+    ).rejects.toThrow('Gemini output was not valid JSON.')
   })
 
-  it('propagates Gemini error messages when request is not ok', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        createFetchResponse({
-          ok: false,
-          status: 401,
-          body: JSON.stringify({ error: { message: 'Invalid API key' } }),
-        }),
-      ),
-    )
+  it('propagates Gemini API errors', async () => {
+    stubGenerateContentError('Invalid API key')
 
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
@@ -72,35 +68,20 @@ describe('analyzeReceiptWithGemini', () => {
 
   it('parses valid Gemini output into normalized OCR payload', async () => {
     const statuses: string[] = []
-    const payloadText = JSON.stringify({
-      items: [
-        { description: '  Chicken Rice  ', amount: '8.5' },
-        { description: '', amount: 3.2 },
-      ],
-      subtotal: '8.5',
-      total: 9.27,
-      detected: {
-        gst: { enabled: false, amount: null, percent: 9, confidence: 1.4, source: '' },
-        serviceCharge: {
-          enabled: true,
-          amount: null,
-          percent: 10,
-          confidence: 0.8,
-          source: 'receipt',
+    stubGenerateContent(
+      JSON.stringify({
+        items: [
+          { description: '  Chicken Rice  ', amount: 8.5 },
+          { description: '', amount: 3.2 },
+        ],
+        subtotal: 8.5,
+        total: 9.27,
+        detected: {
+          gst: { enabled: false, amount: null, percent: 9, confidence: 1.4, source: null },
+          serviceCharge: { enabled: true, amount: null, percent: 10, confidence: 0.8, source: 'receipt' },
         },
-      },
-      warnings: ['Low confidence'],
-    })
-
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        createFetchResponse({
-          body: JSON.stringify({
-            candidates: [{ content: { parts: [{ text: `\`\`\`json\n${payloadText}\n\`\`\`` }] } }],
-          }),
-        }),
-      ),
+        warnings: ['Low confidence'],
+      }),
     )
 
     const result = await analyzeReceiptWithGemini(
@@ -132,31 +113,17 @@ describe('analyzeReceiptWithGemini', () => {
   })
 
   it('adds fallback warning when no line items are returned', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        createFetchResponse({
-          body: JSON.stringify({
-            candidates: [
-              {
-                content: {
-                  parts: [
-                    {
-                      text: JSON.stringify({
-                        items: [],
-                        subtotal: null,
-                        total: null,
-                        detected: {},
-                        warnings: [],
-                      }),
-                    },
-                  ],
-                },
-              },
-            ],
-          }),
-        }),
-      ),
+    stubGenerateContent(
+      JSON.stringify({
+        items: [],
+        subtotal: null,
+        total: null,
+        detected: {
+          gst: { enabled: null, amount: null, percent: null, confidence: null, source: null },
+          serviceCharge: { enabled: null, amount: null, percent: null, confidence: null, source: null },
+        },
+        warnings: [],
+      }),
     )
 
     const result = await analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn())
