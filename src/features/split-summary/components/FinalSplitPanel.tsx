@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { ChargeState, Person, PersonReceiptLineItem, SplitResult } from '../../../shared/types'
+import type { ChargeState, Person, SplitResult } from '../../../shared/types'
 import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core/money'
 import { SummaryRow } from './SummaryRow'
+import { PersonCard } from '../../receipt-workspace/components/SimplePersonBreakdown'
 
 type FinalSplitPanelProps = {
   people: Person[]
@@ -36,7 +37,7 @@ export function FinalSplitPanel({
       }
     >
       {variant === 'standalone' ? <h2 className="text-lg font-semibold">Final Split</h2> : null}
-      {exportSection ?? null}
+      {exportSection}
       <article className="overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
         <div className="border-b border-sky-500/50 bg-sky-500/15 px-4 py-3">
           <p className="text-sm font-bold text-slate-100">Total</p>
@@ -75,57 +76,17 @@ export function FinalSplitPanel({
         {people.length === 0 ? (
           <p className="text-sm text-slate-400">Add people to see totals.</p>
         ) : (
-          people.map((person) => {
-            const personLines = split.lineItemsByPerson[person.id] ?? []
-
-            return (
-              <article
-                key={person.id}
-                className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm"
-              >
-                <p className="font-semibold text-slate-100">{person.name}</p>
-                <div className="space-y-1.5">
-                  {personLines.length === 0 ? (
-                    <p className="text-xs text-slate-400">No assigned line items yet.</p>
-                  ) : (
-                    personLines.map((line, index) => (
-                      <div key={`${line.itemId}-${index}`} className="space-y-0.5">
-                        <div className="flex items-center justify-between gap-3 text-xs leading-tight">
-                          <p className="truncate text-slate-300">{line.name}</p>
-                          <p className="shrink-0 font-medium text-slate-100">
-                            {formatCurrencyFromCents(line.assignedAmountCents)}
-                          </p>
-                        </div>
-                        {showItemMeta ? (
-                          <p className="pl-4 text-[10px] leading-tight text-slate-500">
-                            {buildItemSubMeta(line)}
-                          </p>
-                        ) : null}
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="border-t border-slate-800" />
-                <SummaryRow
-                  label="Items"
-                  value={formatCurrencyFromCents(split.subtotalByPersonCents[person.id] ?? 0)}
-                />
-                <SummaryRow
-                  label={buildChargeLabel('Service', serviceCharge)}
-                  value={formatCurrencyFromCents(split.serviceByPersonCents[person.id] ?? 0)}
-                />
-                <SummaryRow
-                  label={buildChargeLabel('GST', gst)}
-                  value={formatCurrencyFromCents(split.gstByPersonCents[person.id] ?? 0)}
-                />
-                <SummaryRow
-                  label="Pay"
-                  value={formatCurrencyFromCents(split.totalByPersonCents[person.id] ?? 0)}
-                  emphasized
-                />
-              </article>
-            )
-          })
+          people.map((person, index) => (
+            <PersonCard
+              key={person.id}
+              person={person}
+              colorIndex={index}
+              split={split}
+              serviceCharge={serviceCharge}
+              gst={gst}
+              showItemMeta={showItemMeta}
+            />
+          ))
         )}
       </div>
 
@@ -153,15 +114,6 @@ function buildChargeLabel(label: string, charge: ChargeState): string {
   }
 
   return `${label} (amount)`
-}
-
-function buildItemSubMeta(line: PersonReceiptLineItem): string {
-  const details: string[] = []
-  if (line.discountAmountCents > 0) {
-    details.push(`discount ${formatPercent(line.discountPercent)}%`)
-  }
-  details.push(`split among ${line.splitCount}`)
-  return details.join(' • ')
 }
 
 function formatPercent(value: number): string {

@@ -501,7 +501,6 @@ export function SimpleWorkspace() {
                               )
                             }
                             onDoubleClick={() => {
-                              if (!activeItem) return;
                               updateItem(activeItem.id, (currentItem) => ({
                                 ...currentItem,
                                 assignment: {
@@ -530,7 +529,6 @@ export function SimpleWorkspace() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (!activeItem) return;
                             updateItem(activeItem.id, (currentItem) => ({
                               ...currentItem,
                               assignment: {
@@ -548,7 +546,6 @@ export function SimpleWorkspace() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (!activeItem) return;
                             updateItem(activeItem.id, (currentItem) => ({
                               ...currentItem,
                               assignment: {

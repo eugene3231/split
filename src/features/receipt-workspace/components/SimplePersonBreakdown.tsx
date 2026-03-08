@@ -12,12 +12,13 @@ type Props = {
   gst: ChargeState
 }
 
-type PersonCardProps = {
+export type PersonCardProps = {
   person: Person
   colorIndex: number
   split: SplitResult
   serviceCharge: ChargeState
   gst: ChargeState
+  showItemMeta?: boolean
 }
 
 function buildChargeLabel(label: string, charge: ChargeState): string {
@@ -43,7 +44,7 @@ function formatPercent(value: number): string {
   return value.toFixed(2).replace(/\.?0+$/, '')
 }
 
-function PersonCard({ person, colorIndex, split, serviceCharge, gst }: PersonCardProps) {
+export function PersonCard({ person, colorIndex, split, serviceCharge, gst, showItemMeta = true }: PersonCardProps) {
   const personLines = split.lineItemsByPerson[person.id] ?? []
   const total = split.totalByPersonCents[person.id] ?? 0
   const color = getPersonColor(colorIndex)
@@ -72,9 +73,11 @@ function PersonCard({ person, colorIndex, split, serviceCharge, gst }: PersonCar
                     {formatCurrencyFromCents(line.assignedAmountCents)}
                   </p>
                 </div>
-                <p className="pl-3 text-[10px] leading-tight text-slate-600">
-                  {buildItemSubMeta(line)}
-                </p>
+                {showItemMeta ? (
+                  <p className="pl-3 text-[10px] leading-tight text-slate-600">
+                    {buildItemSubMeta(line)}
+                  </p>
+                ) : null}
               </div>
             ))
           )}

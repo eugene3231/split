@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useReceiptUiStore } from '../../shared/stores/receiptUiStore'
 import { useReceiptWorkspaceStore } from '../../features/receipt-workspace/store/receiptWorkspaceStore'
 
@@ -8,6 +8,12 @@ export function AppMenu() {
   const [exported, setExported] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const exportTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (exportTimeoutRef.current !== null) window.clearTimeout(exportTimeoutRef.current)
+    }
+  }, [])
 
   const uxMode = useReceiptUiStore((state) => state.uxMode)
   const getExportJson = useReceiptWorkspaceStore((state) => state.getExportJson)
