@@ -8,6 +8,7 @@ import { getPersonColor } from '../../../shared/utils/personColors'
 type Props = {
   people: Person[]
   split: SplitResult
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
 }
@@ -16,6 +17,7 @@ export type PersonCardProps = {
   person: Person
   colorIndex: number
   split: SplitResult
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   showItemMeta?: boolean
@@ -44,7 +46,7 @@ function formatPercent(value: number): string {
   return value.toFixed(2).replace(/\.?0+$/, '')
 }
 
-export function PersonCard({ person, colorIndex, split, serviceCharge, gst, showItemMeta = true }: PersonCardProps) {
+export function PersonCard({ person, colorIndex, split, discount, serviceCharge, gst, showItemMeta = true }: PersonCardProps) {
   const personLines = split.lineItemsByPerson[person.id] ?? []
   const total = split.totalByPersonCents[person.id] ?? 0
   const color = getPersonColor(colorIndex)
@@ -88,6 +90,13 @@ export function PersonCard({ person, colorIndex, split, serviceCharge, gst, show
             label="Items"
             value={formatCurrencyFromCents(split.subtotalByPersonCents[person.id] ?? 0)}
           />
+          {(split.discountByPersonCents[person.id] ?? 0) > 0 ? (
+            <SummaryRow
+              label={buildChargeLabel('Discount', discount)}
+              value={`−${formatCurrencyFromCents(split.discountByPersonCents[person.id] ?? 0)}`}
+              tone="ok"
+            />
+          ) : null}
           <SummaryRow
             label={buildChargeLabel('Service', serviceCharge)}
             value={formatCurrencyFromCents(split.serviceByPersonCents[person.id] ?? 0)}
@@ -107,7 +116,7 @@ export function PersonCard({ person, colorIndex, split, serviceCharge, gst, show
   )
 }
 
-export function SimplePersonBreakdown({ people, split, serviceCharge, gst }: Props) {
+export function SimplePersonBreakdown({ people, split, discount, serviceCharge, gst }: Props) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'center' })
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -140,6 +149,7 @@ export function SimplePersonBreakdown({ people, split, serviceCharge, gst }: Pro
                   person={person}
                   colorIndex={index}
                   split={split}
+                  discount={discount}
                   serviceCharge={serviceCharge}
                   gst={gst}
                 />
@@ -175,6 +185,7 @@ export function SimplePersonBreakdown({ people, split, serviceCharge, gst }: Pro
             person={person}
             colorIndex={index}
             split={split}
+            discount={discount}
             serviceCharge={serviceCharge}
             gst={gst}
           />

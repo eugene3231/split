@@ -36,6 +36,7 @@ describe('computeSplit', () => {
     const split = computeSplit({
       people,
       items,
+      discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
     })
@@ -110,6 +111,7 @@ describe('computeSplit', () => {
     const split = computeSplit({
       people,
       items,
+      discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
     })

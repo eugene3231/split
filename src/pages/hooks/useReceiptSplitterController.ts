@@ -25,6 +25,7 @@ export function useReceiptSplitterController() {
     initialized,
     people,
     items,
+    discount,
     serviceCharge,
     gst,
     receiptTotalInput,
@@ -36,6 +37,7 @@ export function useReceiptSplitterController() {
       initialized: state.initialized,
       people: state.people,
       items: state.items,
+      discount: state.discount,
       serviceCharge: state.serviceCharge,
       gst: state.gst,
       receiptTotalInput: state.receiptTotalInput,
@@ -59,14 +61,15 @@ export function useReceiptSplitterController() {
   }, [reset])
 
   const split = useMemo(
-    () => computeSplit({ people, items, serviceCharge, gst }),
-    [people, items, serviceCharge, gst],
+    () => computeSplit({ people, items, discount, serviceCharge, gst }),
+    [people, items, discount, serviceCharge, gst],
   )
 
   useDraftPersistence({
     initialized,
     people,
     items,
+    discount,
     serviceCharge,
     gst,
     receiptTotalInput,

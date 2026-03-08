@@ -8,6 +8,8 @@ type SetupPanelProps = {
   people: Person[]
   onAddPeople: (rawInput: string) => void
   onRemovePerson: (personId: string) => void
+  discount: ChargeState
+  onDiscountChange: (next: ChargeState) => void
   serviceCharge: ChargeState
   onServiceChargeChange: (next: ChargeState) => void
   gst: ChargeState
@@ -21,6 +23,8 @@ export function SetupPanel({
   people,
   onAddPeople,
   onRemovePerson,
+  discount,
+  onDiscountChange,
   serviceCharge,
   onServiceChargeChange,
   gst,
@@ -52,6 +56,8 @@ export function SetupPanel({
       {importSection}
 
       <GlobalChargesSection
+        discount={discount}
+        onDiscountChange={onDiscountChange}
         serviceCharge={serviceCharge}
         onServiceChargeChange={onServiceChargeChange}
         gst={gst}

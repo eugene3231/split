@@ -4,6 +4,7 @@ import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core
 type GenerateFinalSplitImageOptions = {
   people: Person[]
   split: SplitResult
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   reconciliationCents: number | null
@@ -66,6 +67,7 @@ export async function generateFinalSplitImage(options: GenerateFinalSplitImageOp
     y,
     width: cardWidth,
     split: options.split,
+    discount: options.discount,
     serviceCharge: options.serviceCharge,
     gst: options.gst,
     reconciliationCents: options.reconciliationCents,
@@ -152,18 +154,26 @@ type SummaryCardArgs = {
   y: number
   width: number
   split: SplitResult
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   reconciliationCents: number | null
 }
 
 function drawSummaryCard(context: CanvasRenderingContext2D, args: SummaryCardArgs): number {
-  const rows = [
+  const rows: string[][] = [
     ['Subtotal', formatCurrencyFromCents(args.split.subtotalCents)],
+  ]
+
+  if (args.split.discountCents > 0) {
+    rows.push([buildChargeLabel('Whole-Bill Discount', args.discount), `−${formatCurrencyFromCents(args.split.discountCents)}`])
+  }
+
+  rows.push(
     [buildChargeLabel('Service Charge', args.serviceCharge), formatCurrencyFromCents(args.split.serviceChargeCents)],
     [buildChargeLabel('GST / Tax', args.gst), formatCurrencyFromCents(args.split.gstCents)],
     ['Grand Total', formatCurrencyFromCents(args.split.grandTotalCents)],
-  ]
+  )
 
   if (args.reconciliationCents !== null) {
     rows.push(['Receipt Difference', formatCurrencyFromCents(args.reconciliationCents)])

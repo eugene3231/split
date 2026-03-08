@@ -51,10 +51,12 @@ export type OcrResponse = {
 export type SplitResult = {
   lineItemsByPerson: Record<string, PersonReceiptLineItem[]>
   subtotalByPersonCents: Record<string, number>
+  discountByPersonCents: Record<string, number>
   serviceByPersonCents: Record<string, number>
   gstByPersonCents: Record<string, number>
   totalByPersonCents: Record<string, number>
   subtotalCents: number
+  discountCents: number
   serviceChargeCents: number
   gstCents: number
   grandTotalCents: number
@@ -84,6 +86,7 @@ export type PersistedDraft = {
   version: 1
   people: Person[]
   items: EditableItem[]
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   receiptTotalInput: string

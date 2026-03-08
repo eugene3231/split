@@ -31,6 +31,7 @@ export function SimpleWorkspace() {
   const {
     people,
     items,
+    discount,
     serviceCharge,
     gst,
     receiptTotalInput,
@@ -43,6 +44,7 @@ export function SimpleWorkspace() {
     removeItem,
     updateItem,
     normalizeItemsForSimpleMode,
+    setDiscount,
     setServiceCharge,
     setGst,
     setReceiptTotalInput,
@@ -50,6 +52,7 @@ export function SimpleWorkspace() {
     useShallow((state) => ({
       people: state.people,
       items: state.items,
+      discount: state.discount,
       serviceCharge: state.serviceCharge,
       gst: state.gst,
       receiptTotalInput: state.receiptTotalInput,
@@ -62,14 +65,15 @@ export function SimpleWorkspace() {
       removeItem: state.removeItem,
       updateItem: state.updateItem,
       normalizeItemsForSimpleMode: state.normalizeItemsForSimpleMode,
+      setDiscount: state.setDiscount,
       setServiceCharge: state.setServiceCharge,
       setGst: state.setGst,
       setReceiptTotalInput: state.setReceiptTotalInput,
     })),
   );
   const split = useMemo(
-    () => computeSplit({ people, items, serviceCharge, gst }),
-    [people, items, serviceCharge, gst],
+    () => computeSplit({ people, items, discount, serviceCharge, gst }),
+    [people, items, discount, serviceCharge, gst],
   );
   const receiptTotalCents = parseCurrencyToCents(receiptTotalInput);
   const reconciliationCents =
@@ -320,12 +324,15 @@ export function SimpleWorkspace() {
               <div className="space-y-4">
                 <SplitTotalsCard
                   split={split}
+                  discount={discount}
                   serviceCharge={serviceCharge}
                   gst={gst}
                   reconciliationCents={reconciliationCents}
                 />
 
                 <GlobalChargesSection
+                  discount={discount}
+                  onDiscountChange={setDiscount}
                   serviceCharge={serviceCharge}
                   onServiceChargeChange={setServiceCharge}
                   gst={gst}
@@ -714,6 +721,7 @@ export function SimpleWorkspace() {
             <ExportImageSection
               people={people}
               split={split}
+              discount={discount}
               serviceCharge={serviceCharge}
               gst={gst}
               reconciliationCents={reconciliationCents}
@@ -721,6 +729,7 @@ export function SimpleWorkspace() {
 
             <SplitTotalsCard
               split={split}
+              discount={discount}
               serviceCharge={serviceCharge}
               gst={gst}
               reconciliationCents={reconciliationCents}
@@ -733,6 +742,7 @@ export function SimpleWorkspace() {
               <SimplePersonBreakdown
                 people={people}
                 split={split}
+                discount={discount}
                 serviceCharge={serviceCharge}
                 gst={gst}
               />
