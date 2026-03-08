@@ -2,15 +2,19 @@ import type { ChargeMode, ChargeState } from '../../../shared/types'
 
 type ChargeControlProps = {
   label: string
+  description?: string
   value: ChargeState
   onChange: (next: ChargeState) => void
 }
 
-export function ChargeControl({ label, value, onChange }: ChargeControlProps) {
+export function ChargeControl({ label, description, value, onChange }: ChargeControlProps) {
   return (
     <div className="space-y-2 px-4 py-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-200">{label}</p>
+        <div>
+          <p className="text-sm font-medium text-slate-200">{label}</p>
+          {description ? <p className="text-[11px] text-slate-500">{description}</p> : null}
+        </div>
         <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-slate-400">
           <input
             type="checkbox"

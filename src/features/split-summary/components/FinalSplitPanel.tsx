@@ -8,6 +8,7 @@ type FinalSplitPanelProps = {
   people: Person[]
   split: SplitResult
   reconciliationCents: number | null
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   exportSection?: ReactNode
@@ -18,6 +19,7 @@ export function FinalSplitPanel({
   people,
   split,
   reconciliationCents,
+  discount,
   serviceCharge,
   gst,
   exportSection,
@@ -37,6 +39,7 @@ export function FinalSplitPanel({
       {exportSection}
       <SplitTotalsCard
         split={split}
+        discount={discount}
         serviceCharge={serviceCharge}
         gst={gst}
         reconciliationCents={reconciliationCents}
@@ -62,6 +65,7 @@ export function FinalSplitPanel({
               person={person}
               colorIndex={index}
               split={split}
+              discount={discount}
               serviceCharge={serviceCharge}
               gst={gst}
               showItemMeta={showItemMeta}

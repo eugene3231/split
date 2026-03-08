@@ -2,6 +2,7 @@ import {
   LOCAL_STORAGE_DRAFT_KEY,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
+  defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
 } from '../constants'
@@ -23,6 +24,7 @@ import { createId } from '../logic/core/id'
 export function exportDraftToJson(state: {
   people: Person[]
   items: EditableItem[]
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   receiptTotalInput: string
@@ -31,6 +33,7 @@ export function exportDraftToJson(state: {
     version: 1,
     people: state.people,
     items: state.items,
+    discount: state.discount,
     serviceCharge: state.serviceCharge,
     gst: state.gst,
     receiptTotalInput: state.receiptTotalInput,
@@ -60,6 +63,7 @@ export function importDraftFromJson(raw: string): PersistedDraft | null {
       version: 1,
       people,
       items,
+      discount: normalizeDraftChargeState(parsed.discount, defaultDiscountState),
       serviceCharge: normalizeDraftChargeState(parsed.serviceCharge, defaultServiceChargeState),
       gst: normalizeDraftChargeState(parsed.gst, defaultGstState),
       receiptTotalInput: typeof parsed.receiptTotalInput === 'string' ? parsed.receiptTotalInput : '',
@@ -108,6 +112,7 @@ export function loadPersistedDraft(): PersistedDraft | null {
       version: 1,
       people,
       items,
+      discount: normalizeDraftChargeState(parsed.discount, defaultDiscountState),
       serviceCharge: normalizeDraftChargeState(parsed.serviceCharge, defaultServiceChargeState),
       gst: normalizeDraftChargeState(parsed.gst, defaultGstState),
       receiptTotalInput: typeof parsed.receiptTotalInput === 'string' ? parsed.receiptTotalInput : '',

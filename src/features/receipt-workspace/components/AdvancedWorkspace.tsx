@@ -14,11 +14,13 @@ export function AdvancedWorkspace() {
   const {
     people,
     items,
+    discount,
     serviceCharge,
     gst,
     receiptTotalInput,
     addPeopleFromInput,
     removePerson,
+    setDiscount,
     setServiceCharge,
     setGst,
     setReceiptTotalInput,
@@ -34,11 +36,13 @@ export function AdvancedWorkspace() {
     useShallow((state) => ({
       people: state.people,
       items: state.items,
+      discount: state.discount,
       serviceCharge: state.serviceCharge,
       gst: state.gst,
       receiptTotalInput: state.receiptTotalInput,
       addPeopleFromInput: state.addPeopleFromInput,
       removePerson: state.removePerson,
+      setDiscount: state.setDiscount,
       setServiceCharge: state.setServiceCharge,
       setGst: state.setGst,
       setReceiptTotalInput: state.setReceiptTotalInput,
@@ -54,8 +58,8 @@ export function AdvancedWorkspace() {
   )
 
   const split = useMemo(
-    () => computeSplit({ people, items, serviceCharge, gst }),
-    [people, items, serviceCharge, gst],
+    () => computeSplit({ people, items, discount, serviceCharge, gst }),
+    [people, items, discount, serviceCharge, gst],
   )
   const receiptTotalCents = parseCurrencyToCents(receiptTotalInput)
   const reconciliationCents =
@@ -67,6 +71,8 @@ export function AdvancedWorkspace() {
         people={people}
         onAddPeople={addPeopleFromInput}
         onRemovePerson={removePerson}
+        discount={discount}
+        onDiscountChange={setDiscount}
         serviceCharge={serviceCharge}
         onServiceChargeChange={setServiceCharge}
         gst={gst}
@@ -100,12 +106,14 @@ export function AdvancedWorkspace() {
         people={people}
         split={split}
         reconciliationCents={reconciliationCents}
+        discount={discount}
         serviceCharge={serviceCharge}
         gst={gst}
         exportSection={
           <ExportImageSection
             people={people}
             split={split}
+            discount={discount}
             serviceCharge={serviceCharge}
             gst={gst}
             reconciliationCents={reconciliationCents}

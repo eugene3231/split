@@ -12,11 +12,13 @@ import { parseDiscountPercent, resolveDiscountedAmountCents } from './pricing'
 export function computeSplit({
   people,
   items,
+  discount,
   serviceCharge,
   gst,
 }: {
   people: Person[]
   items: EditableItem[]
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
 }): SplitResult {
@@ -90,18 +92,31 @@ export function computeSplit({
   }
 
   const subtotalCents = sumMapValues(subtotalByPersonCents)
-  const serviceChargeCents = resolveChargeCents(serviceCharge, subtotalCents, subtotalCents)
-  const serviceWeights = weightsFromBase(subtotalByPersonCents, personIds)
+  const discountCents = resolveChargeCents(discount, subtotalCents, subtotalCents)
+  const discountWeights = weightsFromBase(subtotalByPersonCents, personIds)
+  const discountByPersonCents = allocateCents(discountCents, personIds, discountWeights)
+
+  const discountedSubtotalByPersonCents = initializeCentsMap(personIds)
+  for (const personId of personIds) {
+    discountedSubtotalByPersonCents[personId] = Math.max(
+      0,
+      subtotalByPersonCents[personId] - discountByPersonCents[personId],
+    )
+  }
+  const discountedSubtotalCents = sumMapValues(discountedSubtotalByPersonCents)
+
+  const serviceChargeCents = resolveChargeCents(serviceCharge, discountedSubtotalCents, discountedSubtotalCents)
+  const serviceWeights = weightsFromBase(discountedSubtotalByPersonCents, personIds)
   const serviceByPersonCents = allocateCents(serviceChargeCents, personIds, serviceWeights)
 
-  const gstBaseCents = subtotalCents + serviceChargeCents
-  const gstCents = resolveChargeCents(gst, subtotalCents, gstBaseCents)
+  const gstBaseCents = discountedSubtotalCents + serviceChargeCents
+  const gstCents = resolveChargeCents(gst, discountedSubtotalCents, gstBaseCents)
 
   const gstWeightSeed = initializeCentsMap(personIds)
   for (const personId of personIds) {
     gstWeightSeed[personId] = Math.max(
       0,
-      subtotalByPersonCents[personId] + serviceByPersonCents[personId],
+      discountedSubtotalByPersonCents[personId] + serviceByPersonCents[personId],
     )
   }
 
@@ -111,7 +126,7 @@ export function computeSplit({
   const totalByPersonCents = initializeCentsMap(personIds)
   for (const personId of personIds) {
     totalByPersonCents[personId] =
-      subtotalByPersonCents[personId] + serviceByPersonCents[personId] + gstByPersonCents[personId]
+      discountedSubtotalByPersonCents[personId] + serviceByPersonCents[personId] + gstByPersonCents[personId]
   }
 
   const grandTotalCents = sumMapValues(totalByPersonCents)
@@ -119,10 +134,12 @@ export function computeSplit({
   return {
     lineItemsByPerson,
     subtotalByPersonCents,
+    discountByPersonCents,
     serviceByPersonCents,
     gstByPersonCents,
     totalByPersonCents,
     subtotalCents,
+    discountCents,
     serviceChargeCents,
     gstCents,
     grandTotalCents,

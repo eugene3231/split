@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { defaultGstState, defaultServiceChargeState } from '../../../shared/constants'
+import { defaultDiscountState, defaultGstState, defaultServiceChargeState } from '../../../shared/constants'
 import {
   clearPersistedDraft,
   exportDraftToJson,
@@ -22,6 +22,7 @@ type ReceiptWorkspaceState = {
   initialized: boolean
   people: Person[]
   items: EditableItem[]
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   receiptTotalInput: string
@@ -33,6 +34,7 @@ type ReceiptWorkspaceState = {
   addSimpleItem: () => void
   removeItem: (itemId: string) => void
   updateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void
+  setDiscount: (next: ChargeState) => void
   setServiceCharge: (next: ChargeState) => void
   setGst: (next: ChargeState) => void
   setReceiptTotalInput: (value: string) => void
@@ -49,6 +51,7 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
   initialized: false,
   people: [],
   items: [],
+  discount: defaultDiscountState,
   serviceCharge: defaultServiceChargeState,
   gst: defaultGstState,
   receiptTotalInput: '',
@@ -64,6 +67,7 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
       initialized: true,
       people: initialPeople,
       items: initialItems,
+      discount: draft?.discount ?? defaultDiscountState,
       serviceCharge: draft?.serviceCharge ?? defaultServiceChargeState,
       gst: draft?.gst ?? defaultGstState,
       receiptTotalInput: draft?.receiptTotalInput ?? '',
@@ -74,6 +78,7 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
       initialized: false,
       people: [],
       items: [],
+      discount: defaultDiscountState,
       serviceCharge: defaultServiceChargeState,
       gst: defaultGstState,
       receiptTotalInput: '',
@@ -150,6 +155,9 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
       items: state.items.map((item) => (item.id === itemId ? updater(item) : item)),
     }))
   },
+  setDiscount: (next) => {
+    set((state) => ({ ...state, discount: next }))
+  },
   setServiceCharge: (next) => {
     set((state) => ({ ...state, serviceCharge: next }))
   },
@@ -172,6 +180,7 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
       set((state) => ({
         ...state,
         items: [uxMode === 'simple' ? buildNewSimpleItem(state.people) : createEmptyItem(state.people)],
+        discount: defaultDiscountState,
         serviceCharge: defaultServiceChargeState,
         gst: defaultGstState,
         receiptTotalInput: '',
@@ -327,8 +336,8 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
     }))
   },
   getExportJson: () => {
-    const { people, items, serviceCharge, gst, receiptTotalInput } = get()
-    return exportDraftToJson({ people, items, serviceCharge, gst, receiptTotalInput })
+    const { people, items, discount, serviceCharge, gst, receiptTotalInput } = get()
+    return exportDraftToJson({ people, items, discount, serviceCharge, gst, receiptTotalInput })
   },
   importFromJson: (raw) => {
     const draft = importDraftFromJson(raw)
@@ -339,6 +348,7 @@ export const useReceiptWorkspaceStore = create<ReceiptWorkspaceState>((set, get)
     set({
       people: draft.people,
       items: buildInitialItems(draft.items, draft.people, uxMode),
+      discount: draft.discount,
       serviceCharge: draft.serviceCharge,
       gst: draft.gst,
       receiptTotalInput: draft.receiptTotalInput,

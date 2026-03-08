@@ -12,6 +12,7 @@ import {
 type ExportImageSectionProps = {
   people: Person[]
   split: SplitResult
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   reconciliationCents: number | null
@@ -20,6 +21,7 @@ type ExportImageSectionProps = {
 export function ExportImageSection({
   people,
   split,
+  discount,
   serviceCharge,
   gst,
   reconciliationCents,
@@ -52,6 +54,7 @@ export function ExportImageSection({
     return generateFinalSplitImage({
       people,
       split,
+      discount,
       serviceCharge,
       gst,
       reconciliationCents,

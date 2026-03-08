@@ -4,12 +4,14 @@ import { SummaryRow } from './SummaryRow'
 
 type SplitTotalsCardProps = {
   split: SplitResult
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   reconciliationCents: number | null
 }
 
-export function SplitTotalsCard({ split, serviceCharge, gst, reconciliationCents }: SplitTotalsCardProps) {
+export function SplitTotalsCard({ split, discount, serviceCharge, gst, reconciliationCents }: SplitTotalsCardProps) {
+  const discountLabel = buildChargeLabel('Whole-Bill Discount', discount)
   const serviceLabel = buildChargeLabel('Service Charge', serviceCharge)
   const gstLabel = buildChargeLabel('GST / Tax', gst)
 
@@ -21,6 +23,9 @@ export function SplitTotalsCard({ split, serviceCharge, gst, reconciliationCents
       </div>
       <div className="space-y-2 p-4 text-sm">
         <SummaryRow label="Subtotal" value={formatCurrencyFromCents(split.subtotalCents)} />
+        {split.discountCents > 0 ? (
+          <SummaryRow label={discountLabel} value={`−${formatCurrencyFromCents(split.discountCents)}`} tone="ok" />
+        ) : null}
         <SummaryRow label={serviceLabel} value={formatCurrencyFromCents(split.serviceChargeCents)} />
         <SummaryRow label={gstLabel} value={formatCurrencyFromCents(split.gstCents)} />
         <SummaryRow

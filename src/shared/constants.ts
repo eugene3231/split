@@ -1,5 +1,14 @@
 import type { ChargeState } from './types'
 
+export const defaultDiscountState: ChargeState = {
+  enabled: false,
+  mode: 'percent',
+  amountInput: '',
+  percentInput: '',
+  detectedConfidence: null,
+  detectedSource: null,
+}
+
 export const defaultServiceChargeState: ChargeState = {
   enabled: true,
   mode: 'percent',

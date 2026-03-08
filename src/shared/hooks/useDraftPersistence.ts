@@ -6,6 +6,7 @@ type UseDraftPersistenceArgs = {
   initialized: boolean
   people: Person[]
   items: EditableItem[]
+  discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
   receiptTotalInput: string
@@ -16,6 +17,7 @@ export function useDraftPersistence({
   initialized,
   people,
   items,
+  discount,
   serviceCharge,
   gst,
   receiptTotalInput,
@@ -27,6 +29,7 @@ export function useDraftPersistence({
       version: 1,
       people,
       items,
+      discount,
       serviceCharge,
       gst,
       receiptTotalInput,
@@ -39,5 +42,5 @@ export function useDraftPersistence({
       },
       savedAt: new Date().toISOString(),
     })
-  }, [initialized, gst, items, people, receiptTotalInput, serviceCharge, split])
+  }, [initialized, discount, gst, items, people, receiptTotalInput, serviceCharge, split])
 }
