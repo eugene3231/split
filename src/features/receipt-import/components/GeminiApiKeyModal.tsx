@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
+import { useState, useRef, type KeyboardEvent } from 'react'
 import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
 
 export function GeminiApiKeyModal() {
@@ -32,11 +32,6 @@ interface GeminiApiKeyModalContentProps {
 function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyModalContentProps) {
   const [localKey, setLocalKey] = useState(initialKey)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    const id = window.setTimeout(() => inputRef.current?.focus(), 50)
-    return () => window.clearTimeout(id)
-  }, [])
 
   const handleSave = () => onSave(localKey.trim())
 
