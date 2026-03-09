@@ -6,8 +6,8 @@ import { SetupPanel } from '../../receipt-setup'
 import { ExportImageSection } from '../../split-export'
 import { FinalSplitPanel } from '../../split-summary'
 import { computeSplit } from '../../../shared/logic/computation/split'
-import { parseCurrencyToCents } from '../../../shared/logic/core/money'
 import { useReceiptWorkspaceStore } from '../store/receiptWorkspaceStore'
+import { useReconciliation } from '../../../shared/hooks/useReconciliation'
 import { JsonImportExportSection } from './JsonImportExportSection'
 
 export function AdvancedWorkspace() {
@@ -61,20 +61,13 @@ export function AdvancedWorkspace() {
     () => computeSplit({ people, items, discount, serviceCharge, gst }),
     [people, items, discount, serviceCharge, gst],
   )
-  const receiptTotalCents = parseCurrencyToCents(receiptTotalInput)
-  const reconciliationCents =
-    receiptTotalCents === null ? null : receiptTotalCents - split.grandTotalCents
 
-  const handleApplyReconciliationDiscount = () => {
-    if (reconciliationCents === null || reconciliationCents >= 0) return
-    const totalDiscountCents = split.discountCents + Math.abs(reconciliationCents)
-    setDiscount({
-      ...discount,
-      enabled: true,
-      mode: 'amount',
-      amountInput: (totalDiscountCents / 100).toFixed(2),
-    })
-  }
+  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation(
+    split,
+    discount,
+    setDiscount,
+    receiptTotalInput,
+  )
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr_1fr]">
