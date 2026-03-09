@@ -1,21 +1,21 @@
 import { create } from 'zustand'
-import { defaultDiscountState, defaultGstState, defaultServiceChargeState } from '../../../shared/constants'
+import { defaultDiscountState, defaultGstState, defaultServiceChargeState } from '../constants'
 import {
   clearPersistedDraft,
   exportDraftToJson,
   importDraftFromJson,
   loadPersistedDraft,
-} from '../../../shared/api/storage'
-import { createEmptyItem, sanitizeItemAssignment } from '../../../shared/logic/assignment/items'
-import { createId } from '../../../shared/logic/core/id'
-import type { ChargeState, EditableItem, Person } from '../../../shared/types'
-import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
+} from '../api/storage'
+import { createEmptyItem, sanitizeItemAssignment } from '../logic/assignment/items'
+import { createId } from '../logic/core/id'
+import type { ChargeState, EditableItem, Person } from '../types'
+import { useReceiptUiStore } from './receiptUiStore'
 import {
   analyzeReceiptWithGemini,
   applyOcrPayload,
   buildLocalMockOcrResponse,
   buildSimpleModeMockOcrResponse,
-} from '../../receipt-import'
+} from '../../features/receipt-scanner'
 import { buildNewSimpleItem, convertItemsToSimpleEqualMode } from '../logic/simpleAssignments'
 
 type ReceiptWorkspaceState = {

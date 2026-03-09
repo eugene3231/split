@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { computeSplit } from '../../shared/logic/computation/split'
-import { useDraftPersistence } from '../../shared/hooks/useDraftPersistence'
-import { useReceiptUiStore } from '../../shared/stores/receiptUiStore'
-import { useLoadingTicker } from '../../features/receipt-import'
-import { useReceiptWorkspaceStore } from '../../features/receipt-workspace/store/receiptWorkspaceStore'
+import { computeSplit } from '../../../shared/logic/computation/split'
+import { useDraftPersistence } from '../../../shared/hooks/useDraftPersistence'
+import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
+import { useLoadingTicker } from '../../../features/receipt-scanner'
+import { useReceiptWorkspaceStore } from '../../../shared/stores/receiptWorkspaceStore'
 
 export function useReceiptSplitterController() {
   const {

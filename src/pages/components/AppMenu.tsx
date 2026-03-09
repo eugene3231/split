@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useReceiptUiStore } from '../../shared/stores/receiptUiStore'
-import { useReceiptWorkspaceStore } from '../../features/receipt-workspace/store/receiptWorkspaceStore'
+import { useReceiptWorkspaceStore } from '../../shared/stores/receiptWorkspaceStore'
 
 export function AppMenu() {
   const [isOpen, setIsOpen] = useState(false)

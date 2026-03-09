@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import { GlobalChargesSection } from '../../../receipt-setup/components/GlobalChargesSection'
-import { ReceiptImportPanel } from '../../../receipt-import/components/ReceiptImportPanel'
-import { SplitTotalsCard } from '../../../split-summary/components/SplitTotalsCard'
+import { GlobalChargesSection } from '../../../../features/split-config/components/GlobalChargesSection'
+import { ReceiptImportPanel } from '../../../../features/receipt-scanner/components/ReceiptImportPanel'
+import { SplitTotalsCard } from '../../../../features/split-results/components/SplitTotalsCard'
 import type { ChargeState, EditableItem, SplitResult } from '../../../../shared/types'
 import { hasAnyValidReceiptItem } from '../../logic/wizardValidation'
 
@@ -14,7 +14,7 @@ type Props = {
   reconciliationCents: number | null
   receiptTotalInput: string
   onApplyDiscount: () => void
-  onReceiptFileSelected: (file: File) => void
+  onReceiptFileSelected: (file: File | null) => void
   onScanReceipt: () => void
   onLoadMockReceipt: () => void
   onDiscountChange: (discount: ChargeState) => void
