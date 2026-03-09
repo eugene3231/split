@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { ChargeState, Person, SplitResult } from '../../../shared/types'
 import { SplitTotalsCard } from './SplitTotalsCard'
-import { PersonCard } from '../../receipt-workspace/components/SimplePersonBreakdown'
+import { PersonCard } from './SimplePersonBreakdown'
 
 type FinalSplitPanelProps = {
   people: Person[]
@@ -85,4 +85,3 @@ export function FinalSplitPanel({
     </section>
   )
 }
-

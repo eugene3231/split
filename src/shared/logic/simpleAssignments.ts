@@ -1,5 +1,5 @@
-import type { EditableItem, Person } from '../../../shared/types'
-import { createEmptyItem } from '../../../shared/logic/assignment/items'
+import type { EditableItem, Person } from '../types'
+import { createEmptyItem } from './assignment/items'
 
 export function createSimpleEmptyItem(people: Person[]): EditableItem {
   const baseItem = createEmptyItem(people)

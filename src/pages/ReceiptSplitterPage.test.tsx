@@ -8,7 +8,7 @@ const { generateFinalSplitImageMock } = vi.hoisted(() => ({
   generateFinalSplitImageMock: vi.fn(),
 }))
 
-vi.mock('../features/split-export/api/finalSplitImage', () => ({
+vi.mock('../features/split-results/api/finalSplitImage', () => ({
   generateFinalSplitImage: generateFinalSplitImageMock,
 }))
 

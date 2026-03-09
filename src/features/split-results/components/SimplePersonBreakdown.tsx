@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import useEmblaCarousel from 'embla-carousel-react'
 import type { ChargeState, Person, PersonReceiptLineItem, SplitResult } from '../../../shared/types'
 import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core/money'
-import { SummaryRow } from '../../split-summary/components/SummaryRow'
+import { SummaryRow } from './SummaryRow'
 import { getPersonColor } from '../../../shared/utils/personColors'
 
 type Props = {

@@ -1,6 +1,6 @@
-import { ExportImageSection } from '../../../split-export'
-import { SplitTotalsCard } from '../../../split-summary/components/SplitTotalsCard'
-import { SimplePersonBreakdown } from '../SimplePersonBreakdown'
+import { ExportImageSection } from '../../../../features/split-results'
+import { SplitTotalsCard } from '../../../../features/split-results/components/SplitTotalsCard'
+import { SimplePersonBreakdown } from '../../../../features/split-results/components/SimplePersonBreakdown'
 import type { ChargeState, Person, SplitResult } from '../../../../shared/types'
 
 type Props = {
