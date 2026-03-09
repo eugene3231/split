@@ -1,6 +1,6 @@
 import type { FormEvent, ReactNode } from 'react'
 import type { ChargeState, Person } from '../../../shared/types'
-import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
+import { useReceiptStore } from '../../../shared/stores/receiptStore'
 import { GlobalChargesSection } from './GlobalChargesSection'
 import { PeopleSetupSection } from './PeopleSetupSection'
 
@@ -33,8 +33,8 @@ export function SetupPanel({
   onReceiptTotalInputChange,
   importSection,
 }: SetupPanelProps) {
-  const peopleInput = useReceiptUiStore((state) => state.peopleInput)
-  const setPeopleInput = useReceiptUiStore((state) => state.setPeopleInput)
+  const peopleInput = useReceiptStore((state) => state.peopleInput)
+  const setPeopleInput = useReceiptStore((state) => state.setPeopleInput)
 
   const handlePeopleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

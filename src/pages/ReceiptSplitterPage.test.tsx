@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_GEMINI_MODEL } from '../shared/constants'
-import { useReceiptUiStore } from '../shared/stores/receiptUiStore'
+import { useReceiptStore } from '../shared/stores/receiptStore'
 
 const { generateFinalSplitImageMock } = vi.hoisted(() => ({
   generateFinalSplitImageMock: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock('../features/split-results/api/finalSplitImage', () => ({
 import { ReceiptSplitterPage } from './ReceiptSplitterPage'
 
 function resetUiStore() {
-  useReceiptUiStore.setState({
+  useReceiptStore.setState({
     uxMode: 'advanced',
     peopleInput: '',
     geminiApiKeyInput: '',
@@ -348,7 +348,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
 
 describe('ReceiptSplitterPage simple wizard integration', () => {
   it('blocks progression until each simple wizard step is valid', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     render(<ReceiptSplitterPage />)
 
     const continueToReceiptButton = screen.getByTestId('wizard-continue-btn')
@@ -367,7 +367,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
   })
 
   it('renders grouped 4-step wizard header and progresses across grouped steps', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
     render(<ReceiptSplitterPage />)
@@ -386,7 +386,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
   })
 
   it('defaults simple assignment to all selected and supports review/edit before final', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
     render(<ReceiptSplitterPage />)
@@ -421,7 +421,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
   })
 
   it('supports back navigation across receipt, assign, review, and final steps', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
     render(<ReceiptSplitterPage />)
@@ -455,7 +455,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
   })
 
   it('loads the simple mode mock receipt payload from receipt step', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     render(<ReceiptSplitterPage />)
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
@@ -472,7 +472,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
   })
 
   it('supports select all and select none shortcuts in simple item chooser', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
     render(<ReceiptSplitterPage />)
@@ -494,7 +494,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
   })
 
   it('returns to the people step and blocks progression when everyone is removed', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
     render(<ReceiptSplitterPage />)
@@ -520,7 +520,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
   })
 
   it('falls back from final to items when assignments become incomplete', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
     render(<ReceiptSplitterPage />)
@@ -548,7 +548,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
   })
 
   it('restores simple item assignments after refresh', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple' })
+    useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
     const { unmount } = render(<ReceiptSplitterPage />)
@@ -612,7 +612,7 @@ describe('Apply-discount-to-reconcile button', () => {
   })
 
   it('appears on the simple wizard receipt step when computed total exceeds receipt total', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple', geminiApiKeyInput: 'test-key' })
+    useReceiptStore.setState({ uxMode: 'simple', geminiApiKeyInput: 'test-key' })
     seedDraft({
       items: [
         {
@@ -672,7 +672,7 @@ describe('Global whole-bill discount indicator on items', () => {
   })
 
   it('shows the badge on items in the simple wizard receipt step when discount is enabled', async () => {
-    useReceiptUiStore.setState({ uxMode: 'simple', geminiApiKeyInput: 'test-key' })
+    useReceiptStore.setState({ uxMode: 'simple', geminiApiKeyInput: 'test-key' })
     seedDraft({
       items: [
         {

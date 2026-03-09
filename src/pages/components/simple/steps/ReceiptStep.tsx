@@ -3,7 +3,7 @@ import { GlobalChargesSection } from '../../../../features/split-config/componen
 import { ReceiptImportPanel } from '../../../../features/receipt-scanner/components/ReceiptImportPanel'
 import { SplitTotalsCard } from '../../../../features/split-results/components/SplitTotalsCard'
 import type { ChargeState, EditableItem, SplitResult } from '../../../../shared/types'
-import { hasAnyValidReceiptItem } from '../../logic/wizardValidation'
+import { hasAnyValidReceiptItem } from '../../../logic/wizardValidation'
 
 type Props = {
   items: EditableItem[]
@@ -26,7 +26,7 @@ type Props = {
   onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
 }
 
-export function SimpleStepReceipt({
+export function ReceiptStep({
   items,
   split,
   discount,

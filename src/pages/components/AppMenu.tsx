@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { useReceiptUiStore } from '../../shared/stores/receiptUiStore'
-import { useReceiptWorkspaceStore } from '../../shared/stores/receiptWorkspaceStore'
+import { useReceiptStore } from '../../shared/stores/receiptStore'
 
 export function AppMenu() {
   const [isOpen, setIsOpen] = useState(false)
@@ -15,11 +14,11 @@ export function AppMenu() {
     }
   }, [])
 
-  const uxMode = useReceiptUiStore((state) => state.uxMode)
-  const getExportJson = useReceiptWorkspaceStore((state) => state.getExportJson)
-  const importFromJson = useReceiptWorkspaceStore((state) => state.importFromJson)
-  const handleLoadSimpleMockReceipt = useReceiptWorkspaceStore((state) => state.handleLoadSimpleMockReceipt)
-  const handleLoadMockReceipt = useReceiptWorkspaceStore((state) => state.handleLoadMockReceipt)
+  const uxMode = useReceiptStore((state) => state.uxMode)
+  const getExportJson = useReceiptStore((state) => state.getExportJson)
+  const importFromJson = useReceiptStore((state) => state.importFromJson)
+  const handleLoadSimpleMockReceipt = useReceiptStore((state) => state.handleLoadSimpleMockReceipt)
+  const handleLoadMockReceipt = useReceiptStore((state) => state.handleLoadMockReceipt)
 
   const close = () => { setIsOpen(false); setImportError(null) }
 

@@ -1,5 +1,5 @@
-import type { SimpleWizardStep, WizardProgressContext } from '../types'
-import { SIMPLE_WIZARD_STEPS } from '../types'
+import type { SimpleWizardStep, WizardProgressContext } from '../../types'
+import { SIMPLE_WIZARD_STEPS } from '../../types'
 
 type WizardProgressHeaderProps = {
   activeStep: SimpleWizardStep
@@ -25,7 +25,7 @@ const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: strin
   },
 }
 
-export function SimpleProgressHeader({ activeStep, context }: WizardProgressHeaderProps) {
+export function ProgressHeader({ activeStep, context }: WizardProgressHeaderProps) {
   const activeStepIndex = SIMPLE_WIZARD_STEPS.indexOf(activeStep)
 
   return (

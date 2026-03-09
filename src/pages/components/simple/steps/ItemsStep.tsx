@@ -1,7 +1,7 @@
 import type { EditableItem, Person } from '../../../../shared/types'
-import type { ItemsSubPhase } from '../../types'
-import { SimpleAssignPhase } from './SimpleAssignPhase'
-import { SimpleReviewPhase } from './SimpleReviewPhase'
+import type { ItemsSubPhase } from '../../../types'
+import { AssignPhase } from './AssignPhase'
+import { ReviewPhase } from './ReviewPhase'
 
 type Props = {
   items: EditableItem[]
@@ -13,7 +13,7 @@ type Props = {
   onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
 }
 
-export function SimpleStepItems({
+export function ItemsStep({
   items,
   people,
   itemsSubPhase,
@@ -27,7 +27,7 @@ export function SimpleStepItems({
       <h2 className="text-base font-bold text-slate-100">Assign Items</h2>
 
       {itemsSubPhase === 'assign' ? (
-        <SimpleAssignPhase
+        <AssignPhase
           items={items}
           people={people}
           activeItemIndex={activeItemIndex}
@@ -37,7 +37,7 @@ export function SimpleStepItems({
           onGoToReview={() => onItemsSubPhaseChange('review')}
         />
       ) : (
-        <SimpleReviewPhase
+        <ReviewPhase
           items={items}
           people={people}
           onEditItem={(index) => {

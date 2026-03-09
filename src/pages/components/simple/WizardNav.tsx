@@ -1,4 +1,4 @@
-import type { ItemsSubPhase, SimpleWizardStep } from '../types'
+import type { ItemsSubPhase, SimpleWizardStep } from '../../types'
 
 type Props = {
   activeStep: SimpleWizardStep
@@ -8,7 +8,7 @@ type Props = {
   onNext: () => void
 }
 
-export function SimpleWizardNav({ activeStep, itemsSubPhase, canContinue, onBack, onNext }: Props) {
+export function WizardNav({ activeStep, itemsSubPhase, canContinue, onBack, onNext }: Props) {
   const continueLabel =
     activeStep === 'people'
       ? 'Continue →'

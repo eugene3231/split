@@ -1,10 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { computeSplit } from '../../../shared/logic/computation/split'
-import { useDraftPersistence } from '../../../shared/hooks/useDraftPersistence'
-import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
-import { useLoadingTicker } from '../../../features/receipt-scanner'
-import { useReceiptWorkspaceStore } from '../../../shared/stores/receiptWorkspaceStore'
+import { computeSplit } from '../../shared/logic/computation/split'
+import { useDraftPersistence } from '../../shared/hooks/useDraftPersistence'
+import { useReceiptStore } from '../../shared/stores/receiptStore'
+import { useLoadingTicker } from '../../features/receipt-scanner'
 
 export function useReceiptSplitterController() {
   const {
@@ -12,16 +11,6 @@ export function useReceiptSplitterController() {
     setUxMode,
     isScanning,
     advanceLoadingMessage,
-  } = useReceiptUiStore(
-    useShallow((state) => ({
-      uxMode: state.uxMode,
-      setUxMode: state.setUxMode,
-      isScanning: state.isScanning,
-      advanceLoadingMessage: state.advanceLoadingMessage,
-    })),
-  )
-
-  const {
     initialized,
     people,
     items,
@@ -32,8 +21,12 @@ export function useReceiptSplitterController() {
     initialize,
     reset,
     normalizeItemsForSimpleMode,
-  } = useReceiptWorkspaceStore(
+  } = useReceiptStore(
     useShallow((state) => ({
+      uxMode: state.uxMode,
+      setUxMode: state.setUxMode,
+      isScanning: state.isScanning,
+      advanceLoadingMessage: state.advanceLoadingMessage,
       initialized: state.initialized,
       people: state.people,
       items: state.items,

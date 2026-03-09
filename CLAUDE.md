@@ -2,7 +2,7 @@
 
 ## What Is This?
 
-**Split** is a browser-only bill-splitting app that uses Google Gemini's vision AI to scan receipts and automatically divide costs between people.
+**Split** is a browser-only, no backend, no auth, no multi-receipt support yet bill-splitting app that uses Google Gemini's vision AI to scan receipts and automatically divide costs between people.
 
 **User workflow:**
 1. **Add people** — Enter names for everyone splitting the bill
@@ -22,44 +22,77 @@
 
 - **React 19 + TypeScript + Vite** — UI framework and build tooling
 - **Tailwind CSS 4** — Utility-first styling
-- **Zustand** — State management (`receiptWorkspaceStore` for receipt data, `receiptUiStore` for UI state)
+- **Zustand** — State management (`receiptStore` for all receipt data and actions)
 - **Zod** — Schema validation for Gemini API responses
 - **Vitest + Testing Library** — Unit testing
+
+## Best Practices
+- Prefer recomputing derived data (e.g. in `shared/logic/computation/split.ts`) over storing it
+- Keep components dumb — they should render what they're given, not compute it
 
 ## Repository Structure
 
 ```
 src/
   features/
-    item-assignment/       # UI for assigning items to people
-    receipt-import/        # Gemini API integration and OCR parsing
-    receipt-setup/         # Add people, configure global charges
-    receipt-workspace/     # Central store (Zustand), Simple/Advanced workspace UIs
-    split-summary/         # Per-person breakdown display and export (PNG/text)
+    receipt-scanner/       # Gemini API integration, OCR parsing, scan UI
+    split-config/          # People setup, line items, global charges UI
+    split-results/         # Per-person breakdown display and export (PNG/text)
   pages/
     ReceiptSplitterPage.tsx          # Root page component
-    hooks/useReceiptSplitterController.ts
+    types.ts                         # Wizard-specific types (SimpleWizardStep etc.)
+    components/
+      AppMenu.tsx                    # Import/export/mock menu
+      ReceiptSplitterHeader.tsx      # App header with mode toggle
+      advanced/
+        AdvancedWorkspace.tsx        # Composes features into the advanced layout
+        JsonImportExportSection.tsx
+      simple/
+        SimpleWorkspace.tsx          # Composes features into the 4-step wizard
+        ProgressHeader.tsx
+        WizardNav.tsx
+        steps/                       # One component per wizard step/phase
+    hooks/
+      useReceiptSplitterController.ts  # Init, persistence, mode switching
+      useSimpleWizard.ts               # Wizard step/phase state machine
+    logic/
+      persistence.ts       # Wizard state save/load (localStorage)
+      wizardState.ts       # Step resolution logic
+      wizardValidation.ts  # Per-step validation
   shared/
     types.ts               # Core types: Person, EditableItem, ChargeState, SplitResult
     constants.ts           # Defaults, Gemini model IDs, storage keys
+    api/
+      storage.ts           # localStorage read/write helpers
+    hooks/
+      useDraftPersistence.ts  # Auto-saves receipt state to localStorage
+      useReceiptSplit.ts      # Derives split result and reconciliation helpers
     logic/
       computation/         # computeSplit() and charge calculation engine
       assignment/          # Item assignment utilities
       core/                # ID generation, money parsing/formatting
-    stores/                # receiptUiStore (Gemini API key, scan state, UX mode)
-    utils/                 # personColors (per-person colour palette)
+    stores/
+      receiptStore.ts      # Central Zustand store: all receipt data and actions
+    utils/
+      personColors.ts      # Per-person colour palette
 ```
 
 **Key files:**
-- `src/features/receipt-workspace/store/receiptWorkspaceStore.ts` — Central state
-- `src/features/receipt-import/logic/ocr.ts` — Gemini API call
+- `src/shared/stores/receiptStore.ts` — Central Zustand store
+- `src/features/receipt-scanner/logic/ocr.ts` — Gemini API call
+- `src/features/receipt-scanner/logic/gemini-schema.ts` — Zod schema (constrains Gemini output + validates response)
 - `src/shared/logic/computation/split.ts` — Split calculation engine
 - `src/shared/types.ts` — All core types
 
-## Best Practices
-- Recompute as much of the data that needs to be displayed as much as possible e.g. in shared/logic/computation/split.ts
-- Design the components in the way that they are as dumb as possible as they should just render what is given to them without any computation logic as much as possible
+## Gemini Integration
 
+Models are defined in src/shared/constants.ts
+
+The prompt is intentionally minimal — the response schema does the heavy lifting. Gemini's controlled generation (`responseSchema` in `generationConfig`) constrains the model to return exactly the right JSON shape.
+
+The Zod schema in `gemini-schema.ts` serves dual purpose: converted to JSON Schema for the API request, and used again to validate the parsed response. Most fields are nullable so the model returns `null` rather than hallucinate. `stripUnsupportedSchemaFields` removes keys (`$schema`, `additionalProperties`) that Zod emits but Gemini's API rejects.
+
+Charge detection (`enabled`, `amount`, `percent`, `confidence`, `source`) is normalized after parsing — `enabled` is inferred true if `amount` or `percent` is non-zero, regardless of what the model returned.
 
 ---
 
@@ -86,9 +119,6 @@ const count = items.length;
 ### Collocate state as low as possible
 Don't lift state higher than necessary. If only one component needs it, keep it there.
 
-### Use `useReducer` for complex state transitions
-When state has multiple sub-values or next state depends on previous, prefer `useReducer` over multiple `useState` calls.
-
 ---
 
 ## Avoiding useEffect
@@ -108,15 +138,6 @@ useEffect(() => { setFullName(`${firstName} ${lastName}`); }, [firstName]);
 const fullName = `${firstName} ${lastName}`;
 ```
 
-**Fetching on mount with no abstraction** — use a data-fetching library:
-```tsx
-// ❌ Fragile, no loading/error handling, race conditions
-useEffect(() => { fetch('/api/data').then(r => r.json()).then(setData); }, []);
-
-// ✅ Use TanStack Query, SWR, or a loader pattern (React Router, Next.js)
-const { data } = useQuery({ queryKey: ['data'], queryFn: fetchData });
-```
-
 **Responding to events** — use event handlers:
 ```tsx
 // ❌
@@ -126,7 +147,7 @@ useEffect(() => { if (submitted) { processForm(); } }, [submitted]);
 function handleSubmit() { processForm(); }
 ```
 
-**Initialising state from props** — set it in the initial value:
+**Initializing state from props** — set it in the initial value:
 ```tsx
 // ❌
 const [value, setValue] = useState('');
@@ -139,7 +160,7 @@ const [value, setValue] = useState(props.initialValue);
 ### ✅ When useEffect IS appropriate
 - Subscribing to external systems (WebSockets, browser APIs, third-party libraries)
 - Running imperative DOM manipulations that can't be expressed declaratively
-- Synchronising with non-React systems (analytics, logging on mount)
+- Synchronizing with non-React systems (analytics, logging on mount)
 
 ---
 
@@ -197,39 +218,11 @@ export function cn(...inputs) { return twMerge(clsx(inputs)); }
 <div className="mt-4" />
 ```
 
-### Define design tokens in `tailwind.config`
-Don't scatter magic values. Use the config for colours, spacing, fonts, breakpoints.
+### Define design tokens in `@theme`
+Tailwind v4 uses CSS `@theme` blocks — don't scatter magic values, define colors, spacing, and fonts there.
 
 ### Keep class lists readable — extract components early
-If a class list is getting long (>6–8 classes), it's a sign the element should become its own component or use `cva` for variants.
-
-### Use `cva` for variant-driven components
-```tsx
-import { cva } from 'class-variance-authority';
-
-const button = cva('rounded font-medium transition', {
-  variants: {
-    intent: {
-      primary: 'bg-blue-600 text-white hover:bg-blue-700',
-      ghost:   'bg-transparent text-blue-600 hover:bg-blue-50',
-    },
-    size: {
-      sm: 'px-3 py-1 text-sm',
-      md: 'px-4 py-2 text-base',
-    },
-  },
-  defaultVariants: { intent: 'primary', size: 'md' },
-});
-```
-
----
-
-## Data Fetching
-
-- Use **TanStack Query** or **SWR** for server state — not `useState` + `useEffect`
-- Use **React Router loaders** or **Next.js** `getServerSideProps`/RSC for route-level data
-- Colocate query definitions near the components that use them
-- Separate server state (remote data) from client state (UI state)
+If a class list is getting long (>6–8 classes), it's a sign the element should become its own component.
 
 ---
 
@@ -237,9 +230,6 @@ const button = cva('rounded font-medium transition', {
 
 ### Prefer stable references
 Define functions and objects outside components when they don't depend on props/state.
-
-### Virtualise long lists
-For lists over ~100 items, use `@tanstack/react-virtual` or a similar solution.
 
 ---
 
@@ -254,16 +244,11 @@ For lists over ~100 items, use `@tanstack/react-virtual` or a similar solution.
 
 ## File & Folder Structure
 
-```
-src/
-  components/       # Shared, reusable UI components
-  features/         # Feature-scoped components, hooks, utils
-  hooks/            # Shared custom hooks
-  logic/            # Testable logic, preferably pure functions.
-  types/            # Shared TypeScript types
-```
+- `features/` — domain features, each with `components/`, `hooks/`, `logic/`, `index.ts`
+- `pages/` — page-level orchestration; `components/` split into `advanced/` and `simple/` sub-folders
+- `shared/` — cross-cutting logic, hooks, stores, and types used across features and pages
 
-Co-locate tests, stories, and styles with the component they belong to.
+Co-locate tests with the file they test. Use `logic/` for pure functions, `hooks/` for stateful abstractions.
 
 ---
 

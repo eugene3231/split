@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
-import type { EditableItem, Person } from '../../../shared/types'
+import { useReceiptStore } from '../../shared/stores/receiptStore'
+import type { EditableItem, Person } from '../../shared/types'
 import type { ItemsSubPhase, SimpleWizardStep } from '../types'
-import { loadSimpleWizardState, saveSimpleWizardState } from './persistence'
-import { clampActiveItemIndex, resolveWizardState } from './wizardState'
-import { isStepValid } from './wizardValidation'
+import { loadSimpleWizardState, saveSimpleWizardState } from '../logic/persistence'
+import { clampActiveItemIndex, resolveWizardState } from '../logic/wizardState'
+import { isStepValid } from '../logic/wizardValidation'
 
 export function useSimpleWizard(
   items: EditableItem[],
   people: Person[],
   normalizeItemsForSimpleMode: () => void,
 ) {
-  const geminiApiKeyInput = useReceiptUiStore((state) => state.geminiApiKeyInput)
-  const setShowApiKeyModal = useReceiptUiStore((state) => state.setShowApiKeyModal)
+  const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput)
+  const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal)
 
   const [initialWizardState] = useState(() => loadSimpleWizardState())
   const [activeStepState, setActiveStep] = useState<SimpleWizardStep>(
