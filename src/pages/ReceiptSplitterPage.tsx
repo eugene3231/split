@@ -29,6 +29,10 @@ export function ReceiptSplitterPage() {
       </div>
 
       <GeminiApiKeyModal />
+
+      <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-500">
+        © {new Date().getFullYear()} Eugene Chua. All rights reserved.
+      </footer>
     </main>
   )
 }
