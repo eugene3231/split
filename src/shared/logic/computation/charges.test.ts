@@ -30,6 +30,15 @@ describe('resolveChargeCents', () => {
     ).toBe(235)
   })
 
+  it('returns 0 when percent input is empty or unparseable', () => {
+    expect(
+      resolveChargeCents({ ...baseChargeState, mode: 'percent', percentInput: '' }, 1000, 1000),
+    ).toBe(0)
+    expect(
+      resolveChargeCents({ ...baseChargeState, mode: 'percent', percentInput: 'abc' }, 1000, 1000),
+    ).toBe(0)
+  })
+
   it('uses percentage base when provided, otherwise falls back to subtotal', () => {
     expect(
       resolveChargeCents(
