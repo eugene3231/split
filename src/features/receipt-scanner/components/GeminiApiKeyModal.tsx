@@ -1,12 +1,12 @@
 import { useState, useRef, type KeyboardEvent } from 'react'
-import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
+import { useReceiptStore } from '../../../shared/stores/receiptStore'
 
 export function GeminiApiKeyModal() {
-  const isOpen = useReceiptUiStore((state) => state.showApiKeyModal)
-  const geminiApiKeyInput = useReceiptUiStore((state) => state.geminiApiKeyInput)
-  const setGeminiApiKeyInput = useReceiptUiStore((state) => state.setGeminiApiKeyInput)
-  const setRememberGeminiApiKey = useReceiptUiStore((state) => state.setRememberGeminiApiKey)
-  const setShowApiKeyModal = useReceiptUiStore((state) => state.setShowApiKeyModal)
+  const isOpen = useReceiptStore((state) => state.showApiKeyModal)
+  const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput)
+  const setGeminiApiKeyInput = useReceiptStore((state) => state.setGeminiApiKeyInput)
+  const setRememberGeminiApiKey = useReceiptStore((state) => state.setRememberGeminiApiKey)
+  const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal)
 
   if (!isOpen) return null
 

@@ -1,5 +1,5 @@
-import type { EditableItem, Person } from '../types'
-import { createEmptyItem } from './assignment/items'
+import type { EditableItem, Person } from '../../types'
+import { createEmptyItem, sanitizeItemAssignment } from './items'
 
 export function createSimpleEmptyItem(people: Person[]): EditableItem {
   const baseItem = createEmptyItem(people)
@@ -11,10 +11,6 @@ export function createSimpleEmptyItem(people: Person[]): EditableItem {
       personIds: people.map((person) => person.id),
     },
   }
-}
-
-export function buildNewSimpleItem(people: Person[]): EditableItem {
-  return createSimpleEmptyItem(people)
 }
 
 export function convertItemsToSimpleEqualMode(items: EditableItem[], people: Person[]): EditableItem[] {
@@ -36,4 +32,29 @@ export function convertItemsToSimpleEqualMode(items: EditableItem[], people: Per
       },
     }
   })
+}
+
+export function syncItemsWithPeople(
+  items: EditableItem[],
+  people: Person[],
+  uxMode: 'simple' | 'advanced',
+): EditableItem[] {
+  const sanitizedItems = items.map((item) => sanitizeItemAssignment(item, people))
+  if (uxMode !== 'simple' || people.length === 0) {
+    return sanitizedItems
+  }
+
+  return convertItemsToSimpleEqualMode(sanitizedItems, people)
+}
+
+export function buildInitialItems(
+  items: EditableItem[],
+  people: Person[],
+  uxMode: 'simple' | 'advanced',
+): EditableItem[] {
+  if (items.length === 0) {
+    return [uxMode === 'simple' ? createSimpleEmptyItem(people) : createEmptyItem(people)]
+  }
+
+  return syncItemsWithPeople(items, people, uxMode)
 }

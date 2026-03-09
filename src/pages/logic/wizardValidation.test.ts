@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { EditableItem, Person } from '../../../shared/types'
+import type { EditableItem, Person } from '../../shared/types'
 import {
   getAssignedItemsCount,
   getDetectedItemsCount,

@@ -1,17 +1,15 @@
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { computeSplit } from '../../../shared/logic/computation/split'
-import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
-import { useReconciliation } from '../../../shared/hooks/useReconciliation'
-import { useReceiptWorkspaceStore } from '../../../shared/stores/receiptWorkspaceStore'
-import { getAssignedItemsCount, getDetectedItemsCount } from '../logic/wizardValidation'
-import { useSimpleWizard } from '../logic/useSimpleWizard'
-import { SimpleProgressHeader } from './SimpleProgressHeader'
-import { SimpleWizardNav } from './SimpleWizardNav'
-import { SimpleStepPeople } from './steps/SimpleStepPeople'
-import { SimpleStepReceipt } from './steps/SimpleStepReceipt'
-import { SimpleStepItems } from './steps/SimpleStepItems'
-import { SimpleStepFinal } from './steps/SimpleStepFinal'
+import { useReceiptStore } from '../../../shared/stores/receiptStore'
+import { useReceiptSplit } from '../../../shared/hooks/useReceiptSplit'
+import { getAssignedItemsCount, getDetectedItemsCount } from '../../logic/wizardValidation'
+import { useSimpleWizard } from '../../hooks/useSimpleWizard'
+import { ProgressHeader } from './ProgressHeader'
+import { WizardNav } from './WizardNav'
+import { PeopleStep } from './steps/PeopleStep'
+import { ReceiptStep } from './steps/ReceiptStep'
+import { ItemsStep } from './steps/ItemsStep'
+import { FinalStep } from './steps/FinalStep'
 
 export function SimpleWorkspace() {
   const {
@@ -34,7 +32,7 @@ export function SimpleWorkspace() {
     setServiceCharge,
     setGst,
     setReceiptTotalInput,
-  } = useReceiptWorkspaceStore(
+  } = useReceiptStore(
     useShallow((state) => ({
       people: state.people,
       items: state.items,
@@ -58,17 +56,7 @@ export function SimpleWorkspace() {
     })),
   )
 
-  const split = useMemo(
-    () => computeSplit({ people, items, discount, serviceCharge, gst }),
-    [people, items, discount, serviceCharge, gst],
-  )
-
-  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation(
-    split,
-    discount,
-    setDiscount,
-    receiptTotalInput,
-  )
+  const { split, reconciliationCents, handleApplyReconciliationDiscount } = useReceiptSplit()
 
   const {
     activeStep,
@@ -81,8 +69,8 @@ export function SimpleWorkspace() {
     handleBack,
   } = useSimpleWizard(items, people, normalizeItemsForSimpleMode)
 
-  const peopleInput = useReceiptUiStore((state) => state.peopleInput)
-  const setPeopleInput = useReceiptUiStore((state) => state.setPeopleInput)
+  const peopleInput = useReceiptStore((state) => state.peopleInput)
+  const setPeopleInput = useReceiptStore((state) => state.setPeopleInput)
 
   const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items])
   const assignedItemCount = useMemo(() => getAssignedItemsCount(items, people), [items, people])
@@ -94,7 +82,7 @@ export function SimpleWorkspace() {
 
   return (
     <section className="mx-auto w-full max-w-7xl space-y-4" data-testid="simple-wizard">
-      <SimpleProgressHeader
+      <ProgressHeader
         activeStep={activeStep}
         context={{
           detectedItemsCount,
@@ -105,7 +93,7 @@ export function SimpleWorkspace() {
 
       <div className="rounded-2xl border border-white/8 bg-slate-900/80 p-5 shadow-xl shadow-black/25 backdrop-blur-sm">
         {activeStep === 'people' && (
-          <SimpleStepPeople
+          <PeopleStep
             people={people}
             peopleInput={peopleInput}
             onPeopleInputChange={setPeopleInput}
@@ -115,7 +103,7 @@ export function SimpleWorkspace() {
         )}
 
         {activeStep === 'receipt' && (
-          <SimpleStepReceipt
+          <ReceiptStep
             items={items}
             split={split}
             discount={discount}
@@ -138,7 +126,7 @@ export function SimpleWorkspace() {
         )}
 
         {activeStep === 'items' && (
-          <SimpleStepItems
+          <ItemsStep
             items={items}
             people={people}
             itemsSubPhase={itemsSubPhase}
@@ -150,7 +138,7 @@ export function SimpleWorkspace() {
         )}
 
         {activeStep === 'final' && (
-          <SimpleStepFinal
+          <FinalStep
             people={people}
             split={split}
             discount={discount}
@@ -162,7 +150,7 @@ export function SimpleWorkspace() {
         )}
       </div>
 
-      <SimpleWizardNav
+      <WizardNav
         activeStep={activeStep}
         itemsSubPhase={itemsSubPhase}
         canContinue={canContinue}

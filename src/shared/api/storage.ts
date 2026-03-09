@@ -1,6 +1,7 @@
 import {
   LOCAL_STORAGE_DRAFT_KEY,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
+  LOCAL_STORAGE_UX_MODE_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
   defaultDiscountState,
   defaultGstState,
@@ -20,6 +21,37 @@ import { createEmptyItem } from '../logic/assignment/items'
 import { toNullableNumber } from '../logic/core/money'
 import { isRecord } from '../logic/core/guards'
 import { createId } from '../logic/core/id'
+
+export function loadPersistedUxMode(): 'simple' | 'advanced' {
+  const storage = getBrowserStorage()
+  if (!storage) {
+    return 'simple'
+  }
+
+  try {
+    const raw = storage.getItem(LOCAL_STORAGE_UX_MODE_KEY)
+    if (raw === 'advanced') {
+      return 'advanced'
+    }
+  } catch {
+    // Ignore storage read failures.
+  }
+
+  return 'simple'
+}
+
+export function savePersistedUxMode(mode: 'simple' | 'advanced'): void {
+  const storage = getBrowserStorage()
+  if (!storage) {
+    return
+  }
+
+  try {
+    storage.setItem(LOCAL_STORAGE_UX_MODE_KEY, mode)
+  } catch {
+    // Ignore storage write failures.
+  }
+}
 
 export function exportDraftToJson(state: {
   people: Person[]

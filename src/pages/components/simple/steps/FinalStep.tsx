@@ -13,7 +13,7 @@ type Props = {
   onApplyDiscount: () => void
 }
 
-export function SimpleStepFinal({
+export function FinalStep({
   people,
   split,
   discount,

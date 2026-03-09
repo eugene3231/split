@@ -4,13 +4,13 @@ import {
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
 } from '../constants'
-import { useReceiptUiStore } from './receiptUiStore'
+import { useReceiptStore } from './receiptStore'
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...'
 const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...'
 
 function resetStore() {
-  useReceiptUiStore.setState({
+  useReceiptStore.setState({
     uxMode: 'simple',
     peopleInput: '',
     geminiApiKeyInput: '',
@@ -38,8 +38,8 @@ describe('receiptUiStore', () => {
   it('startScan sets loading baseline and randomized loading message', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0)
 
-    useReceiptUiStore.getState().startScan()
-    const state = useReceiptUiStore.getState()
+    useReceiptStore.getState().startScan()
+    const state = useReceiptStore.getState()
 
     expect(state.isScanning).toBe(true)
     expect(state.scanStatus).toBe('Preparing Gemini request...')
@@ -54,12 +54,12 @@ describe('receiptUiStore', () => {
     randomSpy.mockReturnValueOnce(0)
     randomSpy.mockReturnValueOnce(0)
 
-    const actions = useReceiptUiStore.getState()
+    const actions = useReceiptStore.getState()
     actions.startScan()
-    const firstState = useReceiptUiStore.getState()
+    const firstState = useReceiptStore.getState()
 
     actions.advanceLoadingMessage()
-    const state = useReceiptUiStore.getState()
+    const state = useReceiptStore.getState()
 
     expect(state.loadingMessageIndex).toBe(1)
     expect(state.loadingMessage).toBe(SECOND_LOADING_MESSAGE)
@@ -67,13 +67,13 @@ describe('receiptUiStore', () => {
   })
 
   it('finishScan clears active loading state', () => {
-    const actions = useReceiptUiStore.getState()
+    const actions = useReceiptStore.getState()
     actions.startScan()
     actions.setScanError('network issue')
     actions.setScanWarnings(['retry'])
 
     actions.finishScan()
-    const state = useReceiptUiStore.getState()
+    const state = useReceiptStore.getState()
     expect(state.isScanning).toBe(false)
     expect(state.scanStatus).toBe('')
     expect(state.loadingMessage).toBe('')
@@ -84,7 +84,7 @@ describe('receiptUiStore', () => {
 
   it('clearScanFeedback clears scan feedback only', () => {
     const file = new File(['x'], 'receipt.jpg', { type: 'image/jpeg' })
-    useReceiptUiStore.setState({
+    useReceiptStore.setState({
       peopleInput: 'Alice',
       geminiApiKeyInput: 'abc',
       rememberGeminiApiKey: true,
@@ -98,8 +98,8 @@ describe('receiptUiStore', () => {
       loadingMessageIndex: 3,
     })
 
-    useReceiptUiStore.getState().clearScanFeedback()
-    const state = useReceiptUiStore.getState()
+    useReceiptStore.getState().clearScanFeedback()
+    const state = useReceiptStore.getState()
 
     expect(state.scanStatus).toBe('')
     expect(state.scanError).toBeNull()
@@ -116,7 +116,7 @@ describe('receiptUiStore', () => {
   })
 
   it('setScanStatus/setScanError/setScanWarnings support value and updater forms', () => {
-    const actions = useReceiptUiStore.getState()
+    const actions = useReceiptStore.getState()
 
     actions.setScanStatus('Encoding receipt...')
     actions.setScanStatus((current) => `${current} done`)
@@ -127,30 +127,30 @@ describe('receiptUiStore', () => {
     actions.setScanWarnings(['a'])
     actions.setScanWarnings((current) => [...current, 'b'])
 
-    const state = useReceiptUiStore.getState()
+    const state = useReceiptStore.getState()
     expect(state.scanStatus).toBe('Encoding receipt... done')
     expect(state.scanError).toBe('first!')
     expect(state.scanWarnings).toEqual(['a', 'b'])
   })
 
   it('setUxMode updates mode state', () => {
-    const actions = useReceiptUiStore.getState()
+    const actions = useReceiptStore.getState()
     actions.setUxMode('advanced')
 
-    expect(useReceiptUiStore.getState().uxMode).toBe('advanced')
+    expect(useReceiptStore.getState().uxMode).toBe('advanced')
   })
 
   it('persists gemini model changes through the store action', () => {
-    useReceiptUiStore.getState().setGeminiModel('gemini-2.5-flash')
+    useReceiptStore.getState().setGeminiModel('gemini-2.5-flash')
 
-    expect(useReceiptUiStore.getState().geminiModel).toBe('gemini-2.5-flash')
+    expect(useReceiptStore.getState().geminiModel).toBe('gemini-2.5-flash')
     expect(window.localStorage.getItem(LOCAL_STORAGE_OCR_SETTINGS_KEY)).toContain(
       '"geminiModel":"gemini-2.5-flash"',
     )
   })
 
   it('persists and clears the session gemini api key through store actions', () => {
-    const actions = useReceiptUiStore.getState()
+    const actions = useReceiptStore.getState()
 
     actions.setRememberGeminiApiKey(true)
     actions.setGeminiApiKeyInput('session-key')

@@ -1,4 +1,4 @@
-import { useReceiptUiStore } from '../../../shared/stores/receiptUiStore'
+import { useReceiptStore } from '../../../shared/stores/receiptStore'
 import { ReceiptScanSection } from './ReceiptScanSection'
 
 type ReceiptImportPanelProps = {
@@ -18,16 +18,16 @@ export function ReceiptImportPanel({
   enableCameraCapture = false,
   showLoadMockButton = true,
 }: ReceiptImportPanelProps) {
-  const geminiApiKeyInput = useReceiptUiStore((state) => state.geminiApiKeyInput)
-  const geminiModel = useReceiptUiStore((state) => state.geminiModel)
-  const receiptFile = useReceiptUiStore((state) => state.receiptFile)
-  const isScanning = useReceiptUiStore((state) => state.isScanning)
-  const scanStatus = useReceiptUiStore((state) => state.scanStatus)
-  const scanError = useReceiptUiStore((state) => state.scanError)
-  const scanWarnings = useReceiptUiStore((state) => state.scanWarnings)
-  const loadingMessage = useReceiptUiStore((state) => state.loadingMessage)
-  const setGeminiModel = useReceiptUiStore((state) => state.setGeminiModel)
-  const setShowApiKeyModal = useReceiptUiStore((state) => state.setShowApiKeyModal)
+  const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput)
+  const geminiModel = useReceiptStore((state) => state.geminiModel)
+  const receiptFile = useReceiptStore((state) => state.receiptFile)
+  const isScanning = useReceiptStore((state) => state.isScanning)
+  const scanStatus = useReceiptStore((state) => state.scanStatus)
+  const scanError = useReceiptStore((state) => state.scanError)
+  const scanWarnings = useReceiptStore((state) => state.scanWarnings)
+  const loadingMessage = useReceiptStore((state) => state.loadingMessage)
+  const setGeminiModel = useReceiptStore((state) => state.setGeminiModel)
+  const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal)
 
   return (
     <ReceiptScanSection

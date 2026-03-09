@@ -1,4 +1,4 @@
-import { LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY } from '../../../shared/constants'
+import { LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY } from '../../shared/constants'
 import type { ItemsSubPhase, SimpleWizardStep } from '../types'
 
 type PersistedSimpleWizardState = {

@@ -9,7 +9,7 @@ type Props = {
   onRemovePerson: (id: string) => void
 }
 
-export function SimpleStepPeople({
+export function PeopleStep({
   people,
   peopleInput,
   onPeopleInputChange,

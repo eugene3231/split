@@ -1,13 +1,11 @@
-import { useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { LineItemsPanel } from '../../../features/split-config'
 import { ReceiptImportPanel } from '../../../features/receipt-scanner'
 import { SetupPanel } from '../../../features/split-config'
 import { ExportImageSection } from '../../../features/split-results'
 import { FinalSplitPanel } from '../../../features/split-results'
-import { computeSplit } from '../../../shared/logic/computation/split'
-import { useReceiptWorkspaceStore } from '../../../shared/stores/receiptWorkspaceStore'
-import { useReconciliation } from '../../../shared/hooks/useReconciliation'
+import { useReceiptStore } from '../../../shared/stores/receiptStore'
+import { useReceiptSplit } from '../../../shared/hooks/useReceiptSplit'
 import { JsonImportExportSection } from './JsonImportExportSection'
 
 export function AdvancedWorkspace() {
@@ -32,7 +30,7 @@ export function AdvancedWorkspace() {
     addAdvancedItem,
     removeItem,
     updateItem,
-  } = useReceiptWorkspaceStore(
+  } = useReceiptStore(
     useShallow((state) => ({
       people: state.people,
       items: state.items,
@@ -57,17 +55,7 @@ export function AdvancedWorkspace() {
     })),
   )
 
-  const split = useMemo(
-    () => computeSplit({ people, items, discount, serviceCharge, gst }),
-    [people, items, discount, serviceCharge, gst],
-  )
-
-  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation(
-    split,
-    discount,
-    setDiscount,
-    receiptTotalInput,
-  )
+  const { split, reconciliationCents, handleApplyReconciliationDiscount } = useReceiptSplit()
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr_1fr]">
