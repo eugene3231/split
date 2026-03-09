@@ -56,7 +56,7 @@ function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyM
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-white/8 px-6 py-5">
           <div>
-            <h2 className="text-base font-bold text-slate-100">Connect Gemini API</h2>
+            <h2 className="text-base font-bold text-slate-100">Add Gemini API key</h2>
             <p className="mt-0.5 text-xs text-slate-400">Required for AI receipt scanning</p>
           </div>
           <button
@@ -73,12 +73,13 @@ function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyM
 
         {/* Body */}
         <div className="space-y-4 px-6 py-5">
-          <p className="rounded-xl border border-slate-700/60 bg-slate-800/60 px-4 py-3 text-xs leading-relaxed text-slate-300">
-            This app uses{' '}
+          <ul className="rounded-xl border border-slate-700/60 bg-slate-800/60 px-4 py-3 text-xs leading-relaxed text-slate-300">
+            <li>This app uses{' '}
             <span className="font-semibold text-slate-100">Google Gemini</span> to extract line items,
-            prices, and charges from your receipt photo. Your key is stored only in this browser
-            session and is sent exclusively to Google's Gemini API.
-          </p>
+            prices, and charges from your receipt photo.</li>
+            <li> Your key is stored only in this browser
+            session and is used to interact with the Gemini API only.</li>
+          </ul>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-slate-300" htmlFor="modal-gemini-api-key">
@@ -95,7 +96,7 @@ function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyM
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm outline-none ring-sky-400/70 transition focus:ring-2"
             />
             <p className="text-xs text-slate-500">
-              Get a free key at{' '}
+              Get your free key at{' '}
               <a
                 href="https://aistudio.google.com/app/api-keys"
                 target="_blank"
