@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SplitView, ConsolidatedSplitView } from '../../../../features/split-results'
+import { SplitView, ConsolidatedSplitView, ExportConsolidatedSplitImageSection } from '../../../../features/split-results'
 import type { ChargeState, Person, Receipt, SplitResult } from '../../../../shared/types'
 
 type Props = {
@@ -75,12 +75,20 @@ export function SummaryStep({
       ) : null}
 
       {activeTab === 'total' && isMultiReceipt ? (
-        <ConsolidatedSplitView
-          people={people}
-          consolidatedSplit={consolidatedSplit}
-          splitByReceipt={splitByReceipt}
-          receipts={receipts}
-        />
+        <>
+          <ExportConsolidatedSplitImageSection
+            people={people}
+            consolidatedSplit={consolidatedSplit}
+            splitByReceipt={splitByReceipt}
+            receipts={receipts}
+          />
+          <ConsolidatedSplitView
+            people={people}
+            consolidatedSplit={consolidatedSplit}
+            splitByReceipt={splitByReceipt}
+            receipts={receipts}
+          />
+        </>
       ) : (
         <SplitView
           people={people}
