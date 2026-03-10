@@ -79,10 +79,11 @@ export function ScanReceiptStep({
 
       {mockReceipts.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {mockReceipts.map(({ label, onLoad }) => (
+          {mockReceipts.map(({ label, onLoad }, index) => (
             <button
               key={label}
               type="button"
+              data-testid={`load-mock-receipt-btn-${index}`}
               onClick={onLoad}
               className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-slate-500 hover:bg-slate-700 hover:text-slate-200"
             >

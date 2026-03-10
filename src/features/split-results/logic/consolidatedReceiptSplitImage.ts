@@ -1,5 +1,5 @@
-import type { Person, Receipt, SplitResult } from '../../../shared/types'
-import { formatCurrencyFromCents } from '../../../shared/logic/core/money'
+import type { ChargeState, Person, Receipt, SplitResult } from '../../../shared/types'
+import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core/money'
 import {
   CANVAS_WIDTH,
   SCRATCH_HEIGHT,
@@ -8,6 +8,7 @@ import {
   drawTwoColumnRow,
   canvasToBlob,
   formatGeneratedAt,
+  formatPercent,
 } from './receiptSplitImageHelpers'
 
 export type GenerateConsolidatedSplitImageOptions = {
@@ -23,7 +24,18 @@ const BODY_TOP_PAD = 32
 const CARD_PAD = 28
 const RECEIPT_ROW_H = 36
 const ITEM_ROW_H = 30
-const RECEIPT_BOTTOM_GAP = 12
+const CHARGE_ROW_H = 34
+const DIVIDER_H = 20
+const RECEIPT_BOTTOM_GAP = 16
+
+function buildChargeLabel(label: string, charge: ChargeState): string {
+  if (!charge.enabled) return `${label} (off)`
+  if (charge.mode === 'percent') {
+    const parsed = parseNumber(charge.percentInput)
+    return parsed !== null ? `${label} (${formatPercent(parsed)}%)` : `${label} (%)`
+  }
+  return `${label} (amount)`
+}
 
 function measurePersonCardHeight(personId: string, splitByReceipt: SplitResult[], receipts: Receipt[]): number {
   let bodyHeight = 0
@@ -32,7 +44,9 @@ function measurePersonCardHeight(personId: string, splitByReceipt: SplitResult[]
     const personTotal = receiptSplit?.totalByPersonCents[personId] ?? 0
     if (personTotal === 0) continue
     const lineItems = receiptSplit?.lineItemsByPerson[personId] ?? []
-    bodyHeight += RECEIPT_ROW_H + lineItems.length * ITEM_ROW_H + RECEIPT_BOTTOM_GAP
+    const hasDiscount = (receiptSplit?.discountByPersonCents[personId] ?? 0) > 0
+    const chargeRows = 3 + (hasDiscount ? 1 : 0) // Items, [Discount], Service, GST
+    bodyHeight += RECEIPT_ROW_H + lineItems.length * ITEM_ROW_H + DIVIDER_H + chargeRows * CHARGE_ROW_H + RECEIPT_BOTTOM_GAP
   }
   return HEADER_HEIGHT + BODY_TOP_PAD + Math.max(bodyHeight, RECEIPT_ROW_H) + 16
 }
@@ -163,6 +177,55 @@ function drawPersonCard(
       if (!line.involved) context.globalAlpha = 1
       rowY += ITEM_ROW_H
     }
+
+    // Divider before charge rows — trim the trailing item gap so the line sits
+    // at the natural end of the last item, then advance 28px to Items row.
+    const dividerY = rowY - 8
+    context.strokeStyle = '#1e293b'
+    context.lineWidth = 1
+    context.beginPath()
+    context.moveTo(args.x + CARD_PAD, dividerY)
+    context.lineTo(args.x + args.width - CARD_PAD, dividerY)
+    context.stroke()
+    rowY = dividerY + 28
+
+    const innerX = args.x + CARD_PAD + 16
+    const innerWidth = args.width - CARD_PAD * 2 - 16
+
+    drawTwoColumnRow(context, {
+      x: innerX, y: rowY, width: innerWidth,
+      label: 'Items', value: formatCurrencyFromCents(receiptSplit?.subtotalByPersonCents[args.person.id] ?? 0),
+      emphasized: false, valueColor: '#e2e8f0', size: 19,
+    })
+    rowY += CHARGE_ROW_H
+
+    const discountCents = receiptSplit?.discountByPersonCents[args.person.id] ?? 0
+    if (discountCents > 0) {
+      drawTwoColumnRow(context, {
+        x: innerX, y: rowY, width: innerWidth,
+        label: buildChargeLabel('Discount', receipt.discount),
+        value: `−${formatCurrencyFromCents(discountCents)}`,
+        emphasized: false, valueColor: '#6ee7b7', size: 19,
+      })
+      rowY += CHARGE_ROW_H
+    }
+
+    drawTwoColumnRow(context, {
+      x: innerX, y: rowY, width: innerWidth,
+      label: buildChargeLabel('Service', receipt.serviceCharge),
+      value: formatCurrencyFromCents(receiptSplit?.serviceByPersonCents[args.person.id] ?? 0),
+      emphasized: false, valueColor: '#e2e8f0', size: 19,
+    })
+    rowY += CHARGE_ROW_H
+
+    drawTwoColumnRow(context, {
+      x: innerX, y: rowY, width: innerWidth,
+      label: buildChargeLabel('GST', receipt.gst),
+      value: formatCurrencyFromCents(receiptSplit?.gstByPersonCents[args.person.id] ?? 0),
+      emphasized: false, valueColor: '#e2e8f0', size: 19,
+    })
+    rowY += CHARGE_ROW_H
+
     rowY += RECEIPT_BOTTOM_GAP
   }
 }
