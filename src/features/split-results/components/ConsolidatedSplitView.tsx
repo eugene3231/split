@@ -3,6 +3,7 @@ import useEmblaCarousel from 'embla-carousel-react'
 import type { Person, Receipt, SplitResult } from '../../../shared/types'
 import { formatCurrencyFromCents } from '../../../shared/logic/core/money'
 import { getPersonColor } from '../../../shared/utils/personColors'
+import { ExportConsolidatedSplitImageSection } from './ExportConsolidatedSplitImageSection'
 
 type Props = {
   people: Person[]
@@ -99,6 +100,13 @@ export function ConsolidatedSplitView({ people, consolidatedSplit, splitByReceip
 
   return (
     <div className="space-y-4">
+      <ExportConsolidatedSplitImageSection
+        people={people}
+        consolidatedSplit={consolidatedSplit}
+        splitByReceipt={splitByReceipt}
+        receipts={receipts}
+      />
+
       {/* Grand total card */}
       <article className="overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
         <div className="border-b border-sky-500/50 bg-sky-500/15 px-4 py-3">

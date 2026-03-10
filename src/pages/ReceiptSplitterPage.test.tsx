@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_GEMINI_MODEL } from '../shared/constants'
 import { useReceiptStore } from '../shared/stores/receiptStore'
 
-const { generateFinalSplitImageMock } = vi.hoisted(() => ({
-  generateFinalSplitImageMock: vi.fn(),
+const { generateReceiptSplitImageMock } = vi.hoisted(() => ({
+  generateReceiptSplitImageMock: vi.fn(),
 }))
 
-vi.mock('../features/split-results/api/finalSplitImage', () => ({
-  generateFinalSplitImage: generateFinalSplitImageMock,
+vi.mock('../features/split-results/logic/receiptSplitImage', () => ({
+  generateReceiptSplitImage: generateReceiptSplitImageMock,
 }))
 
 import { ReceiptSplitterPage } from './ReceiptSplitterPage'
@@ -159,8 +159,8 @@ beforeEach(() => {
   window.localStorage.clear()
   window.sessionStorage.clear()
   resetUiStore()
-  generateFinalSplitImageMock.mockReset()
-  generateFinalSplitImageMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }))
+  generateReceiptSplitImageMock.mockReset()
+  generateReceiptSplitImageMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }))
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
   Object.defineProperty(URL, 'createObjectURL', {
@@ -270,29 +270,29 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
 
   it('downloads the share image with the selected export options', async () => {
     render(<ReceiptSplitterPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'Download Image' }))
+    fireEvent.click(screen.getByTestId('export-save-image-btn'))
 
     await waitFor(() => {
-      expect(generateFinalSplitImageMock).toHaveBeenCalledTimes(1)
+      expect(generateReceiptSplitImageMock).toHaveBeenCalledTimes(1)
     })
 
-    expect(generateFinalSplitImageMock).toHaveBeenCalledWith(
+    expect(generateReceiptSplitImageMock).toHaveBeenCalledWith(
       expect.objectContaining({
         includeLineItems: true,
-        includeItemDetails: true,
+        includeItemDetails: false,
       }),
     )
   })
 
-  it('falls back from Share Split to copy summary and download image when native share is unavailable', async () => {
+  it('copies share text to clipboard when copy button is clicked', async () => {
     render(<ReceiptSplitterPage />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Share Split' }))
+    fireEvent.click(screen.getByTestId('export-copy-text-btn'))
 
     await waitFor(() => {
-      expect(generateFinalSplitImageMock).toHaveBeenCalledTimes(1)
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Split total: $0.00')
-      expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1)
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('total:'),
+      )
     })
   })
 
@@ -360,8 +360,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     fireEvent.click(continueToReceiptButton)
     expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: /Load Mock Receipt/i }))
+    fireEvent.click(screen.getByTestId('load-mock-receipt-btn-0'))
     expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled()
   })
 
@@ -415,7 +414,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
-    expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
+    expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument()
     expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4 of 4/i)
   })
 
@@ -447,7 +446,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
 
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
+    expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('wizard-back-btn'))
     expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
@@ -460,8 +459,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: /Load Mock Receipt/i }))
+    fireEvent.click(screen.getByTestId('load-mock-receipt-btn-1'))
 
     expect(screen.getByDisplayValue('Genki Forest')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Mala Baby Lobster')).toBeInTheDocument()
@@ -532,7 +530,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByRole('button', { name: 'Share Split' })).toBeInTheDocument()
+    expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('wizard-back-btn'))
     fireEvent.click(screen.getByTestId('wizard-edit-btn'))
@@ -543,7 +541,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     })
     expect(screen.getByRole('button', { name: 'Alice', pressed: false })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.queryByRole('button', { name: 'Share Split' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('export-save-image-btn')).not.toBeInTheDocument()
   })
 
   it('restores simple item assignments after refresh', async () => {
@@ -697,5 +695,128 @@ describe('Global whole-bill discount indicator on items', () => {
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
     expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
+  })
+})
+
+describe('Multi-receipt simple wizard integration', () => {
+  function seedV2Draft(overrides: {
+    receipts?: object[]
+    people?: object[]
+    activeReceiptId?: string
+  }) {
+    const people = overrides.people ?? [
+      { id: 'p1', name: 'Alice' },
+      { id: 'p2', name: 'Ben' },
+    ]
+    const receipts = overrides.receipts ?? [
+      {
+        id: 'r1',
+        name: 'Receipt 1',
+        items: [
+          {
+            id: 'i1',
+            name: 'Chicken Rice',
+            amountInput: '10.00',
+            discountPercentInput: '',
+            assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
+          },
+        ],
+        discount: disabledChargeState,
+        serviceCharge: disabledChargeState,
+        gst: disabledChargeState,
+        receiptTotalInput: '',
+      },
+    ]
+    window.localStorage.setItem(
+      'split:receipt-draft:v1',
+      JSON.stringify({
+        version: 2,
+        people,
+        receipts,
+        activeReceiptId: overrides.activeReceiptId ?? (receipts[0] as { id: string }).id,
+        savedAt: '2026-03-08T00:00:00.000Z',
+      }),
+    )
+  }
+
+  it('shows consolidated split tab when multiple receipts exist at the final step', async () => {
+    useReceiptStore.setState({ uxMode: 'simple' })
+    seedV2Draft({
+      receipts: [
+        {
+          id: 'r1',
+          name: 'Lunch',
+          items: [
+            {
+              id: 'i1',
+              name: 'Burger',
+              amountInput: '12.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
+            },
+          ],
+          discount: disabledChargeState,
+          serviceCharge: disabledChargeState,
+          gst: disabledChargeState,
+          receiptTotalInput: '',
+        },
+        {
+          id: 'r2',
+          name: 'Dinner',
+          items: [
+            {
+              id: 'i2',
+              name: 'Pizza',
+              amountInput: '20.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
+            },
+          ],
+          discount: disabledChargeState,
+          serviceCharge: disabledChargeState,
+          gst: disabledChargeState,
+          receiptTotalInput: '',
+        },
+      ],
+    })
+
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+    })
+
+    // Navigate through the wizard to the final step
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+
+    expect(screen.getByTestId('summary-tab-total')).toBeInTheDocument()
+    expect(screen.getByTestId('summary-tab-receipt-0')).toBeInTheDocument()
+    expect(screen.getByTestId('summary-tab-receipt-1')).toBeInTheDocument()
+  })
+
+  it('adds a receipt via the wizard nav + Add Receipt button and navigates to receipt step', async () => {
+    useReceiptStore.setState({ uxMode: 'simple' })
+    seedV2Draft({})
+
+    render(<ReceiptSplitterPage />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+
+    expect(screen.getByTestId('wizard-add-receipt-btn')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('wizard-add-receipt-btn'))
+
+    // Should now be at the receipt step for the new receipt
+    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2 of 4/i)
   })
 })

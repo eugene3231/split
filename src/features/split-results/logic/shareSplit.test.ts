@@ -9,6 +9,7 @@ describe('buildSplitShareText', () => {
           { id: 'p1', name: 'Alice' },
           { id: 'p2', name: 'Ben' },
         ],
+        receiptName: 'Split',
         split: {
           lineItemsByPerson: {},
           subtotalByPersonCents: {},
@@ -28,7 +29,7 @@ describe('buildSplitShareText', () => {
           involvedCountByPerson: {},
         },
       }),
-    ).toBe('Split total: $37.50\nAlice: $12.50\nBen: $25.00')
+    ).toBe('Split total: $37.50\n\nAlice: $12.50\nBen: $25.00')
   })
 })
 

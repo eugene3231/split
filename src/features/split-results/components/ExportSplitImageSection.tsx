@@ -87,6 +87,7 @@ export function ExportSplitImageSection({
         </pre>
         <button
           type="button"
+          data-testid="export-copy-text-btn"
           onClick={handleCopy}
           disabled={busy === 'copying'}
           className={`rounded-md border px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
@@ -101,6 +102,7 @@ export function ExportSplitImageSection({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-800 pt-3">
           <button
             type="button"
+            data-testid="export-save-image-btn"
             onClick={handleDownload}
             disabled={busy === 'downloading'}
             className="rounded-md border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-xs font-semibold text-sky-200 transition hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"

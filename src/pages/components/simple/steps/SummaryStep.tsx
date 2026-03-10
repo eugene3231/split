@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SplitView, ConsolidatedSplitView, ExportConsolidatedSplitImageSection } from '../../../../features/split-results'
+import { SplitView, ConsolidatedSplitView } from '../../../../features/split-results'
 import type { ChargeState, Person, Receipt, SplitResult } from '../../../../shared/types'
 
 type Props = {
@@ -46,6 +46,7 @@ export function SummaryStep({
         <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
+            data-testid="summary-tab-total"
             onClick={() => setActiveTab('total')}
             className={[
               'rounded-lg border px-3 py-1.5 text-xs font-semibold transition',
@@ -60,6 +61,7 @@ export function SummaryStep({
             <button
               key={r.id}
               type="button"
+              data-testid={`summary-tab-receipt-${index}`}
               onClick={() => setActiveTab(r.id)}
               className={[
                 'rounded-lg border px-3 py-1.5 text-xs font-semibold transition',
@@ -75,20 +77,12 @@ export function SummaryStep({
       ) : null}
 
       {activeTab === 'total' && isMultiReceipt ? (
-        <>
-          <ExportConsolidatedSplitImageSection
-            people={people}
-            consolidatedSplit={consolidatedSplit}
-            splitByReceipt={splitByReceipt}
-            receipts={receipts}
-          />
-          <ConsolidatedSplitView
-            people={people}
-            consolidatedSplit={consolidatedSplit}
-            splitByReceipt={splitByReceipt}
-            receipts={receipts}
-          />
-        </>
+        <ConsolidatedSplitView
+          people={people}
+          consolidatedSplit={consolidatedSplit}
+          splitByReceipt={splitByReceipt}
+          receipts={receipts}
+        />
       ) : (
         <SplitView
           people={people}
