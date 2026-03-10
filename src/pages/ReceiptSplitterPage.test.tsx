@@ -21,12 +21,7 @@ function resetUiStore() {
     geminiApiKeyInput: '',
     rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
-    isScanning: false,
-    scanStatus: '',
-    scanError: null,
-    scanWarnings: [],
-    loadingMessage: '',
-    loadingMessageIndex: 0,
+    scanStateByReceipt: {},
   })
 }
 

@@ -58,7 +58,7 @@ export function SimpleWorkspace() {
   )
 
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0]
-  const items = activeReceipt?.items ?? []
+  const items = useMemo(() => activeReceipt?.items ?? [], [activeReceipt])
   const discount = activeReceipt?.discount
   const serviceCharge = activeReceipt?.serviceCharge
   const gst = activeReceipt?.gst
