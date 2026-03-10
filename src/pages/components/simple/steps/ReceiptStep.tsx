@@ -16,7 +16,7 @@ type Props = {
   onApplyDiscount: () => void
   onReceiptFileSelected: (file: File | null) => void
   onScanReceipt: () => void
-  onLoadMockReceipt: () => void
+  mockReceipts: Array<{ label: string; onLoad: () => void }>
   onDiscountChange: (discount: ChargeState) => void
   onServiceChargeChange: (serviceCharge: ChargeState) => void
   onGstChange: (gst: ChargeState) => void
@@ -26,7 +26,7 @@ type Props = {
   onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
 }
 
-export function ReceiptStep({
+export function ScanReceiptStep({
   items,
   split,
   discount,
@@ -37,7 +37,7 @@ export function ReceiptStep({
   onApplyDiscount,
   onReceiptFileSelected,
   onScanReceipt,
-  onLoadMockReceipt,
+  mockReceipts,
   onDiscountChange,
   onServiceChargeChange,
   onGstChange,
@@ -68,15 +68,29 @@ export function ReceiptStep({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-base font-bold text-slate-100">Add Receipt</h2>
       <ReceiptImportPanel
         onReceiptFileSelected={onReceiptFileSelected}
         onScanReceipt={onScanReceipt}
-        onLoadMockReceipt={onLoadMockReceipt}
+        onLoadMockReceipt={() => {}}
         hideModelInAdvancedSettings
         enableCameraCapture
         showLoadMockButton={false}
       />
+
+      {mockReceipts.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {mockReceipts.map(({ label, onLoad }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={onLoad}
+              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-slate-500 hover:bg-slate-700 hover:text-slate-200"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {hasAnyValidReceiptItem(items) ? (
         <div className="space-y-4">

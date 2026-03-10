@@ -8,4 +8,6 @@ export type WizardProgressContext = {
   detectedItemsCount: number
   activeItemIndex: number
   assignedItemCount: number
+  receiptNumber: number
+  totalReceipts: number
 }

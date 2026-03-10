@@ -16,7 +16,6 @@ function resetStore() {
     geminiApiKeyInput: '',
     rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
-    receiptFile: null,
     isScanning: false,
     scanStatus: '',
     scanError: null,
@@ -83,13 +82,11 @@ describe('receiptUiStore', () => {
   })
 
   it('clearScanFeedback clears scan feedback only', () => {
-    const file = new File(['x'], 'receipt.jpg', { type: 'image/jpeg' })
     useReceiptStore.setState({
       peopleInput: 'Alice',
       geminiApiKeyInput: 'abc',
       rememberGeminiApiKey: true,
       geminiModel: 'gemini-2.5-flash',
-      receiptFile: file,
       isScanning: true,
       scanStatus: 'Calling Gemini...',
       scanError: 'boom',
@@ -111,7 +108,6 @@ describe('receiptUiStore', () => {
     expect(state.geminiApiKeyInput).toBe('abc')
     expect(state.rememberGeminiApiKey).toBe(true)
     expect(state.geminiModel).toBe('gemini-2.5-flash')
-    expect(state.receiptFile).toBe(file)
     expect(state.isScanning).toBe(true)
   })
 

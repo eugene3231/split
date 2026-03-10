@@ -14,7 +14,7 @@ type Props = {
   onGoToReview: () => void
 }
 
-export function AssignPhase({
+export function ItemsStepAssignPhase({
   items,
   people,
   activeItemIndex,

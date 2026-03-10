@@ -13,6 +13,7 @@ export function useSimpleWizard(
 ) {
   const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput)
   const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal)
+  const addReceipt = useReceiptStore((state) => state.addReceipt)
 
   const [initialWizardState] = useState(() => loadSimpleWizardState())
   const [activeStepState, setActiveStep] = useState<SimpleWizardStep>(
@@ -94,6 +95,14 @@ export function useSimpleWizard(
     }
   }
 
+  const handleAddReceipt = () => {
+    addReceipt()
+    setItemsSubPhase('assign')
+    setActiveItemIndex(0)
+    setActiveStep('receipt')
+    if (!geminiApiKeyInput.trim()) setShowApiKeyModal(true)
+  }
+
   return {
     activeStep,
     itemsSubPhase,
@@ -103,5 +112,6 @@ export function useSimpleWizard(
     canContinue,
     handleNext,
     handleBack,
+    handleAddReceipt,
   }
 }

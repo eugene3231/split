@@ -6,9 +6,10 @@ type Props = {
   canContinue: boolean
   onBack: () => void
   onNext: () => void
+  onAddReceipt: () => void
 }
 
-export function WizardNav({ activeStep, itemsSubPhase, canContinue, onBack, onNext }: Props) {
+export function WizardNav({ activeStep, itemsSubPhase, canContinue, onBack, onNext, onAddReceipt }: Props) {
   const continueLabel =
     activeStep === 'people'
       ? 'Continue →'
@@ -30,17 +31,28 @@ export function WizardNav({ activeStep, itemsSubPhase, canContinue, onBack, onNe
         Back
       </button>
 
-      {activeStep !== 'final' ? (
-        <button
-          type="button"
-          data-testid="wizard-continue-btn"
-          onClick={onNext}
-          disabled={!canContinue && !(activeStep === 'items' && itemsSubPhase === 'assign')}
-          className="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-        >
-          {continueLabel}
-        </button>
-      ) : null}
+      <div className="flex items-center gap-2">
+        {activeStep === 'final' ? (
+          <button
+            type="button"
+            data-testid="wizard-add-receipt-btn"
+            onClick={onAddReceipt}
+            className="rounded-xl border border-sky-500/40 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-300 transition hover:bg-sky-500/20"
+          >
+            + Add Receipt
+          </button>
+        ) : (
+          <button
+            type="button"
+            data-testid="wizard-continue-btn"
+            onClick={onNext}
+            disabled={!canContinue && !(activeStep === 'items' && itemsSubPhase === 'assign')}
+            className="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+          >
+            {continueLabel}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

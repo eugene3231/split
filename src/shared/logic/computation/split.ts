@@ -170,6 +170,59 @@ export function computeSplit({
   }
 }
 
+export function computeConsolidatedSplit(results: SplitResult[], people: Person[]): SplitResult {
+  const personIds = people.map((p) => p.id)
+  const lineItemsByPerson = initializeLineItemMap(personIds)
+  const involvedCountByPerson = initializeCentsMap(personIds)
+  const subtotalByPersonCents = initializeCentsMap(personIds)
+  const discountByPersonCents = initializeCentsMap(personIds)
+  const serviceByPersonCents = initializeCentsMap(personIds)
+  const gstByPersonCents = initializeCentsMap(personIds)
+  const totalByPersonCents = initializeCentsMap(personIds)
+
+  let subtotalCents = 0
+  let discountCents = 0
+  let serviceChargeCents = 0
+  let gstCents = 0
+  let grandTotalCents = 0
+  let unassignedItemCount = 0
+
+  for (const result of results) {
+    for (const personId of personIds) {
+      const lines = result.lineItemsByPerson[personId] ?? []
+      lineItemsByPerson[personId].push(...lines)
+      involvedCountByPerson[personId] += result.involvedCountByPerson[personId] ?? 0
+      subtotalByPersonCents[personId] += result.subtotalByPersonCents[personId] ?? 0
+      discountByPersonCents[personId] += result.discountByPersonCents[personId] ?? 0
+      serviceByPersonCents[personId] += result.serviceByPersonCents[personId] ?? 0
+      gstByPersonCents[personId] += result.gstByPersonCents[personId] ?? 0
+      totalByPersonCents[personId] += result.totalByPersonCents[personId] ?? 0
+    }
+    subtotalCents += result.subtotalCents
+    discountCents += result.discountCents
+    serviceChargeCents += result.serviceChargeCents
+    gstCents += result.gstCents
+    grandTotalCents += result.grandTotalCents
+    unassignedItemCount += result.unassignedItemCount
+  }
+
+  return {
+    lineItemsByPerson,
+    involvedCountByPerson,
+    subtotalByPersonCents,
+    discountByPersonCents,
+    serviceByPersonCents,
+    gstByPersonCents,
+    totalByPersonCents,
+    subtotalCents,
+    discountCents,
+    serviceChargeCents,
+    gstCents,
+    grandTotalCents,
+    unassignedItemCount,
+  }
+}
+
 function initializeCentsMap(personIds: string[]): Record<string, number> {
   return Object.fromEntries(personIds.map((personId) => [personId, 0]))
 }

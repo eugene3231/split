@@ -87,6 +87,17 @@ export type PersonReceiptLineItem = {
   involved: boolean
 }
 
+export type Receipt = {
+  id: string
+  name: string
+  items: EditableItem[]
+  discount: ChargeState
+  serviceCharge: ChargeState
+  gst: ChargeState
+  receiptTotalInput: string
+  receiptFile?: File | null
+}
+
 export type PersistedFinalSplit = {
   subtotalCents: number
   serviceChargeCents: number
@@ -107,10 +118,16 @@ export type PersistedDraft = {
   savedAt: string
 }
 
+export type SessionDraft = {
+  version: 2
+  people: Person[]
+  receipts: Receipt[]
+  activeReceiptId: string
+  savedAt: string
+}
+
 export type PersistedOcrSettings = {
   version: 1
   geminiModel: string
   savedAt: string
 }
-
-

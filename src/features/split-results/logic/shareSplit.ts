@@ -11,8 +11,8 @@ type ShareFinalSplitOptions = {
   navigator?: ShareNavigator
 }
 
-export function buildSplitShareText(args: { people: Person[]; split: SplitResult }): string {
-  const lines = [`Split total: ${formatCurrencyFromCents(args.split.grandTotalCents)}`]
+export function buildSplitShareText(args: { people: Person[]; receiptName: string; split: SplitResult }): string {
+  const lines = [`${args.receiptName} total: ${formatCurrencyFromCents(args.split.grandTotalCents)}\n`]
 
   for (const person of args.people) {
     lines.push(`${person.name}: ${formatCurrencyFromCents(args.split.totalByPersonCents[person.id] ?? 0)}`)
