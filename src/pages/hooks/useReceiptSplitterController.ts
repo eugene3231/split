@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { computeSplit } from '../../shared/logic/computation/split'
 import { useDraftPersistence } from '../../shared/hooks/useDraftPersistence'
 import { useReceiptStore } from '../../shared/stores/receiptStore'
 import { useLoadingTicker } from '../../features/receipt-scanner'
@@ -13,11 +12,8 @@ export function useReceiptSplitterController() {
     advanceLoadingMessage,
     initialized,
     people,
-    items,
-    discount,
-    serviceCharge,
-    gst,
-    receiptTotalInput,
+    receipts,
+    activeReceiptId,
     initialize,
     reset,
     normalizeItemsForSimpleMode,
@@ -25,15 +21,12 @@ export function useReceiptSplitterController() {
     useShallow((state) => ({
       uxMode: state.uxMode,
       setUxMode: state.setUxMode,
-      isScanning: state.isScanning,
+      isScanning: Object.values(state.scanStateByReceipt).some((s) => s.isScanning),
       advanceLoadingMessage: state.advanceLoadingMessage,
       initialized: state.initialized,
       people: state.people,
-      items: state.items,
-      discount: state.discount,
-      serviceCharge: state.serviceCharge,
-      gst: state.gst,
-      receiptTotalInput: state.receiptTotalInput,
+      receipts: state.receipts,
+      activeReceiptId: state.activeReceiptId,
       initialize: state.initialize,
       reset: state.reset,
       normalizeItemsForSimpleMode: state.normalizeItemsForSimpleMode,
@@ -53,21 +46,7 @@ export function useReceiptSplitterController() {
     }
   }, [reset])
 
-  const split = useMemo(
-    () => computeSplit({ people, items, discount, serviceCharge, gst }),
-    [people, items, discount, serviceCharge, gst],
-  )
-
-  useDraftPersistence({
-    initialized,
-    people,
-    items,
-    discount,
-    serviceCharge,
-    gst,
-    receiptTotalInput,
-    split,
-  })
+  useDraftPersistence({ initialized, people, receipts, activeReceiptId })
   useLoadingTicker({ isActive: isScanning, onTick: advanceLoadingMessage })
 
   const handleUxModeChange = (nextMode: 'simple' | 'advanced') => {

@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { MOCK_RECEIPT_FIXTURES } from '../../../features/receipt-scanner/logic/ocrFixtures'
 import { useShallow } from 'zustand/shallow'
 import { useReceiptStore } from '../../../shared/stores/receiptStore'
 import { useReceiptSplit } from '../../../shared/hooks/useReceiptSplit'
@@ -7,23 +8,20 @@ import { useSimpleWizard } from '../../hooks/useSimpleWizard'
 import { ProgressHeader } from './ProgressHeader'
 import { WizardNav } from './WizardNav'
 import { PeopleStep } from './steps/PeopleStep'
-import { ReceiptStep } from './steps/ReceiptStep'
+import { ScanReceiptStep } from './steps/ReceiptStep'
 import { ItemsStep } from './steps/ItemsStep'
-import { FinalStep } from './steps/FinalStep'
+import { SummaryStep } from './steps/SummaryStep'
 
 export function SimpleWorkspace() {
   const {
     people,
-    items,
-    discount,
-    serviceCharge,
-    gst,
-    receiptTotalInput,
+    receipts,
+    activeReceiptId,
     addPeopleFromInput,
     removePerson,
     handleReceiptFileSelected,
     handleScanReceipt,
-    handleLoadSimpleMockReceipt,
+    applyMockToCurrentReceipt,
     addSimpleItem,
     removeItem,
     updateItem,
@@ -32,19 +30,19 @@ export function SimpleWorkspace() {
     setServiceCharge,
     setGst,
     setReceiptTotalInput,
+    setActiveReceiptId,
+    removeReceipt,
+    renameReceipt,
   } = useReceiptStore(
     useShallow((state) => ({
       people: state.people,
-      items: state.items,
-      discount: state.discount,
-      serviceCharge: state.serviceCharge,
-      gst: state.gst,
-      receiptTotalInput: state.receiptTotalInput,
+      receipts: state.receipts,
+      activeReceiptId: state.activeReceiptId,
       addPeopleFromInput: state.addPeopleFromInput,
       removePerson: state.removePerson,
       handleReceiptFileSelected: state.handleReceiptFileSelected,
       handleScanReceipt: state.handleScanReceipt,
-      handleLoadSimpleMockReceipt: state.handleLoadSimpleMockReceipt,
+      applyMockToCurrentReceipt: state.applyMockToCurrentReceipt,
       addSimpleItem: state.addSimpleItem,
       removeItem: state.removeItem,
       updateItem: state.updateItem,
@@ -53,10 +51,20 @@ export function SimpleWorkspace() {
       setServiceCharge: state.setServiceCharge,
       setGst: state.setGst,
       setReceiptTotalInput: state.setReceiptTotalInput,
+      setActiveReceiptId: state.setActiveReceiptId,
+      removeReceipt: state.removeReceipt,
+      renameReceipt: state.renameReceipt,
     })),
   )
 
-  const { split, reconciliationCents, handleApplyReconciliationDiscount } = useReceiptSplit()
+  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0]
+  const items = activeReceipt?.items ?? []
+  const discount = activeReceipt?.discount
+  const serviceCharge = activeReceipt?.serviceCharge
+  const gst = activeReceipt?.gst
+  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? ''
+
+  const { split, consolidatedSplit, splitByReceipt, reconciliationCents, handleApplyReconciliationDiscount } = useReceiptSplit()
 
   const {
     activeStep,
@@ -67,6 +75,7 @@ export function SimpleWorkspace() {
     canContinue,
     handleNext,
     handleBack,
+    handleAddReceipt,
   } = useSimpleWizard(items, people, normalizeItemsForSimpleMode)
 
   const peopleInput = useReceiptStore((state) => state.peopleInput)
@@ -75,9 +84,30 @@ export function SimpleWorkspace() {
   const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items])
   const assignedItemCount = useMemo(() => getAssignedItemsCount(items, people), [items, people])
 
+  const activeReceiptIndex = receipts.findIndex((r) => r.id === activeReceiptId)
+
+  const [editingTabId, setEditingTabId] = useState<string | null>(null)
+  const [editingTabName, setEditingTabName] = useState('')
+  const tabInputRef = useRef<HTMLInputElement>(null)
+
+  const handleTabDoubleClick = (receiptId: string, currentName: string) => {
+    setEditingTabId(receiptId)
+    setEditingTabName(currentName)
+    requestAnimationFrame(() => tabInputRef.current?.select())
+  }
+
+  const commitTabRename = () => {
+    if (editingTabId) renameReceipt(editingTabId, editingTabName)
+    setEditingTabId(null)
+  }
+
   const handlePeopleSubmit = (event: { preventDefault(): void }) => {
     event.preventDefault()
     addPeopleFromInput(peopleInput)
+  }
+
+  if (!activeReceipt || !discount || !serviceCharge || !gst) {
+    return null
   }
 
   return (
@@ -88,10 +118,68 @@ export function SimpleWorkspace() {
           detectedItemsCount,
           activeItemIndex: safeActiveItemIndex,
           assignedItemCount,
+          receiptNumber: activeReceiptIndex + 1,
+          totalReceipts: receipts.length,
         }}
       />
 
-      <div className="rounded-2xl border border-white/8 bg-slate-900/80 p-5 shadow-xl shadow-black/25 backdrop-blur-sm">
+      <div>
+        {(activeStep === 'receipt' || activeStep === 'items') && receipts.length > 0 && (
+          <div className="flex items-end gap-0.5">
+            {receipts.map((receipt) => (
+              <div
+                key={receipt.id}
+                onDoubleClick={() => handleTabDoubleClick(receipt.id, receipt.name)}
+                onClick={() => setActiveReceiptId(receipt.id)}
+                className={[
+                  'flex items-center gap-1.5 rounded-t-xl border-t border-x pl-3 pr-2 py-2 text-xs font-medium transition -mb-px relative z-10 cursor-pointer select-none',
+                  receipt.id === activeReceiptId
+                    ? 'border-white/8 bg-slate-900/80 text-slate-100 shadow-xl shadow-black/25 backdrop-blur-sm'
+                    : 'border-white/5 bg-slate-800/50 text-slate-500 hover:text-slate-300',
+                ].join(' ')}
+              >
+                {editingTabId === receipt.id ? (
+                  <input
+                    ref={tabInputRef}
+                    value={editingTabName}
+                    onChange={(e) => setEditingTabName(e.target.value)}
+                    onBlur={commitTabRename}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitTabRename()
+                      if (e.key === 'Escape') setEditingTabId(null)
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-20 bg-transparent outline-none"
+                    autoFocus
+                  />
+                ) : (
+                  receipt.name
+                )}
+                {receipts.length > 1 && (
+                  <span
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); removeReceipt(receipt.id) }}
+                    aria-label={`Remove ${receipt.name}`}
+                    className="flex h-3.5 w-3.5 items-center justify-center rounded text-slate-600 transition hover:text-rose-400"
+                  >
+                    <svg width="8" height="8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={handleAddReceipt}
+              className="relative z-10 -mb-px rounded-t-lg border-t border-x border-white/5 bg-slate-800/50 px-3 py-2 text-xs font-medium text-slate-600 transition hover:text-slate-400"
+            >
+              + Add
+            </button>
+          </div>
+        )}
+
+        <div className={['border border-white/8 bg-slate-900/80 p-5 shadow-xl shadow-black/25 backdrop-blur-sm', (activeStep === 'receipt' || activeStep === 'items') && receipts.length > 0 ? 'rounded-tr-2xl rounded-b-2xl' : 'rounded-2xl'].join(' ')}>
         {activeStep === 'people' && (
           <PeopleStep
             people={people}
@@ -103,7 +191,7 @@ export function SimpleWorkspace() {
         )}
 
         {activeStep === 'receipt' && (
-          <ReceiptStep
+          <ScanReceiptStep
             items={items}
             split={split}
             discount={discount}
@@ -114,7 +202,10 @@ export function SimpleWorkspace() {
             onApplyDiscount={handleApplyReconciliationDiscount}
             onReceiptFileSelected={handleReceiptFileSelected}
             onScanReceipt={handleScanReceipt}
-            onLoadMockReceipt={handleLoadSimpleMockReceipt}
+            mockReceipts={MOCK_RECEIPT_FIXTURES.map((f, i) => ({
+              label: f.label,
+              onLoad: () => applyMockToCurrentReceipt(i),
+            }))}
             onDiscountChange={setDiscount}
             onServiceChargeChange={setServiceCharge}
             onGstChange={setGst}
@@ -138,9 +229,13 @@ export function SimpleWorkspace() {
         )}
 
         {activeStep === 'final' && (
-          <FinalStep
+          <SummaryStep
             people={people}
+            receipts={receipts}
+            activeReceiptId={activeReceiptId}
             split={split}
+            consolidatedSplit={consolidatedSplit}
+            splitByReceipt={splitByReceipt}
             discount={discount}
             serviceCharge={serviceCharge}
             gst={gst}
@@ -148,6 +243,7 @@ export function SimpleWorkspace() {
             onApplyDiscount={handleApplyReconciliationDiscount}
           />
         )}
+        </div>
       </div>
 
       <WizardNav
@@ -156,6 +252,7 @@ export function SimpleWorkspace() {
         canContinue={canContinue}
         onBack={handleBack}
         onNext={handleNext}
+        onAddReceipt={handleAddReceipt}
       />
     </section>
   )

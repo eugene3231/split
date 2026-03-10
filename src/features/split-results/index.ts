@@ -1,3 +1,5 @@
 export { FinalSplitPanel } from './components/FinalSplitPanel'
-export { ExportImageSection } from './components/ExportImageSection'
-export { generateFinalSplitImage } from './api/finalSplitImage'
+export { ExportSplitImageSection } from './components/ExportSplitImageSection'
+export { SplitView } from './components/SplitView'
+export { ConsolidatedSplitView } from './components/ConsolidatedSplitView'
+export { generateReceiptSplitImage } from './logic/receiptSplitImage'

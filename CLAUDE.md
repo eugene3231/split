@@ -2,7 +2,7 @@
 
 ## What Is This?
 
-**Split** is a browser-only, no backend, no auth, no multi-receipt support yet bill-splitting app that uses Google Gemini's vision AI to scan receipts and automatically divide costs between people.
+**Split** is a browser-only, no backend, no auth bill-splitting app that uses Google Gemini's vision AI to scan receipts and automatically divide costs between people.
 
 **User workflow:**
 1. **Add people** — Enter names for everyone splitting the bill

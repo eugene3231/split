@@ -6,7 +6,7 @@ type Props = {
   onEditItem: (index: number) => void
 }
 
-export function ReviewPhase({ items, people, onEditItem }: Props) {
+export function ItemsStepReviewPhase({ items, people, onEditItem }: Props) {
   return (
     <div className="space-y-3 rounded-xl border border-white/8 bg-slate-800/40 p-4">
       <p className="text-sm font-semibold text-slate-200">Review Assignments</p>

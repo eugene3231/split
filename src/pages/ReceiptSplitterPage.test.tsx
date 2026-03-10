@@ -21,7 +21,6 @@ function resetUiStore() {
     geminiApiKeyInput: '',
     rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
-    receiptFile: null,
     isScanning: false,
     scanStatus: '',
     scanError: null,
@@ -318,8 +317,8 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
     expect(saved).not.toBeNull()
     const parsed = JSON.parse(saved!)
     expect(parsed.people).toHaveLength(2)
-    expect(parsed.items).toHaveLength(1)
-    expect(parsed.items[0].name).toBe('Chicken Rice')
+    expect(parsed.receipts[0].items).toHaveLength(1)
+    expect(parsed.receipts[0].items[0].name).toBe('Chicken Rice')
   })
 
   it('restores advanced single-person assignments after refresh', async () => {

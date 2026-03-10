@@ -12,10 +12,11 @@ import type {
   ChargeState,
   EditableItem,
   ItemAssignment,
-  PersistedDraft,
   PersistedFinalSplit,
   PersistedOcrSettings,
   Person,
+  Receipt,
+  SessionDraft,
 } from '../types'
 import { createEmptyItem } from '../logic/assignment/items'
 import { toNullableNumber } from '../logic/core/money'
@@ -55,59 +56,39 @@ export function savePersistedUxMode(mode: 'simple' | 'advanced'): void {
 
 export function exportDraftToJson(state: {
   people: Person[]
-  items: EditableItem[]
-  discount: ChargeState
-  serviceCharge: ChargeState
-  gst: ChargeState
-  receiptTotalInput: string
+  receipts: Receipt[]
+  activeReceiptId: string
 }): string {
-  const draft: PersistedDraft = {
-    version: 1,
+  const draft: SessionDraft = {
+    version: 2,
     people: state.people,
-    items: state.items,
-    discount: state.discount,
-    serviceCharge: state.serviceCharge,
-    gst: state.gst,
-    receiptTotalInput: state.receiptTotalInput,
-    finalSplit: {
-      subtotalCents: 0,
-      serviceChargeCents: 0,
-      gstCents: 0,
-      grandTotalCents: 0,
-      totalByPersonCents: {},
-    },
+    receipts: state.receipts,
+    activeReceiptId: state.activeReceiptId,
     savedAt: new Date().toISOString(),
   }
   return JSON.stringify(draft, null, 2)
 }
 
-export function importDraftFromJson(raw: string): PersistedDraft | null {
+export function importDraftFromJson(raw: string): SessionDraft | null {
   try {
     const parsed: unknown = JSON.parse(raw)
-    if (!isRecord(parsed) || parsed.version !== 1) {
-      return null
+    if (!isRecord(parsed)) return null
+
+    if (parsed.version === 2) {
+      return normalizeSessionDraft(parsed)
     }
 
-    const people = normalizeDraftPeople(parsed.people)
-    const items = normalizeDraftItems(parsed.items, people)
-
-    return {
-      version: 1,
-      people,
-      items,
-      discount: normalizeDraftChargeState(parsed.discount, defaultDiscountState),
-      serviceCharge: normalizeDraftChargeState(parsed.serviceCharge, defaultServiceChargeState),
-      gst: normalizeDraftChargeState(parsed.gst, defaultGstState),
-      receiptTotalInput: typeof parsed.receiptTotalInput === 'string' ? parsed.receiptTotalInput : '',
-      finalSplit: normalizePersistedFinalSplit(parsed.finalSplit),
-      savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : '',
+    if (parsed.version === 1) {
+      return migrateV1ToSessionDraft(parsed)
     }
+
+    return null
   } catch {
     return null
   }
 }
 
-export function savePersistedDraft(draft: PersistedDraft): void {
+export function savePersistedDraft(draft: SessionDraft): void {
   const storage = getBrowserStorage()
   if (!storage) {
     return
@@ -120,7 +101,7 @@ export function savePersistedDraft(draft: PersistedDraft): void {
   }
 }
 
-export function loadPersistedDraft(): PersistedDraft | null {
+export function loadPersistedDraft(): SessionDraft | null {
   const storage = getBrowserStorage()
   if (!storage) {
     return null
@@ -133,24 +114,17 @@ export function loadPersistedDraft(): PersistedDraft | null {
     }
 
     const parsed: unknown = JSON.parse(raw)
-    if (!isRecord(parsed) || parsed.version !== 1) {
-      return null
+    if (!isRecord(parsed)) return null
+
+    if (parsed.version === 2) {
+      return normalizeSessionDraft(parsed)
     }
 
-    const people = normalizeDraftPeople(parsed.people)
-    const items = normalizeDraftItems(parsed.items, people)
-
-    return {
-      version: 1,
-      people,
-      items,
-      discount: normalizeDraftChargeState(parsed.discount, defaultDiscountState),
-      serviceCharge: normalizeDraftChargeState(parsed.serviceCharge, defaultServiceChargeState),
-      gst: normalizeDraftChargeState(parsed.gst, defaultGstState),
-      receiptTotalInput: typeof parsed.receiptTotalInput === 'string' ? parsed.receiptTotalInput : '',
-      finalSplit: normalizePersistedFinalSplit(parsed.finalSplit),
-      savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : '',
+    if (parsed.version === 1) {
+      return migrateV1ToSessionDraft(parsed)
     }
+
+    return null
   } catch {
     return null
   }
@@ -247,6 +221,89 @@ export function clearSessionGeminiApiKey(): void {
     // Ignore storage remove failures.
   }
 }
+
+// ---------------------------------------------------------------------------
+// Migration: v1 PersistedDraft → v2 SessionDraft
+// ---------------------------------------------------------------------------
+
+function migrateV1ToSessionDraft(parsed: Record<string, unknown>): SessionDraft | null {
+  const people = normalizeDraftPeople(parsed.people)
+  const items = normalizeDraftItems(parsed.items, people)
+  const receiptId = createId()
+
+  const receipt: Receipt = {
+    id: receiptId,
+    name: 'Receipt 1',
+    items,
+    discount: normalizeDraftChargeState(parsed.discount, defaultDiscountState),
+    serviceCharge: normalizeDraftChargeState(parsed.serviceCharge, defaultServiceChargeState),
+    gst: normalizeDraftChargeState(parsed.gst, defaultGstState),
+    receiptTotalInput: typeof parsed.receiptTotalInput === 'string' ? parsed.receiptTotalInput : '',
+  }
+
+  return {
+    version: 2,
+    people,
+    receipts: [receipt],
+    activeReceiptId: receiptId,
+    savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : new Date().toISOString(),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Normalization: v2 SessionDraft
+// ---------------------------------------------------------------------------
+
+function normalizeSessionDraft(parsed: Record<string, unknown>): SessionDraft | null {
+  const people = normalizeDraftPeople(parsed.people)
+  const receipts = normalizeDraftReceipts(parsed.receipts, people)
+  if (receipts.length === 0) return null
+
+  const activeReceiptId =
+    typeof parsed.activeReceiptId === 'string' && receipts.some((r) => r.id === parsed.activeReceiptId)
+      ? parsed.activeReceiptId
+      : receipts[0].id
+
+  return {
+    version: 2,
+    people,
+    receipts,
+    activeReceiptId,
+    savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : new Date().toISOString(),
+  }
+}
+
+function normalizeDraftReceipts(value: unknown, people: Person[]): Receipt[] {
+  if (!Array.isArray(value)) return []
+
+  const receipts = value
+    .map((r, index) => normalizeDraftReceipt(r, people, index + 1))
+    .filter((r): r is Receipt => r !== null)
+
+  return receipts
+}
+
+function normalizeDraftReceipt(value: unknown, people: Person[], fallbackIndex: number): Receipt | null {
+  if (!isRecord(value)) return null
+
+  const id = typeof value.id === 'string' && value.id ? value.id : createId()
+  const name = typeof value.name === 'string' && value.name.trim() ? value.name.trim() : `Receipt ${fallbackIndex}`
+  const items = normalizeDraftItems(value.items, people)
+
+  return {
+    id,
+    name,
+    items,
+    discount: normalizeDraftChargeState(value.discount, defaultDiscountState),
+    serviceCharge: normalizeDraftChargeState(value.serviceCharge, defaultServiceChargeState),
+    gst: normalizeDraftChargeState(value.gst, defaultGstState),
+    receiptTotalInput: typeof value.receiptTotalInput === 'string' ? value.receiptTotalInput : '',
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared normalization helpers
+// ---------------------------------------------------------------------------
 
 function normalizeDraftPeople(value: unknown): Person[] {
   if (!Array.isArray(value)) {
@@ -345,7 +402,8 @@ function normalizeDraftChargeState(value: unknown, fallback: ChargeState): Charg
   }
 }
 
-function normalizePersistedFinalSplit(value: unknown): PersistedFinalSplit {
+// Keep for any remaining callers referencing this type (unused but exported to avoid breakage)
+export function normalizePersistedFinalSplit(value: unknown): PersistedFinalSplit {
   if (!isRecord(value)) {
     return {
       subtotalCents: 0,

@@ -20,7 +20,7 @@ const STEP_CONTENT: Record<SimpleWizardStep, { label: string; description: strin
     description: 'Who gets what?',
   },
   final: {
-    label: 'Result',
+    label: 'Summary',
     description: 'Review & share',
   },
 }
@@ -87,6 +87,7 @@ export function ProgressHeader({ activeStep, context }: WizardProgressHeaderProp
       >
         {buildContextText(activeStep, context)}
       </p>
+
     </section>
   )
 }
@@ -95,19 +96,23 @@ function buildContextText(step: SimpleWizardStep, context: WizardProgressContext
   const stepNumber = SIMPLE_WIZARD_STEPS.indexOf(step) + 1
   const total = SIMPLE_WIZARD_STEPS.length
   const prefix = `Step ${stepNumber} of ${total}`
+  const receiptPrefix = context.totalReceipts > 1 ? ` · Receipt ${context.receiptNumber} of ${context.totalReceipts}` : ''
 
   switch (step) {
     case 'people':
       return `${prefix} · Add everyone splitting this bill`
     case 'receipt': {
       const n = context.detectedItemsCount
-      return `${prefix} · Scan + Verify · Found ${n} ${n === 1 ? 'item' : 'items'}`
+      return `${prefix}${receiptPrefix} · Scan + Verify · Found ${n} ${n === 1 ? 'item' : 'items'}`
     }
     case 'items': {
       const itemNumber = context.detectedItemsCount === 0 ? 0 : Math.min(context.activeItemIndex + 1, context.detectedItemsCount)
-      return `${prefix} · Item ${itemNumber} of ${context.detectedItemsCount} · ${context.assignedItemCount} assigned so far`
+      return `${prefix}${receiptPrefix} · Item ${itemNumber} of ${context.detectedItemsCount} · ${context.assignedItemCount} assigned so far`
     }
     case 'final':
-      return `${prefix} · All ${context.detectedItemsCount} items assigned — split result ready`
+      return context.totalReceipts > 1
+        ? `${prefix} · ${context.totalReceipts} receipts · All items assigned — consolidated split ready`
+        : `${prefix} · All ${context.detectedItemsCount} items assigned — split result ready`
   }
 }
+

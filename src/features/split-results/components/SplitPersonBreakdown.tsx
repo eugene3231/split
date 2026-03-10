@@ -128,7 +128,7 @@ export function PersonCard({ person, colorIndex, split, discount, serviceCharge,
   )
 }
 
-export function SimplePersonBreakdown({ people, split, discount, serviceCharge, gst }: Props) {
+export function SplitPersonBreakdown({ people, split, discount, serviceCharge, gst, showDetails = false }: Props & { showDetails?: boolean }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'center' })
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -164,6 +164,7 @@ export function SimplePersonBreakdown({ people, split, discount, serviceCharge, 
                   discount={discount}
                   serviceCharge={serviceCharge}
                   gst={gst}
+                  showItemMeta={showDetails}
                 />
               </div>
             ))}
@@ -200,6 +201,7 @@ export function SimplePersonBreakdown({ people, split, discount, serviceCharge, 
             discount={discount}
             serviceCharge={serviceCharge}
             gst={gst}
+            showItemMeta={showDetails}
           />
         ))}
       </div>

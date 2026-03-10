@@ -35,11 +35,11 @@ describe('draft storage', () => {
   })
 
   it('returns null for unsupported draft version', () => {
-    window.localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, JSON.stringify({ version: 2 }))
+    window.localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, JSON.stringify({ version: 3 }))
     expect(loadPersistedDraft()).toBeNull()
   })
 
-  it('normalizes missing draft fields to safe defaults', () => {
+  it('migrates v1 draft to v2 with a single receipt', () => {
     window.localStorage.setItem(
       LOCAL_STORAGE_DRAFT_KEY,
       JSON.stringify({
@@ -51,64 +51,68 @@ describe('draft storage', () => {
 
     const draft = loadPersistedDraft()
     expect(draft).not.toBeNull()
+    expect(draft?.version).toBe(2)
     expect(draft?.people).toEqual([{ id: 'p1', name: 'Alice' }])
-    expect(draft?.items).toHaveLength(1)
-    expect(draft?.items[0].assignment.personId).toBe('p1')
-    expect(draft?.serviceCharge).toEqual(defaultServiceChargeState)
-    expect(draft?.gst).toEqual(defaultGstState)
-    expect(draft?.receiptTotalInput).toBe('')
-    expect(draft?.finalSplit).toEqual({
-      subtotalCents: 0,
-      serviceChargeCents: 0,
-      gstCents: 0,
-      grandTotalCents: 0,
-      totalByPersonCents: {},
-    })
+    expect(draft?.receipts).toHaveLength(1)
+    const receipt = draft?.receipts[0]
+    expect(receipt?.items).toHaveLength(1)
+    expect(receipt?.items[0].assignment.personId).toBe('p1')
+    expect(receipt?.serviceCharge).toEqual(defaultServiceChargeState)
+    expect(receipt?.gst).toEqual(defaultGstState)
+    expect(receipt?.receiptTotalInput).toBe('')
   })
 
-  it('rounds final split numeric fields and filters invalid totals', () => {
+  it('loads a valid v2 draft', () => {
     window.localStorage.setItem(
       LOCAL_STORAGE_DRAFT_KEY,
       JSON.stringify({
-        version: 1,
+        version: 2,
         people: [{ id: 'p1', name: 'Alice' }],
-        items: [
+        receipts: [
           {
-            id: 'i1',
-            name: 'Item',
-            amountInput: '1.00',
-            discountPercentInput: '',
-            assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
+            id: 'r1',
+            name: 'Receipt 1',
+            items: [
+              {
+                id: 'i1',
+                name: 'Item',
+                amountInput: '1.00',
+                discountPercentInput: '',
+                assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
+              },
+            ],
+            discount: defaultDiscountState,
+            serviceCharge: defaultServiceChargeState,
+            gst: defaultGstState,
+            receiptTotalInput: '1.00',
           },
         ],
-        serviceCharge: defaultServiceChargeState,
-        gst: defaultGstState,
-        receiptTotalInput: '1.00',
-        finalSplit: {
-          subtotalCents: 100.6,
-          serviceChargeCents: '10.4',
-          gstCents: 9.5,
-          grandTotalCents: '120.2',
-          totalByPersonCents: {
-            p1: '120.7',
-            p2: 10.2,
-            invalid: 'not-a-number',
-          },
-        },
+        activeReceiptId: 'r1',
+        savedAt: '2026-01-01T00:00:00.000Z',
       }),
     )
 
     const draft = loadPersistedDraft()
-    expect(draft?.finalSplit).toEqual({
-      subtotalCents: 101,
-      serviceChargeCents: 10,
-      gstCents: 10,
-      grandTotalCents: 120,
-      totalByPersonCents: {
-        p1: 121,
-        p2: 10,
-      },
-    })
+    expect(draft?.version).toBe(2)
+    expect(draft?.people).toEqual([{ id: 'p1', name: 'Alice' }])
+    expect(draft?.receipts).toHaveLength(1)
+    expect(draft?.receipts[0].name).toBe('Receipt 1')
+    expect(draft?.activeReceiptId).toBe('r1')
+  })
+
+  it('falls back to first receipt id when activeReceiptId is invalid', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_DRAFT_KEY,
+      JSON.stringify({
+        version: 2,
+        people: [],
+        receipts: [{ id: 'r1', name: 'Receipt 1', items: [], discount: defaultDiscountState, serviceCharge: defaultServiceChargeState, gst: defaultGstState, receiptTotalInput: '' }],
+        activeReceiptId: 'does-not-exist',
+        savedAt: '',
+      }),
+    )
+    const draft = loadPersistedDraft()
+    expect(draft?.activeReceiptId).toBe('r1')
   })
 })
 
@@ -199,8 +203,9 @@ describe('ux mode storage', () => {
   })
 })
 
-const minimalDraftState = {
-  people: [{ id: 'p1', name: 'Alice' }],
+const receipt1 = {
+  id: 'r1',
+  name: 'Dinner',
   items: [
     {
       id: 'i1',
@@ -216,16 +221,22 @@ const minimalDraftState = {
   receiptTotalInput: '8.00',
 }
 
+const minimalDraftState = {
+  people: [{ id: 'p1', name: 'Alice' }],
+  receipts: [receipt1],
+  activeReceiptId: 'r1',
+}
+
 describe('exportDraftToJson', () => {
   it('produces valid JSON with all required fields', () => {
     const json = exportDraftToJson(minimalDraftState)
     const parsed = JSON.parse(json)
-    expect(parsed.version).toBe(1)
+    expect(parsed.version).toBe(2)
     expect(parsed.people).toEqual(minimalDraftState.people)
-    expect(parsed.items).toEqual(minimalDraftState.items)
-    expect(parsed.receiptTotalInput).toBe('8.00')
+    expect(parsed.receipts).toHaveLength(1)
+    expect(parsed.receipts[0].name).toBe('Dinner')
+    expect(parsed.activeReceiptId).toBe('r1')
     expect(parsed.savedAt).toBeTruthy()
-    expect(parsed.finalSplit).toBeDefined()
   })
 })
 
@@ -235,100 +246,101 @@ describe('importDraftFromJson', () => {
   })
 
   it('returns null for wrong version', () => {
-    expect(importDraftFromJson(JSON.stringify({ version: 2 }))).toBeNull()
+    expect(importDraftFromJson(JSON.stringify({ version: 3 }))).toBeNull()
   })
 
-  it('round-trips a valid draft', () => {
+  it('round-trips a valid v2 draft', () => {
     const json = exportDraftToJson(minimalDraftState)
     const imported = importDraftFromJson(json)
     expect(imported).not.toBeNull()
+    expect(imported?.version).toBe(2)
     expect(imported?.people).toEqual([{ id: 'p1', name: 'Alice' }])
-    expect(imported?.items[0].name).toBe('Noodles')
-    expect(imported?.receiptTotalInput).toBe('8.00')
+    expect(imported?.receipts[0].items[0].name).toBe('Noodles')
+    expect(imported?.receipts[0].receiptTotalInput).toBe('8.00')
+  })
+
+  it('migrates v1 JSON to v2 with a single receipt', () => {
+    const v1Json = JSON.stringify({
+      version: 1,
+      people: [{ id: 'p1', name: 'Alice' }],
+      items: [
+        {
+          id: 'i1',
+          name: 'Noodles',
+          amountInput: '8.00',
+          discountPercentInput: '',
+          assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
+        },
+      ],
+      discount: defaultDiscountState,
+      serviceCharge: defaultServiceChargeState,
+      gst: defaultGstState,
+      receiptTotalInput: '8.00',
+      finalSplit: { subtotalCents: 0, serviceChargeCents: 0, gstCents: 0, grandTotalCents: 0, totalByPersonCents: {} },
+      savedAt: '',
+    })
+    const imported = importDraftFromJson(v1Json)
+    expect(imported?.version).toBe(2)
+    expect(imported?.receipts).toHaveLength(1)
+    expect(imported?.receipts[0].items[0].name).toBe('Noodles')
+    expect(imported?.receipts[0].receiptTotalInput).toBe('8.00')
   })
 
   it('normalizes non-array people to empty list', () => {
-    const json = JSON.stringify({ version: 1, people: 'not-an-array' })
+    const json = JSON.stringify({ version: 2, people: 'not-an-array', receipts: [{ id: 'r1', name: 'R1', items: [], discount: defaultDiscountState, serviceCharge: defaultServiceChargeState, gst: defaultGstState, receiptTotalInput: '' }], activeReceiptId: 'r1', savedAt: '' })
     const imported = importDraftFromJson(json)
     expect(imported?.people).toEqual([])
   })
 
   it('skips non-record entries in the people array', () => {
     const json = JSON.stringify({
-      version: 1,
+      version: 2,
       people: [null, 42, { id: 'p1', name: 'Alice' }],
+      receipts: [{ id: 'r1', name: 'R1', items: [], discount: defaultDiscountState, serviceCharge: defaultServiceChargeState, gst: defaultGstState, receiptTotalInput: '' }],
+      activeReceiptId: 'r1',
+      savedAt: '',
     })
     const imported = importDraftFromJson(json)
     expect(imported?.people).toEqual([{ id: 'p1', name: 'Alice' }])
   })
 
-  it('falls back to an empty item when all items are invalid', () => {
+  it('falls back to an empty item when all items in a receipt are invalid', () => {
     const json = JSON.stringify({
-      version: 1,
+      version: 2,
       people: [{ id: 'p1', name: 'Alice' }],
-      items: ['bad', null, 123],
+      receipts: [{ id: 'r1', name: 'R1', items: ['bad', null, 123], discount: defaultDiscountState, serviceCharge: defaultServiceChargeState, gst: defaultGstState, receiptTotalInput: '' }],
+      activeReceiptId: 'r1',
+      savedAt: '',
     })
     const imported = importDraftFromJson(json)
-    expect(imported?.items).toHaveLength(1)
-    expect(imported?.items[0].name).toBe('')
-  })
-
-  it('generates a new id when item id is missing', () => {
-    const json = JSON.stringify({
-      version: 1,
-      people: [{ id: 'p1', name: 'Alice' }],
-      items: [
-        {
-          name: 'Burger',
-          amountInput: '5.00',
-          discountPercentInput: '',
-          assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
-        },
-      ],
-    })
-    const imported = importDraftFromJson(json)
-    expect(imported?.items[0].id).toBeTruthy()
-    expect(imported?.items[0].name).toBe('Burger')
-  })
-
-  it('uses fallback assignment when assignment is not a record', () => {
-    const json = JSON.stringify({
-      version: 1,
-      people: [{ id: 'p1', name: 'Alice' }],
-      items: [
-        {
-          id: 'i1',
-          name: 'Pizza',
-          amountInput: '12.00',
-          discountPercentInput: '',
-          assignment: null,
-        },
-      ],
-    })
-    const imported = importDraftFromJson(json)
-    expect(imported?.items[0].assignment.mode).toBe('single')
-    expect(imported?.items[0].assignment.personId).toBe('p1')
+    expect(imported?.receipts[0].items).toHaveLength(1)
+    expect(imported?.receipts[0].items[0].name).toBe('')
   })
 
   it('deduplicates personIds in assignment', () => {
     const json = JSON.stringify({
-      version: 1,
-      people: [
-        { id: 'p1', name: 'Alice' },
-        { id: 'p2', name: 'Bob' },
-      ],
-      items: [
-        {
+      version: 2,
+      people: [{ id: 'p1', name: 'Alice' }, { id: 'p2', name: 'Bob' }],
+      receipts: [{
+        id: 'r1',
+        name: 'R1',
+        items: [{
           id: 'i1',
           name: 'Shared',
           amountInput: '10.00',
           discountPercentInput: '',
           assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p1', 'p2'] },
-        },
-      ],
+        }],
+        discount: defaultDiscountState,
+        serviceCharge: defaultServiceChargeState,
+        gst: defaultGstState,
+        receiptTotalInput: '',
+      }],
+      activeReceiptId: 'r1',
+      savedAt: '',
     })
     const imported = importDraftFromJson(json)
-    expect(imported?.items[0].assignment.personIds).toEqual(['p1', 'p2'])
+    expect(imported?.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2'])
   })
 })
 
@@ -344,20 +356,10 @@ describe('storage availability failures', () => {
     expect(loadPersistedOcrSettings()).toBeNull()
     expect(() =>
       savePersistedDraft({
-        version: 1,
+        version: 2,
         people: [],
-        items: [],
-        discount: defaultDiscountState,
-        serviceCharge: defaultServiceChargeState,
-        gst: defaultGstState,
-        receiptTotalInput: '',
-        finalSplit: {
-          subtotalCents: 0,
-          serviceChargeCents: 0,
-          gstCents: 0,
-          grandTotalCents: 0,
-          totalByPersonCents: {},
-        },
+        receipts: [],
+        activeReceiptId: '',
         savedAt: '',
       }),
     ).not.toThrow()

@@ -1,7 +1,7 @@
 import type { EditableItem, Person } from '../../../../shared/types'
 import type { ItemsSubPhase } from '../../../types'
-import { AssignPhase } from './AssignPhase'
-import { ReviewPhase } from './ReviewPhase'
+import { ItemsStepAssignPhase } from './AssignPhase'
+import { ItemsStepReviewPhase } from './ReviewPhase'
 
 type Props = {
   items: EditableItem[]
@@ -27,7 +27,7 @@ export function ItemsStep({
       <h2 className="text-base font-bold text-slate-100">Assign Items</h2>
 
       {itemsSubPhase === 'assign' ? (
-        <AssignPhase
+        <ItemsStepAssignPhase
           items={items}
           people={people}
           activeItemIndex={activeItemIndex}
@@ -37,7 +37,7 @@ export function ItemsStep({
           onGoToReview={() => onItemsSubPhaseChange('review')}
         />
       ) : (
-        <ReviewPhase
+        <ItemsStepReviewPhase
           items={items}
           people={people}
           onEditItem={(index) => {

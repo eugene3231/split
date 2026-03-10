@@ -1,4 +1,7 @@
+import { useShallow } from 'zustand/shallow'
 import { useReceiptStore } from '../../../shared/stores/receiptStore'
+
+const EMPTY_WARNINGS: string[] = []
 import { ReceiptScanSection } from './ReceiptScanSection'
 
 type ReceiptImportPanelProps = {
@@ -20,12 +23,20 @@ export function ReceiptImportPanel({
 }: ReceiptImportPanelProps) {
   const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput)
   const geminiModel = useReceiptStore((state) => state.geminiModel)
-  const receiptFile = useReceiptStore((state) => state.receiptFile)
-  const isScanning = useReceiptStore((state) => state.isScanning)
-  const scanStatus = useReceiptStore((state) => state.scanStatus)
-  const scanError = useReceiptStore((state) => state.scanError)
-  const scanWarnings = useReceiptStore((state) => state.scanWarnings)
-  const loadingMessage = useReceiptStore((state) => state.loadingMessage)
+  const { receiptFile, isScanning, scanStatus, scanError, scanWarnings, loadingMessage } = useReceiptStore(
+    useShallow((state) => {
+      const active = state.receipts.find((r) => r.id === state.activeReceiptId)
+      const scanState = state.scanStateByReceipt[state.activeReceiptId]
+      return {
+        receiptFile: active?.receiptFile ?? null,
+        isScanning: scanState?.isScanning ?? false,
+        scanStatus: scanState?.scanStatus ?? '',
+        scanError: scanState?.scanError ?? null,
+        scanWarnings: scanState?.scanWarnings ?? EMPTY_WARNINGS,
+        loadingMessage: scanState?.loadingMessage ?? '',
+      }
+    }),
+  )
   const setGeminiModel = useReceiptStore((state) => state.setGeminiModel)
   const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal)
 

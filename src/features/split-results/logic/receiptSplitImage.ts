@@ -1,7 +1,7 @@
 import type { ChargeState, Person, PersonReceiptLineItem, SplitResult } from '../../../shared/types'
 import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core/money'
 
-type GenerateFinalSplitImageOptions = {
+type GenerateReceiptSplitImageOptions = {
   people: Person[]
   split: SplitResult
   discount: ChargeState
@@ -10,6 +10,7 @@ type GenerateFinalSplitImageOptions = {
   reconciliationCents: number | null
   includeLineItems: boolean
   includeItemDetails: boolean
+  receiptName?: string
 }
 
 const CANVAS_WIDTH = 1800
@@ -29,7 +30,7 @@ function getPersonCanvasColor(index: number) {
   return PERSON_CANVAS_COLORS[index % PERSON_CANVAS_COLORS.length]
 }
 
-export async function generateFinalSplitImage(options: GenerateFinalSplitImageOptions): Promise<Blob> {
+export async function generateReceiptSplitImage(options: GenerateReceiptSplitImageOptions): Promise<Blob> {
   if (typeof document === 'undefined') {
     throw new Error('Image export is only available in the browser.')
   }
@@ -54,7 +55,7 @@ export async function generateFinalSplitImage(options: GenerateFinalSplitImageOp
 
   context.fillStyle = '#e2e8f0'
   context.font = '700 40px system-ui, -apple-system, sans-serif'
-  context.fillText('Receipt Splitter', x, y)
+  context.fillText(options.receiptName || 'Receipt Splitter', x, y)
   y += 34
 
   context.fillStyle = '#94a3b8'
@@ -189,10 +190,29 @@ function drawSummaryCard(context: CanvasRenderingContext2D, args: SummaryCardArg
     )
   }
 
-  const height = 32 + rows.length * 34 + 10
+  const SUMMARY_HEADER_H = 76
+  const height = SUMMARY_HEADER_H + 16 + rows.length * 34 + 10
   const afterY = drawCardShell(context, args.x, args.y, args.width, height)
 
-  let rowY = args.y + 38
+  // Colored "Total Assigned" header (mirrors SplitTotalsCard header)
+  context.fillStyle = 'rgba(14, 165, 233, 0.15)'
+  context.fillRect(args.x, args.y, args.width, SUMMARY_HEADER_H)
+  context.strokeStyle = 'rgba(14, 165, 233, 0.5)'
+  context.lineWidth = 2
+  context.beginPath()
+  context.moveTo(args.x, args.y + SUMMARY_HEADER_H)
+  context.lineTo(args.x + args.width, args.y + SUMMARY_HEADER_H)
+  context.stroke()
+
+  context.fillStyle = '#f1f5f9'
+  context.font = '700 18px system-ui, -apple-system, sans-serif'
+  context.fillText('Total Assigned', args.x + 20, args.y + 26)
+
+  context.fillStyle = '#7dd3fc'
+  context.font = '700 28px system-ui, -apple-system, sans-serif'
+  context.fillText(formatCurrencyFromCents(args.split.grandTotalCents), args.x + 20, args.y + 62)
+
+  let rowY = args.y + SUMMARY_HEADER_H + 32
   for (const row of rows) {
     drawTwoColumnRow(context, {
       x: args.x + 20,
@@ -234,7 +254,7 @@ const LINE_ROW_DETAIL_H = 26  // advance from detail sub-row baseline to next it
 const ITEM_GAP = 8            // extra spacing between items
 const TOTAL_ROW_H = 38        // height per totals row
 const BODY_TOP_PAD = 32       // gap between header and first line item
-const BODY_BOTTOM_PAD = 32    // padding below last totals row
+const BODY_BOTTOM_PAD = -8    // padding below last totals row
 const CARD_PAD = 28           // horizontal inner padding
 
 function measurePersonCardHeight(involvedCount: number, notInvolvedCount: number, includeLineItems: boolean, includeItemDetails: boolean, hasDiscount: boolean): number {
@@ -243,7 +263,7 @@ function measurePersonCardHeight(involvedCount: number, notInvolvedCount: number
   const involvedHeight = includeLineItems ? involvedRows * perRow : 0
   const notInvolvedHeight = includeLineItems ? notInvolvedCount * perRow : 0
   const totalsHeight = (hasDiscount ? 5 : 4) * TOTAL_ROW_H
-  const dividerHeight = includeLineItems ? 24 : 8
+  const dividerHeight = includeLineItems ? 20 : 8
   return HEADER_HEIGHT + BODY_TOP_PAD + involvedHeight + notInvolvedHeight + dividerHeight + totalsHeight + BODY_BOTTOM_PAD
 }
 
@@ -336,14 +356,14 @@ function drawPersonCard(context: CanvasRenderingContext2D, args: PersonCardArgs)
       }
     }
 
-    const dividerY = rowY + 4
+    const dividerY = rowY - ITEM_GAP
     context.strokeStyle = '#1e293b'
     context.lineWidth = 1
     context.beginPath()
     context.moveTo(args.x + CARD_PAD, dividerY)
     context.lineTo(args.x + args.width - CARD_PAD, dividerY)
     context.stroke()
-    rowY = dividerY + 20
+    rowY = dividerY + 28
   }
 
   drawTwoColumnRow(context, {
