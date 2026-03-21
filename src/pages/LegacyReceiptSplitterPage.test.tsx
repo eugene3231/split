@@ -12,7 +12,7 @@ vi.mock('../features/split-results/logic/receiptSplitImage', () => ({
   generateReceiptSplitImage: generateReceiptSplitImageMock,
 }))
 
-import { ReceiptSplitterPage } from './ReceiptSplitterPage'
+import { LegacyReceiptSplitterPage } from './LegacyReceiptSplitterPage'
 
 function resetUiStore() {
   useReceiptStore.setState({
@@ -178,9 +178,9 @@ beforeEach(() => {
   })
 })
 
-describe('ReceiptSplitterPage advanced mode integration', () => {
+describe('LegacyReceiptSplitterPage advanced mode integration', () => {
   it('adds people from input and ignores duplicates case-insensitively', () => {
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     addPeople('Alice, Ben')
     expect(screen.getAllByRole('button', { name: 'Alice ×' })).toHaveLength(1)
@@ -192,7 +192,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('supports add/remove item with minimum-one-item guard', () => {
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     expect(screen.getAllByText(/^Item \d+$/)).toHaveLength(1)
 
     fireEvent.click(screen.getByRole('button', { name: '+ Add Item' }))
@@ -206,7 +206,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('loads mock receipt into items, detected charges, warnings, and receipt total', () => {
-    const { container } = render(<ReceiptSplitterPage />)
+    const { container } = render(<LegacyReceiptSplitterPage />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Load Mock Receipt' }))
 
@@ -217,7 +217,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('shows validation error when scan is clicked without API key', () => {
-    const { container } = render(<ReceiptSplitterPage />)
+    const { container } = render(<LegacyReceiptSplitterPage />)
     const fileInput = container.querySelector('[data-testid="receipt-file-input"]')
     expect(fileInput).not.toBeNull()
 
@@ -230,7 +230,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('re-sanitizes item assignments when people list changes', async () => {
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     addPeople('Alice, Bob')
 
     const assigneeSelect = getAssigneeSelect()
@@ -247,7 +247,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('updates reconciliation row when receipt total changes', () => {
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     addPeople('Alice')
 
     fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '10.00' } })
@@ -264,7 +264,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('downloads the share image with the selected export options', async () => {
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     fireEvent.click(screen.getByTestId('export-save-image-btn'))
 
     await waitFor(() => {
@@ -280,7 +280,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('copies share text to clipboard when copy button is clicked', async () => {
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     fireEvent.click(screen.getByTestId('export-copy-text-btn'))
 
@@ -299,7 +299,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
 
     render(
       <StrictMode>
-        <ReceiptSplitterPage />
+        <LegacyReceiptSplitterPage />
       </StrictMode>,
     )
 
@@ -317,7 +317,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 
   it('restores advanced single-person assignments after refresh', async () => {
-    const { unmount } = render(<ReceiptSplitterPage />)
+    const { unmount } = render(<LegacyReceiptSplitterPage />)
     addPeople('Alice, Bob')
 
     const assigneeSelect = getAssigneeSelect()
@@ -332,7 +332,7 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
     })
 
     unmount()
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(getAssigneeSelect().selectedOptions[0].textContent).toBe('Bob')
@@ -340,10 +340,10 @@ describe('ReceiptSplitterPage advanced mode integration', () => {
   })
 })
 
-describe('ReceiptSplitterPage simple wizard integration', () => {
+describe('LegacyReceiptSplitterPage simple wizard integration', () => {
   it('blocks progression until each simple wizard step is valid', async () => {
     useReceiptStore.setState({ uxMode: 'simple' })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     const continueToReceiptButton = screen.getByTestId('wizard-continue-btn')
     expect(continueToReceiptButton).toBeDisabled()
@@ -363,7 +363,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1 of 4/i)
@@ -382,7 +382,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
@@ -417,7 +417,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
@@ -449,7 +449,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
 
   it('loads the simple mode mock receipt payload from receipt step', async () => {
     useReceiptStore.setState({ uxMode: 'simple' })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
@@ -467,7 +467,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
@@ -489,7 +489,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
@@ -515,7 +515,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
@@ -543,7 +543,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     useReceiptStore.setState({ uxMode: 'simple' })
     seedSimpleDraftWithSingleAssignment()
 
-    const { unmount } = render(<ReceiptSplitterPage />)
+    const { unmount } = render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
@@ -562,7 +562,7 @@ describe('ReceiptSplitterPage simple wizard integration', () => {
     })
 
     unmount()
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
@@ -577,25 +577,25 @@ describe('Apply-discount-to-reconcile button', () => {
   it('appears in advanced mode when computed total exceeds receipt total', () => {
     // $10 item, no service/GST → grand total $10.00; receipt total $8.00 → reconciliation −$2.00
     seedDraft({ receiptTotalInput: '8.00' })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     expect(screen.getByTestId('apply-discount-reconcile-btn')).toBeInTheDocument()
   })
 
   it('does not appear when receipt total matches grand total', () => {
     seedDraft({ receiptTotalInput: '10.00' })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
   })
 
   it('does not appear when receipt total is not set', () => {
     seedDraft({ receiptTotalInput: '' })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
   })
 
   it('clicking it applies a whole-bill discount that zeroes the receipt difference', () => {
     seedDraft({ receiptTotalInput: '8.00' })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'))
 
@@ -618,7 +618,7 @@ describe('Apply-discount-to-reconcile button', () => {
       receiptTotalInput: '8.00',
     })
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
@@ -638,7 +638,7 @@ describe('Global whole-bill discount indicator on items', () => {
         detectedSource: null,
       },
     })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
   })
 
@@ -653,13 +653,13 @@ describe('Global whole-bill discount indicator on items', () => {
         detectedSource: null,
       },
     })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
   })
 
   it('does not show a badge when discount is disabled', () => {
     seedDraft({ discount: disabledChargeState })
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     expect(screen.queryByTestId('global-discount-badge')).not.toBeInTheDocument()
   })
 
@@ -685,7 +685,7 @@ describe('Global whole-bill discount indicator on items', () => {
       },
     })
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
     await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
@@ -775,7 +775,7 @@ describe('Multi-receipt simple wizard integration', () => {
       ],
     })
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
@@ -796,7 +796,7 @@ describe('Multi-receipt simple wizard integration', () => {
     useReceiptStore.setState({ uxMode: 'simple' })
     seedV2Draft({})
 
-    render(<ReceiptSplitterPage />)
+    render(<LegacyReceiptSplitterPage />)
 
     await waitFor(() => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
