@@ -1,5 +1,5 @@
-import type { ChargeState } from '../../../shared/types'
-import { ChargeControl } from './ChargeControl'
+import type { ChargeState } from '@shared/types'
+import { ChargeControl } from '@features/split-config/components/ChargeControl'
 
 type GlobalChargesSectionProps = {
   discount: ChargeState

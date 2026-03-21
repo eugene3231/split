@@ -6,7 +6,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
-} from '../constants'
+} from '@shared/constants'
 import type {
   ChargeMode,
   ChargeState,
@@ -17,11 +17,11 @@ import type {
   Person,
   Receipt,
   SessionDraft,
-} from '../types'
-import { createEmptyItem } from '../logic/assignment/items'
-import { toNullableNumber } from '../logic/core/money'
-import { isRecord } from '../logic/core/guards'
-import { createId } from '../logic/core/id'
+} from '@shared/types'
+import { createEmptyItem } from '@shared/logic/assignment/items'
+import { toNullableNumber } from '@shared/logic/core/money'
+import { isRecord } from '@shared/logic/core/guards'
+import { createId } from '@shared/logic/core/id'
 
 export function loadPersistedUxMode(): 'simple' | 'advanced' {
   const storage = getBrowserStorage()

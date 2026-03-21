@@ -1,5 +1,5 @@
-import { cn } from '../../../../shared/utils/cn'
-import type { ChargeMode, ChargeState } from '../../../../shared/types'
+import { cn } from '@shared/utils/cn'
+import type { ChargeMode, ChargeState } from '@shared/types'
 
 interface Props {
   label: string

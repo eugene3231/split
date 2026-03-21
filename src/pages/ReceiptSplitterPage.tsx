@@ -1,5 +1,5 @@
-import { GeminiApiKeyModal } from '../features/receipt-scanner/components/GeminiApiKeyModal'
-import { NewWorkspace } from './components/new/NewWorkspace'
+import { GeminiApiKeyModal } from '@pages/components/new/GeminiApiKeyModal'
+import { NewWorkspace } from '@pages/components/new/NewWorkspace'
 
 export function ReceiptSplitterPage() {
   return (

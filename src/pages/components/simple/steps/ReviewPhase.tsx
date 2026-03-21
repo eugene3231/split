@@ -1,4 +1,4 @@
-import type { EditableItem, Person } from '../../../../shared/types'
+import type { EditableItem, Person } from '@shared/types'
 
 type Props = {
   items: EditableItem[]

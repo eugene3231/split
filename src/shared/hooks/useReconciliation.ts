@@ -1,5 +1,5 @@
-import { parseCurrencyToCents } from '../logic/core/money'
-import type { ChargeState, SplitResult } from '../types'
+import { parseCurrencyToCents } from '@shared/logic/core/money'
+import type { ChargeState, SplitResult } from '@shared/types'
 
 export function useReconciliation(
   split: SplitResult,

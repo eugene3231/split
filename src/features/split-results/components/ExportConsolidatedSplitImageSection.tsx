@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import type { Person, Receipt, SplitResult } from '../../../shared/types'
-import { generateConsolidatedSplitImage } from '../logic/consolidatedReceiptSplitImage'
-import { buildSplitShareText, copyShareText, downloadImage } from '../logic/shareSplit'
+import type { Person, Receipt, SplitResult } from '@shared/types'
+import { generateConsolidatedSplitImage } from '@features/split-results/logic/consolidatedReceiptSplitImage'
+import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
 
 type Props = {
   people: Person[]

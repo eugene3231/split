@@ -4,7 +4,7 @@ import {
   formatGeneratedAt,
   formatPercent,
   getPersonCanvasColor,
-} from './receiptSplitImageHelpers'
+} from '@features/split-results/logic/receiptSplitImageHelpers'
 
 function makeContext(charWidth: number): CanvasRenderingContext2D {
   return {

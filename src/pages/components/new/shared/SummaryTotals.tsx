@@ -1,5 +1,5 @@
-import { formatCurrencyFromCents, parseNumber } from '../../../../shared/logic/core/money'
-import type { ChargeState, SplitResult } from '../../../../shared/types'
+import { formatCurrencyFromCents, parseNumber } from '@shared/logic/core/money'
+import type { ChargeState, SplitResult } from '@shared/types'
 
 interface Props {
   split: SplitResult

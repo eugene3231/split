@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
-import type { ChargeState, Person, Receipt, SplitResult } from '../../../../shared/types'
-import { formatCurrencyFromCents } from '../../../../shared/logic/core/money'
-import { generateReceiptSplitImage } from '../../../../features/split-results/logic/receiptSplitImage'
-import { buildSplitShareText, copyShareText, downloadImage } from '../../../../features/split-results/logic/shareSplit'
-import { PersonCard } from '../shared/PersonCard'
-import { cn } from '../../../../shared/utils/cn'
+import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types'
+import { formatCurrencyFromCents } from '@shared/logic/core/money'
+import { generateReceiptSplitImage } from '@features/split-results/logic/receiptSplitImage'
+import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
+import { PersonCard } from '@pages/components/new/shared/PersonCard'
+import { cn } from '@shared/utils/cn'
 
 type Props = {
   people: Person[]
@@ -180,6 +180,7 @@ export function SummaryStep({
           <div className="flex justify-end mb-3">
             <button
               type="button"
+              data-testid="summary-show-details-btn"
               onClick={() => setShowDetails((v) => !v)}
               className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
             >
@@ -244,6 +245,7 @@ export function SummaryStep({
           <div className="flex flex-col gap-2">
             <button
               type="button"
+              data-testid="export-save-image-btn"
               onClick={handleDownload}
               disabled={busy !== null}
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-surface-container-highest text-primary font-bold text-sm hover:bg-primary hover:text-on-primary transition-all disabled:opacity-60"
@@ -253,6 +255,7 @@ export function SummaryStep({
             </button>
             <button
               type="button"
+              data-testid="export-copy-text-btn"
               onClick={handleCopy}
               disabled={busy !== null}
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-outline-variant/30 text-primary font-bold text-sm hover:border-primary transition-all disabled:opacity-60"
@@ -271,6 +274,7 @@ export function SummaryStep({
       <div className="flex justify-center mb-4">
         <button
           type="button"
+          data-testid="summary-add-receipt-btn"
           onClick={onAddReceipt}
           className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
         >

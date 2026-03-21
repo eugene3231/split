@@ -3,8 +3,8 @@ import {
   DEFAULT_GEMINI_MODEL,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
-} from '../constants'
-import { useReceiptStore } from './receiptStore'
+} from '@shared/constants'
+import { useReceiptStore } from '@shared/stores/receiptStore'
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...'
 const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...'

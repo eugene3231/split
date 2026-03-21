@@ -1,4 +1,4 @@
-import { getPersonColor } from '../../../../shared/utils/personColors'
+import { getPersonColor } from '@shared/utils/personColors'
 
 interface Props {
   name: string

@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { formatCurrencyFromCents, parseCurrencyToCents } from '../../../../shared/logic/core/money'
-import { getPersonColor } from '../../../../shared/utils/personColors'
-import type { EditableItem, Person } from '../../../../shared/types'
-import { isSimpleItemAssigned } from '../../../../pages/logic/wizardValidation'
+import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money'
+import { getPersonColor } from '@shared/utils/personColors'
+import type { EditableItem, Person } from '@shared/types'
+import { isSimpleItemAssigned } from '@pages/logic/wizardValidation'
 
 type Props = {
   items: EditableItem[]

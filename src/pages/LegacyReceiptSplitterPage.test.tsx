@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_GEMINI_MODEL } from '../shared/constants'
-import { useReceiptStore } from '../shared/stores/receiptStore'
+import { DEFAULT_GEMINI_MODEL } from '@shared/constants'
+import { useReceiptStore } from '@shared/stores/receiptStore'
 
 const { generateReceiptSplitImageMock } = vi.hoisted(() => ({
   generateReceiptSplitImageMock: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('../features/split-results/logic/receiptSplitImage', () => ({
   generateReceiptSplitImage: generateReceiptSplitImageMock,
 }))
 
-import { LegacyReceiptSplitterPage } from './LegacyReceiptSplitterPage'
+import { LegacyReceiptSplitterPage } from '@pages/LegacyReceiptSplitterPage'
 
 function resetUiStore() {
   useReceiptStore.setState({

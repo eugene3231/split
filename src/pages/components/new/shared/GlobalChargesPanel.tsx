@@ -1,7 +1,7 @@
-import type { ChargeState, SplitResult } from '../../../../shared/types'
-import { ChargeToggle } from './ChargeToggle'
-import { SummaryTotals } from './SummaryTotals'
-import { ReconciliationNotice } from './ReconciliationNotice'
+import type { ChargeState, SplitResult } from '@shared/types'
+import { ChargeToggle } from '@pages/components/new/shared/ChargeToggle'
+import { SummaryTotals } from '@pages/components/new/shared/SummaryTotals'
+import { ReconciliationNotice } from '@pages/components/new/shared/ReconciliationNotice'
 
 interface Props {
   split: SplitResult
@@ -57,6 +57,7 @@ export function GlobalChargesPanel({
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">$</span>
             <input
               id="receipt-total-new"
+              data-testid="receipt-total-input"
               type="text"
               inputMode="decimal"
               value={receiptTotalInput}

@@ -1,8 +1,8 @@
-import { AdvancedWorkspace } from './components/advanced/AdvancedWorkspace'
-import { SimpleWorkspace } from './components/simple/SimpleWorkspace'
-import { GeminiApiKeyModal } from '../features/receipt-scanner/components/GeminiApiKeyModal'
-import { ReceiptSplitterHeader } from './components/ReceiptSplitterHeader'
-import { useReceiptSplitterController } from './hooks/useReceiptSplitterController'
+import { AdvancedWorkspace } from '@pages/components/advanced/AdvancedWorkspace'
+import { SimpleWorkspace } from '@pages/components/simple/SimpleWorkspace'
+import { GeminiApiKeyModal } from '@features/receipt-scanner/components/GeminiApiKeyModal'
+import { ReceiptSplitterHeader } from '@pages/components/ReceiptSplitterHeader'
+import { useReceiptSplitterController } from '@pages/hooks/useReceiptSplitterController'
 
 export function LegacyReceiptSplitterPage() {
   const controller = useReceiptSplitterController()

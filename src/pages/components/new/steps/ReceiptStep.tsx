@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import type { ChargeState, EditableItem, Receipt, SplitResult } from '../../../../shared/types'
-import { hasAnyValidReceiptItem } from '../../../logic/wizardValidation'
-import { ReceiptImportActions } from '../shared/ReceiptImportActions'
-import { LineItemCard } from '../shared/LineItemCard'
-import { GlobalChargesPanel } from '../shared/GlobalChargesPanel'
-import { ReceiptTabs } from '../shared/ReceiptTabs'
-import { useReceiptStore } from '../../../../shared/stores/receiptStore'
-import { cn } from '../../../../shared/utils/cn'
+import type { ChargeState, EditableItem, Receipt, SplitResult } from '@shared/types'
+import { hasAnyValidReceiptItem } from '@pages/logic/wizardValidation'
+import { ReceiptImportActions } from '@pages/components/new/shared/ReceiptImportActions'
+import { LineItemCard } from '@pages/components/new/shared/LineItemCard'
+import { GlobalChargesPanel } from '@pages/components/new/shared/GlobalChargesPanel'
+import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs'
+import { useReceiptStore } from '@shared/stores/receiptStore'
+import { cn } from '@shared/utils/cn'
 
 type Props = {
   receipts: Receipt[]
@@ -165,6 +165,7 @@ export function ReceiptStep({
                 {/* Add item button */}
                 <button
                   type="button"
+                  data-testid="receipt-add-item-btn"
                   onClick={onAddItem}
                   className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-outline-variant rounded-2xl text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-all"
                 >
@@ -173,12 +174,13 @@ export function ReceiptStep({
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-outline-variant/30 rounded-2xl bg-surface-bright text-center gap-3">
+              <div data-testid="receipt-empty-state" className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-outline-variant/30 rounded-2xl bg-surface-bright text-center gap-3">
                 <span className="material-symbols-outlined text-3xl text-outline">receipt</span>
                 <p className="text-sm font-semibold text-on-surface-variant">No items yet</p>
                 <p className="text-sm text-outline">Scan a receipt or add items manually below.</p>
                 <button
                   type="button"
+                  data-testid="receipt-add-item-btn"
                   onClick={onAddItem}
                   className="mt-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-xl font-bold text-sm active:scale-95 transition-transform"
                 >

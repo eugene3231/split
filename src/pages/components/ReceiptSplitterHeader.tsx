@@ -1,4 +1,4 @@
-import { AppMenu } from './AppMenu'
+import { AppMenu } from '@pages/components/AppMenu'
 
 type ReceiptSplitterHeaderProps = {
   uxMode: 'simple' | 'advanced'

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { EditableItem, Person } from '../../types'
+import type { EditableItem, Person } from '@shared/types'
 import {
   createEmptyItem,
   isItemAssigned,
   pickDefaultPersonId,
   sanitizeItemAssignment,
-} from './items'
+} from '@shared/logic/assignment/items'
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },

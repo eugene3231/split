@@ -1,6 +1,6 @@
-import type { ChargeState, SplitResult } from '../../../shared/types'
-import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core/money'
-import { SummaryRow } from './SummaryRow'
+import type { ChargeState, SplitResult } from '@shared/types'
+import { formatCurrencyFromCents, parseNumber } from '@shared/logic/core/money'
+import { SummaryRow } from '@features/split-results/components/SummaryRow'
 
 type SplitTotalsCardProps = {
   split: SplitResult

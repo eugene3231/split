@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useReceiptStore } from '../../shared/stores/receiptStore'
-import type { EditableItem, Person } from '../../shared/types'
-import type { ItemsSubPhase, SimpleWizardStep } from '../types'
-import { loadSimpleWizardState, saveSimpleWizardState } from '../logic/persistence'
-import { clampActiveItemIndex, resolveWizardState } from '../logic/wizardState'
-import { isStepValid } from '../logic/wizardValidation'
+import { useReceiptStore } from '@shared/stores/receiptStore'
+import type { EditableItem, Person } from '@shared/types'
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
+import { loadSimpleWizardState, saveSimpleWizardState } from '@pages/logic/persistence'
+import { clampActiveItemIndex, resolveWizardState } from '@pages/logic/wizardState'
+import { isStepValid } from '@pages/logic/wizardValidation'
 
 export function useSimpleWizard(
   items: EditableItem[],

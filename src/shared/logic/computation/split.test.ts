@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ChargeState, EditableItem, Person } from '../../types'
-import { computeSplit } from './split'
+import type { ChargeState, EditableItem, Person } from '@shared/types'
+import { computeSplit } from '@shared/logic/computation/split'
 
 const disabledCharge: ChargeState = {
   enabled: false,

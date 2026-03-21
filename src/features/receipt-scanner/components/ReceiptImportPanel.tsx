@@ -1,8 +1,8 @@
 import { useShallow } from 'zustand/shallow'
-import { useReceiptStore } from '../../../shared/stores/receiptStore'
+import { useReceiptStore } from '@shared/stores/receiptStore'
 
 const EMPTY_WARNINGS: string[] = []
-import { ReceiptScanSection } from './ReceiptScanSection'
+import { ReceiptScanSection } from '@features/receipt-scanner/components/ReceiptScanSection'
 
 type ReceiptImportPanelProps = {
   onReceiptFileSelected: (file: File | null) => void

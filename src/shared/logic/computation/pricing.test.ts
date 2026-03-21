@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { EditableItem } from '../../types'
-import { parseDiscountPercent, resolveDiscountedAmountCents } from './pricing'
+import type { EditableItem } from '@shared/types'
+import { parseDiscountPercent, resolveDiscountedAmountCents } from '@shared/logic/computation/pricing'
 
 function buildItem(overrides: Partial<EditableItem> = {}): EditableItem {
   return {
