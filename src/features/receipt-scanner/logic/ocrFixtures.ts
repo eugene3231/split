@@ -1,4 +1,4 @@
-import type { OcrResponse } from '../../../shared/types'
+import type { OcrResponse } from '@shared/types'
 
 export interface MockReceiptFixture {
   label: string

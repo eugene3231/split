@@ -7,7 +7,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
-} from '../constants'
+} from '@shared/constants'
 import {
   clearPersistedDraft,
   clearSessionGeminiApiKey,
@@ -21,7 +21,7 @@ import {
   savePersistedOcrSettings,
   savePersistedUxMode,
   saveSessionGeminiApiKey,
-} from './storage'
+} from '@shared/api/storage'
 
 beforeEach(() => {
   window.localStorage.clear()

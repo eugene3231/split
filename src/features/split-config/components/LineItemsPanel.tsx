@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import type { ChargeState, EditableItem, Person } from '../../../shared/types'
-import { LineItemCard } from './LineItemCard'
+import type { ChargeState, EditableItem, Person } from '@shared/types'
+import { LineItemCard } from '@features/split-config/components/LineItemCard'
 
 type LineItemsPanelProps = {
   people: Person[]

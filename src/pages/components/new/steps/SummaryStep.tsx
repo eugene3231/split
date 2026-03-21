@@ -1,0 +1,287 @@
+import { useRef, useState } from 'react'
+import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types'
+import { formatCurrencyFromCents } from '@shared/logic/core/money'
+import { generateReceiptSplitImage } from '@features/split-results/logic/receiptSplitImage'
+import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
+import { PersonCard } from '@pages/components/new/shared/PersonCard'
+import { cn } from '@shared/utils/cn'
+
+type Props = {
+  people: Person[]
+  receipts: Receipt[]
+  activeReceiptId: string
+  split: SplitResult
+  consolidatedSplit: SplitResult
+  splitByReceipt: SplitResult[]
+  discount: ChargeState
+  serviceCharge: ChargeState
+  gst: ChargeState
+  reconciliationCents: number | null
+  onApplyDiscount: () => void
+  onAddReceipt: () => void
+}
+
+type ExportBusy = 'downloading' | 'copying' | null
+
+export function SummaryStep({
+  people,
+  receipts,
+  split,
+  consolidatedSplit,
+  splitByReceipt,
+  discount,
+  serviceCharge,
+  gst,
+  reconciliationCents,
+  onApplyDiscount,
+  onAddReceipt,
+}: Props) {
+  const isMultiReceipt = receipts.length > 1
+  const [activeTab, setActiveTab] = useState<string>(isMultiReceipt ? 'total' : receipts[0]?.id ?? 'total')
+  const [busy, setBusy] = useState<ExportBusy>(null)
+  const [showDetails, setShowDetails] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<number | null>(null)
+
+  const activeReceiptIndex = receipts.findIndex((r) => r.id === activeTab)
+  const currentSplit = activeTab === 'total' ? consolidatedSplit : (splitByReceipt[activeReceiptIndex] ?? split)
+  const currentReceipt = activeTab === 'total' ? null : receipts[activeReceiptIndex]
+  const currentDiscount = currentReceipt?.discount ?? discount
+  const currentServiceCharge = currentReceipt?.serviceCharge ?? serviceCharge
+  const currentGst = currentReceipt?.gst ?? gst
+
+  const grandTotal = Object.values(currentSplit.totalByPersonCents).reduce((s, v) => s + v, 0)
+
+  const handleDownload = async () => {
+    setBusy('downloading')
+    setExportError(null)
+    try {
+      const blob = await generateReceiptSplitImage({
+        people,
+        split: currentSplit,
+        discount: currentDiscount,
+        serviceCharge: currentServiceCharge,
+        gst: currentGst,
+        receiptName: currentReceipt?.name,
+        reconciliationCents,
+        includeLineItems: false,
+        includeItemDetails: false,
+      })
+      await downloadImage(blob, 'split-result.png')
+    } catch {
+      setExportError('Failed to generate image.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleCopy = async () => {
+    setBusy('copying')
+    const text = buildSplitShareText({ people, receiptName: currentReceipt?.name ?? '', split: currentSplit })
+    try {
+      await copyShareText(text)
+      setBusy(null)
+      setCopied(true)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <div>
+      {/* Title + tabs */}
+      <div className="mb-8">
+        {/* Desktop header */}
+        <div className="mb-6 hidden md:block">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2 font-headline">
+            Final Breakdown
+          </h1>
+          <p className="text-on-surface-variant text-lg">
+            Review the consolidated total or individual receipt details.
+          </p>
+        </div>
+
+        {/* Mobile header */}
+        <div className="mb-4 md:hidden">
+          <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">Final Breakdown</h1>
+          <p className="text-on-surface-variant text-xs mt-0.5">Review the consolidated total or individual receipt details.</p>
+        </div>
+
+        {isMultiReceipt && (
+          <div className="flex overflow-x-auto gap-3 pb-1" style={{ scrollbarWidth: 'none' }}>
+            <button
+              type="button"
+              data-testid="summary-tab-total"
+              onClick={() => setActiveTab('total')}
+              className={cn(
+                'flex-shrink-0 px-6 py-2.5 rounded-full font-bold transition-all',
+                activeTab === 'total'
+                  ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
+                  : 'bg-surface-container-high text-on-surface-variant font-semibold hover:bg-surface-container-highest',
+              )}
+            >
+              Total ({receipts.length} receipts)
+            </button>
+            {receipts.map((r, index) => (
+              <button
+                key={r.id}
+                type="button"
+                data-testid={`summary-tab-receipt-${index}`}
+                onClick={() => setActiveTab(r.id)}
+                className={cn(
+                  'flex-shrink-0 px-6 py-2.5 rounded-full font-semibold transition-all',
+                  activeTab === r.id
+                    ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
+                    : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest',
+                )}
+              >
+                {r.name || `Receipt ${index + 1}`}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Discrepancy notice */}
+      {reconciliationCents !== null && reconciliationCents !== 0 && (
+        <div className="mb-8">
+          <div className="bg-error-container/30 border border-error/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-error-container flex items-center justify-center text-on-error-container flex-shrink-0">
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+              </div>
+              <div>
+                <h4 className="font-bold text-on-error-container">Reconciliation Discrepancy</h4>
+                <p className="text-sm text-on-error-container opacity-80">
+                  The sum of individual shares is {formatCurrencyFromCents(Math.abs(reconciliationCents))} off from the receipt total.
+                </p>
+              </div>
+            </div>
+            {reconciliationCents < 0 && (
+              <button
+                type="button"
+                onClick={onApplyDiscount}
+                className="whitespace-nowrap bg-on-error-container text-on-primary px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+              >
+                Apply Corrective Discount
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+        {/* Left: Person cards (single column) */}
+        <div className="lg:col-span-8 order-2 lg:order-1">
+          <div className="flex justify-end mb-3">
+            <button
+              type="button"
+              data-testid="summary-show-details-btn"
+              onClick={() => setShowDetails((v) => !v)}
+              className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">
+                {showDetails ? 'expand_less' : 'expand_more'}
+              </span>
+              {showDetails ? 'Hide details' : 'Show details'}
+            </button>
+          </div>
+          <div className="flex flex-col gap-6">
+            {people.map((person, index) => (
+              <PersonCard
+                key={person.id}
+                person={person}
+                colorIndex={index}
+                split={currentSplit}
+                discount={currentDiscount}
+                serviceCharge={currentServiceCharge}
+                gst={currentGst}
+                showDetails={showDetails}
+                receiptBreakdown={activeTab === 'total' && isMultiReceipt
+                  ? receipts.map((r, i) => ({ name: r.name || `Receipt ${i + 1}`, split: splitByReceipt[i] }))
+                  : undefined
+                }
+              />
+            ))}
+            {people.length === 0 && (
+              <p className="text-center text-on-surface-variant text-sm py-8">
+                Add people to see the breakdown.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Grand total + export */}
+        <div className="lg:col-span-4 flex flex-col gap-4 order-1 lg:order-2">
+          {/* Grand total card */}
+          <div className="rounded-2xl p-6 text-left shadow-md" style={{ background: 'linear-gradient(135deg, #2d6a7f 0%, #1e5068 100%)' }}>
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-sm font-bold uppercase tracking-widest text-white">
+                {currentReceipt ? currentReceipt.name : 'Grand Total'}
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-white/50 text-sm">account_balance_wallet</span>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1 mb-5">
+              <span className="text-xl font-semibold text-white/60">$</span>
+              <span className="text-4xl font-semibold text-white font-headline leading-none">
+                {formatCurrencyFromCents(grandTotal).replace('$', '')}
+              </span>
+            </div>
+            <div className="border-t border-white/10 pt-4 flex items-center gap-2.5">
+              <span className="material-symbols-outlined !text-sm text-cyan-300" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              <span className="text-sm font-medium text-white">
+                Fully reconciled across {people.length} {people.length === 1 ? 'person' : 'people'}
+              </span>
+            </div>
+          </div>
+
+          {/* Export actions */}
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              data-testid="export-save-image-btn"
+              onClick={handleDownload}
+              disabled={busy !== null}
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-surface-container-highest text-primary font-bold text-sm hover:bg-primary hover:text-on-primary transition-all disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-base">image</span>
+              {busy === 'downloading' ? 'Generating…' : 'Save Image'}
+            </button>
+            <button
+              type="button"
+              data-testid="export-copy-text-btn"
+              onClick={handleCopy}
+              disabled={busy !== null}
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-outline-variant/30 text-primary font-bold text-sm hover:border-primary transition-all disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-base">
+                {copied ? 'check' : 'content_copy'}
+              </span>
+              {copied ? 'Copied!' : busy === 'copying' ? 'Copying…' : 'Copy Text'}
+            </button>
+            {exportError && <p className="text-sm text-error">{exportError}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Add receipt secondary action */}
+      <div className="flex justify-center mb-4">
+        <button
+          type="button"
+          data-testid="summary-add-receipt-btn"
+          onClick={onAddReceipt}
+          className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
+        >
+          <span className="material-symbols-outlined text-base">add_box</span>
+          Add new receipt
+        </button>
+      </div>
+    </div>
+  )
+}

@@ -1,5 +1,75 @@
 @import "tailwindcss";
 
+@theme {
+  /* Surface hierarchy */
+  --color-surface: #f8fafb;
+  --color-surface-bright: #f8fafb;
+  --color-surface-dim: #d8dadb;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f4f5;
+  --color-surface-container: #eceeef;
+  --color-surface-container-high: #e6e8e9;
+  --color-surface-container-highest: #e1e3e4;
+  --color-surface-variant: #e1e3e4;
+  --color-surface-tint: #206773;
+
+  /* Primary */
+  --color-primary: #003d46;
+  --color-primary-container: #005662;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #89c9d7;
+  --color-on-primary-fixed: #001f25;
+  --color-on-primary-fixed-variant: #004e59;
+  --color-primary-fixed: #acedfb;
+  --color-primary-fixed-dim: #90d1df;
+  --color-inverse-primary: #90d1df;
+
+  /* Secondary */
+  --color-secondary: #1b6d24;
+  --color-secondary-container: #a0f399;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #217128;
+  --color-on-secondary-fixed: #002204;
+  --color-on-secondary-fixed-variant: #005312;
+  --color-secondary-fixed: #a3f69c;
+  --color-secondary-fixed-dim: #88d982;
+
+  /* Tertiary */
+  --color-tertiary: #003f37;
+  --color-tertiary-container: #00584d;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #73cfbe;
+  --color-on-tertiary-fixed: #00201b;
+  --color-on-tertiary-fixed-variant: #005047;
+  --color-tertiary-fixed: #97f3e2;
+  --color-tertiary-fixed-dim: #7ad7c6;
+
+  /* Error */
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  /* On-surface */
+  --color-on-surface: #191c1d;
+  --color-on-surface-variant: #3f484a;
+  --color-on-background: #191c1d;
+  --color-background: #f8fafb;
+
+  /* Outlines */
+  --color-outline: #6f797b;
+  --color-outline-variant: #bfc8ca;
+
+  /* Inverse */
+  --color-inverse-surface: #2e3132;
+  --color-inverse-on-surface: #eff1f2;
+
+  /* Font families */
+  --font-family-headline: 'Manrope', sans-serif;
+  --font-family-body: 'Inter', sans-serif;
+  --font-family-label: 'Inter', sans-serif;
+}
+
 html,
 body,
 #root {
@@ -12,8 +82,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar styling for dark theme */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Light theme scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3f3f46 transparent;
+  scrollbar-color: #bfc8ca transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bfc8ca;
+  border-radius: 10px;
 }

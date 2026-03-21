@@ -1,4 +1,4 @@
-import type { ChargeMode, ChargeState } from '../../../shared/types'
+import type { ChargeMode, ChargeState } from '@shared/types'
 
 type ChargeControlProps = {
   label: string

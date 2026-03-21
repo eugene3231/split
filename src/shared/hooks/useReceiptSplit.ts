@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { computeSplit, computeConsolidatedSplit } from '../logic/computation/split'
-import { useReconciliation } from './useReconciliation'
-import { useReceiptStore } from '../stores/receiptStore'
-import { defaultDiscountState, defaultGstState, defaultServiceChargeState } from '../constants'
+import { computeSplit, computeConsolidatedSplit } from '@shared/logic/computation/split'
+import { useReconciliation } from '@shared/hooks/useReconciliation'
+import { useReceiptStore } from '@shared/stores/receiptStore'
+import { defaultDiscountState, defaultGstState, defaultServiceChargeState } from '@shared/constants'
 
 export function useReceiptSplit() {
   const { people, receipts, activeReceiptId, setDiscount } = useReceiptStore(

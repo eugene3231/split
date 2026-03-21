@@ -1,7 +1,7 @@
-import type { AssignmentMode, ChargeState, EditableItem, Person } from '../../../shared/types'
-import { formatCurrencyFromCents } from '../../../shared/logic/core/money'
-import { isItemAssigned, pickDefaultPersonId } from '../../../shared/logic/assignment/items'
-import { resolveDiscountedAmountCents } from '../../../shared/logic/computation/pricing'
+import type { AssignmentMode, ChargeState, EditableItem, Person } from '@shared/types'
+import { formatCurrencyFromCents } from '@shared/logic/core/money'
+import { isItemAssigned, pickDefaultPersonId } from '@shared/logic/assignment/items'
+import { resolveDiscountedAmountCents } from '@shared/logic/computation/pricing'
 
 type LineItemCardProps = {
   item: EditableItem

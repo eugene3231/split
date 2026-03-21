@@ -1,4 +1,4 @@
-import type { ChargeState } from './types'
+import type { ChargeState } from '@shared/types'
 
 export const defaultDiscountState: ChargeState = {
   enabled: false,

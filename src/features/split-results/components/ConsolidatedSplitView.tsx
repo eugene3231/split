@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import useEmblaCarousel from 'embla-carousel-react'
-import type { Person, Receipt, SplitResult } from '../../../shared/types'
-import { formatCurrencyFromCents } from '../../../shared/logic/core/money'
-import { getPersonColor } from '../../../shared/utils/personColors'
-import { ExportConsolidatedSplitImageSection } from './ExportConsolidatedSplitImageSection'
+import type { Person, Receipt, SplitResult } from '@shared/types'
+import { formatCurrencyFromCents } from '@shared/logic/core/money'
+import { getPersonColor } from '@shared/utils/personColors'
+import { ExportConsolidatedSplitImageSection } from '@features/split-results/components/ExportConsolidatedSplitImageSection'
 
 type Props = {
   people: Person[]

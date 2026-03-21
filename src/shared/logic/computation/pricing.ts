@@ -1,5 +1,5 @@
-import type { EditableItem } from '../../types'
-import { parseCurrencyToCents, parseNumber } from '../core/money'
+import type { EditableItem } from '@shared/types'
+import { parseCurrencyToCents, parseNumber } from '@shared/logic/core/money'
 
 export function parseDiscountPercent(input: string): number {
   const parsed = parseNumber(input)

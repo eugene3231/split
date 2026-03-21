@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import type { ChargeState, Person, SplitResult } from '../../../shared/types'
-import { generateReceiptSplitImage } from '../logic/receiptSplitImage'
-import { buildSplitShareText, copyShareText, downloadImage } from '../logic/shareSplit'
+import type { ChargeState, Person, SplitResult } from '@shared/types'
+import { generateReceiptSplitImage } from '@features/split-results/logic/receiptSplitImage'
+import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
 
 type ExportSplitImageSectionProps = {
   people: Person[]

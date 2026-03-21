@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import type { Person } from '../../../shared/types'
+import type { Person } from '@shared/types'
 
 type PeopleSetupSectionProps = {
   peopleInput: string

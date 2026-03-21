@@ -1,6 +1,6 @@
-import type { EditableItem, Person } from '../../shared/types'
-import type { ItemsSubPhase, SimpleWizardStep } from '../types'
-import { isStepValid } from './wizardValidation'
+import type { EditableItem, Person } from '@shared/types'
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
+import { isStepValid } from '@pages/logic/wizardValidation'
 
 export function clampActiveItemIndex(index: number, itemCount: number): number {
   if (itemCount <= 0) return 0

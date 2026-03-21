@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { SplitView, ConsolidatedSplitView } from '../../../../features/split-results'
-import type { ChargeState, Person, Receipt, SplitResult } from '../../../../shared/types'
+import { SplitView, ConsolidatedSplitView } from '@features/split-results'
+import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types'
 
 type Props = {
   people: Person[]

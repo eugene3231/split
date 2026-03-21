@@ -1,5 +1,5 @@
 import { useRef, type ChangeEvent } from 'react'
-import { GEMINI_MODELS } from '../../../shared/constants'
+import { GEMINI_MODELS } from '@shared/constants'
 
 type ReceiptScanSectionProps = {
   hasApiKey: boolean

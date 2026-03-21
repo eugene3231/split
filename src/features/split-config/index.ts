@@ -1,3 +1,3 @@
-export { SetupPanel } from './components/SetupPanel'
-export { GlobalChargesSection } from './components/GlobalChargesSection'
-export { LineItemsPanel } from './components/LineItemsPanel'
+export { SetupPanel } from '@features/split-config/components/SetupPanel'
+export { GlobalChargesSection } from '@features/split-config/components/GlobalChargesSection'
+export { LineItemsPanel } from '@features/split-config/components/LineItemsPanel'

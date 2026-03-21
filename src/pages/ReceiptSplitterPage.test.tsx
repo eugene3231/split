@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_GEMINI_MODEL } from '../shared/constants'
-import { useReceiptStore } from '../shared/stores/receiptStore'
+import { DEFAULT_GEMINI_MODEL } from '@shared/constants'
+import { useReceiptStore } from '@shared/stores/receiptStore'
 
 const { generateReceiptSplitImageMock } = vi.hoisted(() => ({
   generateReceiptSplitImageMock: vi.fn(),
@@ -12,16 +12,22 @@ vi.mock('../features/split-results/logic/receiptSplitImage', () => ({
   generateReceiptSplitImage: generateReceiptSplitImageMock,
 }))
 
-import { ReceiptSplitterPage } from './ReceiptSplitterPage'
+import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage'
 
-function resetUiStore() {
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function resetStore() {
   useReceiptStore.setState({
-    uxMode: 'advanced',
+    uxMode: 'simple',
     peopleInput: '',
-    geminiApiKeyInput: '',
+    geminiApiKeyInput: 'test-key',
     rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
     scanStateByReceipt: {},
+    showApiKeyModal: false,
+    initialized: false,
   })
 }
 
@@ -34,126 +40,74 @@ const disabledChargeState = {
   detectedSource: null,
 }
 
-function seedDraft(overrides: {
-  discount?: object
-  serviceCharge?: object
-  gst?: object
-  receiptTotalInput?: string
-  people?: object[]
+function makeReceipt(overrides: {
+  id: string
   items?: object[]
+  receiptTotalInput?: string
 }) {
-  window.localStorage.setItem(
-    'split:receipt-draft:v1',
-    JSON.stringify({
-      version: 1,
-      people: overrides.people ?? [{ id: 'p1', name: 'Alice' }],
-      items: overrides.items ?? [
-        {
-          id: 'i1',
-          name: 'Pizza',
-          amountInput: '10.00',
-          discountPercentInput: '',
-          assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
-        },
-      ],
-      discount: overrides.discount ?? disabledChargeState,
-      serviceCharge: overrides.serviceCharge ?? disabledChargeState,
-      gst: overrides.gst ?? disabledChargeState,
-      receiptTotalInput: overrides.receiptTotalInput ?? '',
-      finalSplit: {
-        subtotalCents: 0,
-        serviceChargeCents: 0,
-        gstCents: 0,
-        grandTotalCents: 0,
-        totalByPersonCents: {},
+  return {
+    id: overrides.id,
+    name: `Receipt ${overrides.id}`,
+    items: overrides.items ?? [
+      {
+        id: `${overrides.id}-i1`,
+        name: 'Chicken Rice',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
       },
-      savedAt: '2026-03-08T00:00:00.000Z',
-    }),
-  )
-}
-
-function seedSimpleDraftWithSingleAssignment() {
-  window.localStorage.setItem(
-    'split:receipt-draft:v1',
-    JSON.stringify({
-      version: 1,
-      people: [
-        { id: 'p1', name: 'Alice' },
-        { id: 'p2', name: 'Ben' },
-      ],
-      items: [
-        {
-          id: 'i1',
-          name: 'Chicken Rice',
-          amountInput: '10.00',
-          discountPercentInput: '',
-          assignment: {
-            mode: 'single',
-            personId: 'p1',
-            personIds: ['p1', 'p2'],
-          },
-        },
-      ],
-      serviceCharge: {
-        enabled: true,
-        mode: 'percent',
-        amountInput: '',
-        percentInput: '10',
-        detectedConfidence: null,
-        detectedSource: null,
-      },
-      gst: {
-        enabled: true,
-        mode: 'percent',
-        amountInput: '',
-        percentInput: '9',
-        detectedConfidence: null,
-        detectedSource: null,
-      },
-      receiptTotalInput: '11.90',
-      finalSplit: {
-        subtotalCents: 1000,
-        serviceChargeCents: 100,
-        gstCents: 90,
-        grandTotalCents: 1190,
-        totalByPersonCents: {
-          p1: 1190,
-          p2: 0,
-        },
-      },
-      savedAt: '2026-03-05T00:00:00.000Z',
-    }),
-  )
-}
-
-function addPeople(raw: string) {
-  fireEvent.change(screen.getByLabelText(/People \(type names, separated by comma\)/i), {
-    target: { value: raw },
-  })
-  fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-}
-
-function getAssigneeSelect(): HTMLSelectElement {
-  const select = screen
-    .getAllByRole('combobox')
-    .find((element) =>
-      Array.from((element as HTMLSelectElement).options).some(
-        (option) => option.textContent === 'Select person',
-      ),
-    )
-
-  if (!select) {
-    throw new Error('Assignee select not found')
+    ],
+    discount: disabledChargeState,
+    serviceCharge: disabledChargeState,
+    gst: disabledChargeState,
+    receiptTotalInput: overrides.receiptTotalInput ?? '',
   }
-
-  return select as HTMLSelectElement
 }
+
+function seedV2Draft(overrides: {
+  people?: object[]
+  receipts?: object[]
+  activeReceiptId?: string
+}) {
+  const people = overrides.people ?? [
+    { id: 'p1', name: 'Alice' },
+    { id: 'p2', name: 'Bob' },
+  ]
+  const receipts = overrides.receipts ?? [makeReceipt({ id: 'r1' })]
+  window.localStorage.setItem(
+    'split:receipt-draft:v1',
+    JSON.stringify({
+      version: 2,
+      people,
+      receipts,
+      activeReceiptId: overrides.activeReceiptId ?? (receipts[0] as { id: string }).id,
+      savedAt: '2026-03-21T00:00:00.000Z',
+    }),
+  )
+}
+
+function addPeople(names: string) {
+  fireEvent.change(screen.getByTestId('people-input'), { target: { value: names } })
+  fireEvent.click(screen.getByTestId('people-add-btn'))
+}
+
+function clickContinue() {
+  fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+}
+
+function clickBack() {
+  fireEvent.click(screen.getByTestId('wizard-back-btn'))
+}
+
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
 
 beforeEach(() => {
   vi.restoreAllMocks()
   window.localStorage.clear()
   window.sessionStorage.clear()
-  resetUiStore()
+  resetStore()
   generateReceiptSplitImageMock.mockReset()
   generateReceiptSplitImageMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }))
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
@@ -172,646 +126,558 @@ beforeEach(() => {
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
     writable: true,
-    value: {
-      writeText: vi.fn().mockResolvedValue(undefined),
-    },
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
   })
 })
 
-describe('ReceiptSplitterPage advanced mode integration', () => {
-  it('adds people from input and ignores duplicates case-insensitively', () => {
-    render(<ReceiptSplitterPage />)
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
-    addPeople('Alice, Ben')
-    expect(screen.getAllByRole('button', { name: 'Alice ×' })).toHaveLength(1)
-    expect(screen.getAllByRole('button', { name: 'Ben ×' })).toHaveLength(1)
-
-    addPeople('alice, Bob')
-    expect(screen.getAllByRole('button', { name: 'Alice ×' })).toHaveLength(1)
-    expect(screen.getAllByRole('button', { name: 'Bob ×' })).toHaveLength(1)
-  })
-
-  it('supports add/remove item with minimum-one-item guard', () => {
-    render(<ReceiptSplitterPage />)
-    expect(screen.getAllByText(/^Item \d+$/)).toHaveLength(1)
-
-    fireEvent.click(screen.getByRole('button', { name: '+ Add Item' }))
-    expect(screen.getAllByText(/^Item \d+$/)).toHaveLength(2)
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
-    expect(screen.getAllByText(/^Item \d+$/)).toHaveLength(1)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
-    expect(screen.getAllByText(/^Item \d+$/)).toHaveLength(1)
-  })
-
-  it('loads mock receipt into items, detected charges, warnings, and receipt total', () => {
-    const { container } = render(<ReceiptSplitterPage />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Load Mock Receipt' }))
-
-    expect(screen.getByDisplayValue('Chicken Rice')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('Iced Lemon Tea')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('47.48')).toBeInTheDocument()
-    expect(container.querySelectorAll('.text-amber-300').length).toBeGreaterThan(0)
-  })
-
-  it('shows validation error when scan is clicked without API key', () => {
-    const { container } = render(<ReceiptSplitterPage />)
-    const fileInput = container.querySelector('[data-testid="receipt-file-input"]')
-    expect(fileInput).not.toBeNull()
-
-    fireEvent.change(fileInput as HTMLInputElement, {
-      target: { files: [new File(['image'], 'receipt.jpg', { type: 'image/jpeg' })] },
+describe('ReceiptSplitterPage integration', () => {
+  describe('People step', () => {
+    it('renders the people step as the initial step with continue disabled', () => {
+      render(<ReceiptSplitterPage />)
+      expect(screen.getByTestId('simple-wizard')).toBeInTheDocument()
+      expect(screen.getByTestId('people-empty-state')).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Scan Receipt' }))
 
-    expect(container.querySelector('.text-rose-400')).not.toBeNull()
-  })
+    it('does not show a back button on the first step', () => {
+      render(<ReceiptSplitterPage />)
+      expect(screen.queryByTestId('wizard-back-btn')).not.toBeInTheDocument()
+    })
 
-  it('re-sanitizes item assignments when people list changes', async () => {
-    render(<ReceiptSplitterPage />)
-    addPeople('Alice, Bob')
+    it('adds people from comma-separated input and enables continue', () => {
+      render(<ReceiptSplitterPage />)
+      addPeople('Alice, Bob')
+      expect(screen.getByTestId('people-list')).toBeInTheDocument()
+      expect(screen.queryByTestId('people-empty-state')).not.toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled()
+    })
 
-    const assigneeSelect = getAssigneeSelect()
-    const bobOption = Array.from(assigneeSelect.options).find((option) => option.textContent === 'Bob')
-    expect(bobOption).toBeDefined()
+    it('ignores duplicate names case-insensitively', () => {
+      render(<ReceiptSplitterPage />)
+      addPeople('Alice, Bob')
+      addPeople('alice, Carol')
+      const chips = screen.getByTestId('people-list').querySelectorAll('button')
+      expect(chips).toHaveLength(3)
+    })
 
-    fireEvent.change(assigneeSelect, { target: { value: bobOption?.value } })
-    expect(assigneeSelect.selectedOptions[0].textContent).toBe('Bob')
+    it('removes a person when their chip is clicked', () => {
+      render(<ReceiptSplitterPage />)
+      addPeople('Alice, Bob')
+      expect(screen.getByTestId('people-list').querySelectorAll('button')).toHaveLength(2)
+      fireEvent.click(screen.getByTestId('people-list').querySelectorAll('button')[0])
+      expect(screen.getByTestId('people-list').querySelectorAll('button')).toHaveLength(1)
+    })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Bob ×' }))
-    await waitFor(() => {
-      expect(assigneeSelect.selectedOptions[0].textContent).toBe('Alice')
+    it('removing all people shows the empty state and disables continue', () => {
+      render(<ReceiptSplitterPage />)
+      addPeople('Alice')
+      expect(screen.queryByTestId('people-empty-state')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByTestId('people-list').querySelector('button')!)
+      expect(screen.getByTestId('people-empty-state')).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
+    })
+
+    it('clears the input field after adding people', () => {
+      render(<ReceiptSplitterPage />)
+      addPeople('Alice')
+      expect(screen.getByTestId('people-input')).toHaveValue('')
     })
   })
 
-  it('updates reconciliation row when receipt total changes', () => {
-    render(<ReceiptSplitterPage />)
-    addPeople('Alice')
+  describe('Navigation', () => {
+    it('progresses through all 4 steps with valid seeded data', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    fireEvent.change(screen.getByPlaceholderText('Amount'), { target: { value: '10.00' } })
-    fireEvent.change(screen.getByLabelText(/Receipt Total \(optional\)/i), {
-      target: { value: '11.99' },
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1/i)
+      clickContinue()
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i)
+      clickContinue()
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 3/i)
+      clickContinue() // assign → review
+      clickContinue() // review → final
+      expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument()
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4/i)
     })
 
-    expect(screen.queryByText('$0.01')).not.toBeInTheDocument()
+    it('supports back navigation through all steps', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    fireEvent.change(screen.getByLabelText(/Receipt Total \(optional\)/i), {
-      target: { value: '12.00' },
-    })
-    expect(screen.getByText('$0.01')).toBeInTheDocument()
-  })
+      clickContinue() // → receipt
+      clickContinue() // → items/assign
+      clickContinue() // → items/review
+      clickContinue() // → final
 
-  it('downloads the share image with the selected export options', async () => {
-    render(<ReceiptSplitterPage />)
-    fireEvent.click(screen.getByTestId('export-save-image-btn'))
+      clickBack() // final → items/review
+      expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
 
-    await waitFor(() => {
-      expect(generateReceiptSplitImageMock).toHaveBeenCalledTimes(1)
-    })
+      clickBack() // items/review → items/assign
+      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument()
 
-    expect(generateReceiptSplitImageMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        includeLineItems: true,
-        includeItemDetails: false,
-      }),
-    )
-  })
+      clickBack() // items/assign → receipt
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i)
 
-  it('copies share text to clipboard when copy button is clicked', async () => {
-    render(<ReceiptSplitterPage />)
-
-    fireEvent.click(screen.getByTestId('export-copy-text-btn'))
-
-    await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining('total:'),
-      )
-    })
-  })
-
-  it('does not overwrite localStorage with empty state during Strict Mode double-invocation on initial mount', async () => {
-    // Regression: useLayoutEffect + reset() cleanup caused useDraftPersistence to
-    // save empty state between Strict Mode's unmount and remount phases, wiping
-    // any data that was already in localStorage before the component mounted.
-    seedSimpleDraftWithSingleAssignment()
-
-    render(
-      <StrictMode>
-        <ReceiptSplitterPage />
-      </StrictMode>,
-    )
-
-    // Wait for the component to fully initialize and settle
-    await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: 'Alice ×' })).toHaveLength(1)
+      clickBack() // receipt → people
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1/i)
+      expect(screen.queryByTestId('wizard-back-btn')).not.toBeInTheDocument()
     })
 
-    const saved = window.localStorage.getItem('split:receipt-draft:v1')
-    expect(saved).not.toBeNull()
-    const parsed = JSON.parse(saved!)
-    expect(parsed.people).toHaveLength(2)
-    expect(parsed.receipts[0].items).toHaveLength(1)
-    expect(parsed.receipts[0].items[0].name).toBe('Chicken Rice')
-  })
+    it('blocks continue on receipt step until valid items exist', async () => {
+      seedV2Draft({
+        receipts: [{ ...makeReceipt({ id: 'r1' }), items: [] }],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-  it('restores advanced single-person assignments after refresh', async () => {
-    const { unmount } = render(<ReceiptSplitterPage />)
-    addPeople('Alice, Bob')
+      clickContinue()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
 
-    const assigneeSelect = getAssigneeSelect()
-    const bobOption = Array.from(assigneeSelect.options).find((option) => option.textContent === 'Bob')
-    expect(bobOption).toBeDefined()
-
-    fireEvent.change(assigneeSelect, { target: { value: bobOption?.value } })
-
-    await waitFor(() => {
-      const savedDraft = window.localStorage.getItem('split:receipt-draft:v1')
-      expect(savedDraft).toContain(`"personId":"${bobOption?.value}"`)
+      fireEvent.click(screen.getByTestId('load-mock-receipt-btn-0'))
+      expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled()
     })
 
-    unmount()
-    render(<ReceiptSplitterPage />)
+    it('blocks continue on review sub-phase when items are unassigned', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    await waitFor(() => {
-      expect(getAssigneeSelect().selectedOptions[0].textContent).toBe('Bob')
+      clickContinue() // → receipt
+      clickContinue() // → items/assign
+      fireEvent.click(screen.getByTestId('assign-select-none-btn'))
+      clickContinue() // → items/review
+      expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
     })
   })
-})
 
-describe('ReceiptSplitterPage simple wizard integration', () => {
-  it('blocks progression until each simple wizard step is valid', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    render(<ReceiptSplitterPage />)
+  describe('Receipt step', () => {
+    it('shows empty state when no items exist', async () => {
+      seedV2Draft({
+        receipts: [{ ...makeReceipt({ id: 'r1' }), items: [] }],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    const continueToReceiptButton = screen.getByTestId('wizard-continue-btn')
-    expect(continueToReceiptButton).toBeDisabled()
-
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    expect(continueToReceiptButton).not.toBeDisabled()
-
-    fireEvent.click(continueToReceiptButton)
-    expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
-
-    fireEvent.click(screen.getByTestId('load-mock-receipt-btn-0'))
-    expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled()
-  })
-
-  it('renders grouped 4-step wizard header and progresses across grouped steps', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedSimpleDraftWithSingleAssignment()
-
-    render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1 of 4/i)
+      clickContinue()
+      expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-    expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2 of 4/i)
+    it('loads a mock receipt and populates items, hiding the empty state', async () => {
+      seedV2Draft({
+        receipts: [{ ...makeReceipt({ id: 'r1' }), items: [] }],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-    expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 3 of 4/i)
-  })
+      clickContinue()
+      expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument()
 
-  it('defaults simple assignment to all selected and supports review/edit before final', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedSimpleDraftWithSingleAssignment()
-
-    render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+      fireEvent.click(screen.getByTestId('load-mock-receipt-btn-0'))
+      expect(screen.queryByTestId('receipt-empty-state')).not.toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    it('adds an item to the store when the empty state add button is clicked', async () => {
+      seedV2Draft({
+        receipts: [{ ...makeReceipt({ id: 'r1' }), items: [] }],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    const aliceBtn = screen.getByRole('button', { name: 'Alice', pressed: true })
-    const benBtn = screen.getByRole('button', { name: 'Ben', pressed: true })
+      clickContinue()
+      expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument()
+      const itemsBefore = useReceiptStore.getState().receipts[0].items.length
 
-    expect(aliceBtn).toHaveAttribute('aria-pressed', 'true')
-    expect(benBtn).toHaveAttribute('aria-pressed', 'true')
-
-    fireEvent.click(benBtn)
-    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
-
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('wizard-edit-btn'))
-    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-
-    expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument()
-    expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4 of 4/i)
+      fireEvent.click(screen.getByTestId('receipt-add-item-btn'))
+      expect(useReceiptStore.getState().receipts[0].items.length).toBe(itemsBefore + 1)
+    })
   })
 
-  it('supports back navigation across receipt, assign, review, and final steps', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedSimpleDraftWithSingleAssignment()
+  describe('Assign step', () => {
+    it('shows item counter and person toggle buttons with aria-pressed', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+      clickContinue() // → receipt
+      clickContinue() // → items/assign
+      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument()
+      expect(screen.getByTestId('assign-person-btn-p1')).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'true')
     })
 
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+    it('toggles a person assignment on/off', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    fireEvent.click(screen.getByTestId('wizard-back-btn'))
-    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+      clickContinue()
+      clickContinue()
 
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('wizard-back-btn'))
-    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('wizard-back-btn'))
-    expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
-  })
-
-  it('loads the simple mode mock receipt payload from receipt step', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    render(<ReceiptSplitterPage />)
-
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('load-mock-receipt-btn-1'))
-
-    expect(screen.getByDisplayValue('Genki Forest')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('Mala Baby Lobster')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('166.98')).toBeInTheDocument()
-    const warningBadges = document.querySelectorAll('.text-amber-300')
-    expect(warningBadges.length).toBeGreaterThan(0)
-  })
-
-  it('supports select all and select none shortcuts in simple item chooser', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedSimpleDraftWithSingleAssignment()
-
-    render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+      const bobBtn = screen.getByTestId('assign-person-btn-p2')
+      expect(bobBtn).toHaveAttribute('aria-pressed', 'true')
+      fireEvent.click(bobBtn)
+      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'false')
     })
 
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    it('select none deselects all, select all reselects all', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    fireEvent.click(screen.getByRole('button', { name: 'Select none' }))
-    expect(screen.getByRole('button', { name: 'Alice', pressed: false })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
+      clickContinue()
+      clickContinue()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
-    expect(screen.getByRole('button', { name: 'Alice', pressed: true })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Ben', pressed: true })).toHaveAttribute('aria-pressed', 'true')
-  })
+      fireEvent.click(screen.getByTestId('assign-select-none-btn'))
+      expect(screen.getByTestId('assign-person-btn-p1')).toHaveAttribute('aria-pressed', 'false')
+      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'false')
 
-  it('returns to the people step and blocks progression when everyone is removed', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedSimpleDraftWithSingleAssignment()
-
-    render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+      fireEvent.click(screen.getByTestId('assign-select-all-btn'))
+      expect(screen.getByTestId('assign-person-btn-p1')).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'true')
     })
 
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-back-btn'))
-    fireEvent.click(screen.getByTestId('wizard-back-btn'))
-    fireEvent.click(screen.getByTestId('wizard-back-btn'))
-    fireEvent.click(screen.getByTestId('wizard-back-btn'))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Alice ×' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Ben ×' }))
-
-    expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
-    expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument()
-  })
-
-  it('falls back from final to items when assignments become incomplete', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedSimpleDraftWithSingleAssignment()
-
-    render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('wizard-back-btn'))
-    fireEvent.click(screen.getByTestId('wizard-edit-btn'))
-    fireEvent.click(screen.getByRole('button', { name: 'Select none' }))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-    })
-    expect(screen.getByRole('button', { name: 'Alice', pressed: false })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.queryByTestId('export-save-image-btn')).not.toBeInTheDocument()
-  })
-
-  it('restores simple item assignments after refresh', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedSimpleDraftWithSingleAssignment()
-
-    const { unmount } = render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-
-    const benBtn = screen.getByRole('button', { name: 'Ben', pressed: true })
-    fireEvent.click(benBtn)
-    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
-
-    await waitFor(() => {
-      const savedDraft = window.localStorage.getItem('split:receipt-draft:v1')
-      expect(savedDraft).toContain('"personIds":["p1"]')
-    })
-
-    unmount()
-    render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-    })
-
-    expect(screen.getByRole('button', { name: 'Alice', pressed: true })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Ben', pressed: false })).toHaveAttribute('aria-pressed', 'false')
-  })
-})
-
-describe('Apply-discount-to-reconcile button', () => {
-  it('appears in advanced mode when computed total exceeds receipt total', () => {
-    // $10 item, no service/GST → grand total $10.00; receipt total $8.00 → reconciliation −$2.00
-    seedDraft({ receiptTotalInput: '8.00' })
-    render(<ReceiptSplitterPage />)
-    expect(screen.getByTestId('apply-discount-reconcile-btn')).toBeInTheDocument()
-  })
-
-  it('does not appear when receipt total matches grand total', () => {
-    seedDraft({ receiptTotalInput: '10.00' })
-    render(<ReceiptSplitterPage />)
-    expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
-  })
-
-  it('does not appear when receipt total is not set', () => {
-    seedDraft({ receiptTotalInput: '' })
-    render(<ReceiptSplitterPage />)
-    expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
-  })
-
-  it('clicking it applies a whole-bill discount that zeroes the receipt difference', () => {
-    seedDraft({ receiptTotalInput: '8.00' })
-    render(<ReceiptSplitterPage />)
-
-    fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'))
-
-    // Reconciliation is now 0 → button disappears
-    expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
-  })
-
-  it('appears on the simple wizard receipt step when computed total exceeds receipt total', async () => {
-    useReceiptStore.setState({ uxMode: 'simple', geminiApiKeyInput: 'test-key' })
-    seedDraft({
-      items: [
-        {
-          id: 'i1',
-          name: 'Pizza',
-          amountInput: '10.00',
-          discountPercentInput: '',
-          assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
-        },
-      ],
-      receiptTotalInput: '8.00',
-    })
-
-    render(<ReceiptSplitterPage />)
-    await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-
-    expect(screen.getByTestId('apply-discount-reconcile-btn')).toBeInTheDocument()
-  })
-})
-
-describe('Global whole-bill discount indicator on items', () => {
-  it('shows a badge on each line item in advanced mode when percent discount is enabled', () => {
-    seedDraft({
-      discount: {
-        enabled: true,
-        mode: 'percent',
-        amountInput: '',
-        percentInput: '15',
-        detectedConfidence: null,
-        detectedSource: null,
-      },
-    })
-    render(<ReceiptSplitterPage />)
-    expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
-  })
-
-  it('shows a badge on each line item in advanced mode when amount discount is enabled', () => {
-    seedDraft({
-      discount: {
-        enabled: true,
-        mode: 'amount',
-        amountInput: '2.00',
-        percentInput: '',
-        detectedConfidence: null,
-        detectedSource: null,
-      },
-    })
-    render(<ReceiptSplitterPage />)
-    expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
-  })
-
-  it('does not show a badge when discount is disabled', () => {
-    seedDraft({ discount: disabledChargeState })
-    render(<ReceiptSplitterPage />)
-    expect(screen.queryByTestId('global-discount-badge')).not.toBeInTheDocument()
-  })
-
-  it('shows the badge on items in the simple wizard receipt step when discount is enabled', async () => {
-    useReceiptStore.setState({ uxMode: 'simple', geminiApiKeyInput: 'test-key' })
-    seedDraft({
-      items: [
-        {
-          id: 'i1',
-          name: 'Pizza',
-          amountInput: '10.00',
-          discountPercentInput: '',
-          assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
-        },
-      ],
-      discount: {
-        enabled: true,
-        mode: 'percent',
-        amountInput: '',
-        percentInput: '10',
-        detectedConfidence: null,
-        detectedSource: null,
-      },
-    })
-
-    render(<ReceiptSplitterPage />)
-    await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-
-    expect(screen.getByTestId('global-discount-badge')).toBeInTheDocument()
-  })
-})
-
-describe('Multi-receipt simple wizard integration', () => {
-  function seedV2Draft(overrides: {
-    receipts?: object[]
-    people?: object[]
-    activeReceiptId?: string
-  }) {
-    const people = overrides.people ?? [
-      { id: 'p1', name: 'Alice' },
-      { id: 'p2', name: 'Ben' },
-    ]
-    const receipts = overrides.receipts ?? [
-      {
-        id: 'r1',
-        name: 'Receipt 1',
-        items: [
-          {
-            id: 'i1',
-            name: 'Chicken Rice',
-            amountInput: '10.00',
-            discountPercentInput: '',
-            assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
-          },
+    it('navigates between items with prev/next arrow buttons', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [
+              { id: 'i1', name: 'Item A', amountInput: '5.00', discountPercentInput: '', assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] } },
+              { id: 'i2', name: 'Item B', amountInput: '8.00', discountPercentInput: '', assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] } },
+            ],
+          }),
         ],
-        discount: disabledChargeState,
-        serviceCharge: disabledChargeState,
-        gst: disabledChargeState,
-        receiptTotalInput: '',
-      },
-    ]
-    window.localStorage.setItem(
-      'split:receipt-draft:v1',
-      JSON.stringify({
-        version: 2,
-        people,
-        receipts,
-        activeReceiptId: overrides.activeReceiptId ?? (receipts[0] as { id: string }).id,
-        savedAt: '2026-03-08T00:00:00.000Z',
-      }),
-    )
-  }
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-  it('shows consolidated split tab when multiple receipts exist at the final step', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedV2Draft({
-      receipts: [
-        {
-          id: 'r1',
-          name: 'Lunch',
-          items: [
-            {
-              id: 'i1',
-              name: 'Burger',
-              amountInput: '12.00',
-              discountPercentInput: '',
-              assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
-            },
-          ],
-          discount: disabledChargeState,
-          serviceCharge: disabledChargeState,
-          gst: disabledChargeState,
-          receiptTotalInput: '',
-        },
-        {
-          id: 'r2',
-          name: 'Dinner',
-          items: [
-            {
-              id: 'i2',
-              name: 'Pizza',
-              amountInput: '20.00',
-              discountPercentInput: '',
-              assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
-            },
-          ],
-          discount: disabledChargeState,
-          serviceCharge: disabledChargeState,
-          gst: disabledChargeState,
-          receiptTotalInput: '',
-        },
-      ],
+      clickContinue()
+      clickContinue()
+
+      expect(screen.getByTestId('assign-item-counter')).toHaveTextContent(/Item 1 of 2/i)
+      fireEvent.click(screen.getByTestId('assign-next-item-btn'))
+      expect(screen.getByTestId('assign-item-counter')).toHaveTextContent(/Item 2 of 2/i)
+      fireEvent.click(screen.getByTestId('assign-prev-item-btn'))
+      expect(screen.getByTestId('assign-item-counter')).toHaveTextContent(/Item 1 of 2/i)
     })
 
-    render(<ReceiptSplitterPage />)
+    it('transitions to review sub-phase on continue from assign', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+      clickContinue()
+      clickContinue()
+      clickContinue() // assign → review
+      expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument()
     })
 
-    // Navigate through the wizard to the final step
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    it('clicking edit in review returns to assign phase', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
-    expect(screen.getByTestId('summary-tab-total')).toBeInTheDocument()
-    expect(screen.getByTestId('summary-tab-receipt-0')).toBeInTheDocument()
-    expect(screen.getByTestId('summary-tab-receipt-1')).toBeInTheDocument()
+      clickContinue()
+      clickContinue()
+      clickContinue() // → review
+      fireEvent.click(screen.getByTestId('wizard-edit-btn'))
+      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument()
+      expect(screen.queryByTestId('wizard-edit-btn')).not.toBeInTheDocument()
+    })
   })
 
-  it('adds a receipt via the wizard nav + Add Receipt button and navigates to receipt step', async () => {
-    useReceiptStore.setState({ uxMode: 'simple' })
-    seedV2Draft({})
+  describe('Summary step', () => {
+    async function navigateToFinal() {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue() // → receipt
+      clickContinue() // → items/assign
+      clickContinue() // → items/review
+      clickContinue() // → final
+    }
 
-    render(<ReceiptSplitterPage />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
+    it('shows export buttons on the final step', async () => {
+      await navigateToFinal()
+      expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument()
+      expect(screen.getByTestId('export-copy-text-btn')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
-    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    it('does not show a continue button on the final step', async () => {
+      await navigateToFinal()
+      expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument()
+    })
 
-    expect(screen.getByTestId('wizard-add-receipt-btn')).toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('wizard-add-receipt-btn'))
+    it('triggers image generation when save image is clicked', async () => {
+      await navigateToFinal()
+      fireEvent.click(screen.getByTestId('export-save-image-btn'))
+      await waitFor(() => expect(generateReceiptSplitImageMock).toHaveBeenCalledTimes(1))
+    })
 
-    // Should now be at the receipt step for the new receipt
-    expect(screen.getByTestId('wizard-continue-btn')).toBeInTheDocument()
-    expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2 of 4/i)
+    it('triggers clipboard write when copy text is clicked', async () => {
+      await navigateToFinal()
+      fireEvent.click(screen.getByTestId('export-copy-text-btn'))
+      await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1))
+    })
+
+    it('does not show receipt tabs with a single receipt', async () => {
+      await navigateToFinal()
+      expect(screen.queryByTestId('summary-tab-total')).not.toBeInTheDocument()
+    })
+
+    it('shows receipt tabs when multiple receipts exist', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({ id: 'r1' }),
+          makeReceipt({ id: 'r2' }),
+        ],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      clickContinue()
+      clickContinue()
+      clickContinue()
+      expect(screen.getByTestId('summary-tab-total')).toBeInTheDocument()
+      expect(screen.getByTestId('summary-tab-receipt-0')).toBeInTheDocument()
+      expect(screen.getByTestId('summary-tab-receipt-1')).toBeInTheDocument()
+    })
+
+    it('navigates back to receipt step when add new receipt is clicked', async () => {
+      await navigateToFinal()
+      fireEvent.click(screen.getByTestId('summary-add-receipt-btn'))
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i)
+    })
+  })
+
+  describe('Reconciliation', () => {
+    it('shows the apply discount button when computed total exceeds the receipt total', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [{ id: 'i1', name: 'Pizza', amountInput: '10.00', discountPercentInput: '', assignment: { mode: 'equal', personId: '', personIds: ['p1'] } }],
+            receiptTotalInput: '8.00',
+          }),
+        ],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      expect(screen.getByTestId('apply-discount-reconcile-btn')).toBeInTheDocument()
+    })
+
+    it('does not show the button when totals match', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [{ id: 'i1', name: 'Pizza', amountInput: '10.00', discountPercentInput: '', assignment: { mode: 'equal', personId: '', personIds: ['p1'] } }],
+            receiptTotalInput: '10.00',
+          }),
+        ],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
+    })
+
+    it('does not show the button when no receipt total is set', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [{ id: 'i1', name: 'Pizza', amountInput: '10.00', discountPercentInput: '', assignment: { mode: 'equal', personId: '', personIds: ['p1'] } }],
+            receiptTotalInput: '',
+          }),
+        ],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
+    })
+
+    it('applying the discount resolves the discrepancy and hides the button', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [{ id: 'i1', name: 'Pizza', amountInput: '10.00', discountPercentInput: '', assignment: { mode: 'equal', personId: '', personIds: ['p1'] } }],
+            receiptTotalInput: '8.00',
+          }),
+        ],
+      })
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'))
+      expect(screen.queryByTestId('apply-discount-reconcile-btn')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('GeminiApiKeyModal', () => {
+    beforeEach(() => {
+      useReceiptStore.setState({ geminiApiKeyInput: '' })
+    })
+
+    it('shows the modal when navigating from people to receipt without an API key', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      expect(screen.getByLabelText(/API Key/i)).toBeInTheDocument()
+    })
+
+    it('skip closes the modal without saving a key', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+      expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument()
+      expect(useReceiptStore.getState().geminiApiKeyInput).toBe('')
+    })
+
+    it('saving a key closes the modal and persists the value in the store', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      fireEvent.change(screen.getByLabelText(/API Key/i), { target: { value: 'my-gemini-key' } })
+      fireEvent.click(screen.getByRole('button', { name: /Save/i }))
+      expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument()
+      expect(useReceiptStore.getState().geminiApiKeyInput).toBe('my-gemini-key')
+    })
+
+    it('does not show the modal when an API key is already set', async () => {
+      useReceiptStore.setState({ geminiApiKeyInput: 'existing-key' })
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue()
+      expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Edge cases', () => {
+    it('falls back to people step and blocks continue when all people are removed', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+
+      clickContinue() // → receipt
+      clickContinue() // → items/assign
+      clickContinue() // → items/review
+      clickContinue() // → final
+
+      clickBack() // → items/review
+      clickBack() // → items/assign
+      clickBack() // → receipt
+      clickBack() // → people
+
+      fireEvent.click(screen.getByTestId('person-chip-p1'))
+      fireEvent.click(screen.getByTestId('person-chip-p2'))
+
+      expect(screen.getByTestId('people-empty-state')).toBeInTheDocument()
+      expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled()
+    })
+
+    it('falls back from final to assign step when assignments become incomplete', async () => {
+      seedV2Draft({})
+      render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+
+      clickContinue()
+      clickContinue()
+      clickContinue()
+      clickContinue()
+      expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument()
+
+      clickBack() // → items/review
+      fireEvent.click(screen.getByTestId('wizard-edit-btn'))
+      fireEvent.click(screen.getByTestId('assign-select-none-btn'))
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('export-save-image-btn')).not.toBeInTheDocument()
+      })
+      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument()
+    })
+  })
+
+  describe('Persistence', () => {
+    it('does not overwrite localStorage with empty state during StrictMode double-invocation', async () => {
+      seedV2Draft({})
+      render(
+        <StrictMode>
+          <ReceiptSplitterPage />
+        </StrictMode>,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('people-list')).toBeInTheDocument()
+      })
+
+      const saved = window.localStorage.getItem('split:receipt-draft:v1')
+      expect(saved).not.toBeNull()
+      const parsed = JSON.parse(saved!)
+      expect(parsed.people).toHaveLength(2)
+    })
+
+    it('restores the wizard step after unmount and remount', async () => {
+      seedV2Draft({})
+      const { unmount } = render(<ReceiptSplitterPage />)
+
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+      clickContinue() // → receipt
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i)
+
+      await waitFor(() => {
+        const saved = window.localStorage.getItem('split:simple-wizard-state:v1')
+        expect(saved).toContain('receipt')
+      })
+
+      unmount()
+      render(<ReceiptSplitterPage />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i)
+      })
+    })
+
+    it('restores item assignments after unmount and remount', async () => {
+      seedV2Draft({})
+      const { unmount } = render(<ReceiptSplitterPage />)
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
+
+      clickContinue() // → receipt
+      clickContinue() // → items/assign
+      fireEvent.click(screen.getByTestId('assign-person-btn-p2'))
+      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'false')
+
+      // Wait for both draft and wizard state to persist before unmounting
+      await waitFor(() => {
+        const draft = window.localStorage.getItem('split:receipt-draft:v1')
+        const wizard = window.localStorage.getItem('split:simple-wizard-state:v1')
+        expect(draft).toContain('"personIds":["p1"]')
+        expect(wizard).toContain('items')
+      })
+
+      unmount()
+      render(<ReceiptSplitterPage />)
+
+      // Wizard restores to items/assign from localStorage — no navigation needed
+      await waitFor(() => {
+        expect(screen.getByTestId('assign-person-btn-p1')).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'false')
+      })
+    })
   })
 })

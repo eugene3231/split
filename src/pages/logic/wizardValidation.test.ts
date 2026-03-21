@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { EditableItem, Person } from '../../shared/types'
+import type { EditableItem, Person } from '@shared/types'
 import {
   getAssignedItemsCount,
   getDetectedItemsCount,
   hasAnyValidReceiptItem,
   isStepValid,
-} from './wizardValidation'
+} from '@pages/logic/wizardValidation'
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },

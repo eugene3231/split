@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
-import { GlobalChargesSection } from '../../../../features/split-config/components/GlobalChargesSection'
-import { ReceiptImportPanel } from '../../../../features/receipt-scanner/components/ReceiptImportPanel'
-import { SplitTotalsCard } from '../../../../features/split-results/components/SplitTotalsCard'
-import type { ChargeState, EditableItem, SplitResult } from '../../../../shared/types'
-import { hasAnyValidReceiptItem } from '../../../logic/wizardValidation'
+import { GlobalChargesSection } from '@features/split-config/components/GlobalChargesSection'
+import { ReceiptImportPanel } from '@features/receipt-scanner/components/ReceiptImportPanel'
+import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard'
+import type { ChargeState, EditableItem, SplitResult } from '@shared/types'
+import { hasAnyValidReceiptItem } from '@pages/logic/wizardValidation'
 
 type Props = {
   items: EditableItem[]
