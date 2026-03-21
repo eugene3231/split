@@ -1,5 +1,5 @@
-import type { EditableItem, Person } from '../../../shared/types'
-import { createId } from '../../../shared/logic/core/id'
+import type { EditableItem, Person } from '@shared/types'
+import { createId } from '@shared/logic/core/id'
 
 export function createItemFromOcr(
   item: { description: string; amount: number },

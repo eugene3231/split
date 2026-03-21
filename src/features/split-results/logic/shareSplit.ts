@@ -1,5 +1,5 @@
-import type { Person, SplitResult } from '../../../shared/types'
-import { formatCurrencyFromCents } from '../../../shared/logic/core/money'
+import type { Person, SplitResult } from '@shared/types'
+import { formatCurrencyFromCents } from '@shared/logic/core/money'
 
 type ShareNavigator = Pick<Navigator, 'share' | 'canShare' | 'clipboard'>
 

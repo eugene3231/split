@@ -1,5 +1,5 @@
-import type { ChargeDetection, ChargeState } from '../../types'
-import { parseCurrencyToCents, parseNumber } from '../core/money'
+import type { ChargeDetection, ChargeState } from '@shared/types'
+import { parseCurrencyToCents, parseNumber } from '@shared/logic/core/money'
 
 export function resolveChargeCents(
   charge: ChargeState,

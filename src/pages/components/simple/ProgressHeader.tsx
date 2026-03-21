@@ -1,5 +1,5 @@
-import type { SimpleWizardStep, WizardProgressContext } from '../../types'
-import { SIMPLE_WIZARD_STEPS } from '../../types'
+import type { SimpleWizardStep, WizardProgressContext } from '@pages/types'
+import { SIMPLE_WIZARD_STEPS } from '@pages/types'
 
 type WizardProgressHeaderProps = {
   activeStep: SimpleWizardStep

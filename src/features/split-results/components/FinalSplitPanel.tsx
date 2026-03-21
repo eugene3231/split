@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { ChargeState, Person, SplitResult } from '../../../shared/types'
-import { SplitTotalsCard } from './SplitTotalsCard'
-import { PersonCard } from './SplitPersonBreakdown'
+import type { ChargeState, Person, SplitResult } from '@shared/types'
+import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard'
+import { PersonCard } from '@features/split-results/components/SplitPersonBreakdown'
 
 type FinalSplitPanelProps = {
   people: Person[]

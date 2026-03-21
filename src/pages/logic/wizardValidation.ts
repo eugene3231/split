@@ -1,6 +1,6 @@
-import type { EditableItem, Person } from '../../shared/types'
-import { resolveDiscountedAmountCents } from '../../shared/logic/computation/pricing'
-import type { SimpleWizardStep } from '../types'
+import type { EditableItem, Person } from '@shared/types'
+import { resolveDiscountedAmountCents } from '@shared/logic/computation/pricing'
+import type { SimpleWizardStep } from '@pages/types'
 
 export function hasAnyValidReceiptItem(items: EditableItem[]): boolean {
   return items.some((item) => resolveDiscountedAmountCents(item) !== null)

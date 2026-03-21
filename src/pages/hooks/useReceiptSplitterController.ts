@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { useDraftPersistence } from '../../shared/hooks/useDraftPersistence'
-import { useReceiptStore } from '../../shared/stores/receiptStore'
-import { useLoadingTicker } from '../../features/receipt-scanner'
+import { useDraftPersistence } from '@shared/hooks/useDraftPersistence'
+import { useReceiptStore } from '@shared/stores/receiptStore'
+import { useLoadingTicker } from '@features/receipt-scanner'
 
 export function useReceiptSplitterController() {
   const {

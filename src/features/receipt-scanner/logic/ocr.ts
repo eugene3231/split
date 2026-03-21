@@ -5,16 +5,16 @@ import type {
   EditableItem,
   OcrResponse,
   Person,
-} from '../../../shared/types'
-import { applyChargeDetection } from '../../../shared/logic/computation/charges'
-import { createItemFromOcr } from './itemMapper'
-import { toNullableNumber, roundMoney } from '../../../shared/logic/core/money'
-export { buildLocalMockOcrResponse, buildSimpleModeMockOcrResponse } from './ocrFixtures'
+} from '@shared/types'
+import { applyChargeDetection } from '@shared/logic/computation/charges'
+import { createItemFromOcr } from '@features/receipt-scanner/logic/itemMapper'
+import { toNullableNumber, roundMoney } from '@shared/logic/core/money'
+export { buildLocalMockOcrResponse, buildSimpleModeMockOcrResponse } from '@features/receipt-scanner/logic/ocrFixtures'
 import {
   geminiReceiptSchema,
   GEMINI_RECEIPT_RESPONSE_SCHEMA,
-} from './gemini-schema'
-import type { GeminiChargePayload } from './gemini-schema'
+} from '@features/receipt-scanner/logic/gemini-schema'
+import type { GeminiChargePayload } from '@features/receipt-scanner/logic/gemini-schema'
 interface GeminiGenerateContentResponse {
   candidates?: Array<{
     content?: {

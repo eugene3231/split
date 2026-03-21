@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Dispatch, SetStateAction } from 'react'
-import { defaultGstState, defaultServiceChargeState } from '../../../shared/constants'
-import type { ChargeState, EditableItem, OcrResponse, Person } from '../../../shared/types'
-import { analyzeReceiptWithGemini, applyOcrPayload } from './ocr'
+import { defaultGstState, defaultServiceChargeState } from '@shared/constants'
+import type { ChargeState, EditableItem, OcrResponse, Person } from '@shared/types'
+import { analyzeReceiptWithGemini, applyOcrPayload } from '@features/receipt-scanner/logic/ocr'
 
 function createFile(): File {
   return new File(['receipt-bytes'], 'receipt.jpg', { type: 'image/jpeg' })

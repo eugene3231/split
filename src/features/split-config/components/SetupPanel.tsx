@@ -1,8 +1,8 @@
 import type { FormEvent, ReactNode } from 'react'
-import type { ChargeState, Person } from '../../../shared/types'
-import { useReceiptStore } from '../../../shared/stores/receiptStore'
-import { GlobalChargesSection } from './GlobalChargesSection'
-import { PeopleSetupSection } from './PeopleSetupSection'
+import type { ChargeState, Person } from '@shared/types'
+import { useReceiptStore } from '@shared/stores/receiptStore'
+import { GlobalChargesSection } from '@features/split-config/components/GlobalChargesSection'
+import { PeopleSetupSection } from '@features/split-config/components/PeopleSetupSection'
 
 type SetupPanelProps = {
   people: Person[]

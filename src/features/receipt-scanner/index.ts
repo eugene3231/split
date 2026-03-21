@@ -1,9 +1,9 @@
-export { ReceiptImportPanel } from './components/ReceiptImportPanel'
-export { ReceiptScanSection } from './components/ReceiptScanSection'
-export { useLoadingTicker } from './hooks/useLoadingTicker'
+export { ReceiptImportPanel } from '@features/receipt-scanner/components/ReceiptImportPanel'
+export { ReceiptScanSection } from '@features/receipt-scanner/components/ReceiptScanSection'
+export { useLoadingTicker } from '@features/receipt-scanner/hooks/useLoadingTicker'
 export {
   analyzeReceiptWithGemini,
   applyOcrPayload,
   buildLocalMockOcrResponse,
   buildSimpleModeMockOcrResponse,
-} from './logic/ocr'
+} from '@features/receipt-scanner/logic/ocr'
