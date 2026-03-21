@@ -1,7 +1,7 @@
-import type { EditableItem, Person } from '../../../../shared/types'
-import type { ItemsSubPhase } from '../../../types'
-import { ItemsStepAssignPhase } from './AssignPhase'
-import { ItemsStepReviewPhase } from './ReviewPhase'
+import type { EditableItem, Person } from '@shared/types'
+import type { ItemsSubPhase } from '@pages/types'
+import { ItemsStepAssignPhase } from '@pages/components/simple/steps/AssignPhase'
+import { ItemsStepReviewPhase } from '@pages/components/simple/steps/ReviewPhase'
 
 type Props = {
   items: EditableItem[]

@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
-import type { ChargeState, EditableItem } from '../../../../shared/types'
-import { cn } from '../../../../shared/utils/cn'
+import type { ChargeState, EditableItem } from '@shared/types'
 
 interface Props {
   item: EditableItem

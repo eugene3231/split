@@ -1,5 +1,5 @@
-import { getPersonColor } from '../../../../shared/utils/personColors'
-import type { Person } from '../../../../shared/types'
+import { getPersonColor } from '@shared/utils/personColors'
+import type { Person } from '@shared/types'
 
 type Props = {
   people: Person[]

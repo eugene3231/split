@@ -1,5 +1,5 @@
-import { cn } from '../../../shared/utils/cn'
-import type { ItemsSubPhase, SimpleWizardStep } from '../../types'
+import { cn } from '@shared/utils/cn'
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
 
 interface Props {
   activeStep: SimpleWizardStep
@@ -7,7 +7,6 @@ interface Props {
   canContinue: boolean
   onBack: () => void
   onNext: () => void
-  onAddReceipt: () => void
   grandTotalFormatted?: string
 }
 
@@ -24,7 +23,6 @@ export function BottomNav({
   canContinue,
   onBack,
   onNext,
-  onAddReceipt,
   grandTotalFormatted,
 }: Props) {
   const isFirstStep = activeStep === 'people'

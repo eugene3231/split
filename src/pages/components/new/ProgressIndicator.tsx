@@ -1,5 +1,5 @@
-import { cn } from '../../../shared/utils/cn'
-import type { ItemsSubPhase, SimpleWizardStep } from '../../types'
+import { cn } from '@shared/utils/cn'
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
 
 interface Props {
   activeStep: SimpleWizardStep

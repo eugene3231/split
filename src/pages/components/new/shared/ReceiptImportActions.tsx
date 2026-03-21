@@ -1,7 +1,7 @@
 import { useRef, type ChangeEvent } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { useReceiptStore } from '../../../../shared/stores/receiptStore'
-import { cn } from '../../../../shared/utils/cn'
+import { useReceiptStore } from '@shared/stores/receiptStore'
+import { cn } from '@shared/utils/cn'
 
 interface Props {
   onReceiptFileSelected: (file: File | null) => void
@@ -44,7 +44,7 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt, moc
         <label className="flex flex-col items-center justify-center p-4 bg-surface-container-low rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
           <span className="material-symbols-outlined text-primary mb-2">upload_file</span>
           <span className="text-[10px] font-bold text-primary">UPLOAD</span>
-          <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
+          <input ref={fileInputRef} type="file" accept="image/*" data-testid="receipt-file-input" className="sr-only" onChange={handleFileChange} />
         </label>
         <label className="flex flex-col items-center justify-center p-4 bg-surface-container-low rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
           <span className="material-symbols-outlined text-primary mb-2">photo_camera</span>
@@ -85,6 +85,7 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt, moc
           </div>
           <button
             type="button"
+            data-testid="scan-receipt-btn"
             onClick={onScanReceipt}
             disabled={isScanning || !hasApiKey}
             className={cn(
@@ -113,6 +114,7 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt, moc
             <button
               key={i}
               type="button"
+              data-testid={`load-mock-receipt-btn-${i}`}
               onClick={onLoad}
               className="px-2.5 py-1 rounded-lg bg-surface-container-low text-[10px] font-semibold text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors uppercase tracking-wide"
             >

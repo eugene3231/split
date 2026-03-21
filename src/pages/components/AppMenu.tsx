@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { useReceiptStore } from '../../shared/stores/receiptStore'
+import { useReceiptStore } from '@shared/stores/receiptStore'
 
 export function AppMenu() {
   const [isOpen, setIsOpen] = useState(false)

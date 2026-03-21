@@ -5,10 +5,10 @@ import type {
   PersonReceiptLineItem,
   ResolvedItem,
   SplitResult,
-} from '../../types'
-import { parseCurrencyToCents } from '../core/money'
-import { resolveChargeCents } from './charges'
-import { parseDiscountPercent, resolveDiscountedAmountCents } from './pricing'
+} from '@shared/types'
+import { parseCurrencyToCents } from '@shared/logic/core/money'
+import { resolveChargeCents } from '@shared/logic/computation/charges'
+import { parseDiscountPercent, resolveDiscountedAmountCents } from '@shared/logic/computation/pricing'
 
 export function computeSplit({
   people,

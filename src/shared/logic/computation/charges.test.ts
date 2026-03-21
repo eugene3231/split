@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ChargeState } from '../../types'
-import { applyChargeDetection, resolveChargeCents } from './charges'
+import type { ChargeState } from '@shared/types'
+import { applyChargeDetection, resolveChargeCents } from '@shared/logic/computation/charges'
 
 const baseChargeState: ChargeState = {
   enabled: true,

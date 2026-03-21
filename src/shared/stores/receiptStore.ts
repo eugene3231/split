@@ -4,7 +4,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
-} from '../constants'
+} from '@shared/constants'
 import {
   clearSessionGeminiApiKey,
   exportDraftToJson,
@@ -16,26 +16,26 @@ import {
   savePersistedOcrSettings,
   savePersistedUxMode,
   saveSessionGeminiApiKey,
-} from '../api/storage'
-import { createEmptyItem } from '../logic/assignment/items'
-import { createId } from '../logic/core/id'
-import { normalizeGeminiModel } from '../logic/core/geminiModel'
+} from '@shared/api/storage'
+import { createEmptyItem } from '@shared/logic/assignment/items'
+import { createId } from '@shared/logic/core/id'
+import { normalizeGeminiModel } from '@shared/logic/core/geminiModel'
 import {
   FUNNY_LOADING_MESSAGES,
   getRandomLoadingMessageIndex,
-} from '../logic/core/loadingMessages'
-import type { ChargeState, EditableItem, OcrResponse, Person, Receipt } from '../types'
+} from '@shared/logic/core/loadingMessages'
+import type { ChargeState, EditableItem, OcrResponse, Person, Receipt } from '@shared/types'
 import {
   analyzeReceiptWithGemini,
   applyOcrPayload,
-} from '../../features/receipt-scanner'
-import { MOCK_RECEIPT_FIXTURES } from '../../features/receipt-scanner/logic/ocrFixtures'
+} from '@features/receipt-scanner'
+import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures'
 import {
   buildInitialItems,
   createSimpleEmptyItem,
   convertItemsToSimpleEqualMode,
   syncItemsWithPeople,
-} from '../logic/assignment/simpleAssignments'
+} from '@shared/logic/assignment/simpleAssignments'
 
 // ---------------------------------------------------------------------------
 // Module-level helpers

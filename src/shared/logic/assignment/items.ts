@@ -1,5 +1,5 @@
-import type { EditableItem, Person } from '../../types'
-import { createId, sameStringArray } from '../core/id'
+import type { EditableItem, Person } from '@shared/types'
+import { createId, sameStringArray } from '@shared/logic/core/id'
 
 export function createEmptyItem(people: Person[]): EditableItem {
   return {

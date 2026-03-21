@@ -1,5 +1,5 @@
-import { cn } from '../../../shared/utils/cn'
-import type { ItemsSubPhase, SimpleWizardStep } from '../../types'
+import { cn } from '@shared/utils/cn'
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
 
 const STEP_ORDER: SimpleWizardStep[] = ['people', 'receipt', 'items', 'final']
 const STEP_LABELS: Record<SimpleWizardStep, string> = {
@@ -67,7 +67,7 @@ export function TopAppBar({ activeStep, itemsSubPhase, assignedItemCount, detect
         </nav>
 
         {/* Right: "STEP X: LABEL" on mobile, step count on desktop */}
-        <div className="ml-auto shrink-0 text-right">
+        <div data-testid="wizard-step-context" className="ml-auto shrink-0 text-right">
           <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest md:hidden">
             Step {stepNumber}: {STEP_LABELS[activeStep]}
           </p>

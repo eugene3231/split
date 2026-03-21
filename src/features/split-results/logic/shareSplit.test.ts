@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { buildSplitShareText, getShareSupport, shareFinalSplit } from './shareSplit'
+import { buildSplitShareText, getShareSupport, shareFinalSplit } from '@features/split-results/logic/shareSplit'
 
 describe('buildSplitShareText', () => {
   it('formats a compact chat summary with the grand total and each person total', () => {

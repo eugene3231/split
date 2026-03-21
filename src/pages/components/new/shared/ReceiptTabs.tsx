@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { cn } from '../../../../shared/utils/cn'
+import { cn } from '@shared/utils/cn'
 
 interface Receipt {
   id: string

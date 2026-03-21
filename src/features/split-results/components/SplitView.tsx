@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import type { ChargeState, Person, SplitResult } from '../../../shared/types'
-import { ExportSplitImageSection } from './ExportSplitImageSection'
-import { SplitTotalsCard } from './SplitTotalsCard'
-import { SplitPersonBreakdown } from './SplitPersonBreakdown'
+import type { ChargeState, Person, SplitResult } from '@shared/types'
+import { ExportSplitImageSection } from '@features/split-results/components/ExportSplitImageSection'
+import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard'
+import { SplitPersonBreakdown } from '@features/split-results/components/SplitPersonBreakdown'
 
 type Props = {
   people: Person[]

@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { LineItemsPanel } from '../../../features/split-config'
-import { ReceiptImportPanel } from '../../../features/receipt-scanner'
-import { SetupPanel } from '../../../features/split-config'
-import { FinalSplitPanel } from '../../../features/split-results'
-import { useReceiptStore } from '../../../shared/stores/receiptStore'
-import { useReceiptSplit } from '../../../shared/hooks/useReceiptSplit'
-import { JsonImportExportSection } from './JsonImportExportSection'
-import type { Receipt } from '../../../shared/types'
-import { ExportSplitImageSection } from '../../../features/split-results/components/ExportSplitImageSection'
+import { LineItemsPanel } from '@features/split-config'
+import { ReceiptImportPanel } from '@features/receipt-scanner'
+import { SetupPanel } from '@features/split-config'
+import { FinalSplitPanel } from '@features/split-results'
+import { useReceiptStore } from '@shared/stores/receiptStore'
+import { useReceiptSplit } from '@shared/hooks/useReceiptSplit'
+import { JsonImportExportSection } from '@pages/components/advanced/JsonImportExportSection'
+import type { Receipt } from '@shared/types'
+import { ExportSplitImageSection } from '@features/split-results/components/ExportSplitImageSection'
 
 export function AdvancedWorkspace() {
   const {

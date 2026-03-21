@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
-import { formatCurrencyFromCents, parseCurrencyToCents } from '../../../../shared/logic/core/money'
-import { isSimpleItemAssigned, getAssignedItemsCount } from '../../../../pages/logic/wizardValidation'
-import type { EditableItem, Person, Receipt } from '../../../../shared/types'
-import type { ItemsSubPhase } from '../../../types'
-import { PersonAvatar } from '../shared/PersonAvatar'
-import { ReceiptTabs } from '../shared/ReceiptTabs'
-import { cn } from '../../../../shared/utils/cn'
+import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money'
+import { isSimpleItemAssigned } from '@pages/logic/wizardValidation'
+import type { EditableItem, Person, Receipt } from '@shared/types'
+import type { ItemsSubPhase } from '@pages/types'
+import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar'
+import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs'
+import { cn } from '@shared/utils/cn'
 
 type Props = {
   receipts: Receipt[]
@@ -33,8 +33,7 @@ export function AssignStep({
   onUpdateItem,
 }: Props) {
   const validPeopleSet = useMemo(() => new Set(people.map((p) => p.id)), [people])
-  const assignedCount = useMemo(() => getAssignedItemsCount(items, people), [items, people])
-  const assignProgress = items.length > 0 ? (assignedCount / items.length) * 100 : 0
+
 
   return (
     <div>
@@ -69,7 +68,6 @@ export function AssignStep({
           validPeopleSet={validPeopleSet}
           activeItemIndex={activeItemIndex}
           onActiveItemIndexChange={onActiveItemIndexChange}
-          onItemsSubPhaseChange={onItemsSubPhaseChange}
           onUpdateItem={onUpdateItem}
         />
       ) : (
@@ -94,7 +92,6 @@ type AssignPhaseProps = {
   validPeopleSet: Set<string>
   activeItemIndex: number
   onActiveItemIndexChange: (index: number) => void
-  onItemsSubPhaseChange: (phase: ItemsSubPhase) => void
   onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
 }
 
@@ -104,7 +101,6 @@ function AssignPhase({
   validPeopleSet,
   activeItemIndex,
   onActiveItemIndexChange,
-  onItemsSubPhaseChange,
   onUpdateItem,
 }: AssignPhaseProps) {
   const activeItem = items[activeItemIndex] ?? null
@@ -139,11 +135,6 @@ function AssignPhase({
     }))
   }
 
-  // Items not yet fully assigned (for the queue sidebar)
-  const queueItems = items.filter(
-    (item, i) => i !== activeItemIndex && !isSimpleItemAssigned(item, validPeopleSet),
-  ).slice(0, 5)
-
   if (!activeItem) {
     return (
       <p className="text-sm text-on-surface-variant text-center py-12">No items available yet.</p>
@@ -158,11 +149,12 @@ function AssignPhase({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Assigning Items</p>
-          <p className="text-2xl font-extrabold text-on-surface font-headline">Item {activeItemIndex + 1} of {items.length}</p>
+          <p data-testid="assign-item-counter" className="text-2xl font-extrabold text-on-surface font-headline">Item {activeItemIndex + 1} of {items.length}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
+            data-testid="assign-prev-item-btn"
             onClick={() => onActiveItemIndexChange(Math.max(0, activeItemIndex - 1))}
             disabled={activeItemIndex === 0}
             className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors disabled:opacity-30"
@@ -171,6 +163,7 @@ function AssignPhase({
           </button>
           <button
             type="button"
+            data-testid="assign-next-item-btn"
             onClick={() => onActiveItemIndexChange(Math.min(items.length - 1, activeItemIndex + 1))}
             disabled={activeItemIndex >= items.length - 1}
             className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors disabled:opacity-30"
@@ -187,12 +180,12 @@ function AssignPhase({
             {activeItem.name || 'Untitled item'}
           </h2>
           {isAssigned ? (
-            <div className="flex items-center gap-1.5 text-secondary font-bold text-sm flex-shrink-0 ml-3">
+            <div data-testid="assign-item-status" data-assigned="true" className="flex items-center gap-1.5 text-secondary font-bold text-sm flex-shrink-0 ml-3">
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               Assigned
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-error font-bold text-sm flex-shrink-0 ml-3">
+            <div data-testid="assign-item-status" data-assigned="false" className="flex items-center gap-1.5 text-error font-bold text-sm flex-shrink-0 ml-3">
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>cancel</span>
               Select one or more people
             </div>
@@ -209,6 +202,7 @@ function AssignPhase({
         <div className="flex gap-3">
           <button
             type="button"
+            data-testid="assign-select-all-btn"
             onClick={handleSelectAll}
             disabled={people.length === 0}
             className="text-primary font-bold text-sm hover:opacity-70 transition-opacity disabled:opacity-40"
@@ -217,6 +211,7 @@ function AssignPhase({
           </button>
           <button
             type="button"
+            data-testid="assign-select-none-btn"
             onClick={handleSelectNone}
             disabled={people.length === 0}
             className="text-on-surface-variant font-semibold text-sm hover:opacity-70 transition-opacity disabled:opacity-40"
@@ -238,6 +233,7 @@ function AssignPhase({
             <button
               key={person.id}
               type="button"
+              data-testid={`assign-person-btn-${person.id}`}
               aria-pressed={isSelected}
               onClick={() => handleTogglePerson(person.id, !isSelected)}
               onDoubleClick={() => {

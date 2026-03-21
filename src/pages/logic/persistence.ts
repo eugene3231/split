@@ -1,5 +1,5 @@
-import { LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY } from '../../shared/constants'
-import type { ItemsSubPhase, SimpleWizardStep } from '../types'
+import { LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY } from '@shared/constants'
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
 
 type PersistedSimpleWizardState = {
   version: 1

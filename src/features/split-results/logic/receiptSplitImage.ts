@@ -1,5 +1,5 @@
-import type { ChargeState, Person, PersonReceiptLineItem, SplitResult } from '../../../shared/types'
-import { formatCurrencyFromCents, parseNumber } from '../../../shared/logic/core/money'
+import type { ChargeState, Person, PersonReceiptLineItem, SplitResult } from '@shared/types'
+import { formatCurrencyFromCents, parseNumber } from '@shared/logic/core/money'
 import {
   CANVAS_WIDTH,
   SCRATCH_HEIGHT,
@@ -9,7 +9,7 @@ import {
   canvasToBlob,
   formatGeneratedAt,
   formatPercent,
-} from './receiptSplitImageHelpers'
+} from '@features/split-results/logic/receiptSplitImageHelpers'
 
 type GenerateReceiptSplitImageOptions = {
   people: Person[]

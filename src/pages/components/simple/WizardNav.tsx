@@ -1,4 +1,4 @@
-import type { ItemsSubPhase, SimpleWizardStep } from '../../types'
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
 
 type Props = {
   activeStep: SimpleWizardStep

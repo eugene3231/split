@@ -1,5 +1,5 @@
 import { useState, useRef, type KeyboardEvent } from 'react'
-import { useReceiptStore } from '../../../shared/stores/receiptStore'
+import { useReceiptStore } from '@shared/stores/receiptStore'
 
 export function GeminiApiKeyModal() {
   const isOpen = useReceiptStore((state) => state.showApiKeyModal)

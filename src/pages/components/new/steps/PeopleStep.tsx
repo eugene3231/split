@@ -1,6 +1,6 @@
-import { getPersonColor } from '../../../../shared/utils/personColors'
-import type { Person } from '../../../../shared/types'
-import { cn } from '../../../../shared/utils/cn'
+import { getPersonColor } from '@shared/utils/personColors'
+import type { Person } from '@shared/types'
+import { cn } from '@shared/utils/cn'
 
 type Props = {
   people: Person[]
@@ -30,6 +30,7 @@ export function PeopleStep({ people, peopleInput, onPeopleInputChange, onPeopleS
         <form onSubmit={onPeopleSubmit} className="flex gap-3">
           <input
             id="new-people-input"
+            data-testid="people-input"
             value={peopleInput}
             onChange={(e) => onPeopleInputChange(e.target.value)}
             placeholder="Names, e.g. Alice, Bob"
@@ -37,6 +38,7 @@ export function PeopleStep({ people, peopleInput, onPeopleInputChange, onPeopleS
           />
           <button
             type="submit"
+            data-testid="people-add-btn"
             className="px-4 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-xl active:scale-95 transition-transform flex items-center gap-2"
           >
             <span className="material-symbols-outlined">add</span>
@@ -50,19 +52,20 @@ export function PeopleStep({ people, peopleInput, onPeopleInputChange, onPeopleS
 
       {/* People list or empty state */}
       {people.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-14 border-2 border-dashed border-outline-variant/30 rounded-2xl text-center gap-3">
+        <div data-testid="people-empty-state" className="flex flex-col items-center justify-center py-14 border-2 border-dashed border-outline-variant/30 rounded-2xl text-center gap-3">
           <span className="material-symbols-outlined text-3xl text-outline">group</span>
           <p className="text-sm font-semibold text-on-surface-variant">No one added yet.</p>
           <p className="text-sm text-outline">Type names above to get started.</p>
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div data-testid="people-list" className="flex flex-wrap gap-2">
           {people.map((person, index) => {
             const color = getPersonColor(index)
             return (
               <button
                 key={person.id}
                 type="button"
+                data-testid={`person-chip-${person.id}`}
                 onClick={() => onRemovePerson(person.id)}
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold transition hover:opacity-75 active:scale-95',

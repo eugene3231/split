@@ -1,4 +1,4 @@
-import { formatCurrencyFromCents } from '../../../../shared/logic/core/money'
+import { formatCurrencyFromCents } from '@shared/logic/core/money'
 
 interface Props {
   reconciliationCents: number | null

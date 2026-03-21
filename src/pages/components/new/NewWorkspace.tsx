@@ -1,17 +1,17 @@
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/shallow'
-import { MOCK_RECEIPT_FIXTURES } from '../../../features/receipt-scanner/logic/ocrFixtures'
-import { useReceiptStore } from '../../../shared/stores/receiptStore'
-import { useReceiptSplit } from '../../../shared/hooks/useReceiptSplit'
-import { getAssignedItemsCount, getDetectedItemsCount } from '../../logic/wizardValidation'
-import { useSimpleWizard } from '../../hooks/useSimpleWizard'
-import { useReceiptSplitterController } from '../../hooks/useReceiptSplitterController'
-import { TopAppBar } from './TopAppBar'
-import { BottomNav } from './BottomNav'
-import { PeopleStep } from './steps/PeopleStep'
-import { ReceiptStep } from './steps/ReceiptStep'
-import { AssignStep } from './steps/AssignStep'
-import { SummaryStep } from './steps/SummaryStep'
+import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures'
+import { useReceiptStore } from '@shared/stores/receiptStore'
+import { useReceiptSplit } from '@shared/hooks/useReceiptSplit'
+import { getAssignedItemsCount, getDetectedItemsCount } from '@pages/logic/wizardValidation'
+import { useSimpleWizard } from '@pages/hooks/useSimpleWizard'
+import { useReceiptSplitterController } from '@pages/hooks/useReceiptSplitterController'
+import { TopAppBar } from '@pages/components/new/TopAppBar'
+import { BottomNav } from '@pages/components/new/BottomNav'
+import { PeopleStep } from '@pages/components/new/steps/PeopleStep'
+import { ReceiptStep } from '@pages/components/new/steps/ReceiptStep'
+import { AssignStep } from '@pages/components/new/steps/AssignStep'
+import { SummaryStep } from '@pages/components/new/steps/SummaryStep'
 
 function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`
@@ -199,7 +199,6 @@ export function NewWorkspace() {
         canContinue={canContinue}
         onBack={handleBack}
         onNext={handleNext}
-        onAddReceipt={handleAddReceipt}
         grandTotalFormatted={grandTotalFormatted}
       />
     </div>

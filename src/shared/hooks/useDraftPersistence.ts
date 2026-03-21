@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import type { Person, Receipt } from '../types'
-import { savePersistedDraft } from '../api/storage'
+import type { Person, Receipt } from '@shared/types'
+import { savePersistedDraft } from '@shared/api/storage'
 
 type UseDraftPersistenceArgs = {
   initialized: boolean

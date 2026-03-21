@@ -1,6 +1,6 @@
-import { formatCurrencyFromCents, parseNumber } from '../../../../shared/logic/core/money'
-import type { ChargeState, Person, SplitResult } from '../../../../shared/types'
-import { PersonAvatar } from './PersonAvatar'
+import { formatCurrencyFromCents, parseNumber } from '@shared/logic/core/money'
+import type { ChargeState, Person, SplitResult } from '@shared/types'
+import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar'
 
 interface ReceiptBreakdownEntry {
   name: string
@@ -34,7 +34,6 @@ export function PersonCard({ person, colorIndex, split, discount, serviceCharge,
 const discountAmt = split.discountByPersonCents[person.id] ?? 0
   const serviceAmt = split.serviceByPersonCents[person.id] ?? 0
   const gstAmt = split.gstByPersonCents[person.id] ?? 0
-  const globalChargesTotal = serviceAmt + gstAmt - discountAmt
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl p-6 flex flex-col h-full">
