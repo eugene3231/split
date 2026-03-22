@@ -6,7 +6,7 @@ Ever paid the full bill and had to figure out who owes what — when everyone or
 
 Scan a receipt, assign items, and share the result — no accounts or invites needed.
 
-<img width="100%" alt="Screenshot 2026-03-07 at 19-00-44 split" src="https://github.com/user-attachments/assets/61748992-d4c1-4b10-b004-355736b98db6" />
+<img width="100%" alt="Screenshot 2026-03-22 at 11-43-58 split" src="https://github.com/user-attachments/assets/d7e76e8e-f8ba-4faf-8a06-3893b5d18096" />
 
 ## Key Features
 
