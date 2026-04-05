@@ -4,6 +4,7 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money'
 import { generateReceiptSplitImage } from '@features/split-results/logic/receiptSplitImage'
 import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
 import { PersonCard } from '@pages/components/new/shared/PersonCard'
+import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
 import { cn } from '@shared/utils/cn'
 
 type Props = {
@@ -19,6 +20,7 @@ type Props = {
   reconciliationCents: number | null
   onApplyDiscount: () => void
   onAddReceipt: () => void
+  onRenameReceipt: (id: string, name: string) => void
 }
 
 type ExportBusy = 'downloading' | 'copying' | null
@@ -35,6 +37,7 @@ export function SummaryStep({
   reconciliationCents,
   onApplyDiscount,
   onAddReceipt,
+  onRenameReceipt,
 }: Props) {
   const isMultiReceipt = receipts.length > 1
   const [activeTab, setActiveTab] = useState<string>(isMultiReceipt ? 'total' : receipts[0]?.id ?? 'total')
@@ -42,7 +45,21 @@ export function SummaryStep({
   const [showDetails, setShowDetails] = useState(false)
   const [copied, setCopied] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [editingTabId, setEditingTabId] = useState<string | null>(null)
+  const [editingTabName, setEditingTabName] = useState('')
+  const tabInputRef = useRef<HTMLInputElement>(null)
   const copyTimeoutRef = useRef<number | null>(null)
+
+  const startEditingTab = (id: string, name: string) => {
+    setEditingTabId(id)
+    setEditingTabName(name)
+    requestAnimationFrame(() => tabInputRef.current?.select())
+  }
+
+  const commitTabRename = () => {
+    if (editingTabId && editingTabName.trim()) onRenameReceipt(editingTabId, editingTabName.trim())
+    setEditingTabId(null)
+  }
 
   const activeReceiptIndex = receipts.findIndex((r) => r.id === activeTab)
   const currentSplit = activeTab === 'total' ? consolidatedSplit : (splitByReceipt[activeReceiptIndex] ?? split)
@@ -126,20 +143,47 @@ export function SummaryStep({
               Total ({receipts.length} receipts)
             </button>
             {receipts.map((r, index) => (
-              <button
+              <div
                 key={r.id}
-                type="button"
                 data-testid={`summary-tab-receipt-${index}`}
                 onClick={() => setActiveTab(r.id)}
+                onDoubleClick={() => startEditingTab(r.id, r.name || `Receipt ${index + 1}`)}
                 className={cn(
-                  'flex-shrink-0 px-6 py-2.5 rounded-full font-semibold transition-all',
+                  'flex-shrink-0 flex items-center gap-1.5 px-6 py-2.5 rounded-full font-semibold transition-all cursor-pointer select-none',
                   activeTab === r.id
                     ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
                     : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest',
                 )}
               >
-                {r.name || `Receipt ${index + 1}`}
-              </button>
+                {editingTabId === r.id ? (
+                  <input
+                    ref={tabInputRef}
+                    value={editingTabName}
+                    onChange={(e) => setEditingTabName(e.target.value)}
+                    onBlur={commitTabRename}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitTabRename()
+                      if (e.key === 'Escape') setEditingTabId(null)
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    size={Math.max(editingTabName.length, 6)}
+                    className="bg-transparent outline-none font-semibold text-on-primary"
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    {r.name || `Receipt ${index + 1}`}
+                    {activeTab === r.id && (
+                      <span
+                        className="material-symbols-outlined !text-xs opacity-70"
+                        onClick={(e) => { e.stopPropagation(); startEditingTab(r.id, r.name || `Receipt ${index + 1}`) }}
+                      >
+                        edit
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -220,8 +264,16 @@ export function SummaryStep({
           {/* Grand total card */}
           <div className="rounded-2xl p-6 text-left shadow-md" style={{ background: 'linear-gradient(135deg, #2d6a7f 0%, #1e5068 100%)' }}>
             <div className="flex items-start justify-between mb-4">
-              <span className="text-sm font-bold uppercase tracking-widest text-white">
-                {currentReceipt ? currentReceipt.name : 'Grand Total'}
+              <span className="text-sm font-bold uppercase tracking-widest text-white flex-1 min-w-0 mr-2">
+                {currentReceipt ? (
+                  <ReceiptNameField
+                    key={currentReceipt.id}
+                    name={currentReceipt.name}
+                    onRename={(name) => onRenameReceipt(currentReceipt.id, name)}
+                    className="text-white placeholder:text-white/40"
+                    iconClassName="text-white"
+                  />
+                ) : 'Grand Total'}
               </span>
               <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
                 <span className="material-symbols-outlined text-white/50 text-sm">account_balance_wallet</span>

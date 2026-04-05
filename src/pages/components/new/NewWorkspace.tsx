@@ -103,6 +103,15 @@ export function NewWorkspace() {
     addPeopleFromInput(peopleInput)
   }
 
+  const handleNextWithScroll = () => {
+    handleNext()
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
+
+  const handleBackWithScroll = () => {
+    handleBack()
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
 
   if (!activeReceipt || !discount || !serviceCharge || !gst) {
     return null
@@ -165,6 +174,7 @@ export function NewWorkspace() {
             receipts={receipts}
             activeReceiptId={activeReceiptId}
             onSelectReceipt={setActiveReceiptId}
+            onRenameReceipt={renameReceipt}
             items={items}
             people={people}
             itemsSubPhase={itemsSubPhase}
@@ -189,6 +199,7 @@ export function NewWorkspace() {
             reconciliationCents={reconciliationCents}
             onApplyDiscount={handleApplyReconciliationDiscount}
             onAddReceipt={handleAddReceipt}
+            onRenameReceipt={renameReceipt}
           />
         )}
       </main>
@@ -196,9 +207,10 @@ export function NewWorkspace() {
       <BottomNav
         activeStep={activeStep}
         itemsSubPhase={itemsSubPhase}
+        isLastAssignableItem={safeActiveItemIndex >= items.length - 1}
         canContinue={canContinue}
-        onBack={handleBack}
-        onNext={handleNext}
+        onBack={handleBackWithScroll}
+        onNext={handleNextWithScroll}
         grandTotalFormatted={grandTotalFormatted}
       />
     </div>

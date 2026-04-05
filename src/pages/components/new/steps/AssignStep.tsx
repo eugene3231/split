@@ -5,12 +5,14 @@ import type { EditableItem, Person, Receipt } from '@shared/types'
 import type { ItemsSubPhase } from '@pages/types'
 import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar'
 import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs'
+import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
 import { cn } from '@shared/utils/cn'
 
 type Props = {
   receipts: Receipt[]
   activeReceiptId: string
   onSelectReceipt: (id: string) => void
+  onRenameReceipt: (id: string, name: string) => void
   items: EditableItem[]
   people: Person[]
   itemsSubPhase: ItemsSubPhase
@@ -24,6 +26,7 @@ export function AssignStep({
   receipts,
   activeReceiptId,
   onSelectReceipt,
+  onRenameReceipt,
   items,
   people,
   itemsSubPhase,
@@ -33,7 +36,7 @@ export function AssignStep({
   onUpdateItem,
 }: Props) {
   const validPeopleSet = useMemo(() => new Set(people.map((p) => p.id)), [people])
-
+  const activeReceipt = receipts.find((r) => r.id === activeReceiptId)
 
   return (
     <div>
@@ -53,6 +56,7 @@ export function AssignStep({
         receipts={receipts}
         activeReceiptId={itemsSubPhase === 'review' ? '' : activeReceiptId}
         onSelect={(id) => { onSelectReceipt(id); onItemsSubPhaseChange('assign') }}
+        onRename={onRenameReceipt}
         appendTab={{
           icon: 'assignment_turned_in',
           label: 'Review All',
@@ -60,6 +64,17 @@ export function AssignStep({
           onClick: () => onItemsSubPhaseChange('review'),
         }}
       />
+
+      {itemsSubPhase === 'assign' && activeReceipt && (
+        <div className="flex items-center gap-2 mt-3 mb-1 px-1">
+          <span className="material-symbols-outlined text-sm text-outline">receipt_long</span>
+          <ReceiptNameField
+            key={activeReceiptId}
+            name={activeReceipt.name}
+            onRename={(name) => onRenameReceipt(activeReceiptId, name)}
+          />
+        </div>
+      )}
 
       {itemsSubPhase === 'assign' ? (
         <AssignPhase

@@ -4,22 +4,24 @@ import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
 interface Props {
   activeStep: SimpleWizardStep
   itemsSubPhase: ItemsSubPhase
+  isLastAssignableItem: boolean
   canContinue: boolean
   onBack: () => void
   onNext: () => void
   grandTotalFormatted?: string
 }
 
-function getContinueLabel(activeStep: SimpleWizardStep, itemsSubPhase: ItemsSubPhase): string {
+function getContinueLabel(activeStep: SimpleWizardStep, itemsSubPhase: ItemsSubPhase, isLastAssignableItem: boolean): string {
   if (activeStep === 'people') return 'Add Receipts'
   if (activeStep === 'receipt') return 'Assign Items'
-  if (activeStep === 'items' && itemsSubPhase === 'assign') return 'Review Items'
+  if (activeStep === 'items' && itemsSubPhase === 'assign') return isLastAssignableItem ? 'Review Items' : 'Next Item'
   return 'Summary'
 }
 
 export function BottomNav({
   activeStep,
   itemsSubPhase,
+  isLastAssignableItem,
   canContinue,
   onBack,
   onNext,
@@ -27,7 +29,8 @@ export function BottomNav({
 }: Props) {
   const isFirstStep = activeStep === 'people'
   const isFinalStep = activeStep === 'final'
-  const continueLabel = getContinueLabel(activeStep, itemsSubPhase)
+  const isSummaryStep = activeStep === 'items' && itemsSubPhase === 'review'
+  const continueLabel = getContinueLabel(activeStep, itemsSubPhase, isLastAssignableItem)
   const continueDisabled = !canContinue && !(activeStep === 'items' && itemsSubPhase === 'assign')
 
   return (
@@ -77,7 +80,9 @@ export function BottomNav({
               'flex items-center gap-2 rounded-xl px-5 py-2 active:scale-95 transition-all shadow-md',
               continueDisabled
                 ? 'bg-surface-container-high text-on-surface-variant cursor-not-allowed opacity-60'
-                : 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-primary/20',
+                : isSummaryStep
+                  ? 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-primary/20'
+                  : 'bg-white text-neutral-900 shadow-black/10',
             )}
           >
             <span className="text-xs font-label uppercase tracking-wider font-bold">{continueLabel}</span>
