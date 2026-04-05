@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react'
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types'
-import { formatCurrencyFromCents } from '@shared/logic/core/money'
+import { formatCurrencyFromCents, getCurrencySymbol } from '@shared/logic/core/money'
 import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight'
 import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
 import { PersonCard } from '@pages/components/new/shared/PersonCard'
 import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
+import { BASE_CURRENCY } from '@shared/constants'
 import { cn } from '@shared/utils/cn'
+import { convertSplitResult } from '@shared/logic/core/exchangeRates'
+import { useReceiptStore } from '@shared/stores/receiptStore'
 
 type Props = {
   people: Person[]
@@ -43,6 +46,7 @@ export function SummaryStep({
   const [activeTab, setActiveTab] = useState<string>(isMultiReceipt ? 'total' : receipts[0]?.id ?? 'total')
   const [busy, setBusy] = useState<ExportBusy>(null)
   const [showDetails, setShowDetails] = useState(false)
+  const [showBaseCurrency, setShowBaseCurrency] = useState(false)
   const [copied, setCopied] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [editingTabId, setEditingTabId] = useState<string | null>(null)
@@ -68,7 +72,25 @@ export function SummaryStep({
   const currentServiceCharge = currentReceipt?.serviceCharge ?? serviceCharge
   const currentGst = currentReceipt?.gst ?? gst
 
-  const grandTotal = Object.values(currentSplit.totalByPersonCents).reduce((s, v) => s + v, 0)
+  // Consolidated tab shows SGD; individual receipt tabs show the receipt's native currency
+  const currentCurrency = activeTab === 'total' ? BASE_CURRENCY : (currentReceipt?.currency ?? BASE_CURRENCY)
+  const isForeignCurrency = currentCurrency !== BASE_CURRENCY
+  const exchangeRates = useReceiptStore((s) => s.exchangeRates)
+  const convertedSplit = isForeignCurrency
+    ? convertSplitResult(currentSplit, currentCurrency, BASE_CURRENCY, exchangeRates, currentReceipt?.exchangeRateOverride ?? null)
+    : null
+  const displaySplit = isForeignCurrency && showBaseCurrency ? convertedSplit! : currentSplit
+  const displayCurrency = isForeignCurrency && showBaseCurrency ? BASE_CURRENCY : currentCurrency
+
+  const hasAnyForeignReceipt = receipts.some((r) => (r.currency ?? BASE_CURRENCY) !== BASE_CURRENCY)
+  const convertedSplitByReceipt = splitByReceipt.map((s, i) => {
+    const currency = receipts[i]?.currency ?? BASE_CURRENCY
+    return currency !== BASE_CURRENCY
+      ? convertSplitResult(s, currency, BASE_CURRENCY, exchangeRates, receipts[i]?.exchangeRateOverride ?? null)
+      : s
+  })
+
+  const grandTotal = Object.values(displaySplit.totalByPersonCents).reduce((s, v) => s + v, 0)
 
   const handleDownload = async () => {
     setBusy('downloading')
@@ -76,7 +98,7 @@ export function SummaryStep({
     try {
       const blob = await generateReceiptSplitImageLight({
         people,
-        split: currentSplit,
+        split: displaySplit,
         receipts,
         splitByReceipt,
         discount: currentDiscount,
@@ -85,6 +107,7 @@ export function SummaryStep({
         receiptName: currentReceipt?.name,
         reconciliationCents,
         includeItemDetails: showDetails,
+        currency: displayCurrency,
       })
       await downloadImage(blob, 'split-result.png')
     } catch {
@@ -96,7 +119,7 @@ export function SummaryStep({
 
   const handleCopy = async () => {
     setBusy('copying')
-    const text = buildSplitShareText({ people, receiptName: currentReceipt?.name ?? '', split: currentSplit })
+    const text = buildSplitShareText({ people, receiptName: currentReceipt?.name ?? '', split: displaySplit, currency: displayCurrency })
     try {
       await copyShareText(text)
       setBusy(null)
@@ -222,7 +245,31 @@ export function SummaryStep({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
         {/* Left: Person cards (single column) */}
         <div className="lg:col-span-8 order-2 lg:order-1">
-          <div className="flex justify-end mb-3">
+          <div className="flex items-center justify-between mb-3">
+            {(isForeignCurrency || (activeTab === 'total' && hasAnyForeignReceipt)) ? (
+              <div className="flex items-center gap-1 bg-surface-container rounded-full p-0.5 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setShowBaseCurrency(false)}
+                  className={cn(
+                    'px-3 py-1 rounded-full transition-all',
+                    !showBaseCurrency ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface',
+                  )}
+                >
+                  {activeTab === 'total' ? 'Original' : `${getCurrencySymbol(currentCurrency)} ${currentCurrency}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBaseCurrency(true)}
+                  className={cn(
+                    'px-3 py-1 rounded-full transition-all',
+                    showBaseCurrency ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface',
+                  )}
+                >
+                  {getCurrencySymbol(BASE_CURRENCY)} {BASE_CURRENCY}
+                </button>
+              </div>
+            ) : <span />}
             <button
               type="button"
               data-testid="summary-show-details-btn"
@@ -241,13 +288,19 @@ export function SummaryStep({
                 key={person.id}
                 person={person}
                 colorIndex={index}
-                split={currentSplit}
+                split={displaySplit}
                 discount={currentDiscount}
                 serviceCharge={currentServiceCharge}
                 gst={currentGst}
                 showDetails={showDetails}
+                currency={displayCurrency}
                 receiptBreakdown={activeTab === 'total' && isMultiReceipt
-                  ? receipts.map((r, i) => ({ name: r.name || `Receipt ${i + 1}`, split: splitByReceipt[i] }))
+                  ? receipts.map((r, i) => {
+                      const receiptCurrency = r.currency ?? BASE_CURRENCY
+                      const usedSplit = showBaseCurrency ? convertedSplitByReceipt[i] : splitByReceipt[i]
+                      const usedCurrency = showBaseCurrency ? BASE_CURRENCY : receiptCurrency
+                      return { name: r.name || `Receipt ${i + 1}`, split: usedSplit, currency: usedCurrency }
+                    })
                   : undefined
                 }
               />
@@ -281,9 +334,9 @@ export function SummaryStep({
               </div>
             </div>
             <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-xl font-semibold text-white/60">$</span>
+              <span className="text-xl font-semibold text-white/60">{getCurrencySymbol(displayCurrency)}</span>
               <span className="text-4xl font-semibold text-white font-headline leading-none">
-                {formatCurrencyFromCents(grandTotal).replace('$', '')}
+                {(grandTotal / 100).toFixed(2)}
               </span>
             </div>
             <div className="border-t border-white/10 pt-4 flex items-center gap-2.5">

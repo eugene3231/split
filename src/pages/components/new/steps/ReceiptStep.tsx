@@ -5,7 +5,10 @@ import { LineItemCard } from '@pages/components/new/shared/LineItemCard'
 import { GlobalChargesPanel } from '@pages/components/new/shared/GlobalChargesPanel'
 import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs'
 import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
+import { CurrencySelector } from '@pages/components/new/shared/CurrencySelector'
+import { ExchangeRateDisplay } from '@pages/components/new/shared/ExchangeRateDisplay'
 import { useReceiptStore } from '@shared/stores/receiptStore'
+import { BASE_CURRENCY } from '@shared/constants'
 import { cn } from '@shared/utils/cn'
 
 type Props = {
@@ -64,8 +67,10 @@ export function ReceiptStep({
 }: Props) {
   const [hasUpload, setHasUpload] = useState(false)
   const hasApiKey = useReceiptStore((s) => s.geminiApiKeyInput.trim().length > 0)
+  const setReceiptCurrency = useReceiptStore((s) => s.setReceiptCurrency)
   const hasItems = items.length > 0
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId)
+  const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY
   return (
     <div>
       {/* Step header — desktop */}
@@ -115,12 +120,29 @@ export function ReceiptStep({
               <span className="material-symbols-outlined text-2xl text-outline">receipt_long</span>
             </div>
             <div className="flex-1 min-w-0">
-              <ReceiptNameField
-                key={activeReceiptId}
-                name={activeReceipt?.name ?? ''}
-                onRename={(name) => onRenameReceipt(activeReceiptId, name)}
-              />
-              <p className="text-xs text-on-surface-variant">Upload or scan to extract line items</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <ReceiptNameField
+                  key={activeReceiptId}
+                  name={activeReceipt?.name ?? ''}
+                  onRename={(name) => onRenameReceipt(activeReceiptId, name)}
+                />
+                <CurrencySelector
+                  value={activeCurrency}
+                  onChange={(currency) => setReceiptCurrency(activeReceiptId, currency)}
+                />
+              </div>
+              {activeCurrency !== BASE_CURRENCY && activeReceipt && (
+                <div className="mt-1">
+                  <ExchangeRateDisplay
+                    receiptId={activeReceiptId}
+                    currency={activeCurrency}
+                    exchangeRateOverride={activeReceipt.exchangeRateOverride}
+                  />
+                </div>
+              )}
+              {activeCurrency === BASE_CURRENCY && (
+                <p className="text-xs text-on-surface-variant">Upload or scan to extract line items</p>
+              )}
             </div>
             <span className="material-symbols-outlined text-outline text-base">fullscreen</span>
           </div>
@@ -141,6 +163,7 @@ export function ReceiptStep({
                     key={item.id}
                     item={item}
                     discount={discount}
+                    currency={activeCurrency}
                     onUpdate={(updater) => onUpdateItem(item.id, updater)}
                     onRemove={() => onRemoveItem(item.id)}
                   />
@@ -190,6 +213,7 @@ export function ReceiptStep({
             onServiceChargeChange={onServiceChargeChange}
             onGstChange={onGstChange}
             onReceiptTotalInputChange={onReceiptTotalInputChange}
+            currency={activeCurrency}
           />
         </div>
       </div>

@@ -17,6 +17,7 @@ export function useReceiptSplitterController() {
     initialize,
     reset,
     normalizeItemsForSimpleMode,
+    fetchAndSetExchangeRates,
   } = useReceiptStore(
     useShallow((state) => ({
       uxMode: state.uxMode,
@@ -30,6 +31,7 @@ export function useReceiptSplitterController() {
       initialize: state.initialize,
       reset: state.reset,
       normalizeItemsForSimpleMode: state.normalizeItemsForSimpleMode,
+      fetchAndSetExchangeRates: state.fetchAndSetExchangeRates,
     })),
   )
 
@@ -37,6 +39,12 @@ export function useReceiptSplitterController() {
     if (!initialized) {
       initialize(uxMode)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    // Fetch fresh exchange rates after initial mount
+    fetchAndSetExchangeRates()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

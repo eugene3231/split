@@ -11,11 +11,11 @@ type ShareFinalSplitOptions = {
   navigator?: ShareNavigator
 }
 
-export function buildSplitShareText(args: { people: Person[]; receiptName: string; split: SplitResult }): string {
-  const lines = [`${args.receiptName} total: ${formatCurrencyFromCents(args.split.grandTotalCents)}\n`]
+export function buildSplitShareText(args: { people: Person[]; receiptName: string; split: SplitResult; currency?: string }): string {
+  const lines = [`${args.receiptName} total: ${formatCurrencyFromCents(args.split.grandTotalCents, args.currency)}\n`]
 
   for (const person of args.people) {
-    lines.push(`${person.name}: ${formatCurrencyFromCents(args.split.totalByPersonCents[person.id] ?? 0)}`)
+    lines.push(`${person.name}: ${formatCurrencyFromCents(args.split.totalByPersonCents[person.id] ?? 0, args.currency)}`)
   }
 
   return lines.join('\n')

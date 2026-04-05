@@ -6,6 +6,7 @@ import type { ItemsSubPhase } from '@pages/types'
 import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar'
 import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs'
 import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
+import { BASE_CURRENCY } from '@shared/constants'
 import { cn } from '@shared/utils/cn'
 
 type Props = {
@@ -37,6 +38,7 @@ export function AssignStep({
 }: Props) {
   const validPeopleSet = useMemo(() => new Set(people.map((p) => p.id)), [people])
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId)
+  const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY
 
   return (
     <div>
@@ -84,6 +86,7 @@ export function AssignStep({
           activeItemIndex={activeItemIndex}
           onActiveItemIndexChange={onActiveItemIndexChange}
           onUpdateItem={onUpdateItem}
+          currency={activeCurrency}
         />
       ) : (
         <ReviewPhase
@@ -108,6 +111,7 @@ type AssignPhaseProps = {
   activeItemIndex: number
   onActiveItemIndexChange: (index: number) => void
   onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
+  currency: string
 }
 
 function AssignPhase({
@@ -117,6 +121,7 @@ function AssignPhase({
   activeItemIndex,
   onActiveItemIndexChange,
   onUpdateItem,
+  currency,
 }: AssignPhaseProps) {
   const activeItem = items[activeItemIndex] ?? null
   const isAssigned = activeItem ? isSimpleItemAssigned(activeItem, validPeopleSet) : false
@@ -207,7 +212,7 @@ function AssignPhase({
           )}
         </div>
         <div className="text-3xl md:text-4xl font-extrabold font-headline text-primary">
-          {priceCents !== null ? formatCurrencyFromCents(priceCents) : '—'}
+          {priceCents !== null ? formatCurrencyFromCents(priceCents, currency) : '—'}
         </div>
       </div>
 
@@ -268,7 +273,7 @@ function AssignPhase({
               <div className="flex-1 min-w-0">
                 <span className="block font-bold text-on-surface text-sm">{person.name}</span>
                 <span className={cn('text-sm font-semibold', isSelected ? 'text-secondary' : 'text-on-surface-variant')}>
-                  {formatCurrencyFromCents(shareAmount)}
+                  {formatCurrencyFromCents(shareAmount, currency)}
                 </span>
               </div>
               {isSelected && (

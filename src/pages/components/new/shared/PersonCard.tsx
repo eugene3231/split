@@ -5,6 +5,7 @@ import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar'
 interface ReceiptBreakdownEntry {
   name: string
   split: SplitResult
+  currency?: string
 }
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
   gst: ChargeState
   showDetails?: boolean
   receiptBreakdown?: ReceiptBreakdownEntry[]
+  currency?: string
 }
 
 function buildChargeLabel(label: string, charge: ChargeState): string {
@@ -28,7 +30,7 @@ function buildChargeLabel(label: string, charge: ChargeState): string {
   return label
 }
 
-export function PersonCard({ person, colorIndex, split, discount, serviceCharge, gst, showDetails = false, receiptBreakdown }: Props) {
+export function PersonCard({ person, colorIndex, split, discount, serviceCharge, gst, showDetails = false, receiptBreakdown, currency }: Props) {
   const lines = split.lineItemsByPerson[person.id] ?? []
   const total = split.totalByPersonCents[person.id] ?? 0
 const discountAmt = split.discountByPersonCents[person.id] ?? 0
@@ -48,7 +50,7 @@ const discountAmt = split.discountByPersonCents[person.id] ?? 0
             {receiptBreakdown ? 'Total Consolidated' : 'Total Due'}
           </span>
           <p className="text-3xl font-semibold text-on-surface leading-none font-headline">
-            {formatCurrencyFromCents(total)}
+            {formatCurrencyFromCents(total, currency)}
           </p>
         </div>
       </div>
@@ -63,7 +65,7 @@ const discountAmt = split.discountByPersonCents[person.id] ?? 0
             return (
               <div key={entry.name} className="flex justify-between text-base text-on-surface-variant">
                 <span className="truncate pr-3">{entry.name}</span>
-                <span className="flex-shrink-0">{formatCurrencyFromCents(entrySubtotalCents)}</span>
+                <span className="flex-shrink-0">{formatCurrencyFromCents(entrySubtotalCents, entry.currency)}</span>
               </div>
             )
           })}
@@ -87,11 +89,12 @@ const discountAmt = split.discountByPersonCents[person.id] ?? 0
                 const entryGstAmt = entry.split.gstByPersonCents[person.id] ?? 0
                 const hasCharges = entryDiscountAmt > 0 || entryServiceAmt > 0 || entryGstAmt > 0
                 if (entryLines.length === 0) return null
+
                 return (
                   <div key={entry.name} className="bg-surface-container-low rounded-xl p-5">
                     <div className="flex justify-between items-baseline mb-4">
                       <span className="text-base font-bold text-on-surface">{entry.name}</span>
-                      <span className="text-base font-bold text-on-surface">{formatCurrencyFromCents(entrySubtotalCents)}</span>
+                      <span className="text-base font-bold text-on-surface">{formatCurrencyFromCents(entrySubtotalCents, entry.currency)}</span>
                     </div>
                     <div className="border-t border-outline-variant/15 pt-3 space-y-3">
                       {entryLines.map((line, i) => (
@@ -100,7 +103,7 @@ const discountAmt = split.discountByPersonCents[person.id] ?? 0
                             {line.name}
                           </span>
                           <span className={line.involved ? 'text-on-surface-variant flex-shrink-0' : 'text-on-surface-variant/40 flex-shrink-0 italic'}>
-                            {line.involved ? formatCurrencyFromCents(line.assignedAmountCents) : '—'}
+                            {line.involved ? formatCurrencyFromCents(line.assignedAmountCents, entry.currency) : '—'}
                           </span>
                         </div>
                       ))}
@@ -110,19 +113,19 @@ const discountAmt = split.discountByPersonCents[person.id] ?? 0
                           {entryDiscountAmt > 0 && (
                             <div className="flex justify-between text-base pl-4">
                               <span className="text-on-surface-variant italic">{buildChargeLabel('Discount', discount)}</span>
-                              <span className="text-on-surface-variant italic">−{formatCurrencyFromCents(entryDiscountAmt)}</span>
+                              <span className="text-on-surface-variant italic">−{formatCurrencyFromCents(entryDiscountAmt, entry.currency)}</span>
                             </div>
                           )}
                           {entryServiceAmt > 0 && (
                             <div className="flex justify-between text-base pl-4">
                               <span className="text-on-surface-variant italic">{buildChargeLabel('Service Charge', serviceCharge)}</span>
-                              <span className="text-on-surface-variant italic">+{formatCurrencyFromCents(entryServiceAmt)}</span>
+                              <span className="text-on-surface-variant italic">+{formatCurrencyFromCents(entryServiceAmt, entry.currency)}</span>
                             </div>
                           )}
                           {entryGstAmt > 0 && (
                             <div className="flex justify-between text-base pl-4">
                               <span className="text-on-surface-variant italic">{buildChargeLabel('GST / Tax', gst)}</span>
-                              <span className="text-on-surface-variant italic">+{formatCurrencyFromCents(entryGstAmt)}</span>
+                              <span className="text-on-surface-variant italic">+{formatCurrencyFromCents(entryGstAmt, entry.currency)}</span>
                             </div>
                           )}
                         </>
@@ -146,7 +149,7 @@ const discountAmt = split.discountByPersonCents[person.id] ?? 0
                       {line.name}
                     </span>
                     <span className={line.involved ? 'text-on-surface-variant flex-shrink-0' : 'text-on-surface-variant/40 flex-shrink-0 italic'}>
-                      {line.involved ? formatCurrencyFromCents(line.assignedAmountCents) : '—'}
+                      {line.involved ? formatCurrencyFromCents(line.assignedAmountCents, currency) : '—'}
                     </span>
                   </div>
                 ))}
@@ -155,19 +158,19 @@ const discountAmt = split.discountByPersonCents[person.id] ?? 0
                     {discountAmt > 0 && (
                       <div className="flex justify-between text-base pl-4">
                         <span className="text-on-surface-variant italic">{buildChargeLabel('Discount', discount)}</span>
-                        <span className="text-on-surface-variant italic">−{formatCurrencyFromCents(discountAmt)}</span>
+                        <span className="text-on-surface-variant italic">−{formatCurrencyFromCents(discountAmt, currency)}</span>
                       </div>
                     )}
                     {serviceAmt > 0 && (
                       <div className="flex justify-between text-base pl-4">
                         <span className="text-on-surface-variant italic">{buildChargeLabel('Service', serviceCharge)}</span>
-                        <span className="text-on-surface-variant italic">+{formatCurrencyFromCents(serviceAmt)}</span>
+                        <span className="text-on-surface-variant italic">+{formatCurrencyFromCents(serviceAmt, currency)}</span>
                       </div>
                     )}
                     {gstAmt > 0 && (
                       <div className="flex justify-between text-base pl-4">
                         <span className="text-on-surface-variant italic">{buildChargeLabel('GST / Tax', gst)}</span>
-                        <span className="text-on-surface-variant italic">+{formatCurrencyFromCents(gstAmt)}</span>
+                        <span className="text-on-surface-variant italic">+{formatCurrencyFromCents(gstAmt, currency)}</span>
                       </div>
                     )}
                   </div>

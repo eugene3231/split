@@ -15,6 +15,7 @@ interface Props {
   onServiceChargeChange: (serviceCharge: ChargeState) => void
   onGstChange: (gst: ChargeState) => void
   onReceiptTotalInputChange: (value: string) => void
+  currency?: string
 }
 
 export function GlobalChargesPanel({
@@ -29,6 +30,7 @@ export function GlobalChargesPanel({
   onServiceChargeChange,
   onGstChange,
   onReceiptTotalInputChange,
+  currency,
 }: Props) {
   return (
     <div className="bg-surface-container-lowest p-8 rounded-3xl shadow-lg border border-surface-container-highest sticky top-24">
@@ -42,7 +44,7 @@ export function GlobalChargesPanel({
         <ChargeToggle label="Global Discount" value={discount} onChange={onDiscountChange} />
       </div>
 
-      <SummaryTotals split={split} discount={discount} serviceCharge={serviceCharge} gst={gst} />
+      <SummaryTotals split={split} discount={discount} serviceCharge={serviceCharge} gst={gst} currency={currency} />
 
       {/* Receipt Total input */}
       <div className="space-y-4">
