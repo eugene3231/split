@@ -37,7 +37,6 @@ const LINE_ROW_H = 34          // height per line item row
 const RECEIPT_LABEL_H = 40     // height of receipt name row within nested card
 const CHARGE_ROW_H = 34        // height per charge row
 const DIVIDER_H = 22           // space around divider line
-const RECEIPT_GAP = 20         // gap between receipt blocks inside nested card
 const BODY_TOP_PAD = 24        // gap between header and nested card
 const NESTED_BOTTOM_PAD = 24   // padding below last charge row inside nested card
 const BETWEEN_CARD_GAP = 20    // vertical gap between person cards
@@ -101,7 +100,7 @@ export async function generateReceiptSplitImageLight(
       for (const person of rowPeople) {
         rowHeight = Math.max(rowHeight, measurePersonCardHeight(
           person.id, options.split, options.receipts, options.splitByReceipt,
-          options.includeItemDetails, options.discount, options.serviceCharge, options.gst,
+          options.includeItemDetails,
         ))
       }
 
@@ -212,20 +211,15 @@ function measurePersonCardHeight(
   receipts: Receipt[] | undefined,
   splitByReceipt: SplitResult[] | undefined,
   includeLineItems: boolean,
-  discount: ChargeState,
-  serviceCharge: ChargeState,
-  gst: ChargeState,
 ): number {
   let nestedBodyH: number
 
   if (receipts && splitByReceipt && receipts.length > 0) {
     let bodyH = 0
-    let blockCount = 0
     for (let i = 0; i < receipts.length; i++) {
       const rSplit = splitByReceipt[i]
       if (!rSplit) continue
       bodyH += measureReceiptBlockHeight(personId, rSplit, receipts[i], includeLineItems)
-      blockCount++
     }
     nestedBodyH = bodyH
   } else {
