@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router'
 import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage'
 import { LegacyReceiptSplitterPage } from '@pages/LegacyReceiptSplitterPage'
 
