@@ -40,6 +40,13 @@ export function parseCurrencyToCents(input: string): number | null {
   return Math.round(parsed * 100)
 }
 
-export function formatCurrencyFromCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`
+import { CURRENCY_SYMBOLS } from '@shared/constants'
+
+export function getCurrencySymbol(currency: string): string {
+  return CURRENCY_SYMBOLS[currency] ?? currency
+}
+
+export function formatCurrencyFromCents(cents: number, currency?: string): string {
+  const symbol = getCurrencySymbol(currency ?? 'SGD')
+  return `${symbol}${(cents / 100).toFixed(2)}`
 }

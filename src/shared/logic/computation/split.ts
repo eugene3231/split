@@ -9,6 +9,8 @@ import type {
 import { parseCurrencyToCents } from '@shared/logic/core/money'
 import { resolveChargeCents } from '@shared/logic/computation/charges'
 import { parseDiscountPercent, resolveDiscountedAmountCents } from '@shared/logic/computation/pricing'
+import { convertSplitResult } from '@shared/logic/core/exchangeRates'
+import { BASE_CURRENCY } from '@shared/constants'
 
 export function computeSplit({
   people,
@@ -170,7 +172,14 @@ export function computeSplit({
   }
 }
 
-export function computeConsolidatedSplit(results: SplitResult[], people: Person[]): SplitResult {
+export function computeConsolidatedSplit(
+  results: SplitResult[],
+  people: Person[],
+  currencies: string[] = [],
+  exchangeRates: Record<string, number> = {},
+  exchangeRateOverrides: (number | null)[] = [],
+  baseCurrency: string = BASE_CURRENCY,
+): SplitResult {
   const personIds = people.map((p) => p.id)
   const lineItemsByPerson = initializeLineItemMap(personIds)
   const involvedCountByPerson = initializeCentsMap(personIds)
@@ -187,7 +196,13 @@ export function computeConsolidatedSplit(results: SplitResult[], people: Person[
   let grandTotalCents = 0
   let unassignedItemCount = 0
 
-  for (const result of results) {
+  for (let i = 0; i < results.length; i++) {
+    const fromCurrency = currencies[i] ?? baseCurrency
+    const override = exchangeRateOverrides[i] ?? null
+    const result = fromCurrency !== baseCurrency
+      ? convertSplitResult(results[i], fromCurrency, baseCurrency, exchangeRates, override)
+      : results[i]
+
     for (const personId of personIds) {
       const lines = result.lineItemsByPerson[personId] ?? []
       lineItemsByPerson[personId].push(...lines)

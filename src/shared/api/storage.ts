@@ -1,8 +1,10 @@
 import {
   LOCAL_STORAGE_DRAFT_KEY,
+  LOCAL_STORAGE_EXCHANGE_RATES_KEY,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   LOCAL_STORAGE_UX_MODE_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
+  BASE_CURRENCY,
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
@@ -239,6 +241,8 @@ function migrateV1ToSessionDraft(parsed: Record<string, unknown>): SessionDraft 
     serviceCharge: normalizeDraftChargeState(parsed.serviceCharge, defaultServiceChargeState),
     gst: normalizeDraftChargeState(parsed.gst, defaultGstState),
     receiptTotalInput: typeof parsed.receiptTotalInput === 'string' ? parsed.receiptTotalInput : '',
+    currency: BASE_CURRENCY,
+    exchangeRateOverride: null,
   }
 
   return {
@@ -298,6 +302,11 @@ function normalizeDraftReceipt(value: unknown, people: Person[], fallbackIndex: 
     serviceCharge: normalizeDraftChargeState(value.serviceCharge, defaultServiceChargeState),
     gst: normalizeDraftChargeState(value.gst, defaultGstState),
     receiptTotalInput: typeof value.receiptTotalInput === 'string' ? value.receiptTotalInput : '',
+    currency: typeof value.currency === 'string' && value.currency ? value.currency : BASE_CURRENCY,
+    exchangeRateOverride:
+      typeof value.exchangeRateOverride === 'number' && value.exchangeRateOverride > 0
+        ? value.exchangeRateOverride
+        : null,
   }
 }
 
@@ -399,6 +408,36 @@ function normalizeDraftChargeState(value: unknown, fallback: ChargeState): Charg
     percentInput: typeof value.percentInput === 'string' ? value.percentInput : fallback.percentInput,
     detectedConfidence,
     detectedSource: typeof value.detectedSource === 'string' ? value.detectedSource : null,
+  }
+}
+
+export function saveExchangeRates(rates: Record<string, number>): void {
+  const storage = getBrowserStorage()
+  if (!storage) return
+  try {
+    storage.setItem(LOCAL_STORAGE_EXCHANGE_RATES_KEY, JSON.stringify({ rates, savedAt: Date.now() }))
+  } catch {
+    // Ignore storage write failures.
+  }
+}
+
+export function loadExchangeRates(): Record<string, number> | null {
+  const storage = getBrowserStorage()
+  if (!storage) return null
+  try {
+    const raw = storage.getItem(LOCAL_STORAGE_EXCHANGE_RATES_KEY)
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null || !('rates' in parsed)) return null
+    const { rates } = parsed as { rates: unknown }
+    if (typeof rates !== 'object' || rates === null) return null
+    const result: Record<string, number> = {}
+    for (const [k, v] of Object.entries(rates)) {
+      if (typeof v === 'number' && Number.isFinite(v)) result[k] = v
+    }
+    return Object.keys(result).length > 0 ? result : null
+  } catch {
+    return null
   }
 }
 

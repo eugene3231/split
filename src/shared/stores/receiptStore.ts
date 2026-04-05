@@ -9,14 +9,18 @@ import {
   clearSessionGeminiApiKey,
   exportDraftToJson,
   importDraftFromJson,
+  loadExchangeRates,
   loadPersistedDraft,
   loadPersistedOcrSettings,
   loadPersistedUxMode,
   loadSessionGeminiApiKey,
+  saveExchangeRates,
   savePersistedOcrSettings,
   savePersistedUxMode,
   saveSessionGeminiApiKey,
 } from '@shared/api/storage'
+import { fetchExchangeRates } from '@shared/api/exchangeRateApi'
+import { FALLBACK_RATES_TO_SGD, BASE_CURRENCY } from '@shared/constants'
 import { createEmptyItem } from '@shared/logic/assignment/items'
 import { createId } from '@shared/logic/core/id'
 import { normalizeGeminiModel } from '@shared/logic/core/geminiModel'
@@ -72,6 +76,8 @@ function createBlankReceipt(people: Person[], uxMode: 'simple' | 'advanced', nam
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
     receiptTotalInput: '',
+    currency: BASE_CURRENCY,
+    exchangeRateOverride: null,
   }
 }
 
@@ -127,6 +133,10 @@ type ReceiptStoreState = {
   people: Person[]
   receipts: Receipt[]
   activeReceiptId: string
+
+  // Exchange rates
+  exchangeRates: Record<string, number>
+  exchangeRatesLastFetched: number | null
 }
 
 type ReceiptStoreActions = {
@@ -172,6 +182,11 @@ type ReceiptStoreActions = {
   removeReceipt: (receiptId: string) => void
   setActiveReceiptId: (receiptId: string) => void
   renameReceipt: (receiptId: string, name: string) => void
+
+  // Currency actions
+  setReceiptCurrency: (receiptId: string, currency: string) => void
+  setReceiptExchangeRateOverride: (receiptId: string, rate: number | null) => void
+  fetchAndSetExchangeRates: () => Promise<void>
 }
 
 type ReceiptStore = ReceiptStoreState & ReceiptStoreActions
@@ -197,6 +212,10 @@ const initialState: ReceiptStoreState = {
   people: [],
   receipts: [],
   activeReceiptId: '',
+
+  // Exchange rates (loaded from localStorage or fallback)
+  exchangeRates: loadExchangeRates() ?? FALLBACK_RATES_TO_SGD,
+  exchangeRatesLastFetched: null,
 }
 
 // ---------------------------------------------------------------------------
@@ -381,6 +400,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         activeReceiptId: blankReceipt.id,
       })
     }
+
   },
   reset: () => {
     set({
@@ -702,6 +722,30 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         r.id === receiptId ? { ...r, name: name.trim() || r.name } : r,
       ),
     }))
+  },
+
+  // --- Currency actions ---
+
+  setReceiptCurrency: (receiptId, currency) => {
+    set((state) => ({
+      receipts: state.receipts.map((r) =>
+        r.id === receiptId ? { ...r, currency, exchangeRateOverride: null } : r,
+      ),
+    }))
+  },
+  setReceiptExchangeRateOverride: (receiptId, rate) => {
+    set((state) => ({
+      receipts: state.receipts.map((r) =>
+        r.id === receiptId ? { ...r, exchangeRateOverride: rate } : r,
+      ),
+    }))
+  },
+  fetchAndSetExchangeRates: async () => {
+    const fetched = await fetchExchangeRates()
+    if (fetched) {
+      saveExchangeRates(fetched)
+      set({ exchangeRates: fetched, exchangeRatesLastFetched: Date.now() })
+    }
   },
   }
 })

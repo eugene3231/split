@@ -114,6 +114,106 @@ describe('draft storage', () => {
     const draft = loadPersistedDraft()
     expect(draft?.activeReceiptId).toBe('r1')
   })
+
+  it('defaults currency to SGD when loading a v2 receipt without a currency field', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_DRAFT_KEY,
+      JSON.stringify({
+        version: 2,
+        people: [{ id: 'p1', name: 'Alice' }],
+        receipts: [
+          {
+            id: 'r1',
+            name: 'Receipt 1',
+            items: [],
+            discount: defaultDiscountState,
+            serviceCharge: defaultServiceChargeState,
+            gst: defaultGstState,
+            receiptTotalInput: '',
+            // no `currency` or `exchangeRateOverride` fields
+          },
+        ],
+        activeReceiptId: 'r1',
+        savedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    )
+
+    const draft = loadPersistedDraft()
+    expect(draft?.receipts[0].currency).toBe('SGD')
+    expect(draft?.receipts[0].exchangeRateOverride).toBeNull()
+  })
+
+  it('preserves currency and exchangeRateOverride when loading a v2 receipt that has them', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_DRAFT_KEY,
+      JSON.stringify({
+        version: 2,
+        people: [{ id: 'p1', name: 'Alice' }],
+        receipts: [
+          {
+            id: 'r1',
+            name: 'Thailand Trip',
+            items: [],
+            discount: defaultDiscountState,
+            serviceCharge: defaultServiceChargeState,
+            gst: defaultGstState,
+            receiptTotalInput: '',
+            currency: 'THB',
+            exchangeRateOverride: 0.038,
+          },
+        ],
+        activeReceiptId: 'r1',
+        savedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    )
+
+    const draft = loadPersistedDraft()
+    expect(draft?.receipts[0].currency).toBe('THB')
+    expect(draft?.receipts[0].exchangeRateOverride).toBe(0.038)
+  })
+
+  it('defaults currency to SGD when migrating a v1 draft', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_DRAFT_KEY,
+      JSON.stringify({
+        version: 1,
+        people: [{ id: 'p1', name: 'Alice' }],
+        items: [],
+      }),
+    )
+
+    const draft = loadPersistedDraft()
+    expect(draft?.receipts[0].currency).toBe('SGD')
+    expect(draft?.receipts[0].exchangeRateOverride).toBeNull()
+  })
+
+  it('ignores invalid exchangeRateOverride values (0 or negative)', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_DRAFT_KEY,
+      JSON.stringify({
+        version: 2,
+        people: [],
+        receipts: [
+          {
+            id: 'r1',
+            name: 'Receipt 1',
+            items: [],
+            discount: defaultDiscountState,
+            serviceCharge: defaultServiceChargeState,
+            gst: defaultGstState,
+            receiptTotalInput: '',
+            currency: 'USD',
+            exchangeRateOverride: 0,   // invalid — should be null
+          },
+        ],
+        activeReceiptId: 'r1',
+        savedAt: '',
+      }),
+    )
+
+    const draft = loadPersistedDraft()
+    expect(draft?.receipts[0].exchangeRateOverride).toBeNull()
+  })
 })
 
 describe('ocr settings storage', () => {
@@ -219,6 +319,8 @@ const receipt1 = {
   serviceCharge: defaultServiceChargeState,
   gst: defaultGstState,
   receiptTotalInput: '8.00',
+  currency: 'SGD',
+  exchangeRateOverride: null,
 }
 
 const minimalDraftState = {

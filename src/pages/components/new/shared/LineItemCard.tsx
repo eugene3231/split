@@ -1,14 +1,17 @@
 import { useRef, useState } from 'react'
 import type { ChargeState, EditableItem } from '@shared/types'
+import { CURRENCY_SYMBOLS, BASE_CURRENCY } from '@shared/constants'
 
 interface Props {
   item: EditableItem
   discount: ChargeState
+  currency?: string
   onUpdate: (updater: (current: EditableItem) => EditableItem) => void
   onRemove: () => void
 }
 
-export function LineItemCard({ item, discount, onUpdate, onRemove }: Props) {
+export function LineItemCard({ item, discount, currency = BASE_CURRENCY, onUpdate, onRemove }: Props) {
+  const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency
   const [showDiscount, setShowDiscount] = useState(!!item.discountPercentInput)
   const discountInputRef = useRef<HTMLInputElement>(null)
 
@@ -37,7 +40,7 @@ export function LineItemCard({ item, discount, onUpdate, onRemove }: Props) {
         />
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="flex items-center gap-1 bg-surface-container rounded-lg px-2 py-1">
-            <span className="text-xs font-bold text-on-surface-variant">$</span>
+            <span className="text-xs font-bold text-on-surface-variant">{currencySymbol}</span>
             <input
               type="text"
               inputMode="decimal"

@@ -25,6 +25,7 @@ type GenerateReceiptSplitImageLightOptions = {
   reconciliationCents: number | null
   includeItemDetails: boolean
   receiptName?: string
+  currency?: string
 }
 
 // Layout constants
@@ -78,6 +79,7 @@ export async function generateReceiptSplitImageLight(
   y = drawGrandTotalCard(ctx, {
     x, y, width: cardWidth,
     split: options.split,
+    currency: options.currency,
   })
   y += 32
 
@@ -120,6 +122,7 @@ export async function generateReceiptSplitImageLight(
           discount: options.discount,
           serviceCharge: options.serviceCharge,
           gst: options.gst,
+          currency: options.currency,
         })
       }
 
@@ -165,6 +168,7 @@ type GrandTotalCardArgs = {
   y: number
   width: number
   split: SplitResult
+  currency?: string
 }
 
 function drawGrandTotalCard(ctx: CanvasRenderingContext2D, args: GrandTotalCardArgs): number {
@@ -185,7 +189,7 @@ function drawGrandTotalCard(ctx: CanvasRenderingContext2D, args: GrandTotalCardA
 
   ctx.fillStyle = '#ffffff'
   ctx.font = '600 52px system-ui, -apple-system, sans-serif'
-  ctx.fillText(formatCurrencyFromCents(args.split.grandTotalCents), args.x + CARD_PAD, args.y + 92)
+  ctx.fillText(formatCurrencyFromCents(args.split.grandTotalCents, args.currency), args.x + CARD_PAD, args.y + 92)
 
   return args.y + h
 }
@@ -250,6 +254,7 @@ type PersonCardArgs = {
   discount: ChargeState
   serviceCharge: ChargeState
   gst: ChargeState
+  currency?: string
 }
 
 function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): void {
@@ -276,7 +281,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
   ctx.fillText('Total Due', args.x + args.width - CARD_PAD, args.y + CARD_PAD + 18)
   ctx.font = '600 32px system-ui, -apple-system, sans-serif'
   ctx.fillStyle = '#1c1b1f'
-  ctx.fillText(formatCurrencyFromCents(total), args.x + args.width - CARD_PAD, args.y + CARD_PAD + 58)
+  ctx.fillText(formatCurrencyFromCents(total, args.currency), args.x + args.width - CARD_PAD, args.y + CARD_PAD + 58)
   ctx.textAlign = 'left'
 
   // ── Nested card ─────────────────────────────────────────────────────────────
@@ -303,7 +308,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
       drawLightTwoColumnRow(ctx, {
         x: niX, y: rowY + 26, width: niW,
         label: receipt.name || `Receipt ${i + 1}`,
-        value: formatCurrencyFromCents(personReceiptTotal),
+        value: formatCurrencyFromCents(personReceiptTotal, receipt.currency),
         emphasized: true,
         size: 21,
       })
@@ -317,7 +322,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
           drawLightTwoColumnRow(ctx, {
             x: niX + 16, y: rowY + 22, width: niW - 16,
             label: line.name,
-            value: line.involved ? formatCurrencyFromCents(line.assignedAmountCents) : '—',
+            value: line.involved ? formatCurrencyFromCents(line.assignedAmountCents, receipt.currency) : '—',
             italic: !line.involved,
             size: 19,
           })
@@ -344,7 +349,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
           drawLightTwoColumnRow(ctx, {
             x: niX, y: rowY + 22, width: niW,
             label: buildChargeLabel('Discount', receipt.discount),
-            value: `−${formatCurrencyFromCents(discountCents)}`,
+            value: `−${formatCurrencyFromCents(discountCents, receipt.currency)}`,
             valueColor: '#16a34a', italic: true, size: 19,
           })
           rowY += CHARGE_ROW_H
@@ -353,7 +358,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
         drawLightTwoColumnRow(ctx, {
           x: niX, y: rowY + 22, width: niW,
           label: buildChargeLabel('Service Charge', receipt.serviceCharge),
-          value: `+${formatCurrencyFromCents(serviceAmt)}`,
+          value: `+${formatCurrencyFromCents(serviceAmt, receipt.currency)}`,
           italic: true, size: 19,
         })
         rowY += CHARGE_ROW_H
@@ -361,7 +366,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
         drawLightTwoColumnRow(ctx, {
           x: niX, y: rowY + 22, width: niW,
           label: buildChargeLabel('GST / Tax', receipt.gst),
-          value: `+${formatCurrencyFromCents(gstAmt)}`,
+          value: `+${formatCurrencyFromCents(gstAmt, receipt.currency)}`,
           italic: true, size: 19,
         })
         rowY += CHARGE_ROW_H
@@ -376,7 +381,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
         drawLightTwoColumnRow(ctx, {
           x: niX + 16, y: rowY + 22, width: niW - 16,
           label: line.name,
-          value: line.involved ? formatCurrencyFromCents(line.assignedAmountCents) : '—',
+          value: line.involved ? formatCurrencyFromCents(line.assignedAmountCents, args.currency) : '—',
           italic: !line.involved, size: 20,
         })
         if (!line.involved) ctx.globalAlpha = 1
@@ -400,7 +405,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
         drawLightTwoColumnRow(ctx, {
           x: niX, y: rowY + 22, width: niW,
           label: buildChargeLabel('Discount', args.discount),
-          value: `−${formatCurrencyFromCents(discountCents)}`,
+          value: `−${formatCurrencyFromCents(discountCents, args.currency)}`,
           valueColor: '#16a34a', italic: true, size: 20,
         })
         rowY += CHARGE_ROW_H
@@ -409,7 +414,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
       drawLightTwoColumnRow(ctx, {
         x: niX, y: rowY + 22, width: niW,
         label: buildChargeLabel('Service Charge', args.serviceCharge),
-        value: `+${formatCurrencyFromCents(serviceAmt)}`,
+        value: `+${formatCurrencyFromCents(serviceAmt, args.currency)}`,
         italic: true, size: 20,
       })
       rowY += CHARGE_ROW_H
@@ -417,7 +422,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
       drawLightTwoColumnRow(ctx, {
         x: niX, y: rowY + 22, width: niW,
         label: buildChargeLabel('GST / Tax', args.gst),
-        value: `+${formatCurrencyFromCents(gstAmt)}`,
+        value: `+${formatCurrencyFromCents(gstAmt, args.currency)}`,
         italic: true, size: 20,
       })
     }

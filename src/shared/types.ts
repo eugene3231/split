@@ -96,6 +96,8 @@ export type Receipt = {
   gst: ChargeState
   receiptTotalInput: string
   receiptFile?: File | null
+  currency: string
+  exchangeRateOverride: number | null
 }
 
 export type PersistedFinalSplit = {
