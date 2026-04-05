@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types'
 import { formatCurrencyFromCents } from '@shared/logic/core/money'
-import { generateReceiptSplitImage } from '@features/split-results/logic/receiptSplitImage'
+import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight'
 import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
 import { PersonCard } from '@pages/components/new/shared/PersonCard'
 import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
@@ -74,16 +74,17 @@ export function SummaryStep({
     setBusy('downloading')
     setExportError(null)
     try {
-      const blob = await generateReceiptSplitImage({
+      const blob = await generateReceiptSplitImageLight({
         people,
         split: currentSplit,
+        receipts,
+        splitByReceipt,
         discount: currentDiscount,
         serviceCharge: currentServiceCharge,
         gst: currentGst,
         receiptName: currentReceipt?.name,
         reconciliationCents,
-        includeLineItems: false,
-        includeItemDetails: false,
+        includeItemDetails: showDetails,
       })
       await downloadImage(blob, 'split-result.png')
     } catch {

@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_GEMINI_MODEL } from '@shared/constants'
 import { useReceiptStore } from '@shared/stores/receiptStore'
 
-const { generateReceiptSplitImageMock } = vi.hoisted(() => ({
-  generateReceiptSplitImageMock: vi.fn(),
+const { generateReceiptSplitImageLightMock } = vi.hoisted(() => ({
+  generateReceiptSplitImageLightMock: vi.fn(),
 }))
 
-vi.mock('../features/split-results/logic/receiptSplitImage', () => ({
-  generateReceiptSplitImage: generateReceiptSplitImageMock,
+vi.mock('../features/split-results/logic/receiptSplitImageLight', () => ({
+  generateReceiptSplitImageLight: generateReceiptSplitImageLightMock,
 }))
 
 import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage'
@@ -108,8 +108,8 @@ beforeEach(() => {
   window.localStorage.clear()
   window.sessionStorage.clear()
   resetStore()
-  generateReceiptSplitImageMock.mockReset()
-  generateReceiptSplitImageMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }))
+  generateReceiptSplitImageLightMock.mockReset()
+  generateReceiptSplitImageLightMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }))
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
   Object.defineProperty(URL, 'createObjectURL', {
@@ -257,44 +257,59 @@ describe('ReceiptSplitterPage integration', () => {
   })
 
   describe('Receipt step', () => {
-    it('shows empty state when no items exist', async () => {
-      seedV2Draft({
-        receipts: [{ ...makeReceipt({ id: 'r1' }), items: [] }],
-      })
+    it('shows empty state when all items are removed', async () => {
+      seedV2Draft({})
       render(<ReceiptSplitterPage />)
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
       clickContinue()
-      expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument()
+      expect(screen.queryByTestId('receipt-empty-state')).not.toBeInTheDocument()
+
+      // Remove all items via the store to trigger empty state
+      useReceiptStore.setState((state) => ({
+        receipts: state.receipts.map((r) =>
+          r.id === state.activeReceiptId ? { ...r, items: [] } : r,
+        ),
+      }))
+      await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument())
     })
 
     it('loads a mock receipt and populates items, hiding the empty state', async () => {
-      seedV2Draft({
-        receipts: [{ ...makeReceipt({ id: 'r1' }), items: [] }],
-      })
+      seedV2Draft({})
       render(<ReceiptSplitterPage />)
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
       clickContinue()
-      expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument()
+
+      // Clear items to trigger empty state, then load mock to hide it
+      useReceiptStore.setState((state) => ({
+        receipts: state.receipts.map((r) =>
+          r.id === state.activeReceiptId ? { ...r, items: [] } : r,
+        ),
+      }))
+      await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument())
 
       fireEvent.click(screen.getByTestId('load-mock-receipt-btn-0'))
       expect(screen.queryByTestId('receipt-empty-state')).not.toBeInTheDocument()
     })
 
     it('adds an item to the store when the empty state add button is clicked', async () => {
-      seedV2Draft({
-        receipts: [{ ...makeReceipt({ id: 'r1' }), items: [] }],
-      })
+      seedV2Draft({})
       render(<ReceiptSplitterPage />)
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled())
 
       clickContinue()
-      expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument()
-      const itemsBefore = useReceiptStore.getState().receipts[0].items.length
+
+      // Clear items to trigger empty state
+      useReceiptStore.setState((state) => ({
+        receipts: state.receipts.map((r) =>
+          r.id === state.activeReceiptId ? { ...r, items: [] } : r,
+        ),
+      }))
+      await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument())
 
       fireEvent.click(screen.getByTestId('receipt-add-item-btn'))
-      expect(useReceiptStore.getState().receipts[0].items.length).toBe(itemsBefore + 1)
+      expect(useReceiptStore.getState().receipts[0].items.length).toBe(1)
     })
   })
 
@@ -417,7 +432,7 @@ describe('ReceiptSplitterPage integration', () => {
     it('triggers image generation when save image is clicked', async () => {
       await navigateToFinal()
       fireEvent.click(screen.getByTestId('export-save-image-btn'))
-      await waitFor(() => expect(generateReceiptSplitImageMock).toHaveBeenCalledTimes(1))
+      await waitFor(() => expect(generateReceiptSplitImageLightMock).toHaveBeenCalledTimes(1))
     })
 
     it('triggers clipboard write when copy text is clicked', async () => {
