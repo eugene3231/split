@@ -195,7 +195,6 @@ function drawGrandTotalCard(ctx: CanvasRenderingContext2D, args: GrandTotalCardA
 function measureReceiptBlockHeight(
   personId: string,
   receiptSplit: SplitResult,
-  receipt: Receipt,
   includeLineItems: boolean,
 ): number {
   const lines = receiptSplit.lineItemsByPerson[personId] ?? []
@@ -219,7 +218,7 @@ function measurePersonCardHeight(
     for (let i = 0; i < receipts.length; i++) {
       const rSplit = splitByReceipt[i]
       if (!rSplit) continue
-      bodyH += measureReceiptBlockHeight(personId, rSplit, receipts[i], includeLineItems)
+      bodyH += measureReceiptBlockHeight(personId, rSplit, includeLineItems)
     }
     nestedBodyH = bodyH
   } else {
