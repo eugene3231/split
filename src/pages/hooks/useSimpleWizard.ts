@@ -66,7 +66,11 @@ export function useSimpleWizard(
 
     if (activeStep === 'items') {
       if (itemsSubPhase === 'assign') {
-        setItemsSubPhase('review')
+        if (safeActiveItemIndex < items.length - 1) {
+          setActiveItemIndex(safeActiveItemIndex + 1)
+        } else {
+          setItemsSubPhase('review')
+        }
         return
       }
       if (!isStepValid('items', { items, people })) return

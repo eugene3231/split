@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import type { ChargeState, EditableItem, Receipt, SplitResult } from '@shared/types'
-import { hasAnyValidReceiptItem } from '@pages/logic/wizardValidation'
 import { ReceiptImportActions } from '@pages/components/new/shared/ReceiptImportActions'
 import { LineItemCard } from '@pages/components/new/shared/LineItemCard'
 import { GlobalChargesPanel } from '@pages/components/new/shared/GlobalChargesPanel'
 import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs'
+import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
 import { useReceiptStore } from '@shared/stores/receiptStore'
 import { cn } from '@shared/utils/cn'
 
@@ -35,22 +35,6 @@ type Props = {
   onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
 }
 
-function ReceiptNameField({ name, onRename }: { name: string; onRename: (name: string) => void }) {
-  const [draft, setDraft] = useState(name)
-  const commit = () => { if (draft.trim()) onRename(draft.trim()) }
-  return (
-    <input
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') { commit(); (e.target as HTMLInputElement).blur() }
-      }}
-      placeholder="Receipt name…"
-      className="font-bold text-sm text-on-surface bg-transparent outline-none w-full placeholder:text-outline"
-    />
-  )
-}
 
 export function ReceiptStep({
   receipts,
@@ -80,7 +64,7 @@ export function ReceiptStep({
 }: Props) {
   const [hasUpload, setHasUpload] = useState(false)
   const hasApiKey = useReceiptStore((s) => s.geminiApiKeyInput.trim().length > 0)
-  const hasItems = hasAnyValidReceiptItem(items)
+  const hasItems = items.length > 0
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId)
   return (
     <div>
