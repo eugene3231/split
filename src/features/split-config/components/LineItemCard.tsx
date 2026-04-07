@@ -1,17 +1,17 @@
-import type { AssignmentMode, ChargeState, EditableItem, Person } from '@shared/types'
-import { formatCurrencyFromCents } from '@shared/logic/core/money'
-import { isItemAssigned, pickDefaultPersonId } from '@shared/logic/assignment/items'
-import { resolveDiscountedAmountCents } from '@shared/logic/computation/pricing'
+import type { AssignmentMode, ChargeState, EditableItem, Person } from '@shared/types';
+import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import { isItemAssigned, pickDefaultPersonId } from '@shared/logic/assignment/items';
+import { resolveDiscountedAmountCents } from '@shared/logic/computation/pricing';
 
 type LineItemCardProps = {
-  item: EditableItem
-  itemIndex: number
-  people: Person[]
-  peopleSet: Set<string>
-  onRemoveItem: (itemId: string) => void
-  onUpdateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void
-  globalDiscount?: ChargeState
-}
+  item: EditableItem;
+  itemIndex: number;
+  people: Person[];
+  peopleSet: Set<string>;
+  onRemoveItem: (itemId: string) => void;
+  onUpdateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void;
+  globalDiscount?: ChargeState;
+};
 
 export function LineItemCard({
   item,
@@ -22,8 +22,8 @@ export function LineItemCard({
   onUpdateItem,
   globalDiscount,
 }: LineItemCardProps) {
-  const itemAssigned = isItemAssigned(item, peopleSet)
-  const itemNetAmountCents = resolveDiscountedAmountCents(item)
+  const itemAssigned = isItemAssigned(item, peopleSet);
+  const itemNetAmountCents = resolveDiscountedAmountCents(item);
 
   return (
     <article className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
@@ -98,7 +98,7 @@ export function LineItemCard({
         <select
           value={item.assignment.mode}
           onChange={(event) => {
-            const nextMode = event.target.value as AssignmentMode
+            const nextMode = event.target.value as AssignmentMode;
             onUpdateItem(item.id, (currentItem) => {
               if (nextMode === 'single') {
                 return {
@@ -108,7 +108,7 @@ export function LineItemCard({
                     personId: pickDefaultPersonId(people, currentItem.assignment.personId),
                     personIds: currentItem.assignment.personIds,
                   },
-                }
+                };
               }
 
               return {
@@ -121,8 +121,8 @@ export function LineItemCard({
                       ? currentItem.assignment.personIds
                       : people.map((person) => person.id),
                 },
-              }
-            })
+              };
+            });
           }}
           className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm outline-none ring-sky-400 transition focus:ring-2"
         >
@@ -197,7 +197,7 @@ export function LineItemCard({
               <p className="text-xs text-slate-400">Add people before splitting.</p>
             ) : (
               people.map((person) => {
-                const isChecked = item.assignment.personIds.includes(person.id)
+                const isChecked = item.assignment.personIds.includes(person.id);
 
                 return (
                   <label
@@ -225,12 +225,12 @@ export function LineItemCard({
                     />
                     {person.name}
                   </label>
-                )
+                );
               })
             )}
           </div>
         </div>
       )}
     </article>
-  )
+  );
 }

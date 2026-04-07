@@ -1,24 +1,24 @@
-import { useMemo } from 'react'
-import { useShallow } from 'zustand/shallow'
-import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures'
-import { useReceiptStore } from '@shared/stores/receiptStore'
-import { useReceiptSplit } from '@shared/hooks/useReceiptSplit'
-import { getAssignedItemsCount, getDetectedItemsCount } from '@pages/logic/wizardValidation'
-import { useSimpleWizard } from '@pages/hooks/useSimpleWizard'
-import { useReceiptSplitterController } from '@pages/hooks/useReceiptSplitterController'
-import { TopAppBar } from '@pages/components/new/TopAppBar'
-import { BottomNav } from '@pages/components/new/BottomNav'
-import { PeopleStep } from '@pages/components/new/steps/PeopleStep'
-import { ReceiptStep } from '@pages/components/new/steps/ReceiptStep'
-import { AssignStep } from '@pages/components/new/steps/AssignStep'
-import { SummaryStep } from '@pages/components/new/steps/SummaryStep'
+import { useMemo } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures';
+import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useReceiptSplit } from '@shared/hooks/useReceiptSplit';
+import { getAssignedItemsCount, getDetectedItemsCount } from '@pages/logic/wizardValidation';
+import { useSimpleWizard } from '@pages/hooks/useSimpleWizard';
+import { useReceiptSplitterController } from '@pages/hooks/useReceiptSplitterController';
+import { TopAppBar } from '@pages/components/new/TopAppBar';
+import { BottomNav } from '@pages/components/new/BottomNav';
+import { PeopleStep } from '@pages/components/new/steps/PeopleStep';
+import { ReceiptStep } from '@pages/components/new/steps/ReceiptStep';
+import { AssignStep } from '@pages/components/new/steps/AssignStep';
+import { SummaryStep } from '@pages/components/new/steps/SummaryStep';
 
 function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`
+  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export function NewWorkspace() {
-  useReceiptSplitterController()
+  useReceiptSplitterController();
 
   const {
     people,
@@ -66,16 +66,22 @@ export function NewWorkspace() {
       peopleInput: state.peopleInput,
       setPeopleInput: state.setPeopleInput,
     })),
-  )
+  );
 
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0]
-  const items = useMemo(() => activeReceipt?.items ?? [], [activeReceipt])
-  const discount = activeReceipt?.discount
-  const serviceCharge = activeReceipt?.serviceCharge
-  const gst = activeReceipt?.gst
-  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? ''
+  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
+  const items = useMemo(() => activeReceipt?.items ?? [], [activeReceipt]);
+  const discount = activeReceipt?.discount;
+  const serviceCharge = activeReceipt?.serviceCharge;
+  const gst = activeReceipt?.gst;
+  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? '';
 
-  const { split, consolidatedSplit, splitByReceipt, reconciliationCents, handleApplyReconciliationDiscount } = useReceiptSplit()
+  const {
+    split,
+    consolidatedSplit,
+    splitByReceipt,
+    reconciliationCents,
+    handleApplyReconciliationDiscount,
+  } = useReceiptSplit();
 
   const {
     activeStep,
@@ -87,38 +93,51 @@ export function NewWorkspace() {
     handleNext,
     handleBack,
     handleAddReceipt,
-  } = useSimpleWizard(items, people, normalizeItemsForSimpleMode, receipts, activeReceiptId, setActiveReceiptId)
+  } = useSimpleWizard(
+    items,
+    people,
+    normalizeItemsForSimpleMode,
+    receipts,
+    activeReceiptId,
+    setActiveReceiptId,
+  );
 
-  const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items])
-  const assignedItemCount = useMemo(() => getAssignedItemsCount(items, people), [items, people])
+  const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items]);
+  const assignedItemCount = useMemo(() => getAssignedItemsCount(items, people), [items, people]);
 
   const grandTotalCents = useMemo(
-    () => Object.values(consolidatedSplit?.totalByPersonCents ?? split?.totalByPersonCents ?? {}).reduce((sum, v) => sum + v, 0),
+    () =>
+      Object.values(
+        consolidatedSplit?.totalByPersonCents ?? split?.totalByPersonCents ?? {},
+      ).reduce((sum, v) => sum + v, 0),
     [consolidatedSplit, split],
-  )
-  const grandTotalFormatted = grandTotalCents > 0 ? formatCents(grandTotalCents) : undefined
+  );
+  const grandTotalFormatted = grandTotalCents > 0 ? formatCents(grandTotalCents) : undefined;
 
   const handlePeopleSubmit = (e: { preventDefault(): void }) => {
-    e.preventDefault()
-    addPeopleFromInput(peopleInput)
-  }
+    e.preventDefault();
+    addPeopleFromInput(peopleInput);
+  };
 
   const handleNextWithScroll = () => {
-    handleNext()
-    window.scrollTo({ top: 0, behavior: 'instant' })
-  }
+    handleNext();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   const handleBackWithScroll = () => {
-    handleBack()
-    window.scrollTo({ top: 0, behavior: 'instant' })
-  }
+    handleBack();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   if (!activeReceipt || !discount || !serviceCharge || !gst) {
-    return null
+    return null;
   }
 
   return (
-    <div className="bg-surface text-on-surface font-body min-h-screen flex flex-col" data-testid="simple-wizard">
+    <div
+      className="bg-surface text-on-surface font-body min-h-screen flex flex-col"
+      data-testid="simple-wizard"
+    >
       <TopAppBar
         activeStep={activeStep}
         itemsSubPhase={itemsSubPhase}
@@ -207,12 +226,15 @@ export function NewWorkspace() {
       <BottomNav
         activeStep={activeStep}
         itemsSubPhase={itemsSubPhase}
-        isLastAssignableItem={safeActiveItemIndex >= items.length - 1 && activeReceiptId === receipts[receipts.length - 1]?.id}
+        isLastAssignableItem={
+          safeActiveItemIndex >= items.length - 1 &&
+          activeReceiptId === receipts[receipts.length - 1]?.id
+        }
         canContinue={canContinue}
         onBack={handleBackWithScroll}
         onNext={handleNextWithScroll}
         grandTotalFormatted={grandTotalFormatted}
       />
     </div>
-  )
+  );
 }

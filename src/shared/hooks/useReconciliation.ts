@@ -1,5 +1,5 @@
-import { parseCurrencyToCents } from '@shared/logic/core/money'
-import type { ChargeState, SplitResult } from '@shared/types'
+import { parseCurrencyToCents } from '@shared/logic/core/money';
+import type { ChargeState, SplitResult } from '@shared/types';
 
 export function useReconciliation(
   split: SplitResult,
@@ -7,20 +7,20 @@ export function useReconciliation(
   setDiscount: (discount: ChargeState) => void,
   receiptTotalInput: string,
 ) {
-  const receiptTotalCents = parseCurrencyToCents(receiptTotalInput)
+  const receiptTotalCents = parseCurrencyToCents(receiptTotalInput);
   const reconciliationCents =
-    receiptTotalCents === null ? null : receiptTotalCents - split.grandTotalCents
+    receiptTotalCents === null ? null : receiptTotalCents - split.grandTotalCents;
 
   const handleApplyReconciliationDiscount = () => {
-    if (reconciliationCents === null || reconciliationCents >= 0) return
-    const totalDiscountCents = split.discountCents + Math.abs(reconciliationCents)
+    if (reconciliationCents === null || reconciliationCents >= 0) return;
+    const totalDiscountCents = split.discountCents + Math.abs(reconciliationCents);
     setDiscount({
       ...discount,
       enabled: true,
       mode: 'amount',
       amountInput: (totalDiscountCents / 100).toFixed(2),
-    })
-  }
+    });
+  };
 
-  return { reconciliationCents, handleApplyReconciliationDiscount }
+  return { reconciliationCents, handleApplyReconciliationDiscount };
 }

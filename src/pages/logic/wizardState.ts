@@ -1,10 +1,10 @@
-import type { EditableItem, Person } from '@shared/types'
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
-import { isStepValid } from '@pages/logic/wizardValidation'
+import type { EditableItem, Person } from '@shared/types';
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
+import { isStepValid } from '@pages/logic/wizardValidation';
 
 export function clampActiveItemIndex(index: number, itemCount: number): number {
-  if (itemCount <= 0) return 0
-  return Math.min(Math.max(0, index), itemCount - 1)
+  if (itemCount <= 0) return 0;
+  return Math.min(Math.max(0, index), itemCount - 1);
 }
 
 export function resolveWizardState(
@@ -14,16 +14,16 @@ export function resolveWizardState(
   people: Person[],
 ): { activeStep: SimpleWizardStep; itemsSubPhase: ItemsSubPhase } {
   if (activeStep === 'final' && !isStepValid('items', { items, people })) {
-    return { activeStep: 'items', itemsSubPhase: 'assign' }
+    return { activeStep: 'items', itemsSubPhase: 'assign' };
   }
 
   if (activeStep === 'items' && !isStepValid('receipt', { items, people })) {
-    return { activeStep: 'receipt', itemsSubPhase }
+    return { activeStep: 'receipt', itemsSubPhase };
   }
 
   if (activeStep === 'receipt' && !isStepValid('people', { items, people })) {
-    return { activeStep: 'people', itemsSubPhase }
+    return { activeStep: 'people', itemsSubPhase };
   }
 
-  return { activeStep, itemsSubPhase }
+  return { activeStep, itemsSubPhase };
 }

@@ -1,21 +1,21 @@
-import type { ChargeState, SplitResult } from '@shared/types'
-import { ChargeToggle } from '@pages/components/new/shared/ChargeToggle'
-import { SummaryTotals } from '@pages/components/new/shared/SummaryTotals'
-import { ReconciliationNotice } from '@pages/components/new/shared/ReconciliationNotice'
+import type { ChargeState, SplitResult } from '@shared/types';
+import { ChargeToggle } from '@pages/components/new/shared/ChargeToggle';
+import { SummaryTotals } from '@pages/components/new/shared/SummaryTotals';
+import { ReconciliationNotice } from '@pages/components/new/shared/ReconciliationNotice';
 
 interface Props {
-  split: SplitResult
-  discount: ChargeState
-  serviceCharge: ChargeState
-  gst: ChargeState
-  reconciliationCents: number | null
-  receiptTotalInput: string
-  onApplyDiscount: () => void
-  onDiscountChange: (discount: ChargeState) => void
-  onServiceChargeChange: (serviceCharge: ChargeState) => void
-  onGstChange: (gst: ChargeState) => void
-  onReceiptTotalInputChange: (value: string) => void
-  currency?: string
+  split: SplitResult;
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
+  reconciliationCents: number | null;
+  receiptTotalInput: string;
+  onApplyDiscount: () => void;
+  onDiscountChange: (discount: ChargeState) => void;
+  onServiceChargeChange: (serviceCharge: ChargeState) => void;
+  onGstChange: (gst: ChargeState) => void;
+  onReceiptTotalInputChange: (value: string) => void;
+  currency?: string;
 }
 
 export function GlobalChargesPanel({
@@ -40,11 +40,21 @@ export function GlobalChargesPanel({
 
       <div className="space-y-6 mb-10">
         <ChargeToggle label="GST / Tax" value={gst} onChange={onGstChange} />
-        <ChargeToggle label="Service Charge" value={serviceCharge} onChange={onServiceChargeChange} />
+        <ChargeToggle
+          label="Service Charge"
+          value={serviceCharge}
+          onChange={onServiceChargeChange}
+        />
         <ChargeToggle label="Global Discount" value={discount} onChange={onDiscountChange} />
       </div>
 
-      <SummaryTotals split={split} discount={discount} serviceCharge={serviceCharge} gst={gst} currency={currency} />
+      <SummaryTotals
+        split={split}
+        discount={discount}
+        serviceCharge={serviceCharge}
+        gst={gst}
+        currency={currency}
+      />
 
       {/* Receipt Total input */}
       <div className="space-y-4">
@@ -56,7 +66,9 @@ export function GlobalChargesPanel({
             Receipt Total (Override)
           </label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">$</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">
+              $
+            </span>
             <input
               id="receipt-total-new"
               data-testid="receipt-total-input"
@@ -76,5 +88,5 @@ export function GlobalChargesPanel({
         />
       </div>
     </div>
-  )
+  );
 }

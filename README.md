@@ -2,7 +2,7 @@
 
 https://split-receipt.netlify.app/
 
-Ever paid the full bill and had to figure out who owes what — when everyone ordered different things, some dishes were shared, and others weren't? Split uses Google Gemini to split costs at the line-item level. 
+Ever paid the full bill and had to figure out who owes what — when everyone ordered different things, some dishes were shared, and others weren't? Split uses Google Gemini to split costs at the line-item level.
 
 Scan a receipt, assign items, and share the result — no accounts or invites needed.
 
@@ -41,6 +41,7 @@ pnpm dev
 3. Open the Vite URL and use the app.
 
 4. In `Scan Receipt Image`:
+
 - Enter your Gemini API key
 - Select model (`gemini-3-flash-preview`)
 - Optional: enable `Remember API key for this browser session`

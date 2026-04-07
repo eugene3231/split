@@ -1,29 +1,29 @@
-import { useRef, useState } from 'react'
-import { GlobalChargesSection } from '@features/split-config/components/GlobalChargesSection'
-import { ReceiptImportPanel } from '@features/receipt-scanner/components/ReceiptImportPanel'
-import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard'
-import type { ChargeState, EditableItem, SplitResult } from '@shared/types'
+import { useRef, useState } from 'react';
+import { GlobalChargesSection } from '@features/split-config/components/GlobalChargesSection';
+import { ReceiptImportPanel } from '@features/receipt-scanner/components/ReceiptImportPanel';
+import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard';
+import type { ChargeState, EditableItem, SplitResult } from '@shared/types';
 
 type Props = {
-  items: EditableItem[]
-  split: SplitResult
-  discount: ChargeState
-  serviceCharge: ChargeState
-  gst: ChargeState
-  reconciliationCents: number | null
-  receiptTotalInput: string
-  onApplyDiscount: () => void
-  onReceiptFileSelected: (file: File | null) => void
-  onScanReceipt: () => void
-  mockReceipts: Array<{ label: string; onLoad: () => void }>
-  onDiscountChange: (discount: ChargeState) => void
-  onServiceChargeChange: (serviceCharge: ChargeState) => void
-  onGstChange: (gst: ChargeState) => void
-  onReceiptTotalInputChange: (value: string) => void
-  onAddItem: () => void
-  onRemoveItem: (id: string) => void
-  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
-}
+  items: EditableItem[];
+  split: SplitResult;
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
+  reconciliationCents: number | null;
+  receiptTotalInput: string;
+  onApplyDiscount: () => void;
+  onReceiptFileSelected: (file: File | null) => void;
+  onScanReceipt: () => void;
+  mockReceipts: Array<{ label: string; onLoad: () => void }>;
+  onDiscountChange: (discount: ChargeState) => void;
+  onServiceChargeChange: (serviceCharge: ChargeState) => void;
+  onGstChange: (gst: ChargeState) => void;
+  onReceiptTotalInputChange: (value: string) => void;
+  onAddItem: () => void;
+  onRemoveItem: (id: string) => void;
+  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
+};
 
 export function ScanReceiptStep({
   items,
@@ -45,25 +45,25 @@ export function ScanReceiptStep({
   onRemoveItem,
   onUpdateItem,
 }: Props) {
-  const [showDiscountIds, setShowDiscountIds] = useState<Set<string>>(new Set())
-  const discountInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
+  const [showDiscountIds, setShowDiscountIds] = useState<Set<string>>(new Set());
+  const discountInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const isDiscountVisible = (item: { id: string; discountPercentInput: string }) =>
-    showDiscountIds.has(item.id) || !!item.discountPercentInput
+    showDiscountIds.has(item.id) || !!item.discountPercentInput;
 
   const handleShowDiscount = (itemId: string) => {
-    setShowDiscountIds((prev) => new Set([...prev, itemId]))
-    requestAnimationFrame(() => discountInputRefs.current.get(itemId)?.focus())
-  }
+    setShowDiscountIds((prev) => new Set([...prev, itemId]));
+    requestAnimationFrame(() => discountInputRefs.current.get(itemId)?.focus());
+  };
 
   const handleHideDiscount = (itemId: string) => {
-    onUpdateItem(itemId, (current) => ({ ...current, discountPercentInput: '' }))
+    onUpdateItem(itemId, (current) => ({ ...current, discountPercentInput: '' }));
     setShowDiscountIds((prev) => {
-      const next = new Set(prev)
-      next.delete(itemId)
-      return next
-    })
-  }
+      const next = new Set(prev);
+      next.delete(itemId);
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -140,7 +140,7 @@ export function ScanReceiptStep({
 
             <div className="space-y-2">
               {items.map((item) => {
-                const discountVisible = isDiscountVisible(item)
+                const discountVisible = isDiscountVisible(item);
                 return (
                   <article
                     key={item.id}
@@ -207,8 +207,8 @@ export function ScanReceiptStep({
                           <div className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/60 p-1 text-sm focus-within:ring-2 focus-within:ring-sky-400/70">
                             <input
                               ref={(el) => {
-                                if (el) discountInputRefs.current.set(item.id, el)
-                                else discountInputRefs.current.delete(item.id)
+                                if (el) discountInputRefs.current.set(item.id, el);
+                                else discountInputRefs.current.delete(item.id);
                               }}
                               value={item.discountPercentInput}
                               onChange={(event) =>
@@ -261,7 +261,7 @@ export function ScanReceiptStep({
                       </>
                     ) : null}
                   </article>
-                )
+                );
               })}
             </div>
           </div>
@@ -272,5 +272,5 @@ export function ScanReceiptStep({
         </p>
       )}
     </div>
-  )
+  );
 }

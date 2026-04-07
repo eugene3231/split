@@ -1,19 +1,19 @@
-import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
 
 // jsdom doesn't implement IntersectionObserver, ResizeObserver, or matchMedia — all required by embla-carousel
 globalThis.IntersectionObserver = class {
   observe() {}
   unobserve() {}
   disconnect() {}
-} as unknown as typeof IntersectionObserver
+} as unknown as typeof IntersectionObserver;
 
 globalThis.ResizeObserver = class {
   observe() {}
   unobserve() {}
   disconnect() {}
-} as unknown as typeof ResizeObserver
+} as unknown as typeof ResizeObserver;
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -27,8 +27,8 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   }),
-})
+});
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});

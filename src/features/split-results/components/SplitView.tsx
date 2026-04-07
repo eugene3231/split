@@ -1,22 +1,31 @@
-import { useState } from 'react'
-import type { ChargeState, Person, SplitResult } from '@shared/types'
-import { ExportSplitImageSection } from '@features/split-results/components/ExportSplitImageSection'
-import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard'
-import { SplitPersonBreakdown } from '@features/split-results/components/SplitPersonBreakdown'
+import { useState } from 'react';
+import type { ChargeState, Person, SplitResult } from '@shared/types';
+import { ExportSplitImageSection } from '@features/split-results/components/ExportSplitImageSection';
+import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard';
+import { SplitPersonBreakdown } from '@features/split-results/components/SplitPersonBreakdown';
 
 type Props = {
-  people: Person[]
-  split: SplitResult
-  discount: ChargeState
-  serviceCharge: ChargeState
-  gst: ChargeState
-  reconciliationCents: number | null
-  onApplyDiscount?: () => void
-  receiptName?: string
-}
+  people: Person[];
+  split: SplitResult;
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
+  reconciliationCents: number | null;
+  onApplyDiscount?: () => void;
+  receiptName?: string;
+};
 
-export function SplitView({ people, split, discount, serviceCharge, gst, reconciliationCents, onApplyDiscount, receiptName }: Props) {
-  const [showDetails, setShowDetails] = useState(false)
+export function SplitView({
+  people,
+  split,
+  discount,
+  serviceCharge,
+  gst,
+  reconciliationCents,
+  onApplyDiscount,
+  receiptName,
+}: Props) {
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -68,5 +77,5 @@ export function SplitView({ people, split, discount, serviceCharge, gst, reconci
         </p>
       ) : null}
     </div>
-  )
+  );
 }

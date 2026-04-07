@@ -1,10 +1,10 @@
-import type { EditableItem, Person } from '@shared/types'
+import type { EditableItem, Person } from '@shared/types';
 
 type Props = {
-  items: EditableItem[]
-  people: Person[]
-  onEditItem: (index: number) => void
-}
+  items: EditableItem[];
+  people: Person[];
+  onEditItem: (index: number) => void;
+};
 
 export function ItemsStepReviewPhase({ items, people, onEditItem }: Props) {
   return (
@@ -13,8 +13,8 @@ export function ItemsStepReviewPhase({ items, people, onEditItem }: Props) {
       {items.map((item, index) => {
         const selectedPeople = people
           .filter((person) => item.assignment.personIds.includes(person.id))
-          .map((person) => person.name)
-        const allAssigned = selectedPeople.length > 0
+          .map((person) => person.name);
+        const allAssigned = selectedPeople.length > 0;
 
         return (
           <article
@@ -22,13 +22,9 @@ export function ItemsStepReviewPhase({ items, people, onEditItem }: Props) {
             className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3"
           >
             <div className="space-y-0.5 text-sm">
-              <p className="font-medium text-slate-200">
-                {item.name || `Item ${index + 1}`}
-              </p>
+              <p className="font-medium text-slate-200">{item.name || `Item ${index + 1}`}</p>
               <p className={`text-xs ${allAssigned ? 'text-slate-400' : 'text-amber-400'}`}>
-                {allAssigned
-                  ? `Split among: ${selectedPeople.join(', ')}`
-                  : 'No people selected'}
+                {allAssigned ? `Split among: ${selectedPeople.join(', ')}` : 'No people selected'}
               </p>
             </div>
             <button
@@ -40,8 +36,8 @@ export function ItemsStepReviewPhase({ items, people, onEditItem }: Props) {
               Edit
             </button>
           </article>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

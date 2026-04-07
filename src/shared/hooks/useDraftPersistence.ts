@@ -1,13 +1,13 @@
-import { useEffect } from 'react'
-import type { Person, Receipt } from '@shared/types'
-import { savePersistedDraft } from '@shared/api/storage'
+import { useEffect } from 'react';
+import type { Person, Receipt } from '@shared/types';
+import { savePersistedDraft } from '@shared/api/storage';
 
 type UseDraftPersistenceArgs = {
-  initialized: boolean
-  people: Person[]
-  receipts: Receipt[]
-  activeReceiptId: string
-}
+  initialized: boolean;
+  people: Person[];
+  receipts: Receipt[];
+  activeReceiptId: string;
+};
 
 export function useDraftPersistence({
   initialized,
@@ -16,13 +16,13 @@ export function useDraftPersistence({
   activeReceiptId,
 }: UseDraftPersistenceArgs): void {
   useEffect(() => {
-    if (!initialized) return
+    if (!initialized) return;
     savePersistedDraft({
       version: 2,
       people,
       receipts,
       activeReceiptId,
       savedAt: new Date().toISOString(),
-    })
-  }, [initialized, people, receipts, activeReceiptId])
+    });
+  }, [initialized, people, receipts, activeReceiptId]);
 }

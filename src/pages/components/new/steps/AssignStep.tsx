@@ -1,27 +1,27 @@
-import { useMemo } from 'react'
-import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money'
-import { isSimpleItemAssigned } from '@pages/logic/wizardValidation'
-import type { EditableItem, Person, Receipt } from '@shared/types'
-import type { ItemsSubPhase } from '@pages/types'
-import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar'
-import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs'
-import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
-import { BASE_CURRENCY } from '@shared/constants'
-import { cn } from '@shared/utils/cn'
+import { useMemo } from 'react';
+import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
+import { isSimpleItemAssigned } from '@pages/logic/wizardValidation';
+import type { EditableItem, Person, Receipt } from '@shared/types';
+import type { ItemsSubPhase } from '@pages/types';
+import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar';
+import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs';
+import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField';
+import { BASE_CURRENCY } from '@shared/constants';
+import { cn } from '@shared/utils/cn';
 
 type Props = {
-  receipts: Receipt[]
-  activeReceiptId: string
-  onSelectReceipt: (id: string) => void
-  onRenameReceipt: (id: string, name: string) => void
-  items: EditableItem[]
-  people: Person[]
-  itemsSubPhase: ItemsSubPhase
-  activeItemIndex: number
-  onActiveItemIndexChange: (index: number) => void
-  onItemsSubPhaseChange: (phase: ItemsSubPhase) => void
-  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
-}
+  receipts: Receipt[];
+  activeReceiptId: string;
+  onSelectReceipt: (id: string) => void;
+  onRenameReceipt: (id: string, name: string) => void;
+  items: EditableItem[];
+  people: Person[];
+  itemsSubPhase: ItemsSubPhase;
+  activeItemIndex: number;
+  onActiveItemIndexChange: (index: number) => void;
+  onItemsSubPhaseChange: (phase: ItemsSubPhase) => void;
+  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
+};
 
 export function AssignStep({
   receipts,
@@ -36,28 +36,39 @@ export function AssignStep({
   onItemsSubPhaseChange,
   onUpdateItem,
 }: Props) {
-  const validPeopleSet = useMemo(() => new Set(people.map((p) => p.id)), [people])
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId)
-  const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY
+  const validPeopleSet = useMemo(() => new Set(people.map((p) => p.id)), [people]);
+  const activeReceipt = receipts.find((r) => r.id === activeReceiptId);
+  const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY;
 
   return (
     <div>
       {/* Header — desktop */}
       <div className="mb-6 hidden md:block">
-        <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-on-surface tracking-tight mb-2">Assign Items</h1>
-        <p className="text-on-surface-variant text-lg">Assign each item to the people who ordered it.</p>
+        <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-on-surface tracking-tight mb-2">
+          Assign Items
+        </h1>
+        <p className="text-on-surface-variant text-lg">
+          Assign each item to the people who ordered it.
+        </p>
       </div>
 
       {/* Header — mobile */}
       <div className="mb-4 md:hidden">
-        <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">Assign Items</h1>
-        <p className="text-on-surface-variant text-xs mt-0.5">Assign each item to the people who ordered it.</p>
+        <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">
+          Assign Items
+        </h1>
+        <p className="text-on-surface-variant text-xs mt-0.5">
+          Assign each item to the people who ordered it.
+        </p>
       </div>
 
       <ReceiptTabs
         receipts={receipts}
         activeReceiptId={itemsSubPhase === 'review' ? '' : activeReceiptId}
-        onSelect={(id) => { onSelectReceipt(id); onItemsSubPhaseChange('assign') }}
+        onSelect={(id) => {
+          onSelectReceipt(id);
+          onItemsSubPhaseChange('assign');
+        }}
         onRename={onRenameReceipt}
         appendTab={{
           icon: 'assignment_turned_in',
@@ -93,26 +104,26 @@ export function AssignStep({
           items={items}
           people={people}
           onEditItem={(index) => {
-            onActiveItemIndexChange(index)
-            onItemsSubPhaseChange('assign')
+            onActiveItemIndexChange(index);
+            onItemsSubPhaseChange('assign');
           }}
         />
       )}
     </div>
-  )
+  );
 }
 
 // ── Assign sub-phase ──────────────────────────────────────────────────────────
 
 type AssignPhaseProps = {
-  items: EditableItem[]
-  people: Person[]
-  validPeopleSet: Set<string>
-  activeItemIndex: number
-  onActiveItemIndexChange: (index: number) => void
-  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
-  currency: string
-}
+  items: EditableItem[];
+  people: Person[];
+  validPeopleSet: Set<string>;
+  activeItemIndex: number;
+  onActiveItemIndexChange: (index: number) => void;
+  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
+  currency: string;
+};
 
 function AssignPhase({
   items,
@@ -123,53 +134,60 @@ function AssignPhase({
   onUpdateItem,
   currency,
 }: AssignPhaseProps) {
-  const activeItem = items[activeItemIndex] ?? null
-  const isAssigned = activeItem ? isSimpleItemAssigned(activeItem, validPeopleSet) : false
+  const activeItem = items[activeItemIndex] ?? null;
+  const isAssigned = activeItem ? isSimpleItemAssigned(activeItem, validPeopleSet) : false;
 
   const handleTogglePerson = (personId: string, checked: boolean) => {
-    if (!activeItem) return
+    if (!activeItem) return;
     onUpdateItem(activeItem.id, (currentItem) => {
-      const currentIds = new Set(currentItem.assignment.personIds)
-      if (checked) currentIds.add(personId)
-      else currentIds.delete(personId)
+      const currentIds = new Set(currentItem.assignment.personIds);
+      if (checked) currentIds.add(personId);
+      else currentIds.delete(personId);
       return {
         ...currentItem,
         assignment: { mode: 'equal', personId: '', personIds: Array.from(currentIds) },
-      }
-    })
-  }
+      };
+    });
+  };
 
   const handleSelectAll = () => {
-    if (!activeItem) return
+    if (!activeItem) return;
     onUpdateItem(activeItem.id, (current) => ({
       ...current,
       assignment: { mode: 'equal', personId: '', personIds: people.map((p) => p.id) },
-    }))
-  }
+    }));
+  };
 
   const handleSelectNone = () => {
-    if (!activeItem) return
+    if (!activeItem) return;
     onUpdateItem(activeItem.id, (current) => ({
       ...current,
       assignment: { mode: 'equal', personId: '', personIds: [] },
-    }))
-  }
+    }));
+  };
 
   if (!activeItem) {
     return (
       <p className="text-sm text-on-surface-variant text-center py-12">No items available yet.</p>
-    )
+    );
   }
 
-  const priceCents = parseCurrencyToCents(activeItem.amountInput)
+  const priceCents = parseCurrencyToCents(activeItem.amountInput);
 
   return (
     <div className="space-y-5">
       {/* Counter + nav arrows */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Assigning Items</p>
-          <p data-testid="assign-item-counter" className="text-2xl font-extrabold text-on-surface font-headline">Item {activeItemIndex + 1} of {items.length}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+            Assigning Items
+          </p>
+          <p
+            data-testid="assign-item-counter"
+            className="text-2xl font-extrabold text-on-surface font-headline"
+          >
+            Item {activeItemIndex + 1} of {items.length}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -200,13 +218,31 @@ function AssignPhase({
             {activeItem.name || 'Untitled item'}
           </h2>
           {isAssigned ? (
-            <div data-testid="assign-item-status" data-assigned="true" className="flex items-center gap-1.5 text-secondary font-bold text-sm flex-shrink-0 ml-3">
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            <div
+              data-testid="assign-item-status"
+              data-assigned="true"
+              className="flex items-center gap-1.5 text-secondary font-bold text-sm flex-shrink-0 ml-3"
+            >
+              <span
+                className="material-symbols-outlined text-sm"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                check_circle
+              </span>
               Assigned
             </div>
           ) : (
-            <div data-testid="assign-item-status" data-assigned="false" className="flex items-center gap-1.5 text-error font-bold text-sm flex-shrink-0 ml-3">
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>cancel</span>
+            <div
+              data-testid="assign-item-status"
+              data-assigned="false"
+              className="flex items-center gap-1.5 text-error font-bold text-sm flex-shrink-0 ml-3"
+            >
+              <span
+                className="material-symbols-outlined text-sm"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                cancel
+              </span>
               Select one or more people
             </div>
           )}
@@ -244,11 +280,12 @@ function AssignPhase({
       {/* Person toggle buttons */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {people.map((person, index) => {
-          const isSelected = activeItem.assignment.personIds.includes(person.id)
-          const assignedCount = activeItem.assignment.personIds.length
-          const shareAmount = isSelected && priceCents !== null && assignedCount > 0
-            ? Math.round(priceCents / assignedCount)
-            : 0
+          const isSelected = activeItem.assignment.personIds.includes(person.id);
+          const assignedCount = activeItem.assignment.personIds.length;
+          const shareAmount =
+            isSelected && priceCents !== null && assignedCount > 0
+              ? Math.round(priceCents / assignedCount)
+              : 0;
           return (
             <button
               key={person.id}
@@ -260,7 +297,7 @@ function AssignPhase({
                 onUpdateItem(activeItem.id, (current) => ({
                   ...current,
                   assignment: { mode: 'equal', personId: '', personIds: [person.id] },
-                }))
+                }));
               }}
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left',
@@ -272,17 +309,27 @@ function AssignPhase({
               <PersonAvatar name={person.name} colorIndex={index} />
               <div className="flex-1 min-w-0">
                 <span className="block font-bold text-on-surface text-sm">{person.name}</span>
-                <span className={cn('text-sm font-semibold', isSelected ? 'text-secondary' : 'text-on-surface-variant')}>
+                <span
+                  className={cn(
+                    'text-sm font-semibold',
+                    isSelected ? 'text-secondary' : 'text-on-surface-variant',
+                  )}
+                >
                   {formatCurrencyFromCents(shareAmount, currency)}
                 </span>
               </div>
               {isSelected && (
                 <div className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center">
-                  <span className="material-symbols-outlined !text-xs text-on-secondary leading-none" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                  <span
+                    className="material-symbols-outlined !text-xs text-on-secondary leading-none"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    check
+                  </span>
                 </div>
               )}
             </button>
-          )
+          );
         })}
       </div>
 
@@ -292,32 +339,34 @@ function AssignPhase({
         Double-tap a person to assign only them.
       </div>
     </div>
-  )
+  );
 }
 
 // ── Review sub-phase ──────────────────────────────────────────────────────────
 
 type ReviewPhaseProps = {
-  items: EditableItem[]
-  people: Person[]
-  onEditItem: (index: number) => void
-}
+  items: EditableItem[];
+  people: Person[];
+  onEditItem: (index: number) => void;
+};
 
 function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold font-headline text-on-surface">Review Assignments</h2>
-        <span className="text-sm text-on-surface-variant">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+        <span className="text-sm text-on-surface-variant">
+          {items.length} item{items.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
       <div className="space-y-3">
         {items.map((item, index) => {
           const selectedPeople = people
             .filter((p) => item.assignment.personIds.includes(p.id))
-            .map((p) => p.name)
-          const isAssigned = selectedPeople.length > 0
-          const priceCents = parseCurrencyToCents(item.amountInput)
+            .map((p) => p.name);
+          const isAssigned = selectedPeople.length > 0;
+          const priceCents = parseCurrencyToCents(item.amountInput);
 
           return (
             <article
@@ -330,13 +379,20 @@ function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
               )}
             >
               <div className="space-y-1 flex-1 min-w-0">
-                <p className="font-bold text-on-surface truncate">{item.name || `Item ${index + 1}`}</p>
+                <p className="font-bold text-on-surface truncate">
+                  {item.name || `Item ${index + 1}`}
+                </p>
                 {priceCents !== null && (
                   <span className="block text-sm font-bold text-primary font-headline">
                     {formatCurrencyFromCents(priceCents)}
                   </span>
                 )}
-                <span className={cn('block text-sm', isAssigned ? 'text-on-surface-variant' : 'text-error')}>
+                <span
+                  className={cn(
+                    'block text-sm',
+                    isAssigned ? 'text-on-surface-variant' : 'text-error',
+                  )}
+                >
                   {isAssigned ? `Split: ${selectedPeople.join(', ')}` : 'No people selected'}
                 </span>
               </div>
@@ -350,9 +406,9 @@ function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
                 Edit
               </button>
             </article>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

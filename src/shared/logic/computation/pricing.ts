@@ -1,23 +1,23 @@
-import type { EditableItem } from '@shared/types'
-import { parseCurrencyToCents, parseNumber } from '@shared/logic/core/money'
+import type { EditableItem } from '@shared/types';
+import { parseCurrencyToCents, parseNumber } from '@shared/logic/core/money';
 
 export function parseDiscountPercent(input: string): number {
-  const parsed = parseNumber(input)
+  const parsed = parseNumber(input);
   if (parsed === null) {
-    return 0
+    return 0;
   }
 
-  return Math.min(100, Math.max(0, parsed))
+  return Math.min(100, Math.max(0, parsed));
 }
 
 export function resolveDiscountedAmountCents(item: EditableItem): number | null {
-  const grossAmountCents = parseCurrencyToCents(item.amountInput)
+  const grossAmountCents = parseCurrencyToCents(item.amountInput);
   if (grossAmountCents === null) {
-    return null
+    return null;
   }
 
-  const discountPercent = parseDiscountPercent(item.discountPercentInput)
-  const discountedAmount = Math.round(grossAmountCents * (1 - discountPercent / 100))
+  const discountPercent = parseDiscountPercent(item.discountPercentInput);
+  const discountedAmount = Math.round(grossAmountCents * (1 - discountPercent / 100));
 
-  return Math.max(0, discountedAmount)
+  return Math.max(0, discountedAmount);
 }

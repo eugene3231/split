@@ -19,17 +19,17 @@ export const FUNNY_LOADING_MESSAGES = [
   'Turning pixel soup into itemized truth...',
   'Computing split fairness with excessive machine confidence...',
   'Waiting for the model to finish its dramatic pause...',
-] as const
+] as const;
 
 export function getRandomLoadingMessageIndex(excludeIndex?: number): number {
-  const messageCount = FUNNY_LOADING_MESSAGES.length
-  if (messageCount <= 1) return 0
+  const messageCount = FUNNY_LOADING_MESSAGES.length;
+  if (messageCount <= 1) return 0;
 
   if (excludeIndex === undefined || excludeIndex < 0 || excludeIndex >= messageCount) {
-    return Math.floor(Math.random() * messageCount)
+    return Math.floor(Math.random() * messageCount);
   }
 
   // Pick any other message index to avoid immediate repeats.
-  const offset = Math.floor(Math.random() * (messageCount - 1)) + 1
-  return (excludeIndex + offset) % messageCount
+  const offset = Math.floor(Math.random() * (messageCount - 1)) + 1;
+  return (excludeIndex + offset) % messageCount;
 }
