@@ -459,6 +459,7 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue()
       clickContinue()
       clickContinue()
+      clickContinue()
       expect(screen.getByTestId('summary-tab-total')).toBeInTheDocument()
       expect(screen.getByTestId('summary-tab-receipt-0')).toBeInTheDocument()
       expect(screen.getByTestId('summary-tab-receipt-1')).toBeInTheDocument()

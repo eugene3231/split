@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useReceiptStore } from '@shared/stores/receiptStore'
-import type { EditableItem, Person } from '@shared/types'
+import type { EditableItem, Person, Receipt } from '@shared/types'
 import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
 import { loadSimpleWizardState, saveSimpleWizardState } from '@pages/logic/persistence'
 import { clampActiveItemIndex, resolveWizardState } from '@pages/logic/wizardState'
@@ -10,6 +10,9 @@ export function useSimpleWizard(
   items: EditableItem[],
   people: Person[],
   normalizeItemsForSimpleMode: () => void,
+  receipts: Receipt[],
+  activeReceiptId: string,
+  setActiveReceiptId: (id: string) => void,
 ) {
   const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput)
   const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal)
@@ -69,7 +72,14 @@ export function useSimpleWizard(
         if (safeActiveItemIndex < items.length - 1) {
           setActiveItemIndex(safeActiveItemIndex + 1)
         } else {
-          setItemsSubPhase('review')
+          const currentReceiptIndex = receipts.findIndex((r) => r.id === activeReceiptId)
+          const nextReceipt = receipts[currentReceiptIndex + 1]
+          if (nextReceipt) {
+            setActiveReceiptId(nextReceipt.id)
+            setActiveItemIndex(0)
+          } else {
+            setItemsSubPhase('review')
+          }
         }
         return
       }

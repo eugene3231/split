@@ -87,7 +87,7 @@ export function NewWorkspace() {
     handleNext,
     handleBack,
     handleAddReceipt,
-  } = useSimpleWizard(items, people, normalizeItemsForSimpleMode)
+  } = useSimpleWizard(items, people, normalizeItemsForSimpleMode, receipts, activeReceiptId, setActiveReceiptId)
 
   const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items])
   const assignedItemCount = useMemo(() => getAssignedItemsCount(items, people), [items, people])
@@ -207,7 +207,7 @@ export function NewWorkspace() {
       <BottomNav
         activeStep={activeStep}
         itemsSubPhase={itemsSubPhase}
-        isLastAssignableItem={safeActiveItemIndex >= items.length - 1}
+        isLastAssignableItem={safeActiveItemIndex >= items.length - 1 && activeReceiptId === receipts[receipts.length - 1]?.id}
         canContinue={canContinue}
         onBack={handleBackWithScroll}
         onNext={handleNextWithScroll}
