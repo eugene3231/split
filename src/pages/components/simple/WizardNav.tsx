@@ -1,24 +1,34 @@
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
 
 type Props = {
-  activeStep: SimpleWizardStep
-  itemsSubPhase: ItemsSubPhase
-  isLastAssignableItem: boolean
-  canContinue: boolean
-  onBack: () => void
-  onNext: () => void
-  onAddReceipt: () => void
-}
+  activeStep: SimpleWizardStep;
+  itemsSubPhase: ItemsSubPhase;
+  isLastAssignableItem: boolean;
+  canContinue: boolean;
+  onBack: () => void;
+  onNext: () => void;
+  onAddReceipt: () => void;
+};
 
-export function WizardNav({ activeStep, itemsSubPhase, isLastAssignableItem, canContinue, onBack, onNext, onAddReceipt }: Props) {
+export function WizardNav({
+  activeStep,
+  itemsSubPhase,
+  isLastAssignableItem,
+  canContinue,
+  onBack,
+  onNext,
+  onAddReceipt,
+}: Props) {
   const continueLabel =
     activeStep === 'people'
       ? 'Continue →'
       : activeStep === 'receipt'
         ? 'Continue to Assign →'
         : itemsSubPhase === 'assign'
-          ? isLastAssignableItem ? 'Review Items →' : 'Next Item →'
-          : 'See Split Result →'
+          ? isLastAssignableItem
+            ? 'Review Items →'
+            : 'Next Item →'
+          : 'See Split Result →';
 
   return (
     <div className="flex items-center justify-between gap-3">
@@ -55,5 +65,5 @@ export function WizardNav({ activeStep, itemsSubPhase, isLastAssignableItem, can
         )}
       </div>
     </div>
-  )
+  );
 }

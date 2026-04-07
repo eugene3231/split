@@ -1,16 +1,16 @@
-import type { ChargeState } from '@shared/types'
-import { ChargeControl } from '@features/split-config/components/ChargeControl'
+import type { ChargeState } from '@shared/types';
+import { ChargeControl } from '@features/split-config/components/ChargeControl';
 
 type GlobalChargesSectionProps = {
-  discount: ChargeState
-  onDiscountChange: (next: ChargeState) => void
-  serviceCharge: ChargeState
-  onServiceChargeChange: (next: ChargeState) => void
-  gst: ChargeState
-  onGstChange: (next: ChargeState) => void
-  receiptTotalInput: string
-  onReceiptTotalInputChange: (value: string) => void
-}
+  discount: ChargeState;
+  onDiscountChange: (next: ChargeState) => void;
+  serviceCharge: ChargeState;
+  onServiceChargeChange: (next: ChargeState) => void;
+  gst: ChargeState;
+  onGstChange: (next: ChargeState) => void;
+  receiptTotalInput: string;
+  onReceiptTotalInputChange: (value: string) => void;
+};
 
 export function GlobalChargesSection({
   discount,
@@ -30,7 +30,11 @@ export function GlobalChargesSection({
         value={discount}
         onChange={onDiscountChange}
       />
-      <ChargeControl label="Service Charge" value={serviceCharge} onChange={onServiceChargeChange} />
+      <ChargeControl
+        label="Service Charge"
+        value={serviceCharge}
+        onChange={onServiceChargeChange}
+      />
       <ChargeControl label="GST / Tax" value={gst} onChange={onGstChange} />
       <div className="space-y-1.5 px-4 py-3">
         <label className="text-xs font-medium text-slate-400" htmlFor="receipt-total">
@@ -49,5 +53,5 @@ export function GlobalChargesSection({
         </p>
       </div>
     </div>
-  )
+  );
 }

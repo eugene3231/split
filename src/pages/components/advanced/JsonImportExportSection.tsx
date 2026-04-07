@@ -1,72 +1,72 @@
-import { useRef, useState } from 'react'
+import { useRef, useState } from 'react';
 
 type JsonImportExportSectionProps = {
-  onGetJson: () => string
-  onImportJson: (raw: string) => void
-}
+  onGetJson: () => string;
+  onImportJson: (raw: string) => void;
+};
 
 export function JsonImportExportSection({ onGetJson, onImportJson }: JsonImportExportSectionProps) {
-  const [isCopied, setIsCopied] = useState(false)
-  const [importError, setImportError] = useState<string | null>(null)
-  const copyTimeoutRef = useRef<number | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isCopied, setIsCopied] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
-    const json = onGetJson()
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const filename = `split-${timestamp}.json`
+    const json = onGetJson();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `split-${timestamp}.json`;
 
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
 
     try {
-      await navigator.clipboard.writeText(json)
-      setIsCopied(true)
+      await navigator.clipboard.writeText(json);
+      setIsCopied(true);
       if (copyTimeoutRef.current !== null) {
-        window.clearTimeout(copyTimeoutRef.current)
+        window.clearTimeout(copyTimeoutRef.current);
       }
       copyTimeoutRef.current = window.setTimeout(() => {
-        setIsCopied(false)
-      }, 2500)
+        setIsCopied(false);
+      }, 2500);
     } catch {
       // Clipboard failed — download still succeeded, no tick shown
     }
-  }
+  };
 
   const handleImportClick = () => {
-    setImportError(null)
-    fileInputRef.current?.click()
-  }
+    setImportError(null);
+    fileInputRef.current?.click();
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (!file) {
-      return
+      return;
     }
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = () => {
-      const raw = reader.result
+      const raw = reader.result;
       if (typeof raw !== 'string') {
-        setImportError('Failed to read file.')
-        return
+        setImportError('Failed to read file.');
+        return;
       }
-      onImportJson(raw)
-      setImportError(null)
-    }
+      onImportJson(raw);
+      setImportError(null);
+    };
     reader.onerror = () => {
-      setImportError('Failed to read file.')
-    }
-    reader.readAsText(file)
+      setImportError('Failed to read file.');
+    };
+    reader.readAsText(file);
 
     // Reset so the same file can be re-imported
-    event.target.value = ''
-  }
+    event.target.value = '';
+  };
 
   return (
     <div className="space-y-2">
@@ -100,5 +100,5 @@ export function JsonImportExportSection({ onGetJson, onImportJson }: JsonImportE
         aria-hidden="true"
       />
     </div>
-  )
+  );
 }

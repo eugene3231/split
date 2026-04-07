@@ -1,51 +1,59 @@
-import { useRef, useState } from 'react'
-import { cn } from '@shared/utils/cn'
+import { useRef, useState } from 'react';
+import { cn } from '@shared/utils/cn';
 
 interface Receipt {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 interface AppendTab {
-  icon: string
-  label: string
-  isActive: boolean
-  onClick: () => void
+  icon: string;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
 }
 
 interface Props {
-  receipts: Receipt[]
-  activeReceiptId: string
-  onSelect: (id: string) => void
-  onAdd?: () => void
-  onRemove?: (id: string) => void
-  onRename?: (id: string, name: string) => void
-  appendTab?: AppendTab
+  receipts: Receipt[];
+  activeReceiptId: string;
+  onSelect: (id: string) => void;
+  onAdd?: () => void;
+  onRemove?: (id: string) => void;
+  onRename?: (id: string, name: string) => void;
+  appendTab?: AppendTab;
 }
 
-export function ReceiptTabs({ receipts, activeReceiptId, onSelect, onAdd, onRemove, onRename, appendTab }: Props) {
-  const [editingTabId, setEditingTabId] = useState<string | null>(null)
-  const [editingTabName, setEditingTabName] = useState('')
-  const tabInputRef = useRef<HTMLInputElement>(null)
+export function ReceiptTabs({
+  receipts,
+  activeReceiptId,
+  onSelect,
+  onAdd,
+  onRemove,
+  onRename,
+  appendTab,
+}: Props) {
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [editingTabName, setEditingTabName] = useState('');
+  const tabInputRef = useRef<HTMLInputElement>(null);
 
   const handleDoubleClick = (id: string, currentName: string) => {
-    if (!onRename) return
-    setEditingTabId(id)
-    setEditingTabName(currentName)
-    requestAnimationFrame(() => tabInputRef.current?.select())
-  }
+    if (!onRename) return;
+    setEditingTabId(id);
+    setEditingTabName(currentName);
+    requestAnimationFrame(() => tabInputRef.current?.select());
+  };
 
   const commitRename = () => {
-    if (editingTabId && onRename) onRename(editingTabId, editingTabName)
-    setEditingTabId(null)
-  }
+    if (editingTabId && onRename) onRename(editingTabId, editingTabName);
+    setEditingTabId(null);
+  };
 
   return (
     <div className="flex items-center gap-3 mb-8">
       {/* Segmented pill */}
       <div className="flex items-center bg-surface-container-low rounded-xl p-1 gap-0.5 overflow-x-auto">
         {receipts.map((receipt) => {
-          const isActive = receipt.id === activeReceiptId
+          const isActive = receipt.id === activeReceiptId;
           return (
             <div
               key={receipt.id}
@@ -65,8 +73,8 @@ export function ReceiptTabs({ receipts, activeReceiptId, onSelect, onAdd, onRemo
                   onChange={(e) => setEditingTabName(e.target.value)}
                   onBlur={commitRename}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitRename()
-                    if (e.key === 'Escape') setEditingTabId(null)
+                    if (e.key === 'Enter') commitRename();
+                    if (e.key === 'Escape') setEditingTabId(null);
                   }}
                   onClick={(e) => e.stopPropagation()}
                   className="bg-transparent outline-none w-24 font-bold text-sm"
@@ -74,13 +82,21 @@ export function ReceiptTabs({ receipts, activeReceiptId, onSelect, onAdd, onRemo
                 />
               ) : (
                 <>
-                  <span className={cn('text-sm whitespace-nowrap', isActive ? 'font-bold' : 'font-semibold')}>
+                  <span
+                    className={cn(
+                      'text-sm whitespace-nowrap',
+                      isActive ? 'font-bold' : 'font-semibold',
+                    )}
+                  >
                     {receipt.name}
                   </span>
                   {isActive && onRename && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDoubleClick(receipt.id, receipt.name) }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDoubleClick(receipt.id, receipt.name);
+                      }}
                       aria-label="Rename receipt"
                       className="flex-shrink-0 flex items-center opacity-40 hover:opacity-100 transition-opacity"
                     >
@@ -92,15 +108,20 @@ export function ReceiptTabs({ receipts, activeReceiptId, onSelect, onAdd, onRemo
               {receipts.length > 1 && onRemove && (
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onRemove(receipt.id) }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(receipt.id);
+                  }}
                   aria-label={`Remove ${receipt.name}`}
                   className="flex-shrink-0 h-3.5 w-3.5 flex opacity-40 hover:opacity-100 transition-opacity"
                 >
-                  <span className="material-symbols-outlined leading-none !text-base cursor-pointer">close</span>
+                  <span className="material-symbols-outlined leading-none !text-base cursor-pointer">
+                    close
+                  </span>
                 </button>
               )}
             </div>
-          )
+          );
         })}
 
         {appendTab && (
@@ -131,5 +152,5 @@ export function ReceiptTabs({ receipts, activeReceiptId, onSelect, onAdd, onRemo
         </button>
       )}
     </div>
-  )
+  );
 }

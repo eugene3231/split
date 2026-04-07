@@ -1,16 +1,20 @@
-import { useRef, useState } from 'react'
-import type { Person, Receipt, SplitResult } from '@shared/types'
-import { generateConsolidatedSplitImage } from '@features/split-results/logic/consolidatedReceiptSplitImage'
-import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
+import { useRef, useState } from 'react';
+import type { Person, Receipt, SplitResult } from '@shared/types';
+import { generateConsolidatedSplitImage } from '@features/split-results/logic/consolidatedReceiptSplitImage';
+import {
+  buildSplitShareText,
+  copyShareText,
+  downloadImage,
+} from '@features/split-results/logic/shareSplit';
 
 type Props = {
-  people: Person[]
-  consolidatedSplit: SplitResult
-  splitByReceipt: SplitResult[]
-  receipts: Receipt[]
-}
+  people: Person[];
+  consolidatedSplit: SplitResult;
+  splitByReceipt: SplitResult[];
+  receipts: Receipt[];
+};
 
-type Busy = 'downloading' | 'copying' | null
+type Busy = 'downloading' | 'copying' | null;
 /*
 add the charges: items,service charge, gst and receipt as part of each receipt's ,  
   after all the items that make up the receipt. reference how                          
@@ -19,46 +23,51 @@ add the charges: items,service charge, gst and receipt as part of each receipt's
   @src/features/split-results/logic/consolidatedReceiptSplitImage.ts    
 */
 
-export function ExportConsolidatedSplitImageSection({ people, consolidatedSplit, splitByReceipt, receipts }: Props) {
-  const [busy, setBusy] = useState<Busy>(null)
-  const [copied, setCopied] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const copyTimeoutRef = useRef<number | null>(null)
+export function ExportConsolidatedSplitImageSection({
+  people,
+  consolidatedSplit,
+  splitByReceipt,
+  receipts,
+}: Props) {
+  const [busy, setBusy] = useState<Busy>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
 
-  const shareText = buildSplitShareText({ people, receiptName: 'Grand', split: consolidatedSplit })
+  const shareText = buildSplitShareText({ people, receiptName: 'Grand', split: consolidatedSplit });
 
   const getBlob = () =>
-    generateConsolidatedSplitImage({ people, consolidatedSplit, splitByReceipt, receipts })
+    generateConsolidatedSplitImage({ people, consolidatedSplit, splitByReceipt, receipts });
 
   const makeFileName = () =>
-    `consolidated-split-summary-${new Date().toISOString().replace(/[:.]/g, '-')}.png`
+    `consolidated-split-summary-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
 
   const handleDownload = async () => {
     try {
-      setBusy('downloading')
-      setError(null)
-      downloadImage(await getBlob(), makeFileName())
+      setBusy('downloading');
+      setError(null);
+      downloadImage(await getBlob(), makeFileName());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to generate image.')
+      setError(e instanceof Error ? e.message : 'Failed to generate image.');
     } finally {
-      setBusy(null)
+      setBusy(null);
     }
-  }
+  };
 
   const handleCopy = async () => {
     try {
-      setBusy('copying')
-      setError(null)
-      await copyShareText(shareText)
-      setCopied(true)
-      if (copyTimeoutRef.current !== null) window.clearTimeout(copyTimeoutRef.current)
-      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2500)
+      setBusy('copying');
+      setError(null);
+      await copyShareText(shareText);
+      setCopied(true);
+      if (copyTimeoutRef.current !== null) window.clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2500);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to copy.')
+      setError(e instanceof Error ? e.message : 'Failed to copy.');
     } finally {
-      setBusy(null)
+      setBusy(null);
     }
-  }
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
@@ -99,5 +108,5 @@ export function ExportConsolidatedSplitImageSection({ people, consolidatedSplit,
         {error ? <p className="text-xs text-rose-400">{error}</p> : null}
       </div>
     </div>
-  )
+  );
 }

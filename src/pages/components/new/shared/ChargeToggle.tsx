@@ -1,14 +1,14 @@
-import { cn } from '@shared/utils/cn'
-import type { ChargeMode, ChargeState } from '@shared/types'
+import { cn } from '@shared/utils/cn';
+import type { ChargeMode, ChargeState } from '@shared/types';
 
 interface Props {
-  label: string
-  value: ChargeState
-  onChange: (next: ChargeState) => void
+  label: string;
+  value: ChargeState;
+  onChange: (next: ChargeState) => void;
 }
 
 export function ChargeToggle({ label, value, onChange }: Props) {
-  const isEnabled = value.enabled
+  const isEnabled = value.enabled;
 
   return (
     <div className="space-y-3">
@@ -32,13 +32,23 @@ export function ChargeToggle({ label, value, onChange }: Props) {
               )}
             />
           </button>
-          <span className={cn('font-bold text-sm', isEnabled ? 'text-on-surface' : 'text-on-surface-variant')}>
+          <span
+            className={cn(
+              'font-bold text-sm',
+              isEnabled ? 'text-on-surface' : 'text-on-surface-variant',
+            )}
+          >
             {label}
           </span>
         </div>
 
         {/* $/% mode toggle */}
-        <div className={cn('flex items-center bg-surface-container-low rounded-lg p-1', !isEnabled && 'opacity-50')}>
+        <div
+          className={cn(
+            'flex items-center bg-surface-container-low rounded-lg p-1',
+            !isEnabled && 'opacity-50',
+          )}
+        >
           <button
             type="button"
             onClick={() => isEnabled && onChange({ ...value, mode: 'amount' as ChargeMode })}
@@ -98,5 +108,5 @@ export function ChargeToggle({ label, value, onChange }: Props) {
         </p>
       )}
     </div>
-  )
+  );
 }

@@ -1,9 +1,9 @@
-import { AppMenu } from '@pages/components/AppMenu'
+import { AppMenu } from '@pages/components/AppMenu';
 
 type ReceiptSplitterHeaderProps = {
-  uxMode: 'simple' | 'advanced'
-  onUxModeChange: (nextMode: 'simple' | 'advanced') => void
-}
+  uxMode: 'simple' | 'advanced';
+  onUxModeChange: (nextMode: 'simple' | 'advanced') => void;
+};
 
 export function ReceiptSplitterHeader({ uxMode, onUxModeChange }: ReceiptSplitterHeaderProps) {
   return (
@@ -44,5 +44,5 @@ export function ReceiptSplitterHeader({ uxMode, onUxModeChange }: ReceiptSplitte
 
       <AppMenu />
     </header>
-  )
+  );
 }

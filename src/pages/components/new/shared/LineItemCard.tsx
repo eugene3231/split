@@ -1,31 +1,37 @@
-import { useRef, useState } from 'react'
-import type { ChargeState, EditableItem } from '@shared/types'
-import { CURRENCY_SYMBOLS, BASE_CURRENCY } from '@shared/constants'
+import { useRef, useState } from 'react';
+import type { ChargeState, EditableItem } from '@shared/types';
+import { CURRENCY_SYMBOLS, BASE_CURRENCY } from '@shared/constants';
 
 interface Props {
-  item: EditableItem
-  discount: ChargeState
-  currency?: string
-  onUpdate: (updater: (current: EditableItem) => EditableItem) => void
-  onRemove: () => void
+  item: EditableItem;
+  discount: ChargeState;
+  currency?: string;
+  onUpdate: (updater: (current: EditableItem) => EditableItem) => void;
+  onRemove: () => void;
 }
 
-export function LineItemCard({ item, discount, currency = BASE_CURRENCY, onUpdate, onRemove }: Props) {
-  const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency
-  const [showDiscount, setShowDiscount] = useState(!!item.discountPercentInput)
-  const discountInputRef = useRef<HTMLInputElement>(null)
+export function LineItemCard({
+  item,
+  discount,
+  currency = BASE_CURRENCY,
+  onUpdate,
+  onRemove,
+}: Props) {
+  const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency;
+  const [showDiscount, setShowDiscount] = useState(!!item.discountPercentInput);
+  const discountInputRef = useRef<HTMLInputElement>(null);
 
   const handleShowDiscount = () => {
-    setShowDiscount(true)
-    requestAnimationFrame(() => discountInputRef.current?.focus())
-  }
+    setShowDiscount(true);
+    requestAnimationFrame(() => discountInputRef.current?.focus());
+  };
 
   const handleHideDiscount = () => {
-    onUpdate((current) => ({ ...current, discountPercentInput: '' }))
-    setShowDiscount(false)
-  }
+    onUpdate((current) => ({ ...current, discountPercentInput: '' }));
+    setShowDiscount(false);
+  };
 
-  const discountVisible = showDiscount || !!item.discountPercentInput
+  const discountVisible = showDiscount || !!item.discountPercentInput;
 
   return (
     <div className="bg-surface-container-lowest px-3 py-2.5 rounded-xl shadow-sm border border-surface-container-highest hover:border-primary/20 transition-all group relative">
@@ -75,7 +81,9 @@ export function LineItemCard({ item, discount, currency = BASE_CURRENCY, onUpdat
                 type="text"
                 inputMode="decimal"
                 value={item.discountPercentInput}
-                onChange={(e) => onUpdate((current) => ({ ...current, discountPercentInput: e.target.value }))}
+                onChange={(e) =>
+                  onUpdate((current) => ({ ...current, discountPercentInput: e.target.value }))
+                }
                 placeholder="0"
                 className="bg-transparent border-none p-0 focus:ring-0 font-bold text-secondary w-8 text-right text-xs outline-none"
               />
@@ -107,10 +115,13 @@ export function LineItemCard({ item, discount, currency = BASE_CURRENCY, onUpdat
         )}
         {discount.enabled && (
           <span className="text-[10px] text-on-surface-variant italic ml-auto">
-            {discount.mode === 'percent' ? `${discount.percentInput || '0'}% bill discount` : 'Bill discount'} applied
+            {discount.mode === 'percent'
+              ? `${discount.percentInput || '0'}% bill discount`
+              : 'Bill discount'}{' '}
+            applied
           </span>
         )}
       </div>
     </div>
-  )
+  );
 }

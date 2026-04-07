@@ -1,11 +1,11 @@
-import type { ChargeMode, ChargeState } from '@shared/types'
+import type { ChargeMode, ChargeState } from '@shared/types';
 
 type ChargeControlProps = {
-  label: string
-  description?: string
-  value: ChargeState
-  onChange: (next: ChargeState) => void
-}
+  label: string;
+  description?: string;
+  value: ChargeState;
+  onChange: (next: ChargeState) => void;
+};
 
 export function ChargeControl({ label, description, value, onChange }: ChargeControlProps) {
   return (
@@ -57,5 +57,5 @@ export function ChargeControl({ label, description, value, onChange }: ChargeCon
         </p>
       ) : null}
     </div>
-  )
+  );
 }

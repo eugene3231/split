@@ -1,22 +1,22 @@
-import { describe, expect, it, vi } from 'vitest'
-import type { Dispatch, SetStateAction } from 'react'
-import { defaultGstState, defaultServiceChargeState } from '@shared/constants'
-import type { ChargeState, EditableItem, OcrResponse, Person } from '@shared/types'
-import { analyzeReceiptWithGemini, applyOcrPayload } from '@features/receipt-scanner/logic/ocr'
+import { describe, expect, it, vi } from 'vitest';
+import type { Dispatch, SetStateAction } from 'react';
+import { defaultGstState, defaultServiceChargeState } from '@shared/constants';
+import type { ChargeState, EditableItem, OcrResponse, Person } from '@shared/types';
+import { analyzeReceiptWithGemini, applyOcrPayload } from '@features/receipt-scanner/logic/ocr';
 
 function createFile(): File {
-  return new File(['receipt-bytes'], 'receipt.jpg', { type: 'image/jpeg' })
+  return new File(['receipt-bytes'], 'receipt.jpg', { type: 'image/jpeg' });
 }
 
 function setStateValue<T>(current: T, next: SetStateAction<T>): T {
-  return typeof next === 'function' ? (next as (prev: T) => T)(current) : next
+  return typeof next === 'function' ? (next as (prev: T) => T)(current) : next;
 }
 
 function stubFetch(candidatesText: string | null) {
   const body =
     candidatesText === null
       ? ''
-      : JSON.stringify({ candidates: [{ content: { parts: [{ text: candidatesText }] } }] })
+      : JSON.stringify({ candidates: [{ content: { parts: [{ text: candidatesText }] } }] });
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue({
@@ -24,7 +24,7 @@ function stubFetch(candidatesText: string | null) {
       status: 200,
       text: vi.fn().mockResolvedValue(body),
     }),
-  )
+  );
 }
 
 function stubFetchApiError(message: string) {
@@ -35,54 +35,54 @@ function stubFetchApiError(message: string) {
       status: 400,
       text: vi.fn().mockResolvedValue(JSON.stringify({ error: { message } })),
     }),
-  )
+  );
 }
 
 function stubFetchNetworkError(message: string) {
-  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error(message)))
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error(message)));
 }
 
 describe('analyzeReceiptWithGemini', () => {
   it('throws explicit errors when api key or model is missing', async () => {
-    await expect(analyzeReceiptWithGemini(createFile(), '', 'gemini-2.5-flash', vi.fn())).rejects.toThrow(
-      'Missing Gemini API key. Enter it above.',
-    )
+    await expect(
+      analyzeReceiptWithGemini(createFile(), '', 'gemini-2.5-flash', vi.fn()),
+    ).rejects.toThrow('Missing Gemini API key. Enter it above.');
 
     await expect(analyzeReceiptWithGemini(createFile(), 'abc', ' ', vi.fn())).rejects.toThrow(
       'Missing Gemini model selection.',
-    )
-  })
+    );
+  });
 
   it('throws when Gemini response is empty or not parseable', async () => {
-    stubFetch(null)
+    stubFetch(null);
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini returned an empty response.')
+    ).rejects.toThrow('Gemini returned an empty response.');
 
-    stubFetch('not-json')
+    stubFetch('not-json');
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini output was not valid JSON.')
-  })
+    ).rejects.toThrow('Gemini output was not valid JSON.');
+  });
 
   it('propagates Gemini API errors', async () => {
-    stubFetchApiError('Invalid API key')
+    stubFetchApiError('Invalid API key');
 
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Invalid API key')
-  })
+    ).rejects.toThrow('Invalid API key');
+  });
 
   it('throws when fetch itself fails', async () => {
-    stubFetchNetworkError('Network error')
+    stubFetchNetworkError('Network error');
 
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Network error')
-  })
+    ).rejects.toThrow('Network error');
+  });
 
   it('parses valid Gemini output into normalized OCR payload', async () => {
-    const statuses: string[] = []
+    const statuses: string[] = [];
     stubFetch(
       JSON.stringify({
         items: [
@@ -93,39 +93,49 @@ describe('analyzeReceiptWithGemini', () => {
         total: 9.27,
         detected: {
           gst: { enabled: false, amount: null, percent: 9, confidence: 1.4, source: null },
-          serviceCharge: { enabled: true, amount: null, percent: 10, confidence: 0.8, source: 'receipt' },
+          serviceCharge: {
+            enabled: true,
+            amount: null,
+            percent: 10,
+            confidence: 0.8,
+            source: 'receipt',
+          },
         },
         warnings: ['Low confidence'],
       }),
-    )
+    );
 
     const result = await analyzeReceiptWithGemini(
       createFile(),
       'abc',
       'gemini-2.5-flash',
       (status) => statuses.push(status),
-    )
+    );
 
-    expect(statuses).toEqual(['Encoding receipt...', 'Calling Gemini...', 'Parsing Gemini output...'])
-    expect(result.items).toEqual([{ description: 'Chicken Rice', amount: 8.5 }])
-    expect(result.subtotal).toBe(8.5)
-    expect(result.total).toBe(9.27)
+    expect(statuses).toEqual([
+      'Encoding receipt...',
+      'Calling Gemini...',
+      'Parsing Gemini output...',
+    ]);
+    expect(result.items).toEqual([{ description: 'Chicken Rice', amount: 8.5 }]);
+    expect(result.subtotal).toBe(8.5);
+    expect(result.total).toBe(9.27);
     expect(result.detected.gst).toEqual({
       enabled: true,
       amount: null,
       percent: 9,
       confidence: 1,
       source: 'gemini',
-    })
+    });
     expect(result.detected.serviceCharge).toEqual({
       enabled: true,
       amount: null,
       percent: 10,
       confidence: 0.8,
       source: 'receipt',
-    })
-    expect(result.warnings).toEqual(['Low confidence'])
-  })
+    });
+    expect(result.warnings).toEqual(['Low confidence']);
+  });
 
   it('adds fallback warning when no line items are returned', async () => {
     stubFetch(
@@ -135,23 +145,29 @@ describe('analyzeReceiptWithGemini', () => {
         total: null,
         detected: {
           gst: { enabled: null, amount: null, percent: null, confidence: null, source: null },
-          serviceCharge: { enabled: null, amount: null, percent: null, confidence: null, source: null },
+          serviceCharge: {
+            enabled: null,
+            amount: null,
+            percent: null,
+            confidence: null,
+            source: null,
+          },
         },
         warnings: [],
       }),
-    )
+    );
 
-    const result = await analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn())
-    expect(result.items).toEqual([])
+    const result = await analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn());
+    expect(result.items).toEqual([]);
     expect(result.warnings).toContain(
       'Gemini did not return line items confidently. Add/edit items manually.',
-    )
-  })
-})
+    );
+  });
+});
 
 describe('applyOcrPayload', () => {
   it('updates items, charges, warnings, and receipt total', () => {
-    const people: Person[] = [{ id: 'p1', name: 'Alice' }]
+    const people: Person[] = [{ id: 'p1', name: 'Alice' }];
     const payload: OcrResponse = {
       items: [
         { description: 'Laksa', amount: 12 },
@@ -176,7 +192,7 @@ describe('applyOcrPayload', () => {
         },
       },
       warnings: ['Check subtotal'],
-    }
+    };
 
     let items: EditableItem[] = [
       {
@@ -186,27 +202,27 @@ describe('applyOcrPayload', () => {
         discountPercentInput: '',
         assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
       },
-    ]
-    let serviceCharge: ChargeState = defaultServiceChargeState
-    let gst: ChargeState = defaultGstState
-    let scanWarnings: string[] = []
-    let receiptTotalInput = ''
+    ];
+    let serviceCharge: ChargeState = defaultServiceChargeState;
+    let gst: ChargeState = defaultGstState;
+    let scanWarnings: string[] = [];
+    let receiptTotalInput = '';
 
     const setItems: Dispatch<SetStateAction<EditableItem[]>> = (next) => {
-      items = setStateValue(items, next)
-    }
+      items = setStateValue(items, next);
+    };
     const setServiceCharge: Dispatch<SetStateAction<ChargeState>> = (next) => {
-      serviceCharge = setStateValue(serviceCharge, next)
-    }
+      serviceCharge = setStateValue(serviceCharge, next);
+    };
     const setGst: Dispatch<SetStateAction<ChargeState>> = (next) => {
-      gst = setStateValue(gst, next)
-    }
+      gst = setStateValue(gst, next);
+    };
     const setScanWarnings: Dispatch<SetStateAction<string[]>> = (next) => {
-      scanWarnings = setStateValue(scanWarnings, next)
-    }
+      scanWarnings = setStateValue(scanWarnings, next);
+    };
     const setReceiptTotalInput: Dispatch<SetStateAction<string>> = (next) => {
-      receiptTotalInput = setStateValue(receiptTotalInput, next)
-    }
+      receiptTotalInput = setStateValue(receiptTotalInput, next);
+    };
 
     applyOcrPayload(
       payload,
@@ -216,17 +232,17 @@ describe('applyOcrPayload', () => {
       setGst,
       setScanWarnings,
       setReceiptTotalInput,
-    )
+    );
 
-    expect(items).toHaveLength(2)
-    expect(items[0].name).toBe('Laksa')
-    expect(items[0].amountInput).toBe('12.00')
-    expect(items[0].assignment.personId).toBe('p1')
-    expect(serviceCharge.mode).toBe('percent')
-    expect(serviceCharge.percentInput).toBe('10')
-    expect(gst.mode).toBe('percent')
-    expect(gst.percentInput).toBe('9')
-    expect(scanWarnings).toEqual(['Check subtotal'])
-    expect(receiptTotalInput).toBe('15.81')
-  })
-})
+    expect(items).toHaveLength(2);
+    expect(items[0].name).toBe('Laksa');
+    expect(items[0].amountInput).toBe('12.00');
+    expect(items[0].assignment.personId).toBe('p1');
+    expect(serviceCharge.mode).toBe('percent');
+    expect(serviceCharge.percentInput).toBe('10');
+    expect(gst.mode).toBe('percent');
+    expect(gst.percentInput).toBe('9');
+    expect(scanWarnings).toEqual(['Check subtotal']);
+    expect(receiptTotalInput).toBe('15.81');
+  });
+});

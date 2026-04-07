@@ -1,19 +1,23 @@
-import { useRef, useState } from 'react'
-import type { ChargeState, Person, SplitResult } from '@shared/types'
-import { generateReceiptSplitImage } from '@features/split-results/logic/receiptSplitImage'
-import { buildSplitShareText, copyShareText, downloadImage } from '@features/split-results/logic/shareSplit'
+import { useRef, useState } from 'react';
+import type { ChargeState, Person, SplitResult } from '@shared/types';
+import { generateReceiptSplitImage } from '@features/split-results/logic/receiptSplitImage';
+import {
+  buildSplitShareText,
+  copyShareText,
+  downloadImage,
+} from '@features/split-results/logic/shareSplit';
 
 type ExportSplitImageSectionProps = {
-  people: Person[]
-  split: SplitResult
-  discount: ChargeState
-  serviceCharge: ChargeState
-  gst: ChargeState
-  reconciliationCents: number | null
-  receiptName?: string
-}
+  people: Person[];
+  split: SplitResult;
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
+  reconciliationCents: number | null;
+  receiptName?: string;
+};
 
-type Busy = 'downloading' | 'copying' | null
+type Busy = 'downloading' | 'copying' | null;
 
 export function ExportSplitImageSection({
   people,
@@ -22,15 +26,15 @@ export function ExportSplitImageSection({
   serviceCharge,
   gst,
   reconciliationCents,
-  receiptName = "",
+  receiptName = '',
 }: ExportSplitImageSectionProps) {
-  const [includeItemDetails, setIncludeItemDetails] = useState(false)
-  const [busy, setBusy] = useState<Busy>(null)
-  const [copied, setCopied] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const copyTimeoutRef = useRef<number | null>(null)
+  const [includeItemDetails, setIncludeItemDetails] = useState(false);
+  const [busy, setBusy] = useState<Busy>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
 
-  const shareText = buildSplitShareText({ people, receiptName, split })
+  const shareText = buildSplitShareText({ people, receiptName, split });
 
   const getBlob = () =>
     generateReceiptSplitImage({
@@ -43,37 +47,36 @@ export function ExportSplitImageSection({
       includeLineItems: true,
       includeItemDetails,
       receiptName,
-    })
+    });
 
-  const makeFileName = () =>
-    `split-final-${new Date().toISOString().replace(/[:.]/g, '-')}.png`
+  const makeFileName = () => `split-final-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
 
   const handleDownload = async () => {
     try {
-      setBusy('downloading')
-      setError(null)
-      downloadImage(await getBlob(), makeFileName())
+      setBusy('downloading');
+      setError(null);
+      downloadImage(await getBlob(), makeFileName());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to generate image.')
+      setError(e instanceof Error ? e.message : 'Failed to generate image.');
     } finally {
-      setBusy(null)
+      setBusy(null);
     }
-  }
+  };
 
   const handleCopy = async () => {
     try {
-      setBusy('copying')
-      setError(null)
-      await copyShareText(shareText)
-      setCopied(true)
-      if (copyTimeoutRef.current !== null) window.clearTimeout(copyTimeoutRef.current)
-      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2500)
+      setBusy('copying');
+      setError(null);
+      await copyShareText(shareText);
+      setCopied(true);
+      if (copyTimeoutRef.current !== null) window.clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2500);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to copy.')
+      setError(e instanceof Error ? e.message : 'Failed to copy.');
     } finally {
-      setBusy(null)
+      setBusy(null);
     }
-  }
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/8 bg-slate-900 shadow-lg shadow-black/20">
@@ -122,5 +125,5 @@ export function ExportSplitImageSection({
         {error ? <p className="text-xs text-rose-400">{error}</p> : null}
       </div>
     </div>
-  )
+  );
 }

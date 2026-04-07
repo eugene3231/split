@@ -1,24 +1,24 @@
-import { useRef, type ChangeEvent } from 'react'
-import { GEMINI_MODELS } from '@shared/constants'
+import { useRef, type ChangeEvent } from 'react';
+import { GEMINI_MODELS } from '@shared/constants';
 
 type ReceiptScanSectionProps = {
-  hasApiKey: boolean
-  onEditApiKey: () => void
-  geminiModel: string
-  onGeminiModelChange: (value: string) => void
-  receiptFile: File | null
-  onReceiptFileSelected: (file: File | null) => void
-  isScanning: boolean
-  loadingMessage: string
-  scanStatus: string
-  scanError: string | null
-  scanWarnings: string[]
-  onScanReceipt: () => void
-  onLoadMockReceipt: () => void
-  hideModelInAdvancedSettings?: boolean
-  enableCameraCapture?: boolean
-  showLoadMockButton?: boolean
-}
+  hasApiKey: boolean;
+  onEditApiKey: () => void;
+  geminiModel: string;
+  onGeminiModelChange: (value: string) => void;
+  receiptFile: File | null;
+  onReceiptFileSelected: (file: File | null) => void;
+  isScanning: boolean;
+  loadingMessage: string;
+  scanStatus: string;
+  scanError: string | null;
+  scanWarnings: string[];
+  onScanReceipt: () => void;
+  onLoadMockReceipt: () => void;
+  hideModelInAdvancedSettings?: boolean;
+  enableCameraCapture?: boolean;
+  showLoadMockButton?: boolean;
+};
 
 export function ReceiptScanSection({
   hasApiKey,
@@ -38,15 +38,15 @@ export function ReceiptScanSection({
   enableCameraCapture = false,
   showLoadMockButton = true,
 }: ReceiptScanSectionProps) {
-  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleReceiptFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onReceiptFileSelected(event.target.files?.[0] ?? null)
-  }
+    onReceiptFileSelected(event.target.files?.[0] ?? null);
+  };
 
   const handleCameraFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onReceiptFileSelected(event.target.files?.[0] ?? null)
-  }
+    onReceiptFileSelected(event.target.files?.[0] ?? null);
+  };
 
   return (
     <div className="space-y-4 rounded-2xl border border-slate-700/50 bg-slate-800/50 p-5">
@@ -66,15 +66,31 @@ export function ReceiptScanSection({
               : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15'
           }`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? 'bg-emerald-400' : 'bg-amber-400'}`}
+          />
           {hasApiKey ? (
             <>
               API key added
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-400/60">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              <svg
+                width="10"
+                height="10"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                className="text-emerald-400/60"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
               </svg>
             </>
-          ) : 'Set up API key'}
+          ) : (
+            'Set up API key'
+          )}
         </button>
       </div>
 
@@ -94,7 +110,9 @@ export function ReceiptScanSection({
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm outline-none ring-sky-400/70 transition focus:ring-2"
             >
               {GEMINI_MODELS.map((model) => (
-                <option key={model} value={model}>{model}</option>
+                <option key={model} value={model}>
+                  {model}
+                </option>
               ))}
             </select>
           </div>
@@ -111,7 +129,9 @@ export function ReceiptScanSection({
             className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm outline-none ring-sky-400/70 transition focus:ring-2"
           >
             {GEMINI_MODELS.map((model) => (
-              <option key={model} value={model}>{model}</option>
+              <option key={model} value={model}>
+                {model}
+              </option>
             ))}
           </select>
         </div>
@@ -188,8 +208,10 @@ export function ReceiptScanSection({
       {scanStatus ? <p className="text-xs text-slate-400">{scanStatus}</p> : null}
       {scanError ? <p className="text-sm text-rose-400">{scanError}</p> : null}
       {scanWarnings.map((warning) => (
-        <p key={warning} className="text-xs text-amber-300">{warning}</p>
+        <p key={warning} className="text-xs text-amber-300">
+          {warning}
+        </p>
       ))}
     </div>
-  )
+  );
 }

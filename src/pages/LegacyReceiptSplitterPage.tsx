@@ -1,11 +1,11 @@
-import { AdvancedWorkspace } from '@pages/components/advanced/AdvancedWorkspace'
-import { SimpleWorkspace } from '@pages/components/simple/SimpleWorkspace'
-import { GeminiApiKeyModal } from '@features/receipt-scanner/components/GeminiApiKeyModal'
-import { ReceiptSplitterHeader } from '@pages/components/ReceiptSplitterHeader'
-import { useReceiptSplitterController } from '@pages/hooks/useReceiptSplitterController'
+import { AdvancedWorkspace } from '@pages/components/advanced/AdvancedWorkspace';
+import { SimpleWorkspace } from '@pages/components/simple/SimpleWorkspace';
+import { GeminiApiKeyModal } from '@features/receipt-scanner/components/GeminiApiKeyModal';
+import { ReceiptSplitterHeader } from '@pages/components/ReceiptSplitterHeader';
+import { useReceiptSplitterController } from '@pages/hooks/useReceiptSplitterController';
 
 export function LegacyReceiptSplitterPage() {
-  const controller = useReceiptSplitterController()
+  const controller = useReceiptSplitterController();
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
@@ -20,11 +20,7 @@ export function LegacyReceiptSplitterPage() {
           onUxModeChange={controller.handleUxModeChange}
         />
 
-        {controller.uxMode === 'simple' ? (
-          <SimpleWorkspace />
-        ) : (
-          <AdvancedWorkspace />
-        )}
+        {controller.uxMode === 'simple' ? <SimpleWorkspace /> : <AdvancedWorkspace />}
       </div>
 
       <GeminiApiKeyModal />
@@ -33,5 +29,5 @@ export function LegacyReceiptSplitterPage() {
         © {new Date().getFullYear()} Eugene Chua. All rights reserved.
       </footer>
     </main>
-  )
+  );
 }

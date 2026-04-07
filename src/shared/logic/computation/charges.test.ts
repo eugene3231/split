@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import type { ChargeState } from '@shared/types'
-import { applyChargeDetection, resolveChargeCents } from '@shared/logic/computation/charges'
+import { describe, expect, it } from 'vitest';
+import type { ChargeState } from '@shared/types';
+import { applyChargeDetection, resolveChargeCents } from '@shared/logic/computation/charges';
 
 const baseChargeState: ChargeState = {
   enabled: true,
@@ -9,12 +9,12 @@ const baseChargeState: ChargeState = {
   percentInput: '10',
   detectedConfidence: null,
   detectedSource: null,
-}
+};
 
 describe('resolveChargeCents', () => {
   it('returns 0 when charge is disabled', () => {
-    expect(resolveChargeCents({ ...baseChargeState, enabled: false }, 1000, 1000)).toBe(0)
-  })
+    expect(resolveChargeCents({ ...baseChargeState, enabled: false }, 1000, 1000)).toBe(0);
+  });
 
   it('resolves amount mode from amount input', () => {
     expect(
@@ -27,17 +27,17 @@ describe('resolveChargeCents', () => {
         1000,
         1000,
       ),
-    ).toBe(235)
-  })
+    ).toBe(235);
+  });
 
   it('returns 0 when percent input is empty or unparseable', () => {
     expect(
       resolveChargeCents({ ...baseChargeState, mode: 'percent', percentInput: '' }, 1000, 1000),
-    ).toBe(0)
+    ).toBe(0);
     expect(
       resolveChargeCents({ ...baseChargeState, mode: 'percent', percentInput: 'abc' }, 1000, 1000),
-    ).toBe(0)
-  })
+    ).toBe(0);
+  });
 
   it('uses percentage base when provided, otherwise falls back to subtotal', () => {
     expect(
@@ -50,7 +50,7 @@ describe('resolveChargeCents', () => {
         1000,
         500,
       ),
-    ).toBe(50)
+    ).toBe(50);
 
     expect(
       resolveChargeCents(
@@ -62,9 +62,9 @@ describe('resolveChargeCents', () => {
         1000,
         0,
       ),
-    ).toBe(100)
-  })
-})
+    ).toBe(100);
+  });
+});
 
 describe('applyChargeDetection', () => {
   it('applies detected amount and metadata', () => {
@@ -74,14 +74,14 @@ describe('applyChargeDetection', () => {
       percent: null,
       confidence: 0.91,
       source: 'ocr',
-    })
+    });
 
-    expect(next.enabled).toBe(true)
-    expect(next.mode).toBe('amount')
-    expect(next.amountInput).toBe('1.20')
-    expect(next.detectedConfidence).toBe(0.91)
-    expect(next.detectedSource).toBe('ocr')
-  })
+    expect(next.enabled).toBe(true);
+    expect(next.mode).toBe('amount');
+    expect(next.amountInput).toBe('1.20');
+    expect(next.detectedConfidence).toBe(0.91);
+    expect(next.detectedSource).toBe('ocr');
+  });
 
   it('applies detected percent and maps source none to null', () => {
     const next = applyChargeDetection(baseChargeState, {
@@ -90,11 +90,11 @@ describe('applyChargeDetection', () => {
       percent: 9,
       confidence: null,
       source: 'none',
-    })
+    });
 
-    expect(next.enabled).toBe(false)
-    expect(next.mode).toBe('percent')
-    expect(next.percentInput).toBe('9')
-    expect(next.detectedSource).toBeNull()
-  })
-})
+    expect(next.enabled).toBe(false);
+    expect(next.mode).toBe('percent');
+    expect(next.percentInput).toBe('9');
+    expect(next.detectedSource).toBeNull();
+  });
+});
