@@ -76,7 +76,7 @@ export function SimpleWorkspace() {
     handleNext,
     handleBack,
     handleAddReceipt,
-  } = useSimpleWizard(items, people, normalizeItemsForSimpleMode)
+  } = useSimpleWizard(items, people, normalizeItemsForSimpleMode, receipts, activeReceiptId, setActiveReceiptId)
 
   const peopleInput = useReceiptStore((state) => state.peopleInput)
   const setPeopleInput = useReceiptStore((state) => state.setPeopleInput)
@@ -249,6 +249,7 @@ export function SimpleWorkspace() {
       <WizardNav
         activeStep={activeStep}
         itemsSubPhase={itemsSubPhase}
+        isLastAssignableItem={safeActiveItemIndex >= items.length - 1 && activeReceiptId === receipts[receipts.length - 1]?.id}
         canContinue={canContinue}
         onBack={handleBack}
         onNext={handleNext}

@@ -786,6 +786,7 @@ describe('Multi-receipt simple wizard integration', () => {
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
     fireEvent.click(screen.getByTestId('wizard-continue-btn'))
+    fireEvent.click(screen.getByTestId('wizard-continue-btn'))
 
     expect(screen.getByTestId('summary-tab-total')).toBeInTheDocument()
     expect(screen.getByTestId('summary-tab-receipt-0')).toBeInTheDocument()

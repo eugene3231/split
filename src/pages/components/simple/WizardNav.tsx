@@ -3,20 +3,21 @@ import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
 type Props = {
   activeStep: SimpleWizardStep
   itemsSubPhase: ItemsSubPhase
+  isLastAssignableItem: boolean
   canContinue: boolean
   onBack: () => void
   onNext: () => void
   onAddReceipt: () => void
 }
 
-export function WizardNav({ activeStep, itemsSubPhase, canContinue, onBack, onNext, onAddReceipt }: Props) {
+export function WizardNav({ activeStep, itemsSubPhase, isLastAssignableItem, canContinue, onBack, onNext, onAddReceipt }: Props) {
   const continueLabel =
     activeStep === 'people'
       ? 'Continue →'
       : activeStep === 'receipt'
         ? 'Continue to Assign →'
         : itemsSubPhase === 'assign'
-          ? 'Review Items →'
+          ? isLastAssignableItem ? 'Review Items →' : 'Next Item →'
           : 'See Split Result →'
 
   return (
