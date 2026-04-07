@@ -1,9 +1,9 @@
-import type { OcrResponse } from '@shared/types'
+import type { OcrResponse } from '@shared/types';
 
 export interface MockReceiptFixture {
-  label: string
-  peopleNames: string[]
-  buildResponse: () => OcrResponse
+  label: string;
+  peopleNames: string[];
+  buildResponse: () => OcrResponse;
 }
 
 export const MOCK_RECEIPT_FIXTURES: MockReceiptFixture[] = [
@@ -21,7 +21,13 @@ export const MOCK_RECEIPT_FIXTURES: MockReceiptFixture[] = [
       total: 47.48,
       detected: {
         gst: { enabled: true, amount: null, percent: 9, confidence: 0.99, source: 'mock' },
-        serviceCharge: { enabled: true, amount: null, percent: 10, confidence: 0.99, source: 'mock' },
+        serviceCharge: {
+          enabled: true,
+          amount: null,
+          percent: 10,
+          confidence: 0.99,
+          source: 'mock',
+        },
       },
       warnings: ['Loaded local mock receipt data.'],
     }),
@@ -56,7 +62,13 @@ export const MOCK_RECEIPT_FIXTURES: MockReceiptFixture[] = [
       total: 166.98,
       detected: {
         gst: { enabled: true, amount: 0.0, percent: 9.0, confidence: 0.95, source: '9% GST' },
-        serviceCharge: { enabled: true, amount: 15.18, percent: 10.0, confidence: 0.95, source: '10% Service Charge' },
+        serviceCharge: {
+          enabled: true,
+          amount: 15.18,
+          percent: 10.0,
+          confidence: 0.95,
+          source: '10% Service Charge',
+        },
       },
       warnings: [
         'GST amount is 0.00 despite a 9% rate being listed.',
@@ -64,12 +76,12 @@ export const MOCK_RECEIPT_FIXTURES: MockReceiptFixture[] = [
       ],
     }),
   },
-]
+];
 
 export function buildLocalMockOcrResponse(): OcrResponse {
-  return MOCK_RECEIPT_FIXTURES[0].buildResponse()
+  return MOCK_RECEIPT_FIXTURES[0].buildResponse();
 }
 
 export function buildSimpleModeMockOcrResponse(): OcrResponse {
-  return MOCK_RECEIPT_FIXTURES[1].buildResponse()
+  return MOCK_RECEIPT_FIXTURES[1].buildResponse();
 }

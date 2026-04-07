@@ -1,17 +1,17 @@
-import type { EditableItem, Person } from '@shared/types'
-import type { ItemsSubPhase } from '@pages/types'
-import { ItemsStepAssignPhase } from '@pages/components/simple/steps/AssignPhase'
-import { ItemsStepReviewPhase } from '@pages/components/simple/steps/ReviewPhase'
+import type { EditableItem, Person } from '@shared/types';
+import type { ItemsSubPhase } from '@pages/types';
+import { ItemsStepAssignPhase } from '@pages/components/simple/steps/AssignPhase';
+import { ItemsStepReviewPhase } from '@pages/components/simple/steps/ReviewPhase';
 
 type Props = {
-  items: EditableItem[]
-  people: Person[]
-  itemsSubPhase: ItemsSubPhase
-  activeItemIndex: number
-  onActiveItemIndexChange: (index: number) => void
-  onItemsSubPhaseChange: (phase: ItemsSubPhase) => void
-  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
-}
+  items: EditableItem[];
+  people: Person[];
+  itemsSubPhase: ItemsSubPhase;
+  activeItemIndex: number;
+  onActiveItemIndexChange: (index: number) => void;
+  onItemsSubPhaseChange: (phase: ItemsSubPhase) => void;
+  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
+};
 
 export function ItemsStep({
   items,
@@ -33,7 +33,9 @@ export function ItemsStep({
           activeItemIndex={activeItemIndex}
           onUpdateItem={onUpdateItem}
           onPrevItem={() => onActiveItemIndexChange(Math.max(0, activeItemIndex - 1))}
-          onNextItem={() => onActiveItemIndexChange(Math.min(items.length - 1, activeItemIndex + 1))}
+          onNextItem={() =>
+            onActiveItemIndexChange(Math.min(items.length - 1, activeItemIndex + 1))
+          }
           onGoToReview={() => onItemsSubPhaseChange('review')}
         />
       ) : (
@@ -41,11 +43,11 @@ export function ItemsStep({
           items={items}
           people={people}
           onEditItem={(index) => {
-            onActiveItemIndexChange(index)
-            onItemsSubPhaseChange('assign')
+            onActiveItemIndexChange(index);
+            onItemsSubPhaseChange('assign');
           }}
         />
       )}
     </div>
-  )
+  );
 }

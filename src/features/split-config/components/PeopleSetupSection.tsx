@@ -1,13 +1,13 @@
-import type { FormEvent } from 'react'
-import type { Person } from '@shared/types'
+import type { FormEvent } from 'react';
+import type { Person } from '@shared/types';
 
 type PeopleSetupSectionProps = {
-  peopleInput: string
-  onPeopleInputChange: (value: string) => void
-  onPeopleSubmit: (event: FormEvent<HTMLFormElement>) => void
-  people: Person[]
-  onRemovePerson: (personId: string) => void
-}
+  peopleInput: string;
+  onPeopleInputChange: (value: string) => void;
+  onPeopleSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  people: Person[];
+  onRemovePerson: (personId: string) => void;
+};
 
 export function PeopleSetupSection({
   peopleInput,
@@ -57,5 +57,5 @@ export function PeopleSetupSection({
         )}
       </div>
     </>
-  )
+  );
 }

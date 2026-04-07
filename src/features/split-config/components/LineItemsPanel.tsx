@@ -1,15 +1,15 @@
-import { useMemo } from 'react'
-import type { ChargeState, EditableItem, Person } from '@shared/types'
-import { LineItemCard } from '@features/split-config/components/LineItemCard'
+import { useMemo } from 'react';
+import type { ChargeState, EditableItem, Person } from '@shared/types';
+import { LineItemCard } from '@features/split-config/components/LineItemCard';
 
 type LineItemsPanelProps = {
-  people: Person[]
-  items: EditableItem[]
-  onAddItem: () => void
-  onRemoveItem: (itemId: string) => void
-  onUpdateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void
-  globalDiscount?: ChargeState
-}
+  people: Person[];
+  items: EditableItem[];
+  onAddItem: () => void;
+  onRemoveItem: (itemId: string) => void;
+  onUpdateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void;
+  globalDiscount?: ChargeState;
+};
 
 export function LineItemsPanel({
   people,
@@ -19,7 +19,7 @@ export function LineItemsPanel({
   onUpdateItem,
   globalDiscount,
 }: LineItemsPanelProps) {
-  const peopleSet = useMemo(() => new Set(people.map((person) => person.id)), [people])
+  const peopleSet = useMemo(() => new Set(people.map((person) => person.id)), [people]);
 
   return (
     <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
@@ -49,5 +49,5 @@ export function LineItemsPanel({
         ))}
       </div>
     </section>
-  )
+  );
 }

@@ -1,20 +1,20 @@
-import { useState } from 'react'
-import { SplitView, ConsolidatedSplitView } from '@features/split-results'
-import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types'
+import { useState } from 'react';
+import { SplitView, ConsolidatedSplitView } from '@features/split-results';
+import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 
 type Props = {
-  people: Person[]
-  receipts: Receipt[]
-  activeReceiptId: string
-  split: SplitResult
-  consolidatedSplit: SplitResult
-  splitByReceipt: SplitResult[]
-  discount: ChargeState
-  serviceCharge: ChargeState
-  gst: ChargeState
-  reconciliationCents: number | null
-  onApplyDiscount: () => void
-}
+  people: Person[];
+  receipts: Receipt[];
+  activeReceiptId: string;
+  split: SplitResult;
+  consolidatedSplit: SplitResult;
+  splitByReceipt: SplitResult[];
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
+  reconciliationCents: number | null;
+  onApplyDiscount: () => void;
+};
 
 export function SummaryStep({
   people,
@@ -28,12 +28,15 @@ export function SummaryStep({
   reconciliationCents,
   onApplyDiscount,
 }: Props) {
-  const isMultiReceipt = receipts.length > 1
-  const [activeTab, setActiveTab] = useState<string>(isMultiReceipt ? 'total' : receipts[0]?.id ?? 'total')
+  const isMultiReceipt = receipts.length > 1;
+  const [activeTab, setActiveTab] = useState<string>(
+    isMultiReceipt ? 'total' : (receipts[0]?.id ?? 'total'),
+  );
 
-  const activeReceiptIndex = receipts.findIndex((r) => r.id === activeTab)
-  const currentSplit = activeTab === 'total' ? consolidatedSplit : (splitByReceipt[activeReceiptIndex] ?? split)
-  const currentReceipt = activeTab === 'total' ? null : receipts[activeReceiptIndex]
+  const activeReceiptIndex = receipts.findIndex((r) => r.id === activeTab);
+  const currentSplit =
+    activeTab === 'total' ? consolidatedSplit : (splitByReceipt[activeReceiptIndex] ?? split);
+  const currentReceipt = activeTab === 'total' ? null : receipts[activeReceiptIndex];
 
   return (
     <div className="space-y-4">
@@ -96,5 +99,5 @@ export function SummaryStep({
         />
       )}
     </div>
-  )
+  );
 }

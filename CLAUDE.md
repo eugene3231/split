@@ -5,6 +5,7 @@
 **Split** is a browser-only, no backend, no auth bill-splitting app that uses Google Gemini's vision AI to scan receipts and automatically divide costs between people.
 
 **User workflow:**
+
 1. **Add people** — Enter names for everyone splitting the bill
 2. **Scan receipt** — Upload a receipt image; Gemini extracts line items, tax, and service charges
 3. **Assign items** — Assign each item to one or more people (equal split or custom)
@@ -12,6 +13,7 @@
 5. **Export/share** — Download as a PNG image or copy a text summary
 
 **Key features:**
+
 - Gemini-powered OCR (no backend — calls Gemini directly from the browser)
 - Simple mode (4-step wizard) and Advanced mode (more granular control)
 - Per-item discounts and global charges (tax, service charge, global discount)
@@ -27,6 +29,7 @@
 - **Vitest + Testing Library** — Unit testing
 
 ## Best Practices
+
 - Prefer recomputing derived data (e.g. in `shared/logic/computation/split.ts`) over storing it
 - Keep components dumb — they should render what they're given, not compute it
 
@@ -78,6 +81,7 @@ src/
 ```
 
 **Key files:**
+
 - `src/shared/stores/receiptStore.ts` — Central Zustand store
 - `src/features/receipt-scanner/logic/ocr.ts` — Gemini API call
 - `src/features/receipt-scanner/logic/gemini-schema.ts` — Zod schema (constrains Gemini output + validates response)
@@ -99,6 +103,7 @@ Charge detection (`enabled`, `amount`, `percent`, `confidence`, `source`) is nor
 # React + Tailwind Best Practices
 
 ## Core Philosophy
+
 Prefer simple, readable, and predictable code. Favour data-down, actions-up. Keep components small and focused.
 
 ---
@@ -106,6 +111,7 @@ Prefer simple, readable, and predictable code. Favour data-down, actions-up. Kee
 ## State Management
 
 ### Prefer derived state over stored state
+
 ```tsx
 // ❌ Avoid — redundant state that must be kept in sync
 const [items, setItems] = useState([...]);
@@ -117,47 +123,62 @@ const count = items.length;
 ```
 
 ### Collocate state as low as possible
+
 Don't lift state higher than necessary. If only one component needs it, keep it there.
 
 ---
 
 ## Avoiding useEffect
 
-`useEffect` is often a code smell. Before reaching for it, ask: *can this be derived, event-driven, or handled in the render cycle?*
+`useEffect` is often a code smell. Before reaching for it, ask: _can this be derived, event-driven, or handled in the render cycle?_
 
 ### ❌ Common useEffect anti-patterns to avoid
 
 **Syncing state to state** — derive it instead:
+
 ```tsx
 // ❌
 const [firstName, setFirstName] = useState('');
 const [fullName, setFullName] = useState('');
-useEffect(() => { setFullName(`${firstName} ${lastName}`); }, [firstName]);
+useEffect(() => {
+  setFullName(`${firstName} ${lastName}`);
+}, [firstName]);
 
 // ✅
 const fullName = `${firstName} ${lastName}`;
 ```
 
 **Responding to events** — use event handlers:
+
 ```tsx
 // ❌
-useEffect(() => { if (submitted) { processForm(); } }, [submitted]);
+useEffect(() => {
+  if (submitted) {
+    processForm();
+  }
+}, [submitted]);
 
 // ✅
-function handleSubmit() { processForm(); }
+function handleSubmit() {
+  processForm();
+}
 ```
 
 **Initializing state from props** — set it in the initial value:
+
 ```tsx
 // ❌
 const [value, setValue] = useState('');
-useEffect(() => { setValue(props.initialValue); }, [props.initialValue]);
+useEffect(() => {
+  setValue(props.initialValue);
+}, [props.initialValue]);
 
 // ✅
 const [value, setValue] = useState(props.initialValue);
 ```
 
 ### ✅ When useEffect IS appropriate
+
 - Subscribing to external systems (WebSockets, browser APIs, third-party libraries)
 - Running imperative DOM manipulations that can't be expressed declaratively
 - Synchronizing with non-React systems (analytics, logging on mount)
@@ -167,9 +188,11 @@ const [value, setValue] = useState(props.initialValue);
 ## Components
 
 ### Keep components small and single-purpose
+
 If a component needs a long comment explaining what it does, it should probably be split.
 
 ### Prefer composition over configuration
+
 ```tsx
 // ❌ Prop-drilling configuration
 <Card title="Hello" footer="Bye" hasImage showBorder />
@@ -183,6 +206,7 @@ If a component needs a long comment explaining what it does, it should probably 
 ```
 
 ### Use early returns for guard clauses
+
 ```tsx
 // ✅
 if (!user) return <LoginPrompt />;
@@ -191,6 +215,7 @@ return <Dashboard user={user} />;
 ```
 
 ### Avoid prop drilling beyond 2 levels
+
 Use composition, context, or a state manager instead.
 
 ---
@@ -198,18 +223,23 @@ Use composition, context, or a state manager instead.
 ## Tailwind Usage
 
 ### Use `cn()` for conditional classes
+
 Always merge classes with a utility like `clsx` + `tailwind-merge`:
+
 ```tsx
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export function cn(...inputs) { return twMerge(clsx(inputs)); }
+export function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}
 
 // Usage
-<div className={cn('px-4 py-2', isActive && 'bg-blue-500', className)} />
+<div className={cn('px-4 py-2', isActive && 'bg-blue-500', className)} />;
 ```
 
 ### Avoid inline style for things Tailwind can handle
+
 ```tsx
 // ❌
 <div style={{ marginTop: '16px' }} />
@@ -219,9 +249,11 @@ export function cn(...inputs) { return twMerge(clsx(inputs)); }
 ```
 
 ### Define design tokens in `@theme`
+
 Tailwind v4 uses CSS `@theme` blocks — don't scatter magic values, define colors, spacing, and fonts there.
 
 ### Keep class lists readable — extract components early
+
 If a class list is getting long (>6–8 classes), it's a sign the element should become its own component.
 
 ---
@@ -229,6 +261,7 @@ If a class list is getting long (>6–8 classes), it's a sign the element should
 ## Performance
 
 ### Prefer stable references
+
 Define functions and objects outside components when they don't depend on props/state.
 
 ---
@@ -255,6 +288,7 @@ Co-locate tests with the file they test. Use `logic/` for pure functions, `hooks
 ## Custom Hooks
 
 Extract logic into a custom hook when:
+
 - The same stateful logic is needed in 2+ components
 - A component's logic is complex enough to warrant its own test file
 - You're encapsulating a browser API or side effect

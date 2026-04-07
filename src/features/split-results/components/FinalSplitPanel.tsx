@@ -1,20 +1,20 @@
-import { useState } from 'react'
-import type { ReactNode } from 'react'
-import type { ChargeState, Person, SplitResult } from '@shared/types'
-import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard'
-import { PersonCard } from '@features/split-results/components/SplitPersonBreakdown'
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import type { ChargeState, Person, SplitResult } from '@shared/types';
+import { SplitTotalsCard } from '@features/split-results/components/SplitTotalsCard';
+import { PersonCard } from '@features/split-results/components/SplitPersonBreakdown';
 
 type FinalSplitPanelProps = {
-  people: Person[]
-  split: SplitResult
-  reconciliationCents: number | null
-  discount: ChargeState
-  serviceCharge: ChargeState
-  gst: ChargeState
-  exportSection?: ReactNode
-  variant?: 'standalone' | 'embedded'
-  onApplyDiscount?: () => void
-}
+  people: Person[];
+  split: SplitResult;
+  reconciliationCents: number | null;
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
+  exportSection?: ReactNode;
+  variant?: 'standalone' | 'embedded';
+  onApplyDiscount?: () => void;
+};
 
 export function FinalSplitPanel({
   people,
@@ -27,7 +27,7 @@ export function FinalSplitPanel({
   variant = 'standalone',
   onApplyDiscount,
 }: FinalSplitPanelProps) {
-  const [showItemMeta, setShowItemMeta] = useState(true)
+  const [showItemMeta, setShowItemMeta] = useState(true);
 
   return (
     <section
@@ -83,5 +83,5 @@ export function FinalSplitPanel({
         </p>
       ) : null}
     </section>
-  )
+  );
 }

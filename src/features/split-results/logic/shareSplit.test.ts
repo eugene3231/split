@@ -1,5 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
-import { buildSplitShareText, getShareSupport, shareFinalSplit } from '@features/split-results/logic/shareSplit'
+import { describe, expect, it, vi } from 'vitest';
+import {
+  buildSplitShareText,
+  getShareSupport,
+  shareFinalSplit,
+} from '@features/split-results/logic/shareSplit';
 
 describe('buildSplitShareText', () => {
   it('formats a compact chat summary with the grand total and each person total', () => {
@@ -29,9 +33,9 @@ describe('buildSplitShareText', () => {
           involvedCountByPerson: {},
         },
       }),
-    ).toBe('Split total: $37.50\n\nAlice: $12.50\nBen: $25.00')
-  })
-})
+    ).toBe('Split total: $37.50\n\nAlice: $12.50\nBen: $25.00');
+  });
+});
 
 describe('getShareSupport', () => {
   it('returns native when navigator.share is available even when file sharing support is unknown', () => {
@@ -41,18 +45,18 @@ describe('getShareSupport', () => {
         canShare: vi.fn(() => true),
         clipboard: {} as Navigator['clipboard'],
       }),
-    ).toBe('native')
-  })
+    ).toBe('native');
+  });
 
   it('returns fallback when navigator.share is unavailable', () => {
-    expect(getShareSupport(undefined)).toBe('fallback')
-  })
-})
+    expect(getShareSupport(undefined)).toBe('fallback');
+  });
+});
 
 describe('shareFinalSplit', () => {
   it('returns fallback when canShare rejects files', async () => {
-    const share = vi.fn().mockResolvedValue(undefined)
-    const canShare = vi.fn(() => false)
+    const share = vi.fn().mockResolvedValue(undefined);
+    const canShare = vi.fn(() => false);
 
     const mode = await shareFinalSplit({
       image: new Blob(['image'], { type: 'image/png' }),
@@ -62,15 +66,15 @@ describe('shareFinalSplit', () => {
         canShare,
         clipboard: {} as Navigator['clipboard'],
       },
-    })
+    });
 
-    expect(mode).toBe('fallback')
-    expect(share).not.toHaveBeenCalled()
-  })
+    expect(mode).toBe('fallback');
+    expect(share).not.toHaveBeenCalled();
+  });
 
   it('returns fallback when share with files fails', async () => {
-    const share = vi.fn().mockRejectedValueOnce(new TypeError('files not supported'))
-    const canShare = vi.fn(() => true)
+    const share = vi.fn().mockRejectedValueOnce(new TypeError('files not supported'));
+    const canShare = vi.fn(() => true);
 
     const mode = await shareFinalSplit({
       image: new Blob(['image'], { type: 'image/png' }),
@@ -80,15 +84,15 @@ describe('shareFinalSplit', () => {
         canShare,
         clipboard: {} as Navigator['clipboard'],
       },
-    })
+    });
 
-    expect(mode).toBe('fallback')
-    expect(share).toHaveBeenCalledTimes(1)
-  })
+    expect(mode).toBe('fallback');
+    expect(share).toHaveBeenCalledTimes(1);
+  });
 
   it('shares image file when supported', async () => {
-    const share = vi.fn().mockResolvedValue(undefined)
-    const canShare = vi.fn(() => true)
+    const share = vi.fn().mockResolvedValue(undefined);
+    const canShare = vi.fn(() => true);
 
     const mode = await shareFinalSplit({
       image: new Blob(['image'], { type: 'image/png' }),
@@ -98,14 +102,14 @@ describe('shareFinalSplit', () => {
         canShare,
         clipboard: {} as Navigator['clipboard'],
       },
-    })
+    });
 
-    expect(mode).toBe('native')
-    expect(share).toHaveBeenCalledTimes(1)
+    expect(mode).toBe('native');
+    expect(share).toHaveBeenCalledTimes(1);
     expect(share).toHaveBeenCalledWith(
       expect.objectContaining({
         files: expect.any(Array),
       }),
-    )
-  })
-})
+    );
+  });
+});

@@ -1,43 +1,43 @@
-import { useState, useRef, type KeyboardEvent } from 'react'
-import { useReceiptStore } from '@shared/stores/receiptStore'
+import { useState, useRef, type KeyboardEvent } from 'react';
+import { useReceiptStore } from '@shared/stores/receiptStore';
 
 export function GeminiApiKeyModal() {
-  const isOpen = useReceiptStore((state) => state.showApiKeyModal)
-  const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput)
-  const setGeminiApiKeyInput = useReceiptStore((state) => state.setGeminiApiKeyInput)
-  const setRememberGeminiApiKey = useReceiptStore((state) => state.setRememberGeminiApiKey)
-  const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal)
+  const isOpen = useReceiptStore((state) => state.showApiKeyModal);
+  const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput);
+  const setGeminiApiKeyInput = useReceiptStore((state) => state.setGeminiApiKeyInput);
+  const setRememberGeminiApiKey = useReceiptStore((state) => state.setRememberGeminiApiKey);
+  const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <GeminiApiKeyModalContent
       initialKey={geminiApiKeyInput}
       onSave={(key) => {
-        setGeminiApiKeyInput(key)
-        if (key) setRememberGeminiApiKey(true)
-        setShowApiKeyModal(false)
+        setGeminiApiKeyInput(key);
+        if (key) setRememberGeminiApiKey(true);
+        setShowApiKeyModal(false);
       }}
       onClose={() => setShowApiKeyModal(false)}
     />
-  )
+  );
 }
 
 interface GeminiApiKeyModalContentProps {
-  initialKey: string
-  onSave: (key: string) => void
-  onClose: () => void
+  initialKey: string;
+  onSave: (key: string) => void;
+  onClose: () => void;
 }
 
 function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyModalContentProps) {
-  const [localKey, setLocalKey] = useState(initialKey)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [localKey, setLocalKey] = useState(initialKey);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = () => onSave(localKey.trim())
+  const handleSave = () => onSave(localKey.trim());
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') onClose()
-  }
+    if (e.key === 'Escape') onClose();
+  };
 
   return (
     <div
@@ -53,7 +53,6 @@ function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyM
 
       {/* Modal card — glassmorphic */}
       <div className="relative w-full max-w-md rounded-3xl bg-surface-container-lowest/90 backdrop-blur-[20px] shadow-[0_8px_24px_rgba(25,28,29,0.12)] border border-surface-container-highest">
-
         {/* Header */}
         <div className="px-7 pt-7 pb-5">
           <div className="flex items-start justify-between gap-4">
@@ -80,9 +79,9 @@ function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyM
         <div className="px-7 pb-7 space-y-5">
           <div className="rounded-2xl bg-surface-container-low px-5 py-4">
             <p className="text-xs text-on-surface-variant font-body leading-relaxed">
-              This app uses <span className="font-semibold text-on-surface">Google Gemini</span> to extract
-              line items, prices, and charges from your receipt photo. Your key is stored in this browser
-              session only and used solely to call the Gemini API.
+              This app uses <span className="font-semibold text-on-surface">Google Gemini</span> to
+              extract line items, prices, and charges from your receipt photo. Your key is stored in
+              this browser session only and used solely to call the Gemini API.
             </p>
           </div>
 
@@ -99,7 +98,9 @@ function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyM
               type="password"
               value={localKey}
               onChange={(e) => setLocalKey(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSave();
+              }}
               placeholder="AIza…"
               className="w-full bg-surface-container-high rounded-2xl px-5 py-2.5 text-sm font-body text-on-surface placeholder:text-outline outline-none border-2 border-transparent focus:border-primary/20 transition-all"
             />
@@ -137,5 +138,5 @@ function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyM
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,28 +1,40 @@
-import { getPersonColor } from '@shared/utils/personColors'
-import type { Person } from '@shared/types'
-import { cn } from '@shared/utils/cn'
+import { getPersonColor } from '@shared/utils/personColors';
+import type { Person } from '@shared/types';
+import { cn } from '@shared/utils/cn';
 
 type Props = {
-  people: Person[]
-  peopleInput: string
-  onPeopleInputChange: (value: string) => void
-  onPeopleSubmit: (event: { preventDefault(): void }) => void
-  onRemovePerson: (id: string) => void
-}
+  people: Person[];
+  peopleInput: string;
+  onPeopleInputChange: (value: string) => void;
+  onPeopleSubmit: (event: { preventDefault(): void }) => void;
+  onRemovePerson: (id: string) => void;
+};
 
-export function PeopleStep({ people, peopleInput, onPeopleInputChange, onPeopleSubmit, onRemovePerson }: Props) {
+export function PeopleStep({
+  people,
+  peopleInput,
+  onPeopleInputChange,
+  onPeopleSubmit,
+  onRemovePerson,
+}: Props) {
   return (
     <div className="space-y-5">
       {/* Header — desktop */}
       <div className="mb-6 hidden md:block">
-        <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-on-surface tracking-tight mb-2">Who's Splitting?</h1>
+        <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-on-surface tracking-tight mb-2">
+          Who's Splitting?
+        </h1>
         <p className="text-on-surface-variant text-lg">Add everyone who's part of this bill.</p>
       </div>
 
       {/* Header — mobile */}
       <div className="mb-2 md:hidden">
-        <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">Who's Splitting?</h1>
-        <p className="text-on-surface-variant text-xs mt-0.5">Add everyone who's part of this bill.</p>
+        <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">
+          Who's Splitting?
+        </h1>
+        <p className="text-on-surface-variant text-xs mt-0.5">
+          Add everyone who's part of this bill.
+        </p>
       </div>
 
       {/* Input card */}
@@ -52,7 +64,10 @@ export function PeopleStep({ people, peopleInput, onPeopleInputChange, onPeopleS
 
       {/* People list or empty state */}
       {people.length === 0 ? (
-        <div data-testid="people-empty-state" className="flex flex-col items-center justify-center py-14 border-2 border-dashed border-outline-variant/30 rounded-2xl text-center gap-3">
+        <div
+          data-testid="people-empty-state"
+          className="flex flex-col items-center justify-center py-14 border-2 border-dashed border-outline-variant/30 rounded-2xl text-center gap-3"
+        >
           <span className="material-symbols-outlined text-3xl text-outline">group</span>
           <p className="text-sm font-semibold text-on-surface-variant">No one added yet.</p>
           <p className="text-sm text-outline">Type names above to get started.</p>
@@ -60,7 +75,7 @@ export function PeopleStep({ people, peopleInput, onPeopleInputChange, onPeopleS
       ) : (
         <div data-testid="people-list" className="flex flex-wrap gap-2">
           {people.map((person, index) => {
-            const color = getPersonColor(index)
+            const color = getPersonColor(index);
             return (
               <button
                 key={person.id}
@@ -74,11 +89,14 @@ export function PeopleStep({ people, peopleInput, onPeopleInputChange, onPeopleS
                   color.accent,
                 )}
               >
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color.avatarBg }} />
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: color.avatarBg }}
+                />
                 {person.name}
                 <span className="material-symbols-outlined !text-sm leading-none">close</span>
               </button>
-            )
+            );
           })}
         </div>
       )}
@@ -91,5 +109,5 @@ export function PeopleStep({ people, peopleInput, onPeopleInputChange, onPeopleS
         </div>
       )}
     </div>
-  )
+  );
 }

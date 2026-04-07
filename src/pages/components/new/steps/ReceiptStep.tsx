@@ -1,43 +1,42 @@
-import { useState } from 'react'
-import type { ChargeState, EditableItem, Receipt, SplitResult } from '@shared/types'
-import { ReceiptImportActions } from '@pages/components/new/shared/ReceiptImportActions'
-import { LineItemCard } from '@pages/components/new/shared/LineItemCard'
-import { GlobalChargesPanel } from '@pages/components/new/shared/GlobalChargesPanel'
-import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs'
-import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField'
-import { CurrencySelector } from '@pages/components/new/shared/CurrencySelector'
-import { ExchangeRateDisplay } from '@pages/components/new/shared/ExchangeRateDisplay'
-import { useReceiptStore } from '@shared/stores/receiptStore'
-import { BASE_CURRENCY } from '@shared/constants'
-import { cn } from '@shared/utils/cn'
+import { useState } from 'react';
+import type { ChargeState, EditableItem, Receipt, SplitResult } from '@shared/types';
+import { ReceiptImportActions } from '@pages/components/new/shared/ReceiptImportActions';
+import { LineItemCard } from '@pages/components/new/shared/LineItemCard';
+import { GlobalChargesPanel } from '@pages/components/new/shared/GlobalChargesPanel';
+import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs';
+import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField';
+import { CurrencySelector } from '@pages/components/new/shared/CurrencySelector';
+import { ExchangeRateDisplay } from '@pages/components/new/shared/ExchangeRateDisplay';
+import { useReceiptStore } from '@shared/stores/receiptStore';
+import { BASE_CURRENCY } from '@shared/constants';
+import { cn } from '@shared/utils/cn';
 
 type Props = {
-  receipts: Receipt[]
-  activeReceiptId: string
-  onSelectReceipt: (id: string) => void
-  onAddReceipt: () => void
-  onRemoveReceipt: (id: string) => void
-  onRenameReceipt: (id: string, name: string) => void
-  items: EditableItem[]
-  split: SplitResult
-  discount: ChargeState
-  serviceCharge: ChargeState
-  gst: ChargeState
-  reconciliationCents: number | null
-  receiptTotalInput: string
-  onApplyDiscount: () => void
-  onReceiptFileSelected: (file: File | null) => void
-  onScanReceipt: () => void
-  mockReceipts: Array<{ label: string; onLoad: () => void }>
-  onDiscountChange: (discount: ChargeState) => void
-  onServiceChargeChange: (serviceCharge: ChargeState) => void
-  onGstChange: (gst: ChargeState) => void
-  onReceiptTotalInputChange: (value: string) => void
-  onAddItem: () => void
-  onRemoveItem: (id: string) => void
-  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void
-}
-
+  receipts: Receipt[];
+  activeReceiptId: string;
+  onSelectReceipt: (id: string) => void;
+  onAddReceipt: () => void;
+  onRemoveReceipt: (id: string) => void;
+  onRenameReceipt: (id: string, name: string) => void;
+  items: EditableItem[];
+  split: SplitResult;
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
+  reconciliationCents: number | null;
+  receiptTotalInput: string;
+  onApplyDiscount: () => void;
+  onReceiptFileSelected: (file: File | null) => void;
+  onScanReceipt: () => void;
+  mockReceipts: Array<{ label: string; onLoad: () => void }>;
+  onDiscountChange: (discount: ChargeState) => void;
+  onServiceChargeChange: (serviceCharge: ChargeState) => void;
+  onGstChange: (gst: ChargeState) => void;
+  onReceiptTotalInputChange: (value: string) => void;
+  onAddItem: () => void;
+  onRemoveItem: (id: string) => void;
+  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
+};
 
 export function ReceiptStep({
   receipts,
@@ -65,12 +64,12 @@ export function ReceiptStep({
   onRemoveItem,
   onUpdateItem,
 }: Props) {
-  const [hasUpload, setHasUpload] = useState(false)
-  const hasApiKey = useReceiptStore((s) => s.geminiApiKeyInput.trim().length > 0)
-  const setReceiptCurrency = useReceiptStore((s) => s.setReceiptCurrency)
-  const hasItems = items.length > 0
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId)
-  const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY
+  const [hasUpload, setHasUpload] = useState(false);
+  const hasApiKey = useReceiptStore((s) => s.geminiApiKeyInput.trim().length > 0);
+  const setReceiptCurrency = useReceiptStore((s) => s.setReceiptCurrency);
+  const hasItems = items.length > 0;
+  const activeReceipt = receipts.find((r) => r.id === activeReceiptId);
+  const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY;
   return (
     <div>
       {/* Step header — desktop */}
@@ -78,13 +77,19 @@ export function ReceiptStep({
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline tracking-tight text-on-surface mb-2">
           Add Receipts
         </h1>
-        <p className="text-on-surface-variant text-lg">Verify scanned items and add missing charges.</p>
+        <p className="text-on-surface-variant text-lg">
+          Verify scanned items and add missing charges.
+        </p>
       </div>
 
       {/* Step header — mobile */}
       <div className="mb-4 md:hidden">
-        <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">Add Receipts</h1>
-        <p className="text-on-surface-variant text-xs mt-0.5">Verify scanned items and add missing charges.</p>
+        <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">
+          Add Receipts
+        </h1>
+        <p className="text-on-surface-variant text-xs mt-0.5">
+          Verify scanned items and add missing charges.
+        </p>
       </div>
 
       <ReceiptTabs
@@ -104,7 +109,10 @@ export function ReceiptStep({
       {/* Import actions row */}
       <div className={cn('mb-6 rounded-2xl', hasUpload && !hasApiKey && 'ring-2 ring-error')}>
         <ReceiptImportActions
-          onReceiptFileSelected={(file) => { setHasUpload(file !== null); onReceiptFileSelected(file) }}
+          onReceiptFileSelected={(file) => {
+            setHasUpload(file !== null);
+            onReceiptFileSelected(file);
+          }}
           onScanReceipt={onScanReceipt}
           mockReceipts={mockReceipts}
         />
@@ -141,7 +149,9 @@ export function ReceiptStep({
                 </div>
               )}
               {activeCurrency === BASE_CURRENCY && (
-                <p className="text-xs text-on-surface-variant">Upload or scan to extract line items</p>
+                <p className="text-xs text-on-surface-variant">
+                  Upload or scan to extract line items
+                </p>
               )}
             </div>
             <span className="material-symbols-outlined text-outline text-base">fullscreen</span>
@@ -150,9 +160,13 @@ export function ReceiptStep({
           {/* Line items */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Line Items</h3>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">
+                Line Items
+              </h3>
               {hasItems && (
-                <span className="text-sm font-medium text-outline">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+                <span className="text-sm font-medium text-outline">
+                  {items.length} item{items.length !== 1 ? 's' : ''}
+                </span>
               )}
             </div>
 
@@ -181,7 +195,10 @@ export function ReceiptStep({
                 </button>
               </div>
             ) : (
-              <div data-testid="receipt-empty-state" className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-outline-variant/30 rounded-2xl bg-surface-bright text-center gap-3">
+              <div
+                data-testid="receipt-empty-state"
+                className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-outline-variant/30 rounded-2xl bg-surface-bright text-center gap-3"
+              >
                 <span className="material-symbols-outlined text-3xl text-outline">receipt</span>
                 <p className="text-sm font-semibold text-on-surface-variant">No items yet</p>
                 <p className="text-sm text-outline">Scan a receipt or add items manually below.</p>
@@ -218,5 +235,5 @@ export function ReceiptStep({
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router'
-import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage'
-import { LegacyReceiptSplitterPage } from '@pages/LegacyReceiptSplitterPage'
+import { BrowserRouter, Routes, Route } from 'react-router';
+import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage';
+import { LegacyReceiptSplitterPage } from '@pages/LegacyReceiptSplitterPage';
 
 function App() {
   return (
@@ -10,7 +10,7 @@ function App() {
         <Route path="/legacy" element={<LegacyReceiptSplitterPage />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

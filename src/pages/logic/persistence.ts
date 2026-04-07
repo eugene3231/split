@@ -1,54 +1,54 @@
-import { LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY } from '@shared/constants'
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types'
+import { LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY } from '@shared/constants';
+import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
 
 type PersistedSimpleWizardState = {
-  version: 1
-  step: SimpleWizardStep
-  itemsSubPhase: ItemsSubPhase
-  activeItemIndex: number
-}
+  version: 1;
+  step: SimpleWizardStep;
+  itemsSubPhase: ItemsSubPhase;
+  activeItemIndex: number;
+};
 
 export function loadSimpleWizardState(): PersistedSimpleWizardState | null {
   if (typeof window === 'undefined') {
-    return null
+    return null;
   }
 
   try {
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY)
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY);
     if (!raw) {
-      return null
+      return null;
     }
 
-    const parsed: unknown = JSON.parse(raw)
+    const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed) || parsed.version !== 1) {
-      return null
+      return null;
     }
 
-    const step = normalizeStep(parsed.step)
-    const itemsSubPhase = normalizeItemsSubPhase(parsed.itemsSubPhase)
+    const step = normalizeStep(parsed.step);
+    const itemsSubPhase = normalizeItemsSubPhase(parsed.itemsSubPhase);
     const activeItemIndex =
       typeof parsed.activeItemIndex === 'number' && Number.isFinite(parsed.activeItemIndex)
         ? Math.max(0, Math.floor(parsed.activeItemIndex))
-        : 0
+        : 0;
 
     return {
       version: 1,
       step,
       itemsSubPhase,
       activeItemIndex,
-    }
+    };
   } catch {
-    return null
+    return null;
   }
 }
 
 export function saveSimpleWizardState(state: {
-  step: SimpleWizardStep
-  itemsSubPhase: ItemsSubPhase
-  activeItemIndex: number
+  step: SimpleWizardStep;
+  itemsSubPhase: ItemsSubPhase;
+  activeItemIndex: number;
 }): void {
   if (typeof window === 'undefined') {
-    return
+    return;
   }
 
   const payload: PersistedSimpleWizardState = {
@@ -56,10 +56,10 @@ export function saveSimpleWizardState(state: {
     step: state.step,
     itemsSubPhase: state.itemsSubPhase,
     activeItemIndex: Math.max(0, Math.floor(state.activeItemIndex)),
-  }
+  };
 
   try {
-    window.localStorage.setItem(LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY, JSON.stringify(payload))
+    window.localStorage.setItem(LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY, JSON.stringify(payload));
   } catch {
     // Ignore storage write failures.
   }
@@ -68,13 +68,13 @@ export function saveSimpleWizardState(state: {
 function normalizeStep(value: unknown): SimpleWizardStep {
   return value === 'people' || value === 'receipt' || value === 'items' || value === 'final'
     ? value
-    : 'people'
+    : 'people';
 }
 
 function normalizeItemsSubPhase(value: unknown): ItemsSubPhase {
-  return value === 'review' ? 'review' : 'assign'
+  return value === 'review' ? 'review' : 'assign';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+  return typeof value === 'object' && value !== null;
 }

@@ -1,14 +1,14 @@
-import { useState } from 'react'
-import { useShallow } from 'zustand/shallow'
-import { LineItemsPanel } from '@features/split-config'
-import { ReceiptImportPanel } from '@features/receipt-scanner'
-import { SetupPanel } from '@features/split-config'
-import { FinalSplitPanel } from '@features/split-results'
-import { useReceiptStore } from '@shared/stores/receiptStore'
-import { useReceiptSplit } from '@shared/hooks/useReceiptSplit'
-import { JsonImportExportSection } from '@pages/components/advanced/JsonImportExportSection'
-import type { Receipt } from '@shared/types'
-import { ExportSplitImageSection } from '@features/split-results/components/ExportSplitImageSection'
+import { useState } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { LineItemsPanel } from '@features/split-config';
+import { ReceiptImportPanel } from '@features/receipt-scanner';
+import { SetupPanel } from '@features/split-config';
+import { FinalSplitPanel } from '@features/split-results';
+import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useReceiptSplit } from '@shared/hooks/useReceiptSplit';
+import { JsonImportExportSection } from '@pages/components/advanced/JsonImportExportSection';
+import type { Receipt } from '@shared/types';
+import { ExportSplitImageSection } from '@features/split-results/components/ExportSplitImageSection';
 
 export function AdvancedWorkspace() {
   const {
@@ -57,22 +57,23 @@ export function AdvancedWorkspace() {
       setActiveReceiptId: state.setActiveReceiptId,
       renameReceipt: state.renameReceipt,
     })),
-  )
+  );
 
-  const { split, consolidatedSplit, reconciliationCents, handleApplyReconciliationDiscount } = useReceiptSplit()
+  const { split, consolidatedSplit, reconciliationCents, handleApplyReconciliationDiscount } =
+    useReceiptSplit();
 
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0]
-  const items = activeReceipt?.items ?? []
-  const discount = activeReceipt?.discount
-  const serviceCharge = activeReceipt?.serviceCharge
-  const gst = activeReceipt?.gst
-  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? ''
+  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
+  const items = activeReceipt?.items ?? [];
+  const discount = activeReceipt?.discount;
+  const serviceCharge = activeReceipt?.serviceCharge;
+  const gst = activeReceipt?.gst;
+  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? '';
 
-  const isMultiReceipt = receipts.length > 1
-  const displaySplit = isMultiReceipt ? consolidatedSplit : split
+  const isMultiReceipt = receipts.length > 1;
+  const displaySplit = isMultiReceipt ? consolidatedSplit : split;
 
   if (!activeReceipt || !discount || !serviceCharge || !gst) {
-    return null
+    return null;
   }
 
   return (
@@ -120,10 +121,7 @@ export function AdvancedWorkspace() {
                 onScanReceipt={handleScanReceipt}
                 onLoadMockReceipt={() => handleLoadMockReceipt(0)}
               />
-              <JsonImportExportSection
-                onGetJson={getExportJson}
-                onImportJson={importFromJson}
-              />
+              <JsonImportExportSection onGetJson={getExportJson} onImportJson={importFromJson} />
             </>
           }
         />
@@ -159,32 +157,40 @@ export function AdvancedWorkspace() {
         />
       </div>
     </div>
-  )
+  );
 }
 
 type ReceiptTabProps = {
-  receipt: Receipt
-  index: number
-  isActive: boolean
-  canRemove: boolean
-  onSelect: () => void
-  onRemove: () => void
-  onRename: (name: string) => void
-}
+  receipt: Receipt;
+  index: number;
+  isActive: boolean;
+  canRemove: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+  onRename: (name: string) => void;
+};
 
-function ReceiptTab({ receipt, index, isActive, canRemove, onSelect, onRemove, onRename }: ReceiptTabProps) {
-  const [editing, setEditing] = useState(false)
-  const [draftName, setDraftName] = useState(receipt.name)
+function ReceiptTab({
+  receipt,
+  index,
+  isActive,
+  canRemove,
+  onSelect,
+  onRemove,
+  onRename,
+}: ReceiptTabProps) {
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(receipt.name);
 
   const handleDoubleClick = () => {
-    setDraftName(receipt.name)
-    setEditing(true)
-  }
+    setDraftName(receipt.name);
+    setEditing(true);
+  };
 
   const commitRename = () => {
-    setEditing(false)
-    onRename(draftName)
-  }
+    setEditing(false);
+    onRename(draftName);
+  };
 
   return (
     <div
@@ -202,8 +208,8 @@ function ReceiptTab({ receipt, index, isActive, canRemove, onSelect, onRemove, o
           onChange={(e) => setDraftName(e.target.value)}
           onBlur={commitRename}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') commitRename()
-            if (e.key === 'Escape') setEditing(false)
+            if (e.key === 'Enter') commitRename();
+            if (e.key === 'Escape') setEditing(false);
           }}
           className="w-24 bg-transparent text-xs text-slate-100 outline-none"
         />
@@ -221,7 +227,10 @@ function ReceiptTab({ receipt, index, isActive, canRemove, onSelect, onRemove, o
       {canRemove && !editing ? (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onRemove() }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
           className="ml-0.5 rounded px-0.5 text-slate-500 hover:text-rose-400"
           title="Remove receipt"
         >
@@ -229,5 +238,5 @@ function ReceiptTab({ receipt, index, isActive, canRemove, onSelect, onRemove, o
         </button>
       ) : null}
     </div>
-  )
+  );
 }

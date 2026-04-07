@@ -1,9 +1,9 @@
-import { SUPPORTED_CURRENCIES, CURRENCY_SYMBOLS } from '@shared/constants'
+import { SUPPORTED_CURRENCIES, CURRENCY_SYMBOLS } from '@shared/constants';
 
 interface Props {
-  value: string
-  onChange: (currency: string) => void
-  className?: string
+  value: string;
+  onChange: (currency: string) => void;
+  className?: string;
 }
 
 export function CurrencySelector({ value, onChange, className }: Props) {
@@ -19,5 +19,5 @@ export function CurrencySelector({ value, onChange, className }: Props) {
         </option>
       ))}
     </select>
-  )
+  );
 }

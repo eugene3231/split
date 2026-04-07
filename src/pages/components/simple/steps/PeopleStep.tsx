@@ -1,13 +1,13 @@
-import { getPersonColor } from '@shared/utils/personColors'
-import type { Person } from '@shared/types'
+import { getPersonColor } from '@shared/utils/personColors';
+import type { Person } from '@shared/types';
 
 type Props = {
-  people: Person[]
-  peopleInput: string
-  onPeopleInputChange: (value: string) => void
-  onPeopleSubmit: (event: { preventDefault(): void }) => void
-  onRemovePerson: (id: string) => void
-}
+  people: Person[];
+  peopleInput: string;
+  onPeopleInputChange: (value: string) => void;
+  onPeopleSubmit: (event: { preventDefault(): void }) => void;
+  onRemovePerson: (id: string) => void;
+};
 
 export function PeopleStep({
   people,
@@ -20,10 +20,7 @@ export function PeopleStep({
     <div className="space-y-5">
       <h2 className="text-base font-bold text-slate-100">Add People</h2>
       <form onSubmit={onPeopleSubmit} className="space-y-2">
-        <label
-          className="block text-xs font-medium text-slate-400"
-          htmlFor="simple-people-input"
-        >
+        <label className="block text-xs font-medium text-slate-400" htmlFor="simple-people-input">
           Who is splitting this bill?
         </label>
         <div className="flex gap-2">
@@ -48,7 +45,7 @@ export function PeopleStep({
           <p className="text-sm text-slate-500">No people added yet.</p>
         ) : (
           people.map((person, index) => {
-            const color = getPersonColor(index)
+            const color = getPersonColor(index);
             return (
               <button
                 key={person.id}
@@ -58,10 +55,10 @@ export function PeopleStep({
               >
                 {person.name} ×
               </button>
-            )
+            );
           })
         )}
       </div>
     </div>
-  )
+  );
 }

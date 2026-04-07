@@ -1,5 +1,5 @@
-import type { SplitResult } from '@shared/types'
-import { FALLBACK_RATES_TO_SGD } from '@shared/constants'
+import type { SplitResult } from '@shared/types';
+import { FALLBACK_RATES_TO_SGD } from '@shared/constants';
 
 /**
  * Returns the effective exchange rate for a currency to SGD.
@@ -11,8 +11,8 @@ export function getEffectiveRate(
   rates: Record<string, number>,
   override: number | null,
 ): number {
-  if (override !== null && override > 0) return override
-  return rates[currency] ?? FALLBACK_RATES_TO_SGD[currency] ?? 1
+  if (override !== null && override > 0) return override;
+  return rates[currency] ?? FALLBACK_RATES_TO_SGD[currency] ?? 1;
 }
 
 /**
@@ -26,10 +26,10 @@ export function convertCents(
   rates: Record<string, number>,
   override: number | null = null,
 ): number {
-  if (fromCurrency === toCurrency) return amountCents
-  const toSgd = getEffectiveRate(fromCurrency, rates, override)
-  const fromSgd = getEffectiveRate(toCurrency, rates, null)
-  return Math.round((amountCents * toSgd) / fromSgd)
+  if (fromCurrency === toCurrency) return amountCents;
+  const toSgd = getEffectiveRate(fromCurrency, rates, override);
+  const fromSgd = getEffectiveRate(toCurrency, rates, null);
+  return Math.round((amountCents * toSgd) / fromSgd);
 }
 
 /**
@@ -43,11 +43,11 @@ export function convertSplitResult(
   rates: Record<string, number>,
   override: number | null = null,
 ): SplitResult {
-  if (fromCurrency === toCurrency) return split
+  if (fromCurrency === toCurrency) return split;
 
-  const convert = (cents: number) => convertCents(cents, fromCurrency, toCurrency, rates, override)
+  const convert = (cents: number) => convertCents(cents, fromCurrency, toCurrency, rates, override);
   const convertRecord = (record: Record<string, number>) =>
-    Object.fromEntries(Object.entries(record).map(([k, v]) => [k, convert(v)]))
+    Object.fromEntries(Object.entries(record).map(([k, v]) => [k, convert(v)]));
 
   return {
     lineItemsByPerson: Object.fromEntries(
@@ -74,5 +74,5 @@ export function convertSplitResult(
     gstCents: convert(split.gstCents),
     grandTotalCents: convert(split.grandTotalCents),
     unassignedItemCount: split.unassignedItemCount,
-  }
+  };
 }
