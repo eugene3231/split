@@ -16,37 +16,48 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
       setReceiptExchangeRateOverride: s.setReceiptExchangeRateOverride,
     })),
   );
-  const [editing, setEditing] = useState(false);
+  const [editingField, setEditingField] = useState<'forward' | 'reverse' | null>(null);
   const [inputValue, setInputValue] = useState('');
 
   const autoRate = exchangeRates[currency] ?? FALLBACK_RATES_TO_SGD[currency] ?? 1;
   const effectiveRate = exchangeRateOverride ?? autoRate;
   const isOverridden = exchangeRateOverride !== null;
+  const reverseRate = effectiveRate > 0 ? 1 / effectiveRate : 0;
 
-  const startEditing = () => {
-    setInputValue(effectiveRate.toFixed(6).replace(/\.?0+$/, ''));
-    setEditing(true);
+  const startEditing = (field: 'forward' | 'reverse') => {
+    setInputValue(
+      field === 'forward'
+        ? effectiveRate.toFixed(6).replace(/\.?0+$/, '')
+        : reverseRate.toFixed(6).replace(/\.?0+$/, ''),
+    );
+    setEditingField(field);
   };
 
   const commitEdit = () => {
     const parsed = parseFloat(inputValue);
     if (Number.isFinite(parsed) && parsed > 0) {
-      setReceiptExchangeRateOverride(receiptId, parsed);
+      const forwardRate = editingField === 'reverse' ? 1 / parsed : parsed;
+      setReceiptExchangeRateOverride(receiptId, forwardRate);
     }
-    setEditing(false);
+    setEditingField(null);
   };
 
   const resetToAuto = () => {
     setReceiptExchangeRateOverride(receiptId, null);
-    setEditing(false);
+    setEditingField(null);
   };
+
+  const inputClass =
+    'w-20 bg-surface-container border border-primary rounded px-1 text-on-surface text-xs focus:outline-none';
+  const buttonClass =
+    'font-semibold text-on-surface hover:text-primary transition-colors underline decoration-dashed px-1 py-0.5 rounded border border-transparent hover:border-outline-variant';
 
   return (
     <div className="flex items-center gap-2 text-xs text-on-surface-variant">
       <span className="material-symbols-outlined text-sm">currency_exchange</span>
-      <span>
-        1 {currency} ={' '}
-        {editing ? (
+      <span className="flex items-center gap-1">
+        <span>1 {currency} =</span>
+        {editingField === 'forward' ? (
           <input
             type="number"
             step="any"
@@ -56,18 +67,36 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
             onBlur={commitEdit}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commitEdit();
-              if (e.key === 'Escape') setEditing(false);
+              if (e.key === 'Escape') setEditingField(null);
             }}
-            className="w-20 bg-surface-container border border-primary rounded px-1 text-on-surface text-xs focus:outline-none"
+            className={inputClass}
             autoFocus
           />
         ) : (
-          <button
-            type="button"
-            onClick={startEditing}
-            className="font-semibold text-on-surface hover:text-primary transition-colors underline decoration-dashed"
-          >
-            {effectiveRate.toFixed(4).replace(/\.?0+$/, '')} {BASE_CURRENCY}
+          <button type="button" onClick={() => startEditing('forward')} className={buttonClass}>
+            {effectiveRate.toFixed(5).replace(/\.?0+$/, '')} {BASE_CURRENCY}
+          </button>
+        )}
+        <span className="text-outline/60">·</span>
+        <span>1 {BASE_CURRENCY} =</span>
+        {editingField === 'reverse' ? (
+          <input
+            type="number"
+            step="any"
+            min="0"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitEdit();
+              if (e.key === 'Escape') setEditingField(null);
+            }}
+            className={inputClass}
+            autoFocus
+          />
+        ) : (
+          <button type="button" onClick={() => startEditing('reverse')} className={buttonClass}>
+            {reverseRate.toFixed(5).replace(/\.?0+$/, '')} {currency}
           </button>
         )}
       </span>
