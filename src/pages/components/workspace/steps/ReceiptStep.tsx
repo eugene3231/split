@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { ChargeState, EditableItem, Receipt, SplitResult } from '@shared/types';
 import { ReceiptImportActions } from '@pages/components/workspace/shared/ReceiptImportActions';
 import { LineItemCard } from '@pages/components/workspace/shared/LineItemCard';
@@ -9,7 +8,6 @@ import { CurrencySelector } from '@pages/components/workspace/shared/CurrencySel
 import { ExchangeRateDisplay } from '@pages/components/workspace/shared/ExchangeRateDisplay';
 import { useReceiptStore } from '@shared/stores/receiptStore';
 import { BASE_CURRENCY } from '@shared/constants';
-import { cn } from '@shared/utils/cn';
 
 type Props = {
   receipts: Receipt[];
@@ -64,8 +62,6 @@ export function ReceiptStep({
   onRemoveItem,
   onUpdateItem,
 }: Props) {
-  const [hasUpload, setHasUpload] = useState(false);
-  const hasApiKey = useReceiptStore((s) => s.geminiApiKeyInput.trim().length > 0);
   const setReceiptCurrency = useReceiptStore((s) => s.setReceiptCurrency);
   const hasItems = items.length > 0;
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId);
@@ -107,12 +103,9 @@ export function ReceiptStep({
       />
 
       {/* Import actions row */}
-      <div className={cn('mb-6 rounded-2xl', hasUpload && !hasApiKey && 'ring-2 ring-error')}>
+      <div className="mb-6">
         <ReceiptImportActions
-          onReceiptFileSelected={(file) => {
-            setHasUpload(file !== null);
-            onReceiptFileSelected(file);
-          }}
+          onReceiptFileSelected={onReceiptFileSelected}
           onScanReceipt={onScanReceipt}
           mockReceipts={mockReceipts}
         />
@@ -154,7 +147,6 @@ export function ReceiptStep({
                 </p>
               )}
             </div>
-            <span className="material-symbols-outlined text-outline text-base">fullscreen</span>
           </div>
 
           {/* Line items */}
