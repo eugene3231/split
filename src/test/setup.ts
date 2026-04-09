@@ -29,6 +29,9 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+// jsdom doesn't implement scrollTo
+window.scrollTo = () => {};
+
 afterEach(() => {
   cleanup();
 });

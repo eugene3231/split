@@ -125,6 +125,7 @@ export type SessionDraft = {
   people: Person[];
   receipts: Receipt[];
   activeReceiptId: string;
+  payerMobile: string;
   savedAt: string;
 };
 

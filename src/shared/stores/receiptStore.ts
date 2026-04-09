@@ -129,6 +129,7 @@ type ReceiptStoreState = {
   people: Person[];
   receipts: Receipt[];
   activeReceiptId: string;
+  payerMobile: string;
 
   // Exchange rates
   exchangeRates: Record<string, number>;
@@ -170,6 +171,9 @@ type ReceiptStoreActions = {
   getExportJson: () => string;
   importFromJson: (raw: string) => void;
 
+  // Payer actions
+  setPayerMobile: (mobile: string) => void;
+
   // Receipt management actions
   addReceipt: () => void;
   removeReceipt: (receiptId: string) => void;
@@ -204,6 +208,7 @@ const initialState: ReceiptStoreState = {
   people: [],
   receipts: [],
   activeReceiptId: '',
+  payerMobile: '',
 
   // Exchange rates (loaded from localStorage or fallback)
   exchangeRates: loadExchangeRates() ?? FALLBACK_RATES_TO_SGD,
@@ -389,6 +394,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           people: draft.people,
           receipts,
           activeReceiptId: draft.activeReceiptId,
+          payerMobile: draft.payerMobile,
         });
       } else {
         const blankReceipt = createBlankReceipt([], 'Receipt 1');
@@ -406,6 +412,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         people: [],
         receipts: [],
         activeReceiptId: '',
+        payerMobile: '',
       });
     },
     addPeopleFromInput: (rawInput) => {
@@ -645,8 +652,8 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       applyPayloadToReceipt(fixture.buildResponse(), activeReceiptId, people);
     },
     getExportJson: () => {
-      const { people, receipts, activeReceiptId } = get();
-      return exportDraftToJson({ people, receipts, activeReceiptId });
+      const { people, receipts, activeReceiptId, payerMobile } = get();
+      return exportDraftToJson({ people, receipts, activeReceiptId, payerMobile });
     },
     importFromJson: (raw) => {
       const draft = importDraftFromJson(raw);
@@ -660,8 +667,13 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           items: buildInitialItems(r.items, draft.people),
         })),
         activeReceiptId: draft.activeReceiptId,
+        payerMobile: draft.payerMobile,
       });
     },
+
+    // --- Payer actions ---
+
+    setPayerMobile: (mobile) => set({ payerMobile: mobile }),
 
     // --- Receipt management actions ---
 

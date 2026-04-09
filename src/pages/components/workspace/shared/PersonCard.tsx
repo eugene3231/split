@@ -18,6 +18,7 @@ interface Props {
   showDetails?: boolean;
   receiptBreakdown?: ReceiptBreakdownEntry[];
   currency?: string;
+  qrDataUrl?: string;
 }
 
 function buildChargeLabel(label: string, charge: ChargeState): string {
@@ -40,6 +41,7 @@ export function PersonCard({
   showDetails = false,
   receiptBreakdown,
   currency,
+  qrDataUrl,
 }: Props) {
   const lines = split.lineItemsByPerson[person.id] ?? [];
   const total = split.totalByPersonCents[person.id] ?? 0;
@@ -55,13 +57,22 @@ export function PersonCard({
           <PersonAvatar name={person.name} colorIndex={colorIndex} />
           <h3 className="text-2xl font-bold text-primary">{person.name}</h3>
         </div>
-        <div className="text-right">
-          <span className="text-[10px] uppercase font-semibold tracking-widest text-on-surface-variant block leading-none mb-1">
-            {receiptBreakdown ? 'Total Consolidated' : 'Total Due'}
-          </span>
-          <p className="text-3xl font-semibold text-on-surface leading-none font-headline">
-            {formatCurrencyFromCents(total, currency)}
-          </p>
+        <div className="flex items-start gap-3">
+          {qrDataUrl && (
+            <img
+              src={qrDataUrl}
+              alt={`PayNow QR for ${person.name}`}
+              className="w-20 h-20 rounded-lg border border-outline-variant/20"
+            />
+          )}
+          <div className="text-right">
+            <span className="text-[10px] uppercase font-semibold tracking-widest text-on-surface-variant block leading-none mb-1">
+              {receiptBreakdown ? 'Total Consolidated' : 'Total Due'}
+            </span>
+            <p className="text-3xl font-semibold text-on-surface leading-none font-headline">
+              {formatCurrencyFromCents(total, currency)}
+            </p>
+          </div>
         </div>
       </div>
 
