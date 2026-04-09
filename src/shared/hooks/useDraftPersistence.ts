@@ -7,6 +7,7 @@ type UseDraftPersistenceArgs = {
   people: Person[];
   receipts: Receipt[];
   activeReceiptId: string;
+  payerMobile: string;
 };
 
 export function useDraftPersistence({
@@ -14,6 +15,7 @@ export function useDraftPersistence({
   people,
   receipts,
   activeReceiptId,
+  payerMobile,
 }: UseDraftPersistenceArgs): void {
   useEffect(() => {
     if (!initialized) return;
@@ -22,7 +24,8 @@ export function useDraftPersistence({
       people,
       receipts,
       activeReceiptId,
+      payerMobile,
       savedAt: new Date().toISOString(),
     });
-  }, [initialized, people, receipts, activeReceiptId]);
+  }, [initialized, people, receipts, activeReceiptId, payerMobile]);
 }
