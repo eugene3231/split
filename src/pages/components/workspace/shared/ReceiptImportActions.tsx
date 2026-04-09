@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@shared/stores/receiptStore';
 import { cn } from '@shared/utils/cn';
@@ -16,6 +16,8 @@ export function ReceiptImportActions({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { hasApiKey, receiptFile, isScanning, scanStatus, scanError, loadingMessage } =
     useReceiptStore(
@@ -38,8 +40,43 @@ export function ReceiptImportActions({
     onReceiptFileSelected(e.target.files?.[0] ?? null);
   };
 
+  useEffect(() => {
+    if (!receiptFile) {
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setIsFullscreen(false);
+      return;
+    }
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(receiptFile);
+    });
+  }, [receiptFile]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isFullscreen]);
+
   return (
-    <div className="p-6 bg-surface-container-lowest rounded-2xl shadow-sm space-y-4 border border-outline-variant/20">
+    <div
+      className={cn(
+        'p-6 bg-surface-container-lowest rounded-2xl shadow-sm space-y-4 border border-outline-variant/20',
+        receiptFile && !hasApiKey && 'ring-2 ring-error',
+      )}
+    >
       <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
         Scan Receipt
       </h4>
@@ -76,8 +113,30 @@ export function ReceiptImportActions({
       {receiptFile && (
         <div className="pt-3 border-t border-surface-container-high space-y-3">
           <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-            <span className="material-symbols-outlined text-sm text-secondary">description</span>
+            {previewUrl ? (
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(true)}
+                className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer"
+              >
+                <img
+                  src={previewUrl}
+                  alt="Receipt preview"
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ) : (
+              <span className="material-symbols-outlined text-sm text-secondary">description</span>
+            )}
             <span className="truncate flex-1">{receiptFile.name}</span>
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(true)}
+              className="flex-shrink-0 text-on-surface-variant hover:text-primary transition-colors"
+              aria-label="View fullscreen"
+            >
+              <span className="material-symbols-outlined text-sm">fullscreen</span>
+            </button>
             <button
               type="button"
               onClick={() => onReceiptFileSelected(null)}
@@ -153,6 +212,23 @@ export function ReceiptImportActions({
               Load Mock Receipt {i + 1}
             </button>
           ))}
+        </div>
+      )}
+
+      {isFullscreen && previewUrl && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Receipt image preview"
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
+          onClick={() => setIsFullscreen(false)}
+        >
+          <img
+            src={previewUrl}
+            alt="Receipt fullscreen"
+            className="max-h-screen max-w-screen object-contain p-4"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
