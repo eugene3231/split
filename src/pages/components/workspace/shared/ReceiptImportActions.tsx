@@ -16,7 +16,6 @@ export function ReceiptImportActions({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { hasApiKey, receiptFile, isScanning, scanStatus, scanError, loadingMessage } =
@@ -36,30 +35,28 @@ export function ReceiptImportActions({
     );
   const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    onReceiptFileSelected(e.target.files?.[0] ?? null);
-  };
+  // Compute previewUrl during render (not in an effect) to avoid setState-in-effect.
+  // Revoke stale object URLs when receiptFile changes.
+  const prevReceiptFileRef = useRef<File | null | undefined>(undefined);
+  const objectUrlRef = useRef<string | null>(null);
+  if (prevReceiptFileRef.current !== receiptFile) {
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    objectUrlRef.current = receiptFile ? URL.createObjectURL(receiptFile) : null;
+    prevReceiptFileRef.current = receiptFile;
+  }
+  const previewUrl = objectUrlRef.current;
 
-  useEffect(() => {
-    if (!receiptFile) {
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setIsFullscreen(false);
-      return;
-    }
-    setPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(receiptFile);
-    });
-  }, [receiptFile]);
-
+  // Revoke the object URL on unmount.
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     };
-  }, [previewUrl]);
+  }, []);
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setIsFullscreen(false);
+    onReceiptFileSelected(e.target.files?.[0] ?? null);
+  };
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -139,7 +136,7 @@ export function ReceiptImportActions({
             </button>
             <button
               type="button"
-              onClick={() => onReceiptFileSelected(null)}
+              onClick={() => { setIsFullscreen(false); onReceiptFileSelected(null); }}
               aria-label="Remove upload"
               className="flex-shrink-0 text-on-surface-variant hover:text-error transition-colors"
             >
