@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@shared/stores/receiptStore';
 import { cn } from '@shared/utils/cn';
@@ -35,23 +35,17 @@ export function ReceiptImportActions({
     );
   const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal);
 
-  // Compute previewUrl during render (not in an effect) to avoid setState-in-effect.
-  // Revoke stale object URLs when receiptFile changes.
-  const prevReceiptFileRef = useRef<File | null | undefined>(undefined);
-  const objectUrlRef = useRef<string | null>(null);
-  if (prevReceiptFileRef.current !== receiptFile) {
-    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    objectUrlRef.current = receiptFile ? URL.createObjectURL(receiptFile) : null;
-    prevReceiptFileRef.current = receiptFile;
-  }
-  const previewUrl = objectUrlRef.current;
+  const previewUrl = useMemo(
+    () => (receiptFile ? URL.createObjectURL(receiptFile) : null),
+    [receiptFile],
+  );
 
-  // Revoke the object URL on unmount.
+  // Revoke the object URL when it changes (file swapped) or on unmount.
   useEffect(() => {
     return () => {
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
-  }, []);
+  }, [previewUrl]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     setIsFullscreen(false);
