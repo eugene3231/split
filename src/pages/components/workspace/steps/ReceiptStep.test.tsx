@@ -3,31 +3,31 @@ import { describe, expect, it, vi } from 'vitest';
 import { ReceiptStep } from './ReceiptStep';
 type ReceiptStepProps = React.ComponentProps<typeof ReceiptStep>;
 
-vi.mock('@pages/components/new/shared/ReceiptImportActions', () => ({
+vi.mock('@pages/components/workspace/shared/ReceiptImportActions', () => ({
   ReceiptImportActions: () => <div data-testid="receipt-import-actions" />,
 }));
 
-vi.mock('@pages/components/new/shared/LineItemCard', () => ({
+vi.mock('@pages/components/workspace/shared/LineItemCard', () => ({
   LineItemCard: () => <div data-testid="line-item-card" />,
 }));
 
-vi.mock('@pages/components/new/shared/GlobalChargesPanel', () => ({
+vi.mock('@pages/components/workspace/shared/GlobalChargesPanel', () => ({
   GlobalChargesPanel: () => <div data-testid="global-charges-panel" />,
 }));
 
-vi.mock('@pages/components/new/shared/ReceiptTabs', () => ({
+vi.mock('@pages/components/workspace/shared/ReceiptTabs', () => ({
   ReceiptTabs: () => <div data-testid="receipt-tabs" />,
 }));
 
-vi.mock('@pages/components/new/shared/ReceiptNameField', () => ({
+vi.mock('@pages/components/workspace/shared/ReceiptNameField', () => ({
   ReceiptNameField: () => <div data-testid="receipt-name-field" />,
 }));
 
-vi.mock('@pages/components/new/shared/CurrencySelector', () => ({
+vi.mock('@pages/components/workspace/shared/CurrencySelector', () => ({
   CurrencySelector: () => <div data-testid="currency-selector" />,
 }));
 
-vi.mock('@pages/components/new/shared/ExchangeRateDisplay', () => ({
+vi.mock('@pages/components/workspace/shared/ExchangeRateDisplay', () => ({
   ExchangeRateDisplay: () => <div data-testid="exchange-rate-display" />,
 }));
 
