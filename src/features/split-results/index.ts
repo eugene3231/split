@@ -1,6 +1,0 @@
-export { FinalSplitPanel } from '@features/split-results/components/FinalSplitPanel';
-export { ExportSplitImageSection } from '@features/split-results/components/ExportSplitImageSection';
-export { ExportConsolidatedSplitImageSection } from '@features/split-results/components/ExportConsolidatedSplitImageSection';
-export { SplitView } from '@features/split-results/components/SplitView';
-export { ConsolidatedSplitView } from '@features/split-results/components/ConsolidatedSplitView';
-export { generateReceiptSplitImage } from '@features/split-results/logic/receiptSplitImage';

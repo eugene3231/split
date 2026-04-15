@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   LOCAL_STORAGE_DRAFT_KEY,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
-  LOCAL_STORAGE_UX_MODE_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
   defaultDiscountState,
   defaultGstState,
@@ -15,11 +14,9 @@ import {
   importDraftFromJson,
   loadPersistedDraft,
   loadPersistedOcrSettings,
-  loadPersistedUxMode,
   loadSessionGeminiApiKey,
   savePersistedDraft,
   savePersistedOcrSettings,
-  savePersistedUxMode,
   saveSessionGeminiApiKey,
 } from '@shared/api/storage';
 
@@ -276,44 +273,6 @@ describe('session gemini API key storage', () => {
     } as unknown as Storage;
     const spy = vi.spyOn(window, 'sessionStorage', 'get').mockReturnValueOnce(faultyStorage);
     expect(loadSessionGeminiApiKey()).toBe('');
-    spy.mockRestore();
-  });
-});
-
-describe('ux mode storage', () => {
-  it('returns simple by default when nothing is stored', () => {
-    expect(loadPersistedUxMode()).toBe('simple');
-  });
-
-  it('returns advanced when advanced is stored', () => {
-    window.localStorage.setItem(LOCAL_STORAGE_UX_MODE_KEY, 'advanced');
-    expect(loadPersistedUxMode()).toBe('advanced');
-  });
-
-  it('ignores unknown mode values and returns simple', () => {
-    window.localStorage.setItem(LOCAL_STORAGE_UX_MODE_KEY, 'wizard');
-    expect(loadPersistedUxMode()).toBe('simple');
-  });
-
-  it('saves and reloads ux mode', () => {
-    savePersistedUxMode('advanced');
-    expect(window.localStorage.getItem(LOCAL_STORAGE_UX_MODE_KEY)).toBe('advanced');
-    expect(loadPersistedUxMode()).toBe('advanced');
-  });
-
-  it('handles localStorage read errors gracefully', () => {
-    const spy = vi.spyOn(window.localStorage, 'getItem').mockImplementationOnce(() => {
-      throw new Error('denied');
-    });
-    expect(loadPersistedUxMode()).toBe('simple');
-    spy.mockRestore();
-  });
-
-  it('handles localStorage write errors gracefully', () => {
-    const spy = vi.spyOn(window.localStorage, 'setItem').mockImplementationOnce(() => {
-      throw new Error('denied');
-    });
-    expect(() => savePersistedUxMode('advanced')).not.toThrow();
     spy.mockRestore();
   });
 });

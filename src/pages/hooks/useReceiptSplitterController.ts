@@ -6,8 +6,6 @@ import { useLoadingTicker } from '@features/receipt-scanner';
 
 export function useReceiptSplitterController() {
   const {
-    uxMode,
-    setUxMode,
     isScanning,
     advanceLoadingMessage,
     initialized,
@@ -16,12 +14,9 @@ export function useReceiptSplitterController() {
     activeReceiptId,
     initialize,
     reset,
-    normalizeItemsForSimpleMode,
     fetchAndSetExchangeRates,
   } = useReceiptStore(
     useShallow((state) => ({
-      uxMode: state.uxMode,
-      setUxMode: state.setUxMode,
       isScanning: Object.values(state.scanStateByReceipt).some((s) => s.isScanning),
       advanceLoadingMessage: state.advanceLoadingMessage,
       initialized: state.initialized,
@@ -30,22 +25,18 @@ export function useReceiptSplitterController() {
       activeReceiptId: state.activeReceiptId,
       initialize: state.initialize,
       reset: state.reset,
-      normalizeItemsForSimpleMode: state.normalizeItemsForSimpleMode,
       fetchAndSetExchangeRates: state.fetchAndSetExchangeRates,
     })),
   );
 
   useLayoutEffect(() => {
     if (!initialized) {
-      initialize(uxMode);
+      initialize();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    // Fetch fresh exchange rates after initial mount
     fetchAndSetExchangeRates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -56,21 +47,4 @@ export function useReceiptSplitterController() {
 
   useDraftPersistence({ initialized, people, receipts, activeReceiptId });
   useLoadingTicker({ isActive: isScanning, onTick: advanceLoadingMessage });
-
-  const handleUxModeChange = (nextMode: 'simple' | 'advanced') => {
-    if (nextMode === uxMode) {
-      return;
-    }
-
-    if (nextMode === 'simple') {
-      normalizeItemsForSimpleMode();
-    }
-
-    setUxMode(nextMode);
-  };
-
-  return {
-    uxMode,
-    handleUxModeChange,
-  };
 }

@@ -6,18 +6,18 @@ import { useReceiptSplit } from '@shared/hooks/useReceiptSplit';
 import { getAssignedItemsCount, getDetectedItemsCount } from '@pages/logic/wizardValidation';
 import { useSimpleWizard } from '@pages/hooks/useSimpleWizard';
 import { useReceiptSplitterController } from '@pages/hooks/useReceiptSplitterController';
-import { TopAppBar } from '@pages/components/new/TopAppBar';
-import { BottomNav } from '@pages/components/new/BottomNav';
-import { PeopleStep } from '@pages/components/new/steps/PeopleStep';
-import { ReceiptStep } from '@pages/components/new/steps/ReceiptStep';
-import { AssignStep } from '@pages/components/new/steps/AssignStep';
-import { SummaryStep } from '@pages/components/new/steps/SummaryStep';
+import { TopAppBar } from '@pages/components/workspace/TopAppBar';
+import { BottomNav } from '@pages/components/workspace/BottomNav';
+import { PeopleStep } from '@pages/components/workspace/steps/PeopleStep';
+import { ReceiptStep } from '@pages/components/workspace/steps/ReceiptStep';
+import { AssignStep } from '@pages/components/workspace/steps/AssignStep';
+import { SummaryStep } from '@pages/components/workspace/steps/SummaryStep';
 
 function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-export function NewWorkspace() {
+export function Workspace() {
   useReceiptSplitterController();
 
   const {
@@ -29,10 +29,10 @@ export function NewWorkspace() {
     handleReceiptFileSelected,
     handleScanReceipt,
     applyMockToCurrentReceipt,
-    addSimpleItem,
+    addItem,
     removeItem,
     updateItem,
-    normalizeItemsForSimpleMode,
+    normalizeItems,
     setDiscount,
     setServiceCharge,
     setGst,
@@ -52,10 +52,10 @@ export function NewWorkspace() {
       handleReceiptFileSelected: state.handleReceiptFileSelected,
       handleScanReceipt: state.handleScanReceipt,
       applyMockToCurrentReceipt: state.applyMockToCurrentReceipt,
-      addSimpleItem: state.addSimpleItem,
+      addItem: state.addItem,
       removeItem: state.removeItem,
       updateItem: state.updateItem,
-      normalizeItemsForSimpleMode: state.normalizeItemsForSimpleMode,
+      normalizeItems: state.normalizeItems,
       setDiscount: state.setDiscount,
       setServiceCharge: state.setServiceCharge,
       setGst: state.setGst,
@@ -93,14 +93,7 @@ export function NewWorkspace() {
     handleNext,
     handleBack,
     handleAddReceipt,
-  } = useSimpleWizard(
-    items,
-    people,
-    normalizeItemsForSimpleMode,
-    receipts,
-    activeReceiptId,
-    setActiveReceiptId,
-  );
+  } = useSimpleWizard(items, people, normalizeItems, receipts, activeReceiptId, setActiveReceiptId);
 
   const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items]);
   const assignedItemCount = useMemo(() => getAssignedItemsCount(items, people), [items, people]);
@@ -182,7 +175,7 @@ export function NewWorkspace() {
             onServiceChargeChange={setServiceCharge}
             onGstChange={setGst}
             onReceiptTotalInputChange={setReceiptTotalInput}
-            onAddItem={addSimpleItem}
+            onAddItem={addItem}
             onRemoveItem={removeItem}
             onUpdateItem={updateItem}
           />
