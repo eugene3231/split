@@ -52,7 +52,7 @@ export function ReceiptImportActions({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             data-testid="receipt-file-input"
             className="sr-only"
             onChange={handleFileChange}
