@@ -20,7 +20,6 @@ import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage';
 
 function resetStore() {
   useReceiptStore.setState({
-    uxMode: 'simple',
     peopleInput: '',
     geminiApiKeyInput: 'test-key',
     rememberGeminiApiKey: false,
