@@ -130,7 +130,10 @@ export function ReceiptImportActions({
             </button>
             <button
               type="button"
-              onClick={() => { setIsFullscreen(false); onReceiptFileSelected(null); }}
+              onClick={() => {
+                setIsFullscreen(false);
+                onReceiptFileSelected(null);
+              }}
               aria-label="Remove upload"
               className="flex-shrink-0 text-on-surface-variant hover:text-error transition-colors"
             >
@@ -214,6 +217,14 @@ export function ReceiptImportActions({
           className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
           onClick={() => setIsFullscreen(false)}
         >
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            aria-label="Close preview"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
           <img
             src={previewUrl}
             alt="Receipt fullscreen"
