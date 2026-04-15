@@ -7,8 +7,8 @@ import {
   copyShareText,
   downloadImage,
 } from '@features/split-results/logic/shareSplit';
-import { PersonCard } from '@pages/components/new/shared/PersonCard';
-import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField';
+import { PersonCard } from '@pages/components/workspace/shared/PersonCard';
+import { ReceiptNameField } from '@pages/components/workspace/shared/ReceiptNameField';
 import { BASE_CURRENCY } from '@shared/constants';
 import { cn } from '@shared/utils/cn';
 import { convertSplitResult } from '@shared/logic/core/exchangeRates';

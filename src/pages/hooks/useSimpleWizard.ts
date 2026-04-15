@@ -9,7 +9,7 @@ import { isStepValid } from '@pages/logic/wizardValidation';
 export function useSimpleWizard(
   items: EditableItem[],
   people: Person[],
-  normalizeItemsForSimpleMode: () => void,
+  normalizeItems: () => void,
   receipts: Receipt[],
   activeReceiptId: string,
   setActiveReceiptId: (id: string) => void,
@@ -58,7 +58,7 @@ export function useSimpleWizard(
 
     if (activeStep === 'receipt') {
       if (!isStepValid('receipt', { items, people })) return;
-      normalizeItemsForSimpleMode();
+      normalizeItems();
       setItemsSubPhase('assign');
       setActiveItemIndex(0);
       setActiveStep('items');

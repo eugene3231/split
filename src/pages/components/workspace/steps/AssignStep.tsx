@@ -3,9 +3,9 @@ import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/cor
 import { isSimpleItemAssigned } from '@pages/logic/wizardValidation';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import type { ItemsSubPhase } from '@pages/types';
-import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar';
-import { ReceiptTabs } from '@pages/components/new/shared/ReceiptTabs';
-import { ReceiptNameField } from '@pages/components/new/shared/ReceiptNameField';
+import { PersonAvatar } from '@pages/components/workspace/shared/PersonAvatar';
+import { ReceiptTabs } from '@pages/components/workspace/shared/ReceiptTabs';
+import { ReceiptNameField } from '@pages/components/workspace/shared/ReceiptNameField';
 import { BASE_CURRENCY } from '@shared/constants';
 import { cn } from '@shared/utils/cn';
 
