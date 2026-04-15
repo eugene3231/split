@@ -1,6 +1,6 @@
 import { formatCurrencyFromCents, parseNumber } from '@shared/logic/core/money';
 import type { ChargeState, Person, SplitResult } from '@shared/types';
-import { PersonAvatar } from '@pages/components/new/shared/PersonAvatar';
+import { PersonAvatar } from '@pages/components/workspace/shared/PersonAvatar';
 
 interface ReceiptBreakdownEntry {
   name: string;

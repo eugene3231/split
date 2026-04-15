@@ -1,7 +1,7 @@
 import type { ChargeState, SplitResult } from '@shared/types';
-import { ChargeToggle } from '@pages/components/new/shared/ChargeToggle';
-import { SummaryTotals } from '@pages/components/new/shared/SummaryTotals';
-import { ReconciliationNotice } from '@pages/components/new/shared/ReconciliationNotice';
+import { ChargeToggle } from '@pages/components/workspace/shared/ChargeToggle';
+import { SummaryTotals } from '@pages/components/workspace/shared/SummaryTotals';
+import { ReconciliationNotice } from '@pages/components/workspace/shared/ReconciliationNotice';
 
 interface Props {
   split: SplitResult;
