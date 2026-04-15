@@ -13,7 +13,6 @@ const TEST_RECEIPT_ID = 'test-receipt-1';
 
 function resetStore() {
   useReceiptStore.setState({
-    uxMode: 'simple',
     peopleInput: '',
     geminiApiKeyInput: '',
     rememberGeminiApiKey: false,
@@ -135,13 +134,6 @@ describe('receiptUiStore', () => {
     expect(scanState.scanWarnings).toEqual(['a', 'b']);
   });
 
-  it('setUxMode updates mode state', () => {
-    const actions = useReceiptStore.getState();
-    actions.setUxMode('advanced');
-
-    expect(useReceiptStore.getState().uxMode).toBe('advanced');
-  });
-
   it('persists gemini model changes through the store action', () => {
     useReceiptStore.getState().setGeminiModel('gemini-2.5-flash');
 
@@ -169,7 +161,7 @@ describe('receiptUiStore', () => {
 
 describe('receipt management', () => {
   it('addReceipt creates a new receipt and activates it', () => {
-    useReceiptStore.getState().initialize('simple');
+    useReceiptStore.getState().initialize();
     expect(useReceiptStore.getState().receipts).toHaveLength(1);
 
     useReceiptStore.getState().addReceipt();
@@ -181,7 +173,7 @@ describe('receipt management', () => {
   });
 
   it('removeReceipt removes a receipt and updates activeReceiptId', () => {
-    useReceiptStore.getState().initialize('simple');
+    useReceiptStore.getState().initialize();
     useReceiptStore.getState().addReceipt();
 
     const stateBefore = useReceiptStore.getState();
@@ -197,7 +189,7 @@ describe('receipt management', () => {
   });
 
   it('removeReceipt does not remove the last remaining receipt', () => {
-    useReceiptStore.getState().initialize('simple');
+    useReceiptStore.getState().initialize();
     const receiptId = useReceiptStore.getState().receipts[0].id;
 
     useReceiptStore.getState().removeReceipt(receiptId);
@@ -206,7 +198,7 @@ describe('receipt management', () => {
   });
 
   it('setActiveReceiptId switches the active receipt', () => {
-    useReceiptStore.getState().initialize('simple');
+    useReceiptStore.getState().initialize();
     useReceiptStore.getState().addReceipt();
 
     const firstId = useReceiptStore.getState().receipts[0].id;
@@ -216,7 +208,7 @@ describe('receipt management', () => {
   });
 
   it('setActiveReceiptId ignores unknown receipt ids', () => {
-    useReceiptStore.getState().initialize('simple');
+    useReceiptStore.getState().initialize();
     const currentId = useReceiptStore.getState().activeReceiptId;
 
     useReceiptStore.getState().setActiveReceiptId('nonexistent-id');
@@ -225,7 +217,7 @@ describe('receipt management', () => {
   });
 
   it('renameReceipt updates the receipt name', () => {
-    useReceiptStore.getState().initialize('simple');
+    useReceiptStore.getState().initialize();
     const receiptId = useReceiptStore.getState().receipts[0].id;
 
     useReceiptStore.getState().renameReceipt(receiptId, 'Dinner at Mario');
@@ -235,7 +227,7 @@ describe('receipt management', () => {
   });
 
   it('renameReceipt ignores blank names', () => {
-    useReceiptStore.getState().initialize('simple');
+    useReceiptStore.getState().initialize();
     const receiptId = useReceiptStore.getState().receipts[0].id;
     const originalName = useReceiptStore.getState().receipts[0].name;
 

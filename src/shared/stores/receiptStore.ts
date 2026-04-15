@@ -12,16 +12,13 @@ import {
   loadExchangeRates,
   loadPersistedDraft,
   loadPersistedOcrSettings,
-  loadPersistedUxMode,
   loadSessionGeminiApiKey,
   saveExchangeRates,
   savePersistedOcrSettings,
-  savePersistedUxMode,
   saveSessionGeminiApiKey,
 } from '@shared/api/storage';
 import { fetchExchangeRates } from '@shared/api/exchangeRateApi';
 import { FALLBACK_RATES_TO_SGD, BASE_CURRENCY } from '@shared/constants';
-import { createEmptyItem } from '@shared/logic/assignment/items';
 import { createId } from '@shared/logic/core/id';
 import { normalizeGeminiModel } from '@shared/logic/core/geminiModel';
 import {
@@ -64,15 +61,11 @@ function resolveSetStateAction<T>(current: T, next: SetStateAction<T>): T {
   return typeof next === 'function' ? (next as (previous: T) => T)(current) : next;
 }
 
-function createBlankReceipt(
-  people: Person[],
-  uxMode: 'simple' | 'advanced',
-  name: string,
-): Receipt {
+function createBlankReceipt(people: Person[], name: string): Receipt {
   return {
     id: createId(),
     name,
-    items: [uxMode === 'simple' ? createSimpleEmptyItem(people) : createEmptyItem(people)],
+    items: [createSimpleEmptyItem(people)],
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
@@ -124,7 +117,6 @@ function updateScanState(
 
 type ReceiptStoreState = {
   // UI state
-  uxMode: 'simple' | 'advanced';
   peopleInput: string;
   geminiApiKeyInput: string;
   rememberGeminiApiKey: boolean;
@@ -145,7 +137,6 @@ type ReceiptStoreState = {
 
 type ReceiptStoreActions = {
   // UI actions
-  setUxMode: (next: 'simple' | 'advanced') => void;
   setPeopleInput: (next: string) => void;
   setGeminiApiKeyInput: (next: string) => void;
   setRememberGeminiApiKey: (next: boolean) => void;
@@ -160,22 +151,20 @@ type ReceiptStoreActions = {
   setShowApiKeyModal: (show: boolean) => void;
 
   // Workspace actions
-  initialize: (uxMode: 'simple' | 'advanced') => void;
+  initialize: () => void;
   reset: () => void;
   addPeopleFromInput: (rawInput: string) => void;
   removePerson: (personId: string) => void;
-  addAdvancedItem: () => void;
-  addSimpleItem: () => void;
+  addItem: () => void;
   removeItem: (itemId: string) => void;
   updateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void;
   setDiscount: (next: ChargeState) => void;
   setServiceCharge: (next: ChargeState) => void;
   setGst: (next: ChargeState) => void;
   setReceiptTotalInput: (value: string) => void;
-  normalizeItemsForSimpleMode: () => void;
+  normalizeItems: () => void;
   handleReceiptFileSelected: (file: File | null) => void;
   handleScanReceipt: () => Promise<void>;
-  handleLoadMockReceipt: (index: number) => void;
   handleLoadMockWorkspace: () => void;
   applyMockToCurrentReceipt: (index: number) => void;
   getExportJson: () => string;
@@ -203,7 +192,6 @@ const initialGeminiApiKey = loadInitialGeminiApiKey();
 
 const initialState: ReceiptStoreState = {
   // UI state
-  uxMode: loadPersistedUxMode(),
   peopleInput: '',
   geminiApiKeyInput: initialGeminiApiKey,
   rememberGeminiApiKey: initialGeminiApiKey.trim().length > 0,
@@ -231,7 +219,6 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     payload: OcrResponse,
     receiptId: string,
     people: Person[],
-    uxMode: 'simple' | 'advanced',
     setScanWarnings: Dispatch<SetStateAction<string[]>> = () => {},
   ) {
     applyOcrPayload(
@@ -273,15 +260,13 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         }));
       },
     );
-    if (uxMode === 'simple') {
-      set((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === receiptId
-            ? { ...r, items: convertItemsToSimpleEqualMode(r.items, state.people) }
-            : r,
-        ),
-      }));
-    }
+    set((state) => ({
+      receipts: state.receipts.map((r) =>
+        r.id === receiptId
+          ? { ...r, items: convertItemsToSimpleEqualMode(r.items, state.people) }
+          : r,
+      ),
+    }));
   }
 
   return {
@@ -289,10 +274,6 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
 
     // --- UI actions ---
 
-    setUxMode: (next) => {
-      savePersistedUxMode(next);
-      set({ uxMode: next });
-    },
     setPeopleInput: (next) => set({ peopleInput: next }),
     setGeminiApiKeyInput: (next) =>
       set((state) => {
@@ -392,7 +373,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
 
     // --- Workspace actions ---
 
-    initialize: (uxMode) => {
+    initialize: () => {
       if (get().initialized) {
         return;
       }
@@ -401,7 +382,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       if (draft) {
         const receipts = draft.receipts.map((r) => ({
           ...r,
-          items: buildInitialItems(r.items, draft.people, uxMode),
+          items: buildInitialItems(r.items, draft.people),
         }));
         set({
           initialized: true,
@@ -410,7 +391,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           activeReceiptId: draft.activeReceiptId,
         });
       } else {
-        const blankReceipt = createBlankReceipt([], uxMode, 'Receipt 1');
+        const blankReceipt = createBlankReceipt([], 'Receipt 1');
         set({
           initialized: true,
           people: [],
@@ -428,7 +409,6 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       });
     },
     addPeopleFromInput: (rawInput) => {
-      const { uxMode } = get();
       const nextNames = rawInput
         .split(/[\n,]+/)
         .map((name) => name.trim())
@@ -454,7 +434,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           people,
           receipts: state.receipts.map((r) => ({
             ...r,
-            items: syncItemsWithPeople(r.items, people, uxMode),
+            items: syncItemsWithPeople(r.items, people),
           })),
         };
       });
@@ -462,7 +442,6 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       set({ peopleInput: '' });
     },
     removePerson: (personId) => {
-      const { uxMode } = get();
       set((state) => {
         const people = state.people.filter((person) => person.id !== personId);
         return {
@@ -470,21 +449,12 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           people,
           receipts: state.receipts.map((r) => ({
             ...r,
-            items: syncItemsWithPeople(r.items, people, uxMode),
+            items: syncItemsWithPeople(r.items, people),
           })),
         };
       });
     },
-    addAdvancedItem: () => {
-      set((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId
-            ? { ...r, items: [...r.items, createEmptyItem(state.people)] }
-            : r,
-        ),
-      }));
-    },
-    addSimpleItem: () => {
+    addItem: () => {
       set((state) => ({
         receipts: state.receipts.map((r) =>
           r.id === state.activeReceiptId
@@ -543,7 +513,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         ),
       }));
     },
-    normalizeItemsForSimpleMode: () => {
+    normalizeItems: () => {
       set((state) => ({
         receipts: state.receipts.map((r) =>
           r.id === state.activeReceiptId
@@ -553,7 +523,6 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       }));
     },
     handleReceiptFileSelected: (file) => {
-      const uxMode = get().uxMode;
       set((state) => ({
         receipts: state.receipts.map((r) =>
           r.id === state.activeReceiptId
@@ -562,11 +531,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
                 receiptFile: file,
                 ...(file
                   ? {
-                      items: [
-                        uxMode === 'simple'
-                          ? createSimpleEmptyItem(state.people)
-                          : createEmptyItem(state.people),
-                      ],
+                      items: [createSimpleEmptyItem(state.people)],
                       discount: { ...defaultDiscountState },
                       serviceCharge: { ...defaultServiceChargeState },
                       gst: { ...defaultGstState },
@@ -586,7 +551,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       }));
     },
     handleScanReceipt: async () => {
-      const { geminiApiKeyInput, geminiModel, uxMode } = get();
+      const { geminiApiKeyInput, geminiModel } = get();
       const scanReceiptId = get().activeReceiptId;
       const activeReceipt = get().receipts.find((r) => r.id === scanReceiptId);
       const receiptFile = activeReceipt?.receiptFile ?? null;
@@ -643,7 +608,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           setScanStatusForReceipt,
         );
         const { people } = get();
-        applyPayloadToReceipt(payload, scanReceiptId, people, uxMode, setScanWarningsForReceipt);
+        applyPayloadToReceipt(payload, scanReceiptId, people, setScanWarningsForReceipt);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unable to scan receipt';
         set((state) => ({
@@ -662,39 +627,22 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         }));
       }
     },
-    handleLoadMockReceipt: (index: number) => {
-      const fixture = MOCK_RECEIPT_FIXTURES[index];
-      if (!fixture) return;
-      const { uxMode } = get();
-      const payload = fixture.buildResponse();
-      const mockPeople = fixture.peopleNames.map((name) => ({ id: createId(), name }));
-      const mockReceiptId = createId();
-      const mockReceipt = createBlankReceipt(mockPeople, uxMode, 'Receipt 1');
-      set({
-        people: mockPeople,
-        receipts: [{ ...mockReceipt, id: mockReceiptId }],
-        activeReceiptId: mockReceiptId,
-        scanStateByReceipt: {},
-      });
-      applyPayloadToReceipt(payload, mockReceiptId, mockPeople, uxMode);
-    },
     handleLoadMockWorkspace: () => {
-      const { uxMode } = get();
       const people = ['Alice', 'Bob', 'Charlie', 'David'].map((name) => ({ id: createId(), name }));
       const receipts = MOCK_RECEIPT_FIXTURES.map((fixture) => ({
-        ...createBlankReceipt(people, uxMode, fixture.label),
+        ...createBlankReceipt(people, fixture.label),
         id: createId(),
       }));
       set({ people, receipts, activeReceiptId: receipts[0].id, scanStateByReceipt: {} });
       MOCK_RECEIPT_FIXTURES.forEach((fixture, i) => {
-        applyPayloadToReceipt(fixture.buildResponse(), receipts[i].id, people, uxMode);
+        applyPayloadToReceipt(fixture.buildResponse(), receipts[i].id, people);
       });
     },
     applyMockToCurrentReceipt: (index: number) => {
       const fixture = MOCK_RECEIPT_FIXTURES[index];
       if (!fixture) return;
-      const { uxMode, people, activeReceiptId } = get();
-      applyPayloadToReceipt(fixture.buildResponse(), activeReceiptId, people, uxMode);
+      const { people, activeReceiptId } = get();
+      applyPayloadToReceipt(fixture.buildResponse(), activeReceiptId, people);
     },
     getExportJson: () => {
       const { people, receipts, activeReceiptId } = get();
@@ -705,12 +653,11 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       if (!draft) {
         return;
       }
-      const { uxMode } = get();
       set({
         people: draft.people,
         receipts: draft.receipts.map((r) => ({
           ...r,
-          items: buildInitialItems(r.items, draft.people, uxMode),
+          items: buildInitialItems(r.items, draft.people),
         })),
         activeReceiptId: draft.activeReceiptId,
       });
@@ -719,10 +666,10 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     // --- Receipt management actions ---
 
     addReceipt: () => {
-      const { uxMode, people } = get();
+      const { people } = get();
       set((state) => {
         const nextNumber = state.receipts.length + 1;
-        const newReceipt = createBlankReceipt(people, uxMode, `Receipt ${nextNumber}`);
+        const newReceipt = createBlankReceipt(people, `Receipt ${nextNumber}`);
         return {
           receipts: [...state.receipts, newReceipt],
           activeReceiptId: newReceipt.id,

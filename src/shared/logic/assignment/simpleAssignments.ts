@@ -1,16 +1,19 @@
 import type { EditableItem, Person } from '@shared/types';
-import { createEmptyItem, sanitizeItemAssignment } from '@shared/logic/assignment/items';
+import { sanitizeItemAssignment } from '@shared/logic/assignment/items';
 
 export function createSimpleEmptyItem(people: Person[]): EditableItem {
-  const baseItem = createEmptyItem(people);
-  return {
-    ...baseItem,
+  const baseItem = {
+    id: '',
+    name: '',
+    amountInput: '',
+    discountPercentInput: '',
     assignment: {
-      mode: 'equal',
+      mode: 'equal' as const,
       personId: '',
       personIds: people.map((person) => person.id),
     },
   };
+  return baseItem;
 }
 
 export function convertItemsToSimpleEqualMode(
@@ -29,7 +32,7 @@ export function convertItemsToSimpleEqualMode(
     return {
       ...item,
       assignment: {
-        mode: 'equal',
+        mode: 'equal' as const,
         personId: '',
         personIds: nextPersonIds,
       },
@@ -37,27 +40,19 @@ export function convertItemsToSimpleEqualMode(
   });
 }
 
-export function syncItemsWithPeople(
-  items: EditableItem[],
-  people: Person[],
-  uxMode: 'simple' | 'advanced',
-): EditableItem[] {
+export function syncItemsWithPeople(items: EditableItem[], people: Person[]): EditableItem[] {
   const sanitizedItems = items.map((item) => sanitizeItemAssignment(item, people));
-  if (uxMode !== 'simple' || people.length === 0) {
+  if (people.length === 0) {
     return sanitizedItems;
   }
 
   return convertItemsToSimpleEqualMode(sanitizedItems, people);
 }
 
-export function buildInitialItems(
-  items: EditableItem[],
-  people: Person[],
-  uxMode: 'simple' | 'advanced',
-): EditableItem[] {
+export function buildInitialItems(items: EditableItem[], people: Person[]): EditableItem[] {
   if (items.length === 0) {
-    return [uxMode === 'simple' ? createSimpleEmptyItem(people) : createEmptyItem(people)];
+    return [createSimpleEmptyItem(people)];
   }
 
-  return syncItemsWithPeople(items, people, uxMode);
+  return syncItemsWithPeople(items, people);
 }

@@ -39,24 +39,21 @@
 src/
   features/
     receipt-scanner/       # Gemini API integration, OCR parsing, scan UI
-    split-config/          # People setup, line items, global charges UI
-    split-results/         # Per-person breakdown display and export (PNG/text)
+    split-results/         # Split export (PNG/text) — logic only, no legacy components
   pages/
     ReceiptSplitterPage.tsx          # Root page component
     types.ts                         # Wizard-specific types (SimpleWizardStep etc.)
     components/
-      AppMenu.tsx                    # Import/export/mock menu
-      ReceiptSplitterHeader.tsx      # App header with mode toggle
-      advanced/
-        AdvancedWorkspace.tsx        # Composes features into the advanced layout
-        JsonImportExportSection.tsx
-      simple/
-        SimpleWorkspace.tsx          # Composes features into the 4-step wizard
-        ProgressHeader.tsx
-        WizardNav.tsx
+      workspace/
+        Workspace.tsx                # Main workspace (4-step wizard)
+        TopAppBar.tsx
+        BottomNav.tsx
+        ProgressIndicator.tsx
+        GeminiApiKeyModal.tsx
+        shared/                      # Reusable UI components
         steps/                       # One component per wizard step/phase
     hooks/
-      useReceiptSplitterController.ts  # Init, persistence, mode switching
+      useReceiptSplitterController.ts  # Init, persistence
       useSimpleWizard.ts               # Wizard step/phase state machine
     logic/
       persistence.ts       # Wizard state save/load (localStorage)
