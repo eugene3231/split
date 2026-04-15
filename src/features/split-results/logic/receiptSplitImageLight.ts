@@ -2,7 +2,6 @@ import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { formatCurrencyFromCents, parseNumber } from '@shared/logic/core/money';
 import {
   CANVAS_WIDTH,
-  SCRATCH_HEIGHT,
   canvasToBlob,
   formatGeneratedAt,
   formatPercent,
@@ -42,6 +41,40 @@ const BODY_TOP_PAD = 24; // gap between header and nested card
 const NESTED_BOTTOM_PAD = 24; // padding below last charge row inside nested card
 const BETWEEN_CARD_GAP = 20; // vertical gap between person cards
 
+function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): number {
+  const COLS = 2;
+  const COL_GAP = 24;
+  const cardWidth = CANVAS_WIDTH - 56 * 2;
+  const colWidth = Math.floor((cardWidth - COL_GAP * (COLS - 1)) / COLS);
+  // suppress unused var — colWidth drives height indirectly via measurePersonCardHeight
+  void colWidth;
+
+  let y = 56 + 36 + 40; // start + title + subtitle
+  y += 116 + 32; // grand total card height + gap
+
+  if (options.people.length === 0) {
+    y += 72 + BETWEEN_CARD_GAP;
+  } else {
+    for (let rowStart = 0; rowStart < options.people.length; rowStart += COLS) {
+      const rowPeople = options.people.slice(rowStart, Math.min(rowStart + COLS, options.people.length));
+      let rowHeight = 0;
+      for (const person of rowPeople) {
+        rowHeight = Math.max(
+          rowHeight,
+          measurePersonCardHeight(person.id, options.split, options.receipts, options.splitByReceipt, options.includeItemDetails),
+        );
+      }
+      y += rowHeight + BETWEEN_CARD_GAP;
+    }
+  }
+
+  if (options.split.unassignedItemCount > 0) {
+    y += 72 + BETWEEN_CARD_GAP;
+  }
+
+  return Math.max(240, Math.ceil(y + 56));
+}
+
 export async function generateReceiptSplitImageLight(
   options: GenerateReceiptSplitImageLightOptions,
 ): Promise<Blob> {
@@ -51,7 +84,7 @@ export async function generateReceiptSplitImageLight(
 
   const scratch = document.createElement('canvas');
   scratch.width = CANVAS_WIDTH;
-  scratch.height = SCRATCH_HEIGHT;
+  scratch.height = computeRequiredHeight(options);
 
   const ctx = scratch.getContext('2d');
   if (!ctx) throw new Error('Unable to initialize canvas renderer.');
@@ -160,9 +193,6 @@ export async function generateReceiptSplitImageLight(
   }
 
   const requiredHeight = Math.max(240, Math.ceil(y + 56));
-  if (requiredHeight > scratch.height) {
-    throw new Error('Export is too large. Try with fewer items.');
-  }
 
   const output = document.createElement('canvas');
   output.width = CANVAS_WIDTH;
