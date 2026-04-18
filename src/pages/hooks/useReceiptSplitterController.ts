@@ -15,6 +15,7 @@ export function useReceiptSplitterController() {
     initialize,
     reset,
     fetchAndSetExchangeRates,
+    payerMobile,
   } = useReceiptStore(
     useShallow((state) => ({
       isScanning: Object.values(state.scanStateByReceipt).some((s) => s.isScanning),
@@ -26,6 +27,7 @@ export function useReceiptSplitterController() {
       initialize: state.initialize,
       reset: state.reset,
       fetchAndSetExchangeRates: state.fetchAndSetExchangeRates,
+      payerMobile: state.payerMobile,
     })),
   );
 
@@ -45,6 +47,6 @@ export function useReceiptSplitterController() {
     };
   }, [reset]);
 
-  useDraftPersistence({ initialized, people, receipts, activeReceiptId });
+  useDraftPersistence({ initialized, people, receipts, activeReceiptId, payerMobile });
   useLoadingTicker({ isActive: isScanning, onTick: advanceLoadingMessage });
 }

@@ -28,12 +28,14 @@ export function exportDraftToJson(state: {
   people: Person[];
   receipts: Receipt[];
   activeReceiptId: string;
+  payerMobile: string;
 }): string {
   const draft: SessionDraft = {
     version: 2,
     people: state.people,
     receipts: state.receipts,
     activeReceiptId: state.activeReceiptId,
+    payerMobile: state.payerMobile,
     savedAt: new Date().toISOString(),
   };
   return JSON.stringify(draft, null, 2);
@@ -218,6 +220,7 @@ function migrateV1ToSessionDraft(parsed: Record<string, unknown>): SessionDraft 
     people,
     receipts: [receipt],
     activeReceiptId: receiptId,
+    payerMobile: '',
     savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : new Date().toISOString(),
   };
 }
@@ -242,6 +245,7 @@ function normalizeSessionDraft(parsed: Record<string, unknown>): SessionDraft | 
     people,
     receipts,
     activeReceiptId,
+    payerMobile: typeof parsed.payerMobile === 'string' ? parsed.payerMobile : '',
     savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : new Date().toISOString(),
   };
 }

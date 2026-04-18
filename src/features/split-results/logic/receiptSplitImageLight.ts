@@ -12,6 +12,8 @@ import {
   drawRoundedRect,
   drawLightTwoColumnRow,
 } from '@features/split-results/logic/receiptSplitImageLightHelpers';
+import { normalizeMobile } from '@shared/logic/core/paynow';
+import { generatePaynowQrDataUrls } from '@shared/logic/core/paynowQr';
 
 type GenerateReceiptSplitImageLightOptions = {
   people: Person[];
@@ -25,10 +27,17 @@ type GenerateReceiptSplitImageLightOptions = {
   includeItemDetails: boolean;
   receiptName?: string;
   currency?: string;
+  /** Normalised payer PayNow mobile (+65XXXXXXXX). When set, a QR code is embedded in each person card. */
+  payerMobile?: string;
+  /** SGD-denominated split used for QR amounts. Falls back to `split` when omitted. */
+  sgdSplit?: SplitResult;
 };
 
 // Layout constants
 const CANVAS_PADDING = 56; // horizontal/vertical page margin
+const QR_SIZE = 160; // QR code dimensions (square)
+const QR_GAP = 20; // vertical gap between nested card and QR block
+const QR_LABEL_H = 28; // height reserved for the "Scan to pay" label
 const CARD_PAD = 32;
 const AVATAR_RADIUS = 22;
 const AVATAR_GAP = 16; // gap between avatar and name
@@ -46,6 +55,8 @@ const GRAND_TOTAL_AFTER_GAP = 32; // gap below grand total card
 
 function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): number {
   const COLS = 2;
+  const hasValidMobile = !!options.payerMobile && !!normalizeMobile(options.payerMobile);
+  const sgdSplit = options.sgdSplit ?? options.split;
 
   let y = CANVAS_PADDING + 36 + 40; // start + title + subtitle
   y += GRAND_TOTAL_CARD_H + GRAND_TOTAL_AFTER_GAP;
@@ -57,9 +68,11 @@ function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): 
       const rowPeople = options.people.slice(rowStart, Math.min(rowStart + COLS, options.people.length));
       let rowHeight = 0;
       for (const person of rowPeople) {
+        const amountCents = sgdSplit.totalByPersonCents[person.id] ?? 0;
+        const hasQr = hasValidMobile && amountCents > 0;
         rowHeight = Math.max(
           rowHeight,
-          measurePersonCardHeight(person.id, options.split, options.receipts, options.splitByReceipt, options.includeItemDetails),
+          measurePersonCardHeight(person.id, options.split, options.receipts, options.splitByReceipt, options.includeItemDetails, hasQr),
         );
       }
       y += rowHeight + BETWEEN_CARD_GAP;
@@ -72,6 +85,34 @@ function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): 
 
   return Math.max(240, Math.ceil(y + CANVAS_PADDING));
 }
+
+// ─── QR helpers ───────────────────────────────────────────────────────────────
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function preloadQrImages(
+  people: Person[],
+  split: SplitResult,
+  payerMobile: string | undefined,
+): Promise<Map<string, HTMLImageElement>> {
+  if (!payerMobile) return new Map();
+  const dataUrls = await generatePaynowQrDataUrls(people, split, payerMobile, QR_SIZE);
+  const entries = await Promise.all(
+    Object.entries(dataUrls)
+      .filter(([, url]) => url)
+      .map(async ([id, url]) => [id, await loadImage(url)] as const),
+  );
+  return new Map(entries);
+}
+
+// ─── Main export ───────────────────────────────────────────────────────────────
 
 export async function generateReceiptSplitImageLight(
   options: GenerateReceiptSplitImageLightOptions,
@@ -86,6 +127,9 @@ export async function generateReceiptSplitImageLight(
 
   const ctx = scratch.getContext('2d');
   if (!ctx) throw new Error('Unable to initialize canvas renderer.');
+
+  // Pre-generate QR images (async, before any drawing)
+  const qrImages = await preloadQrImages(options.people, options.sgdSplit ?? options.split, options.payerMobile);
 
   // Light background
   ctx.fillStyle = '#f5f5f5';
@@ -144,6 +188,7 @@ export async function generateReceiptSplitImageLight(
             options.receipts,
             options.splitByReceipt,
             options.includeItemDetails,
+            qrImages.has(person.id),
           ),
         );
       }
@@ -165,6 +210,7 @@ export async function generateReceiptSplitImageLight(
           serviceCharge: options.serviceCharge,
           gst: options.gst,
           currency: options.currency,
+          qrImage: qrImages.get(person.id),
         });
       }
 
@@ -260,6 +306,7 @@ function measurePersonCardHeight(
   receipts: Receipt[] | undefined,
   splitByReceipt: SplitResult[] | undefined,
   includeLineItems: boolean,
+  hasQr: boolean = false,
 ): number {
   let nestedBodyH: number;
 
@@ -281,7 +328,8 @@ function measurePersonCardHeight(
   }
 
   const nestedH = NESTED_PAD + nestedBodyH + NESTED_BOTTOM_PAD;
-  return CARD_PAD + HEADER_H + BODY_TOP_PAD + nestedH + CARD_PAD;
+  const qrBlockH = hasQr ? QR_GAP + QR_SIZE + QR_LABEL_H : 0;
+  return CARD_PAD + HEADER_H + BODY_TOP_PAD + nestedH + qrBlockH + CARD_PAD;
 }
 
 // ─── Person card drawing ──────────────────────────────────────────────────────
@@ -301,6 +349,7 @@ type PersonCardArgs = {
   serviceCharge: ChargeState;
   gst: ChargeState;
   currency?: string;
+  qrImage?: HTMLImageElement;
 };
 
 function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): void {
@@ -338,7 +387,8 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
   const nestedX = innerX;
   const nestedY = args.y + CARD_PAD + HEADER_H + BODY_TOP_PAD;
   const nestedW = innerWidth;
-  const nestedH = args.height - (CARD_PAD + HEADER_H + BODY_TOP_PAD + CARD_PAD);
+  const qrBlockH = args.qrImage ? QR_GAP + QR_SIZE + QR_LABEL_H : 0;
+  const nestedH = args.height - (CARD_PAD + HEADER_H + BODY_TOP_PAD + qrBlockH + CARD_PAD);
   drawNestedCard(ctx, nestedX, nestedY, nestedW, nestedH);
 
   const niX = nestedX + NESTED_PAD;
@@ -507,6 +557,20 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
         size: 20,
       });
     }
+  }
+
+  // ── QR code block ────────────────────────────────────────────────────────────
+  if (args.qrImage) {
+    const qrY = args.y + args.height - CARD_PAD - QR_LABEL_H - QR_SIZE;
+    // Centre the QR horizontally within the card
+    const qrX = args.x + (args.width - QR_SIZE) / 2;
+    ctx.drawImage(args.qrImage, qrX, qrY, QR_SIZE, QR_SIZE);
+    // Label below QR
+    ctx.fillStyle = '#49454f';
+    ctx.font = '500 18px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Scan to pay', args.x + args.width / 2, qrY + QR_SIZE + 20);
+    ctx.textAlign = 'left';
   }
 }
 
