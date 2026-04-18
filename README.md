@@ -1,5 +1,7 @@
 # Split (React + Tailwind + Google Gemini)
 
+[![codecov](https://codecov.io/github/eugene3231/split/graph/badge.svg?token=CZ39ES2EU9)](https://codecov.io/github/eugene3231/split)
+
 https://split-receipt.netlify.app/
 
 Ever paid the full bill and had to figure out who owes what — when everyone ordered different things, some dishes were shared, and others weren't? Split uses Google Gemini to split costs at the line-item level.
