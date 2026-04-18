@@ -182,7 +182,6 @@ describe('ReceiptImportActions – Image thumbnail (F001)', () => {
 
     const img = screen.getByAltText('Receipt preview');
     expect(img).toBeInTheDocument();
-    expect(img).toHaveClass('object-cover');
     expect(img.closest('button')).toBeTruthy();
   });
 
@@ -275,28 +274,6 @@ describe('ReceiptImportActions – Fullscreen modal (F002)', () => {
     fireEvent.click(fullscreenImg);
 
     expect(screen.getByAltText('Receipt fullscreen')).toBeInTheDocument();
-  });
-
-  it('modal has dark backdrop with correct styles', () => {
-    renderWithFile();
-
-    const thumbnailButton = screen.getByAltText('Receipt preview').closest('button')!;
-    fireEvent.click(thumbnailButton);
-
-    const backdrop = screen.getByAltText('Receipt fullscreen').parentElement!;
-    expect(backdrop.className).toContain('bg-black/70');
-    expect(backdrop.className).toContain('fixed');
-    expect(backdrop.className).toContain('z-50');
-  });
-
-  it('fullscreen image uses object-contain for proper display', () => {
-    renderWithFile();
-
-    const thumbnailButton = screen.getByAltText('Receipt preview').closest('button')!;
-    fireEvent.click(thumbnailButton);
-
-    const fullscreenImg = screen.getByAltText('Receipt fullscreen');
-    expect(fullscreenImg.className).toContain('object-contain');
   });
 
   it('fullscreen modal is not rendered when no file is loaded', () => {

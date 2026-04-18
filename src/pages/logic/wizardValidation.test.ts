@@ -63,4 +63,11 @@ describe('wizardValidation', () => {
       }),
     ).toBe(false);
   });
+
+  it('rejects items step when no items have valid amounts', () => {
+    const itemsWithBadAmounts = [buildItem({ amountInput: 'bad' }), buildItem({ amountInput: '' })];
+
+    expect(isStepValid('items', { items: itemsWithBadAmounts, people })).toBe(false);
+    expect(getDetectedItemsCount(itemsWithBadAmounts)).toBe(0);
+  });
 });

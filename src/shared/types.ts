@@ -100,26 +100,6 @@ export type Receipt = {
   exchangeRateOverride: number | null;
 };
 
-export type PersistedFinalSplit = {
-  subtotalCents: number;
-  serviceChargeCents: number;
-  gstCents: number;
-  grandTotalCents: number;
-  totalByPersonCents: Record<string, number>;
-};
-
-export type PersistedDraft = {
-  version: 1;
-  people: Person[];
-  items: EditableItem[];
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
-  receiptTotalInput: string;
-  finalSplit: PersistedFinalSplit;
-  savedAt: string;
-};
-
 export type SessionDraft = {
   version: 2;
   people: Person[];

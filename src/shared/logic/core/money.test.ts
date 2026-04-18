@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CURRENCY_SYMBOLS } from '@shared/constants';
 import {
   formatCurrencyFromCents,
   getCurrencySymbol,
@@ -6,52 +7,29 @@ import {
 } from '@shared/logic/core/money';
 
 describe('getCurrencySymbol', () => {
-  it('returns $ for SGD', () => {
+  it('returns the mapped symbol for a known currency', () => {
     expect(getCurrencySymbol('SGD')).toBe('$');
-  });
-
-  it('returns correct symbols for supported currencies', () => {
-    expect(getCurrencySymbol('USD')).toBe('US$');
-    expect(getCurrencySymbol('EUR')).toBe('€');
-    expect(getCurrencySymbol('GBP')).toBe('£');
-    expect(getCurrencySymbol('THB')).toBe('฿');
-    expect(getCurrencySymbol('MYR')).toBe('RM');
-    expect(getCurrencySymbol('JPY')).toBe('¥');
-    expect(getCurrencySymbol('KRW')).toBe('₩');
-    expect(getCurrencySymbol('IDR')).toBe('Rp');
-    expect(getCurrencySymbol('PHP')).toBe('₱');
-    expect(getCurrencySymbol('AUD')).toBe('A$');
-    expect(getCurrencySymbol('HKD')).toBe('HK$');
-    expect(getCurrencySymbol('TWD')).toBe('NT$');
-    expect(getCurrencySymbol('VND')).toBe('₫');
-    expect(getCurrencySymbol('INR')).toBe('₹');
   });
 
   it('returns the currency code itself for unknown currencies', () => {
     expect(getCurrencySymbol('XYZ')).toBe('XYZ');
     expect(getCurrencySymbol('ZZZ')).toBe('ZZZ');
   });
+
+  it('covers every entry in CURRENCY_SYMBOLS', () => {
+    for (const [currency, symbol] of Object.entries(CURRENCY_SYMBOLS)) {
+      expect(getCurrencySymbol(currency)).toBe(symbol);
+    }
+  });
 });
 
-describe('formatCurrencyFromCents — currency-aware', () => {
+describe('formatCurrencyFromCents', () => {
   it('defaults to $ (SGD) when no currency is provided', () => {
     expect(formatCurrencyFromCents(1000)).toBe('$10.00');
   });
 
-  it('uses $ for explicit SGD', () => {
-    expect(formatCurrencyFromCents(1000, 'SGD')).toBe('$10.00');
-  });
-
-  it('formats USD correctly', () => {
-    expect(formatCurrencyFromCents(1000, 'USD')).toBe('US$10.00');
-  });
-
-  it('formats THB correctly', () => {
+  it('formats a known non-USD currency with its symbol', () => {
     expect(formatCurrencyFromCents(100000, 'THB')).toBe('฿1000.00');
-  });
-
-  it('formats JPY correctly', () => {
-    expect(formatCurrencyFromCents(100000, 'JPY')).toBe('¥1000.00');
   });
 
   it('formats zero correctly', () => {
@@ -61,6 +39,10 @@ describe('formatCurrencyFromCents — currency-aware', () => {
   it('always shows two decimal places', () => {
     expect(formatCurrencyFromCents(100, 'SGD')).toBe('$1.00');
     expect(formatCurrencyFromCents(150, 'USD')).toBe('US$1.50');
+  });
+
+  it('uses the currency code as symbol for unknown currencies', () => {
+    expect(formatCurrencyFromCents(500, 'XYZ')).toBe('XYZ5.00');
   });
 });
 

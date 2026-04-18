@@ -1,20 +1,29 @@
-import { describe, expect, it } from 'vitest';
-import { sameStringArray } from '@shared/logic/core/id';
+import { describe, expect, it, vi } from 'vitest';
+import { createId } from './id';
 
-describe('sameStringArray', () => {
-  it('returns true for identical arrays', () => {
-    expect(sameStringArray(['a', 'b'], ['a', 'b'])).toBe(true);
+describe('createId', () => {
+  it('generates a unique id using crypto.randomUUID', () => {
+    const id1 = createId();
+    const id2 = createId();
+    expect(id1).not.toBe(id2);
+    expect(id1.length).toBeGreaterThan(0);
   });
 
-  it('returns false for different lengths', () => {
-    expect(sameStringArray(['a'], ['a', 'b'])).toBe(false);
-  });
+  it('falls back to timestamp-random when crypto.randomUUID is unavailable', () => {
+    const originalCrypto = globalThis.crypto;
+    Object.defineProperty(globalThis, 'crypto', {
+      value: {},
+      writable: true,
+      configurable: true,
+    });
 
-  it('returns false for same length but different content', () => {
-    expect(sameStringArray(['a', 'c'], ['a', 'b'])).toBe(false);
-  });
+    const id = createId();
+    expect(id).toMatch(/^id-\d+-[0-9a-f]+$/);
 
-  it('returns true for empty arrays', () => {
-    expect(sameStringArray([], [])).toBe(true);
+    Object.defineProperty(globalThis, 'crypto', {
+      value: originalCrypto,
+      writable: true,
+      configurable: true,
+    });
   });
 });

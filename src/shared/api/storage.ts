@@ -13,7 +13,6 @@ import type {
   ChargeState,
   EditableItem,
   ItemAssignment,
-  PersistedFinalSplit,
   PersistedOcrSettings,
   Person,
   Receipt,
@@ -48,10 +47,6 @@ export function importDraftFromJson(raw: string): SessionDraft | null {
 
     if (parsed.version === 2) {
       return normalizeSessionDraft(parsed);
-    }
-
-    if (parsed.version === 1) {
-      return migrateV1ToSessionDraft(parsed);
     }
 
     return null;
@@ -90,10 +85,6 @@ export function loadPersistedDraft(): SessionDraft | null {
 
     if (parsed.version === 2) {
       return normalizeSessionDraft(parsed);
-    }
-
-    if (parsed.version === 1) {
-      return migrateV1ToSessionDraft(parsed);
     }
 
     return null;
@@ -192,37 +183,6 @@ export function clearSessionGeminiApiKey(): void {
   } catch {
     // Ignore storage remove failures.
   }
-}
-
-// ---------------------------------------------------------------------------
-// Migration: v1 PersistedDraft → v2 SessionDraft
-// ---------------------------------------------------------------------------
-
-function migrateV1ToSessionDraft(parsed: Record<string, unknown>): SessionDraft | null {
-  const people = normalizeDraftPeople(parsed.people);
-  const items = normalizeDraftItems(parsed.items, people);
-  const receiptId = createId();
-
-  const receipt: Receipt = {
-    id: receiptId,
-    name: 'Receipt 1',
-    items,
-    discount: normalizeDraftChargeState(parsed.discount, defaultDiscountState),
-    serviceCharge: normalizeDraftChargeState(parsed.serviceCharge, defaultServiceChargeState),
-    gst: normalizeDraftChargeState(parsed.gst, defaultGstState),
-    receiptTotalInput: typeof parsed.receiptTotalInput === 'string' ? parsed.receiptTotalInput : '',
-    currency: BASE_CURRENCY,
-    exchangeRateOverride: null,
-  };
-
-  return {
-    version: 2,
-    people,
-    receipts: [receipt],
-    activeReceiptId: receiptId,
-    payerMobile: '',
-    savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : new Date().toISOString(),
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -421,37 +381,6 @@ export function loadExchangeRates(): Record<string, number> | null {
   } catch {
     return null;
   }
-}
-
-// Keep for any remaining callers referencing this type (unused but exported to avoid breakage)
-export function normalizePersistedFinalSplit(value: unknown): PersistedFinalSplit {
-  if (!isRecord(value)) {
-    return {
-      subtotalCents: 0,
-      serviceChargeCents: 0,
-      gstCents: 0,
-      grandTotalCents: 0,
-      totalByPersonCents: {},
-    };
-  }
-
-  const totalsRecord: Record<string, number> = {};
-  if (isRecord(value.totalByPersonCents)) {
-    for (const [personId, cents] of Object.entries(value.totalByPersonCents)) {
-      const parsed = toNullableNumber(cents);
-      if (parsed !== null) {
-        totalsRecord[personId] = Math.round(parsed);
-      }
-    }
-  }
-
-  return {
-    subtotalCents: Math.round(toNullableNumber(value.subtotalCents) ?? 0),
-    serviceChargeCents: Math.round(toNullableNumber(value.serviceChargeCents) ?? 0),
-    gstCents: Math.round(toNullableNumber(value.gstCents) ?? 0),
-    grandTotalCents: Math.round(toNullableNumber(value.grandTotalCents) ?? 0),
-    totalByPersonCents: totalsRecord,
-  };
 }
 
 function getBrowserStorage(): Storage | null {

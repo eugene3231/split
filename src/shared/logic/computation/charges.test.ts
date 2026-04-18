@@ -125,4 +125,20 @@ describe('applyChargeDetection', () => {
     expect(next.amountInput).toBe('9.50');
     expect(next.detectedConfidence).toBe(0.8);
   });
+
+  it('applies detection with both amount and percent null — keeps existing mode and inputs', () => {
+    const next = applyChargeDetection(baseChargeState, {
+      enabled: true,
+      amount: null,
+      percent: null,
+      confidence: null,
+      source: 'ocr',
+    });
+
+    expect(next.enabled).toBe(true);
+    expect(next.mode).toBe('percent');
+    expect(next.percentInput).toBe('10');
+    expect(next.amountInput).toBe('');
+    expect(next.detectedSource).toBe('ocr');
+  });
 });

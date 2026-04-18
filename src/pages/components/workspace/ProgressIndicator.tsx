@@ -1,4 +1,5 @@
 import { cn } from '@shared/utils/cn';
+import { getStepNumber, isStepCompleted, STEP_LABELS, STEP_ORDER } from '@pages/logic/wizardSteps';
 import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
 
 interface Props {
@@ -6,22 +7,6 @@ interface Props {
   itemsSubPhase: ItemsSubPhase;
   assignedItemCount: number;
   detectedItemsCount: number;
-}
-
-const STEP_ORDER: SimpleWizardStep[] = ['people', 'receipt', 'items', 'final'];
-const STEP_LABELS: Record<SimpleWizardStep, string> = {
-  people: 'People',
-  receipt: 'Receipt',
-  items: 'Assign',
-  final: 'Summary',
-};
-
-function getStepNumber(step: SimpleWizardStep): number {
-  return STEP_ORDER.indexOf(step) + 1;
-}
-
-function isStepCompleted(step: SimpleWizardStep, activeStep: SimpleWizardStep): boolean {
-  return STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf(activeStep);
 }
 
 export function ProgressIndicator({

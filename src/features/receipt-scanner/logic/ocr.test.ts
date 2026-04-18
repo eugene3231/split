@@ -163,6 +163,48 @@ describe('analyzeReceiptWithGemini', () => {
       'Gemini did not return line items confidently. Add/edit items manually.',
     );
   });
+
+  it('throws when Gemini response has no candidates/content', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: vi.fn().mockResolvedValue(JSON.stringify({ candidates: [] })),
+      }),
+    );
+
+    await expect(
+      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
+    ).rejects.toThrow('Gemini response did not include extractable content.');
+  });
+
+  it('throws when Gemini returns valid JSON that does not match the receipt schema', async () => {
+    stubFetch(
+      JSON.stringify({
+        candidates: [{ content: { parts: [{ text: JSON.stringify({ random: 'data' }) }] } }],
+      }),
+    );
+
+    await expect(
+      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
+    ).rejects.toThrow('Gemini response did not match expected schema.');
+  });
+
+  it('throws when Gemini response body is not valid JSON at all', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: vi.fn().mockResolvedValue('this is not json'),
+      }),
+    );
+
+    await expect(
+      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
+    ).rejects.toThrow('Gemini returned non-JSON response.');
+  });
 });
 
 describe('applyOcrPayload', () => {

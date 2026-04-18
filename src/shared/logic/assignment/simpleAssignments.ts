@@ -1,9 +1,10 @@
 import type { EditableItem, Person } from '@shared/types';
+import { createId } from '@shared/logic/core/id';
 import { sanitizeItemAssignment } from '@shared/logic/assignment/items';
 
 export function createSimpleEmptyItem(people: Person[]): EditableItem {
   const baseItem = {
-    id: '',
+    id: createId(),
     name: '',
     amountInput: '',
     discountPercentInput: '',
