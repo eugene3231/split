@@ -20,8 +20,8 @@ export function useReceiptSplitterController() {
       })),
     );
 
-  const isScanning = useScanStore(
-    useShallow((state) => Object.values(state.scanStateByReceipt).some((s) => s.isScanning)),
+  const isScanning = useScanStore((state) =>
+    Object.values(state.scanStateByReceipt).some((s) => s.isScanning),
   );
   const advanceLoadingMessage = useScanStore((state) => state.advanceLoadingMessage);
   const fetchAndSetExchangeRates = useCurrencyStore((state) => state.fetchAndSetExchangeRates);

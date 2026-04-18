@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "prepush": "eslint . && tsc --noEmit && tsc -b && vite build",
+    "prepush": "eslint . && tsc --noEmit && tsc -b && vite build && vitest run",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

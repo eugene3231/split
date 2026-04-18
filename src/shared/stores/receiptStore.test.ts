@@ -47,7 +47,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('receiptUiStore', () => {
+describe('scanStore + geminiStore', () => {
   it('startScan sets loading baseline and randomized loading message', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
 

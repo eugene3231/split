@@ -50,7 +50,7 @@ describe('parseRateInput', () => {
     expect(parseRateInput('-1.5', 'forward')).toBeNull();
   });
 
-  it('returns null when editingField is null', () => {
+  it('treats null editingField as forward and returns the parsed value', () => {
     expect(parseRateInput('1.35', null)).toBeCloseTo(1.35);
   });
 });
