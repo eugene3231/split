@@ -57,7 +57,7 @@ export function SummaryStep({
     isMultiReceipt ? 'total' : (receipts[0]?.id ?? 'total'),
   );
   const [busy, setBusy] = useState<ExportBusy>(null);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
   const [copied, setCopied] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
