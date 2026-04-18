@@ -43,11 +43,7 @@ const BETWEEN_CARD_GAP = 20; // vertical gap between person cards
 
 function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): number {
   const COLS = 2;
-  const COL_GAP = 24;
   const cardWidth = CANVAS_WIDTH - 56 * 2;
-  const colWidth = Math.floor((cardWidth - COL_GAP * (COLS - 1)) / COLS);
-  // suppress unused var — colWidth drives height indirectly via measurePersonCardHeight
-  void colWidth;
 
   let y = 56 + 36 + 40; // start + title + subtitle
   y += 116 + 32; // grand total card height + gap
