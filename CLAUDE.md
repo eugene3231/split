@@ -179,6 +179,34 @@ const [value, setValue] = useState(props.initialValue);
 - Subscribing to external systems (WebSockets, browser APIs, third-party libraries)
 - Running imperative DOM manipulations that can't be expressed declaratively
 - Synchronizing with non-React systems (analytics, logging on mount)
+- **Cleanup only** — the effect body does nothing; only the returned cleanup function runs
+
+### Deriving side-effectful values (e.g. object URLs)
+
+When a value requires a side effect to produce (e.g. `URL.createObjectURL`) but logically derives from a prop/state, use `useMemo` to compute it and a paired `useEffect` for cleanup. Do **not** call `setState` inside an effect body, and do **not** read/write `ref.current` during render — both are lint errors in this codebase.
+
+```tsx
+// ✅ useMemo derives the value; useEffect handles cleanup only
+const previewUrl = useMemo(
+  () => (file ? URL.createObjectURL(file) : null),
+  [file],
+);
+
+useEffect(() => {
+  return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+}, [previewUrl]);
+```
+
+```tsx
+// ❌ setState inside effect body — lint error (react-hooks/set-state-in-effect)
+useEffect(() => {
+  setPreviewUrl(file ? URL.createObjectURL(file) : null);
+}, [file]);
+
+// ❌ Refs during render — lint error (react-hooks/refs)
+const urlRef = useRef<string | null>(null);
+urlRef.current = file ? URL.createObjectURL(file) : null; // in render body
+```
 
 ---
 

@@ -18,6 +18,13 @@ dist-ssr
 .env.*
 !.env.example
 
+# EPCC tracking
+EPCC_PLAN.md
+EPCC_EXPLORE.md
+epcc-features.json
+epcc-progress.md
+PRD.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
