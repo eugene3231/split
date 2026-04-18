@@ -301,6 +301,7 @@ const minimalDraftState = {
   people: [{ id: 'p1', name: 'Alice' }],
   receipts: [receipt1],
   activeReceiptId: 'r1',
+  payerMobile: '',
 };
 
 describe('exportDraftToJson', () => {
@@ -483,6 +484,7 @@ describe('storage availability failures', () => {
         people: [],
         receipts: [],
         activeReceiptId: '',
+        payerMobile: '',
         savedAt: '',
       }),
     ).not.toThrow();
