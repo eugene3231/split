@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { BASE_CURRENCY, FALLBACK_RATES_TO_SGD } from '@shared/constants';
 import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useCurrencyStore } from '@shared/stores/currencyStore';
 
 interface Props {
   receiptId: string;
@@ -10,12 +11,12 @@ interface Props {
 }
 
 export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride }: Props) {
-  const { exchangeRates, setReceiptExchangeRateOverride } = useReceiptStore(
+  const { setReceiptExchangeRateOverride } = useReceiptStore(
     useShallow((s) => ({
-      exchangeRates: s.exchangeRates,
       setReceiptExchangeRateOverride: s.setReceiptExchangeRateOverride,
     })),
   );
+  const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
   const [editingField, setEditingField] = useState<'forward' | 'reverse' | null>(null);
   const [inputValue, setInputValue] = useState('');
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { formatCurrencyFromCents, getCurrencySymbol } from '@shared/logic/core/money';
+import {
+  formatCurrencyFromCents,
+  getCurrencySymbol,
+  toNullableNumber,
+} from '@shared/logic/core/money';
 
 describe('getCurrencySymbol', () => {
   it('returns $ for SGD', () => {
@@ -57,5 +61,35 @@ describe('formatCurrencyFromCents — currency-aware', () => {
   it('always shows two decimal places', () => {
     expect(formatCurrencyFromCents(100, 'SGD')).toBe('$1.00');
     expect(formatCurrencyFromCents(150, 'USD')).toBe('US$1.50');
+  });
+});
+
+describe('toNullableNumber', () => {
+  it('returns number for valid numeric string', () => {
+    expect(toNullableNumber('42')).toBe(42);
+  });
+
+  it('returns number for comma-separated number string', () => {
+    expect(toNullableNumber('1,234.56')).toBe(1234.56);
+  });
+
+  it('returns null for empty string', () => {
+    expect(toNullableNumber('')).toBeNull();
+  });
+
+  it('returns null for non-numeric string', () => {
+    expect(toNullableNumber('abc')).toBeNull();
+  });
+
+  it('returns number for actual number input', () => {
+    expect(toNullableNumber(42)).toBe(42);
+  });
+
+  it('returns null for NaN', () => {
+    expect(toNullableNumber(NaN)).toBeNull();
+  });
+
+  it('returns null for Infinity', () => {
+    expect(toNullableNumber(Infinity)).toBeNull();
   });
 });

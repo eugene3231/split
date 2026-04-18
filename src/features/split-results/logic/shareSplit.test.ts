@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildSplitShareText,
+  copyShareText,
   getShareSupport,
   shareFinalSplit,
 } from '@features/split-results/logic/shareSplit';
@@ -111,5 +112,73 @@ describe('shareFinalSplit', () => {
         files: expect.any(Array),
       }),
     );
+  });
+
+  it('returns fallback when navigator has no share function', async () => {
+    const mode = await shareFinalSplit({
+      image: new Blob(['image'], { type: 'image/png' }),
+      fileName: 'split-final.png',
+      navigator: {
+        share: undefined as unknown as Navigator['share'],
+        canShare: vi.fn(() => false),
+        clipboard: {} as Navigator['clipboard'],
+      },
+    });
+    expect(mode).toBe('fallback');
+  });
+
+  it('returns native when canShare is absent but share exists', () => {
+    expect(
+      getShareSupport({
+        share: vi.fn(),
+        canShare: undefined as unknown as Navigator['canShare'],
+        clipboard: {} as Navigator['clipboard'],
+      }),
+    ).toBe('native');
+  });
+
+  it('re-throws AbortError from share', async () => {
+    const share = vi.fn().mockRejectedValueOnce(new DOMException('User cancelled', 'AbortError'));
+    const canShare = vi.fn(() => true);
+
+    await expect(
+      shareFinalSplit({
+        image: new Blob(['image'], { type: 'image/png' }),
+        fileName: 'split-final.png',
+        navigator: {
+          share,
+          canShare,
+          clipboard: {} as Navigator['clipboard'],
+        },
+      }),
+    ).rejects.toThrow('User cancelled');
+  });
+
+  it('returns fallback when share throws non-AbortError', async () => {
+    const share = vi.fn().mockRejectedValueOnce(new TypeError('Network error'));
+    const canShare = vi.fn(() => true);
+
+    const mode = await shareFinalSplit({
+      image: new Blob(['image'], { type: 'image/png' }),
+      fileName: 'split-final.png',
+      navigator: {
+        share,
+        canShare,
+        clipboard: {} as Navigator['clipboard'],
+      },
+    });
+    expect(mode).toBe('fallback');
+  });
+});
+
+describe('copyShareText', () => {
+  it('throws when clipboard is not available', async () => {
+    await expect(
+      copyShareText('hello', {
+        share: vi.fn(),
+        canShare: vi.fn(() => false),
+        clipboard: undefined as unknown as Navigator['clipboard'],
+      }),
+    ).rejects.toThrow('Copy is not available');
   });
 });

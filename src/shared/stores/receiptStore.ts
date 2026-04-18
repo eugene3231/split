@@ -5,26 +5,9 @@ import {
   defaultGstState,
   defaultServiceChargeState,
 } from '@shared/constants';
-import {
-  clearSessionGeminiApiKey,
-  exportDraftToJson,
-  importDraftFromJson,
-  loadExchangeRates,
-  loadPersistedDraft,
-  loadPersistedOcrSettings,
-  loadSessionGeminiApiKey,
-  saveExchangeRates,
-  savePersistedOcrSettings,
-  saveSessionGeminiApiKey,
-} from '@shared/api/storage';
-import { fetchExchangeRates } from '@shared/api/exchangeRateApi';
-import { FALLBACK_RATES_TO_SGD, BASE_CURRENCY } from '@shared/constants';
+import { exportDraftToJson, importDraftFromJson, loadPersistedDraft } from '@shared/api/storage';
+import { BASE_CURRENCY } from '@shared/constants';
 import { createId } from '@shared/logic/core/id';
-import { normalizeGeminiModel } from '@shared/logic/core/geminiModel';
-import {
-  FUNNY_LOADING_MESSAGES,
-  getRandomLoadingMessageIndex,
-} from '@shared/logic/core/loadingMessages';
 import type { ChargeState, EditableItem, OcrResponse, Person, Receipt } from '@shared/types';
 import { analyzeReceiptWithGemini, applyOcrPayload } from '@features/receipt-scanner';
 import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures';
@@ -34,32 +17,12 @@ import {
   convertItemsToSimpleEqualMode,
   syncItemsWithPeople,
 } from '@shared/logic/assignment/simpleAssignments';
+import { useScanStore } from './scanStore';
+import { useGeminiStore } from './geminiStore';
 
 // ---------------------------------------------------------------------------
 // Module-level helpers
 // ---------------------------------------------------------------------------
-
-function loadInitialGeminiModel(): string {
-  const persistedSettings = loadPersistedOcrSettings();
-  return normalizeGeminiModel(persistedSettings?.geminiModel ?? '');
-}
-
-function loadInitialGeminiApiKey(): string {
-  return loadSessionGeminiApiKey();
-}
-
-function syncGeminiApiKeyPersistence(apiKey: string, rememberApiKey: boolean): void {
-  if (rememberApiKey && apiKey.trim()) {
-    saveSessionGeminiApiKey(apiKey);
-    return;
-  }
-
-  clearSessionGeminiApiKey();
-}
-
-function resolveSetStateAction<T>(current: T, next: SetStateAction<T>): T {
-  return typeof next === 'function' ? (next as (previous: T) => T)(current) : next;
-}
 
 function createBlankReceipt(people: Person[], name: string): Receipt {
   return {
@@ -75,54 +38,21 @@ function createBlankReceipt(people: Person[], name: string): Receipt {
   };
 }
 
+function updateActiveReceipt(
+  receipts: Receipt[],
+  activeReceiptId: string,
+  patch: Partial<Receipt>,
+): Receipt[] {
+  return receipts.map((r) => (r.id === activeReceiptId ? { ...r, ...patch } : r));
+}
+
 // ---------------------------------------------------------------------------
 // Combined store type
 // ---------------------------------------------------------------------------
 
-type ReceiptScanState = {
-  isScanning: boolean;
-  scanStatus: string;
-  scanError: string | null;
-  scanWarnings: string[];
-  loadingMessage: string;
-  loadingMessageIndex: number;
-};
-
-const defaultScanState: ReceiptScanState = {
-  isScanning: false,
-  scanStatus: '',
-  scanError: null,
-  scanWarnings: [],
-  loadingMessage: '',
-  loadingMessageIndex: 0,
-};
-
-function getScanState(
-  scanStateByReceipt: Record<string, ReceiptScanState>,
-  receiptId: string,
-): ReceiptScanState {
-  return scanStateByReceipt[receiptId] ?? defaultScanState;
-}
-
-function updateScanState(
-  scanStateByReceipt: Record<string, ReceiptScanState>,
-  receiptId: string,
-  patch: Partial<ReceiptScanState>,
-): Record<string, ReceiptScanState> {
-  return {
-    ...scanStateByReceipt,
-    [receiptId]: { ...getScanState(scanStateByReceipt, receiptId), ...patch },
-  };
-}
-
 type ReceiptStoreState = {
-  // UI state
+  // UI form state
   peopleInput: string;
-  geminiApiKeyInput: string;
-  rememberGeminiApiKey: boolean;
-  geminiModel: string;
-  scanStateByReceipt: Record<string, ReceiptScanState>;
-  showApiKeyModal: boolean;
 
   // Workspace state
   initialized: boolean;
@@ -130,26 +60,11 @@ type ReceiptStoreState = {
   receipts: Receipt[];
   activeReceiptId: string;
   payerMobile: string;
-
-  // Exchange rates
-  exchangeRates: Record<string, number>;
-  exchangeRatesLastFetched: number | null;
 };
 
 type ReceiptStoreActions = {
-  // UI actions
+  // UI form actions
   setPeopleInput: (next: string) => void;
-  setGeminiApiKeyInput: (next: string) => void;
-  setRememberGeminiApiKey: (next: boolean) => void;
-  setGeminiModel: (next: string) => void;
-  setScanStatus: (receiptId: string, next: SetStateAction<string>) => void;
-  setScanError: (receiptId: string, next: SetStateAction<string | null>) => void;
-  setScanWarnings: (receiptId: string, next: SetStateAction<string[]>) => void;
-  clearScanFeedback: (receiptId: string) => void;
-  startScan: (receiptId: string) => void;
-  advanceLoadingMessage: () => void;
-  finishScan: (receiptId: string) => void;
-  setShowApiKeyModal: (show: boolean) => void;
 
   // Workspace actions
   initialize: () => void;
@@ -180,10 +95,9 @@ type ReceiptStoreActions = {
   setActiveReceiptId: (receiptId: string) => void;
   renameReceipt: (receiptId: string, name: string) => void;
 
-  // Currency actions
+  // Currency actions (modify receipts, so stay here)
   setReceiptCurrency: (receiptId: string, currency: string) => void;
   setReceiptExchangeRateOverride: (receiptId: string, rate: number | null) => void;
-  fetchAndSetExchangeRates: () => Promise<void>;
 };
 
 type ReceiptStore = ReceiptStoreState & ReceiptStoreActions;
@@ -192,27 +106,14 @@ type ReceiptStore = ReceiptStoreState & ReceiptStoreActions;
 // Initial state
 // ---------------------------------------------------------------------------
 
-const initialGeminiApiKey = loadInitialGeminiApiKey();
-
 const initialState: ReceiptStoreState = {
-  // UI state
   peopleInput: '',
-  geminiApiKeyInput: initialGeminiApiKey,
-  rememberGeminiApiKey: initialGeminiApiKey.trim().length > 0,
-  geminiModel: loadInitialGeminiModel(),
-  scanStateByReceipt: {},
-  showApiKeyModal: false,
 
-  // Workspace state
   initialized: false,
   people: [],
   receipts: [],
   activeReceiptId: '',
   payerMobile: '',
-
-  // Exchange rates (loaded from localStorage or fallback)
-  exchangeRates: loadExchangeRates() ?? FALLBACK_RATES_TO_SGD,
-  exchangeRatesLastFetched: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -277,104 +178,9 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
   return {
     ...initialState,
 
-    // --- UI actions ---
+    // --- UI form actions ---
 
     setPeopleInput: (next) => set({ peopleInput: next }),
-    setGeminiApiKeyInput: (next) =>
-      set((state) => {
-        syncGeminiApiKeyPersistence(next, state.rememberGeminiApiKey);
-        return { geminiApiKeyInput: next };
-      }),
-    setRememberGeminiApiKey: (next) =>
-      set((state) => {
-        syncGeminiApiKeyPersistence(state.geminiApiKeyInput, next);
-        return { rememberGeminiApiKey: next };
-      }),
-    setGeminiModel: (next) => {
-      const normalizedModel = normalizeGeminiModel(next);
-      savePersistedOcrSettings({
-        version: 1,
-        geminiModel: normalizedModel,
-        savedAt: new Date().toISOString(),
-      });
-      set({ geminiModel: normalizedModel });
-    },
-    setScanStatus: (receiptId, next) =>
-      set((state) => {
-        const current = getScanState(state.scanStateByReceipt, receiptId);
-        return {
-          scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-            scanStatus: resolveSetStateAction(current.scanStatus, next),
-          }),
-        };
-      }),
-    setScanError: (receiptId, next) =>
-      set((state) => {
-        const current = getScanState(state.scanStateByReceipt, receiptId);
-        return {
-          scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-            scanError: resolveSetStateAction(current.scanError, next),
-          }),
-        };
-      }),
-    setScanWarnings: (receiptId, next) =>
-      set((state) => {
-        const current = getScanState(state.scanStateByReceipt, receiptId);
-        return {
-          scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-            scanWarnings: resolveSetStateAction(current.scanWarnings, next),
-          }),
-        };
-      }),
-    clearScanFeedback: (receiptId) =>
-      set((state) => ({
-        scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-          scanStatus: '',
-          scanError: null,
-          scanWarnings: [],
-          loadingMessage: '',
-          loadingMessageIndex: 0,
-        }),
-      })),
-    startScan: (receiptId) =>
-      set((state) => {
-        const nextIndex = getRandomLoadingMessageIndex();
-        return {
-          scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-            isScanning: true,
-            scanStatus: 'Preparing Gemini request...',
-            scanError: null,
-            scanWarnings: [],
-            loadingMessage: FUNNY_LOADING_MESSAGES[nextIndex],
-            loadingMessageIndex: nextIndex,
-          }),
-        };
-      }),
-    advanceLoadingMessage: () =>
-      set((state) => {
-        const next = { ...state.scanStateByReceipt };
-        for (const [id, s] of Object.entries(next)) {
-          if (s.isScanning) {
-            const nextIndex = getRandomLoadingMessageIndex(s.loadingMessageIndex);
-            next[id] = {
-              ...s,
-              loadingMessageIndex: nextIndex,
-              loadingMessage: FUNNY_LOADING_MESSAGES[nextIndex],
-            };
-          }
-        }
-        return { scanStateByReceipt: next };
-      }),
-    finishScan: (receiptId) =>
-      set((state) => ({
-        scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-          isScanning: false,
-          scanStatus: '',
-          loadingMessage: '',
-          loadingMessageIndex: 0,
-        }),
-      })),
-    setShowApiKeyModal: (show) => set({ showApiKeyModal: show }),
 
     // --- Workspace actions ---
 
@@ -494,40 +300,38 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     },
     setDiscount: (next) => {
       set((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, discount: next } : r,
-        ),
+        receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, { discount: next }),
       }));
     },
     setServiceCharge: (next) => {
       set((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, serviceCharge: next } : r,
-        ),
+        receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, {
+          serviceCharge: next,
+        }),
       }));
     },
     setGst: (next) => {
       set((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, gst: next } : r,
-        ),
+        receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, { gst: next }),
       }));
     },
     setReceiptTotalInput: (value) => {
       set((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, receiptTotalInput: value } : r,
-        ),
+        receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, {
+          receiptTotalInput: value,
+        }),
       }));
     },
     normalizeItems: () => {
-      set((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId
-            ? { ...r, items: convertItemsToSimpleEqualMode(r.items, state.people) }
-            : r,
-        ),
-      }));
+      set((state) => {
+        const active = state.receipts.find((r) => r.id === state.activeReceiptId);
+        if (!active) return state;
+        return {
+          receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, {
+            items: convertItemsToSimpleEqualMode(active.items, state.people),
+          }),
+        };
+      });
     },
     handleReceiptFileSelected: (file) => {
       set((state) => ({
@@ -548,17 +352,11 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
               }
             : r,
         ),
-        scanStateByReceipt: updateScanState(state.scanStateByReceipt, state.activeReceiptId, {
-          scanStatus: '',
-          scanError: null,
-          scanWarnings: [],
-          loadingMessage: '',
-          loadingMessageIndex: 0,
-        }),
       }));
+      useScanStore.getState().clearScanFeedback(get().activeReceiptId);
     },
     handleScanReceipt: async () => {
-      const { geminiApiKeyInput, geminiModel } = get();
+      const { geminiApiKeyInput, geminiModel } = useGeminiStore.getState();
       const scanReceiptId = get().activeReceiptId;
       const activeReceipt = get().receipts.find((r) => r.id === scanReceiptId);
       const receiptFile = activeReceipt?.receiptFile ?? null;
@@ -568,44 +366,18 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       }
 
       if (!geminiApiKeyInput.trim()) {
-        set((state) => ({
-          scanStateByReceipt: updateScanState(state.scanStateByReceipt, scanReceiptId, {
-            scanError: 'Missing Gemini API key. Enter it above.',
-          }),
-        }));
+        useScanStore
+          .getState()
+          .setScanError(scanReceiptId, 'Missing Gemini API key. Enter it above.');
         return;
       }
 
-      const nextIndex = getRandomLoadingMessageIndex();
-      set((state) => ({
-        scanStateByReceipt: updateScanState(state.scanStateByReceipt, scanReceiptId, {
-          isScanning: true,
-          scanStatus: 'Preparing Gemini request...',
-          scanError: null,
-          scanWarnings: [],
-          loadingMessage: FUNNY_LOADING_MESSAGES[nextIndex],
-          loadingMessageIndex: nextIndex,
-        }),
-      }));
+      useScanStore.getState().startScan(scanReceiptId);
 
       const setScanStatusForReceipt = (next: SetStateAction<string>) =>
-        set((state) => {
-          const current = getScanState(state.scanStateByReceipt, scanReceiptId);
-          return {
-            scanStateByReceipt: updateScanState(state.scanStateByReceipt, scanReceiptId, {
-              scanStatus: resolveSetStateAction(current.scanStatus, next),
-            }),
-          };
-        });
+        useScanStore.getState().setScanStatus(scanReceiptId, next);
       const setScanWarningsForReceipt = (next: SetStateAction<string[]>) =>
-        set((state) => {
-          const current = getScanState(state.scanStateByReceipt, scanReceiptId);
-          return {
-            scanStateByReceipt: updateScanState(state.scanStateByReceipt, scanReceiptId, {
-              scanWarnings: resolveSetStateAction(current.scanWarnings, next),
-            }),
-          };
-        });
+        useScanStore.getState().setScanWarnings(scanReceiptId, next);
 
       try {
         const payload = await analyzeReceiptWithGemini(
@@ -618,20 +390,9 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         applyPayloadToReceipt(payload, scanReceiptId, people, setScanWarningsForReceipt);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unable to scan receipt';
-        set((state) => ({
-          scanStateByReceipt: updateScanState(state.scanStateByReceipt, scanReceiptId, {
-            scanError: message,
-          }),
-        }));
+        useScanStore.getState().setScanError(scanReceiptId, message);
       } finally {
-        set((state) => ({
-          scanStateByReceipt: updateScanState(state.scanStateByReceipt, scanReceiptId, {
-            isScanning: false,
-            scanStatus: '',
-            loadingMessage: '',
-            loadingMessageIndex: 0,
-          }),
-        }));
+        useScanStore.getState().finishScan(scanReceiptId);
       }
     },
     handleLoadMockWorkspace: () => {
@@ -640,7 +401,8 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         ...createBlankReceipt(people, fixture.label),
         id: createId(),
       }));
-      set({ people, receipts, activeReceiptId: receipts[0].id, scanStateByReceipt: {} });
+      set({ people, receipts, activeReceiptId: receipts[0].id });
+      useScanStore.getState().resetScanStates();
       MOCK_RECEIPT_FIXTURES.forEach((fixture, i) => {
         applyPayloadToReceipt(fixture.buildResponse(), receipts[i].id, people);
       });
@@ -732,12 +494,9 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         ),
       }));
     },
-    fetchAndSetExchangeRates: async () => {
-      const fetched = await fetchExchangeRates();
-      if (fetched) {
-        saveExchangeRates(fetched);
-        set({ exchangeRates: fetched, exchangeRatesLastFetched: Date.now() });
-      }
-    },
   };
 });
+
+function resolveSetStateAction<T>(current: T, next: SetStateAction<T>): T {
+  return typeof next === 'function' ? (next as (prev: T) => T)(current) : next;
+}

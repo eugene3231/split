@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useGeminiStore } from '@shared/stores/geminiStore';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
 import { loadSimpleWizardState, saveSimpleWizardState } from '@pages/logic/persistence';
@@ -14,8 +15,8 @@ export function useSimpleWizard(
   activeReceiptId: string,
   setActiveReceiptId: (id: string) => void,
 ) {
-  const geminiApiKeyInput = useReceiptStore((state) => state.geminiApiKeyInput);
-  const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal);
+  const geminiApiKeyInput = useGeminiStore((state) => state.geminiApiKeyInput);
+  const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
 
   const [initialWizardState] = useState(() => loadSimpleWizardState());
