@@ -66,8 +66,11 @@ export function computeSplit({
         continue;
       }
       const equalWeights = Object.fromEntries(selectedIds.map((id) => [id, 1]));
-      netByPerson = allocateCents(netAmountCents, selectedIds, equalWeights);
-      grossByPerson = allocateCents(grossAmountCents, selectedIds, equalWeights);
+      const rawWeights = item.assignment.weights
+        ? Object.fromEntries(selectedIds.map((id) => [id, item.assignment.weights![id] ?? 1]))
+        : equalWeights;
+      netByPerson = allocateCents(netAmountCents, selectedIds, rawWeights);
+      grossByPerson = allocateCents(grossAmountCents, selectedIds, rawWeights);
       assignedPersonIds = new Set(selectedIds);
     }
 

@@ -153,6 +153,12 @@ function AssignPhase({
   const activeItem = items[activeItemIndex] ?? null;
   const isAssigned = activeItem ? isItemAssigned(activeItem, validPeopleSet) : false;
 
+  const selectedIds = activeItem?.assignment.personIds ?? [];
+  const weights = activeItem?.assignment.weights;
+  const unequalMode = Boolean(weights);
+  const totalWeight = selectedIds.reduce((sum, id) => sum + (weights?.[id] ?? 1), 0);
+  const canToggleUnequal = selectedIds.length >= 2;
+
   const handleTogglePerson = (personId: string, checked: boolean) => {
     if (!activeItem) return;
     const updated = togglePersonInAssignment(personId, checked, activeItem);
@@ -167,6 +173,33 @@ function AssignPhase({
   const handleSelectNone = () => {
     if (!activeItem) return;
     onUpdateItem(activeItem.id, () => selectNone(activeItem));
+  };
+
+  const handleUnequalToggle = () => {
+    if (!activeItem || !canToggleUnequal) return;
+    onUpdateItem(activeItem.id, (current) => ({
+      ...current,
+      assignment: {
+        ...current.assignment,
+        weights: current.assignment.weights
+          ? undefined
+          : Object.fromEntries(current.assignment.personIds.map((id) => [id, 1])),
+      },
+    }));
+  };
+
+  const handleWeightChange = (personId: string, delta: number) => {
+    if (!activeItem) return;
+    const current = activeItem.assignment.weights?.[personId] ?? 1;
+    const next = Math.max(1, Math.min(9, current + delta));
+    const updatedWeights: Record<string, number> = {};
+    for (const id of selectedIds) {
+      updatedWeights[id] = id === personId ? next : (weights?.[id] ?? 1);
+    }
+    onUpdateItem(activeItem.id, (item) => ({
+      ...item,
+      assignment: { ...item.assignment, weights: updatedWeights },
+    }));
   };
 
   if (!activeItem) {
@@ -259,6 +292,18 @@ function AssignPhase({
       <div className="flex items-center justify-between">
         <span className="text-base font-semibold text-on-surface">Who's sharing?</span>
         <div className="flex gap-3">
+          {canToggleUnequal && (
+            <button
+              type="button"
+              onClick={handleUnequalToggle}
+              className={cn(
+                'text-sm font-semibold transition-opacity hover:opacity-70',
+                unequalMode ? 'text-primary' : 'text-on-surface-variant',
+              )}
+            >
+              {unequalMode ? 'Unequal' : 'Equal'}
+            </button>
+          )}
           <button
             type="button"
             data-testid="assign-select-all-btn"
@@ -283,11 +328,11 @@ function AssignPhase({
       {/* Person toggle buttons */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {people.map((person, index) => {
-          const isSelected = activeItem.assignment.personIds.includes(person.id);
-          const assignedCount = activeItem.assignment.personIds.length;
+          const isSelected = selectedIds.includes(person.id);
+          const personWeight = weights?.[person.id] ?? 1;
           const shareAmount =
-            isSelected && priceCents !== null && assignedCount > 0
-              ? Math.round(priceCents / assignedCount)
+            isSelected && priceCents !== null && totalWeight > 0
+              ? Math.round((priceCents * personWeight) / totalWeight)
               : 0;
           return (
             <button
@@ -336,6 +381,48 @@ function AssignPhase({
         })}
       </div>
 
+      {/* Weight steppers (shown in unequal mode) */}
+      {unequalMode && canToggleUnequal && (
+        <div className="space-y-3 rounded-xl bg-surface-container-low p-4">
+          <p className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
+            Share weights
+          </p>
+          {selectedIds.map((personId) => {
+            const person = people.find((p) => p.id === personId);
+            if (!person) return null;
+            const w = weights?.[personId] ?? 1;
+            return (
+              <div key={personId} className="flex items-center justify-between gap-3">
+                <span className="flex-1 truncate text-sm font-semibold text-on-surface">
+                  {person.name}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleWeightChange(personId, -1)}
+                    disabled={w <= 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
+                  >
+                    <span className="material-symbols-outlined text-sm text-on-surface">
+                      remove
+                    </span>
+                  </button>
+                  <span className="w-6 text-center text-sm font-bold text-on-surface">{w}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleWeightChange(personId, 1)}
+                    disabled={w >= 9}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
+                  >
+                    <span className="material-symbols-outlined text-sm text-on-surface">add</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Double-tap hint */}
       <div className="flex items-center gap-1.5 text-xs text-on-surface-variant italic">
         <span className="material-symbols-outlined text-sm">info</span>
@@ -365,11 +452,25 @@ function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
 
       <div className="space-y-3">
         {items.map((item, index) => {
-          const selectedPeople = people
-            .filter((p) => item.assignment.personIds.includes(p.id))
-            .map((p) => p.name);
+          const selectedPeople = people.filter((person) =>
+            item.assignment.personIds.includes(person.id),
+          );
           const isAssigned = selectedPeople.length > 0;
           const priceCents = parseCurrencyToCents(item.amountInput);
+
+          const itemWeights = item.assignment.weights;
+          const hasUnequalWeights =
+            itemWeights !== undefined &&
+            item.assignment.personIds.length >= 2 &&
+            item.assignment.personIds.some((id) => (itemWeights[id] ?? 1) !== 1);
+          const splitLabel = hasUnequalWeights
+            ? `Split: ${selectedPeople
+                .map((person) => {
+                  const weight = itemWeights?.[person.id] ?? 1;
+                  return `${person.name} ×${weight}`;
+                })
+                .join(', ')}`
+            : `Split: ${selectedPeople.map((person) => person.name).join(', ')}`;
 
           return (
             <article
@@ -396,7 +497,7 @@ function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
                     isAssigned ? 'text-on-surface-variant' : 'text-error',
                   )}
                 >
-                  {isAssigned ? `Split: ${selectedPeople.join(', ')}` : 'No people selected'}
+                  {isAssigned ? splitLabel : 'No people selected'}
                 </span>
               </div>
               <button

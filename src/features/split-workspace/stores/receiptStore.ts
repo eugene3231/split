@@ -15,7 +15,7 @@ import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 import {
   buildInitialItems,
   createDefaultItem,
-  convertItemsToSimpleEqualMode,
+  normalizeItemAssignments,
   syncItemsWithPeople,
 } from '@features/split-workspace/logic/simpleAssignments';
 
@@ -271,7 +271,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         if (!active) return state;
         return {
           receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, {
-            items: convertItemsToSimpleEqualMode(active.items, state.people),
+            items: normalizeItemAssignments(active.items, state.people),
           }),
         };
       });

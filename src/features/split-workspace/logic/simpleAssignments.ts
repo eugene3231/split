@@ -17,7 +17,7 @@ export function createDefaultItem(people: Person[]): EditableItem {
   return baseItem;
 }
 
-export function convertItemsToSimpleEqualMode(
+export function normalizeItemAssignments(
   items: EditableItem[],
   people: Person[],
 ): EditableItem[] {
@@ -30,12 +30,21 @@ export function convertItemsToSimpleEqualMode(
     );
     const nextPersonIds = item.assignment.mode === 'equal' ? filteredIds : personIds;
 
+    const nextWeights = item.assignment.weights
+      ? Object.fromEntries(
+          nextPersonIds
+            .filter((id) => id in item.assignment.weights!)
+            .map((id) => [id, item.assignment.weights![id]]),
+        )
+      : undefined;
+
     return {
       ...item,
       assignment: {
         mode: 'equal' as const,
         personId: '',
         personIds: nextPersonIds,
+        weights: nextWeights && Object.keys(nextWeights).length > 0 ? nextWeights : undefined,
       },
     };
   });
@@ -47,7 +56,7 @@ export function syncItemsWithPeople(items: EditableItem[], people: Person[]): Ed
     return sanitizedItems;
   }
 
-  return convertItemsToSimpleEqualMode(sanitizedItems, people);
+  return normalizeItemAssignments(sanitizedItems, people);
 }
 
 export function buildInitialItems(items: EditableItem[], people: Person[]): EditableItem[] {
