@@ -18,6 +18,7 @@ import {
 beforeEach(resetAllStores);
 
 function useSplitFromStore() {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   return renderHook(() => useReceiptSplit());
 }
 
