@@ -30,10 +30,12 @@ export function useReceiptSplitterController() {
     if (!initialized) {
       initialize();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   useEffect(() => {
     fetchAndSetExchangeRates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   useEffect(() => {

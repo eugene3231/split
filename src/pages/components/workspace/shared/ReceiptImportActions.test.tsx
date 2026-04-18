@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReceiptImportActions } from './ReceiptImportActions';
 
 let storeMock: Record<string, unknown>;
-let geminiStoreMock: Record<string, unknown> = {
+const geminiStoreMock: Record<string, unknown> = {
   geminiApiKeyInput: 'test-key',
   setShowApiKeyModal: vi.fn(),
 };
