@@ -108,7 +108,7 @@ export function ReceiptImportActions({
               <button
                 type="button"
                 onClick={() => setIsFullscreen(true)}
-                className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer"
+                className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer ring-1 ring-outline-variant/30 hover:ring-primary hover:ring-2 transition-all"
               >
                 <img
                   src={previewUrl}
@@ -119,14 +119,12 @@ export function ReceiptImportActions({
             ) : (
               <span className="material-symbols-outlined text-sm text-secondary">description</span>
             )}
-            <span className="truncate flex-1">{receiptFile.name}</span>
             <button
               type="button"
               onClick={() => setIsFullscreen(true)}
-              className="flex-shrink-0 text-on-surface-variant hover:text-primary transition-colors"
-              aria-label="View fullscreen"
+              className="truncate flex-1 text-left cursor-pointer hover:text-primary transition-colors"
             >
-              <span className="material-symbols-outlined text-sm">fullscreen</span>
+              {receiptFile.name}
             </button>
             <button
               type="button"
@@ -135,7 +133,7 @@ export function ReceiptImportActions({
                 onReceiptFileSelected(null);
               }}
               aria-label="Remove upload"
-              className="flex-shrink-0 text-on-surface-variant hover:text-error transition-colors"
+              className="flex-shrink-0 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">close</span>
             </button>
@@ -161,7 +159,7 @@ export function ReceiptImportActions({
               type="button"
               onClick={() => setShowApiKeyModal(true)}
               className={cn(
-                'text-xs font-bold underline',
+                'text-xs font-bold underline cursor-pointer',
                 hasApiKey ? 'text-on-surface-variant hover:text-primary' : 'text-error',
               )}
             >
@@ -220,7 +218,7 @@ export function ReceiptImportActions({
           <button
             type="button"
             onClick={() => setIsFullscreen(false)}
-            className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer"
             aria-label="Close preview"
           >
             <span className="material-symbols-outlined">close</span>
