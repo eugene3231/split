@@ -3,7 +3,7 @@ import {
   buildSplitShareText,
   copyShareText,
   getShareSupport,
-  shareFinalSplit,
+  shareText,
 } from '@features/split-results/logic/shareSplit';
 
 describe('buildSplitShareText', () => {
@@ -39,11 +39,21 @@ describe('buildSplitShareText', () => {
 });
 
 describe('getShareSupport', () => {
-  it('returns native when navigator.share is available even when file sharing support is unknown', () => {
+  it('returns native when navigator.share is available', () => {
     expect(
       getShareSupport({
         share: vi.fn(),
         canShare: vi.fn(() => true),
+        clipboard: {} as Navigator['clipboard'],
+      }),
+    ).toBe('native');
+  });
+
+  it('returns native when navigator.share exists but canShare is absent', () => {
+    expect(
+      getShareSupport({
+        share: vi.fn(),
+        canShare: undefined as unknown as Navigator['canShare'],
         clipboard: {} as Navigator['clipboard'],
       }),
     ).toBe('native');
@@ -54,120 +64,59 @@ describe('getShareSupport', () => {
   });
 });
 
-describe('shareFinalSplit', () => {
-  it('returns fallback when canShare rejects files', async () => {
+describe('shareText', () => {
+  it('calls navigator.share with text and returns native', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
-    const canShare = vi.fn(() => false);
+    const writeText = vi.fn().mockResolvedValue(undefined);
 
-    const mode = await shareFinalSplit({
-      image: new Blob(['image'], { type: 'image/png' }),
-      fileName: 'split-final.png',
-      navigator: {
-        share,
-        canShare,
-        clipboard: {} as Navigator['clipboard'],
-      },
+    const result = await shareText('hello', {
+      share,
+      canShare: vi.fn(),
+      clipboard: { writeText } as unknown as Navigator['clipboard'],
     });
 
-    expect(mode).toBe('fallback');
-    expect(share).not.toHaveBeenCalled();
+    expect(result).toBe('native');
+    expect(share).toHaveBeenCalledWith({ text: 'hello' });
+    expect(writeText).not.toHaveBeenCalled();
   });
 
-  it('returns fallback when share with files fails', async () => {
-    const share = vi.fn().mockRejectedValueOnce(new TypeError('files not supported'));
-    const canShare = vi.fn(() => true);
+  it('falls back to clipboard when navigator.share is unavailable', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
 
-    const mode = await shareFinalSplit({
-      image: new Blob(['image'], { type: 'image/png' }),
-      fileName: 'split-final.png',
-      navigator: {
-        share,
-        canShare,
-        clipboard: {} as Navigator['clipboard'],
-      },
+    const result = await shareText('hello', {
+      share: undefined as unknown as Navigator['share'],
+      canShare: vi.fn(),
+      clipboard: { writeText } as unknown as Navigator['clipboard'],
     });
 
-    expect(mode).toBe('fallback');
-    expect(share).toHaveBeenCalledTimes(1);
+    expect(result).toBe('fallback');
+    expect(writeText).toHaveBeenCalledWith('hello');
   });
 
-  it('shares image file when supported', async () => {
-    const share = vi.fn().mockResolvedValue(undefined);
-    const canShare = vi.fn(() => true);
-
-    const mode = await shareFinalSplit({
-      image: new Blob(['image'], { type: 'image/png' }),
-      fileName: 'split-final.png',
-      navigator: {
-        share,
-        canShare,
-        clipboard: {} as Navigator['clipboard'],
-      },
-    });
-
-    expect(mode).toBe('native');
-    expect(share).toHaveBeenCalledTimes(1);
-    expect(share).toHaveBeenCalledWith(
-      expect.objectContaining({
-        files: expect.any(Array),
-      }),
-    );
-  });
-
-  it('returns fallback when navigator has no share function', async () => {
-    const mode = await shareFinalSplit({
-      image: new Blob(['image'], { type: 'image/png' }),
-      fileName: 'split-final.png',
-      navigator: {
-        share: undefined as unknown as Navigator['share'],
-        canShare: vi.fn(() => false),
-        clipboard: {} as Navigator['clipboard'],
-      },
-    });
-    expect(mode).toBe('fallback');
-  });
-
-  it('returns native when canShare is absent but share exists', () => {
-    expect(
-      getShareSupport({
-        share: vi.fn(),
-        canShare: undefined as unknown as Navigator['canShare'],
-        clipboard: {} as Navigator['clipboard'],
-      }),
-    ).toBe('native');
-  });
-
-  it('re-throws AbortError from share', async () => {
-    const share = vi.fn().mockRejectedValueOnce(new DOMException('User cancelled', 'AbortError'));
-    const canShare = vi.fn(() => true);
+  it('re-throws AbortError', async () => {
+    const share = vi.fn().mockRejectedValue(new DOMException('User cancelled', 'AbortError'));
 
     await expect(
-      shareFinalSplit({
-        image: new Blob(['image'], { type: 'image/png' }),
-        fileName: 'split-final.png',
-        navigator: {
-          share,
-          canShare,
-          clipboard: {} as Navigator['clipboard'],
-        },
+      shareText('hello', {
+        share,
+        canShare: vi.fn(),
+        clipboard: {} as Navigator['clipboard'],
       }),
     ).rejects.toThrow('User cancelled');
   });
 
-  it('returns fallback when share throws non-AbortError', async () => {
-    const share = vi.fn().mockRejectedValueOnce(new TypeError('Network error'));
-    const canShare = vi.fn(() => true);
+  it('falls back to clipboard when share throws non-AbortError', async () => {
+    const share = vi.fn().mockRejectedValue(new TypeError('not supported'));
+    const writeText = vi.fn().mockResolvedValue(undefined);
 
-    const mode = await shareFinalSplit({
-      image: new Blob(['image'], { type: 'image/png' }),
-      fileName: 'split-final.png',
-      navigator: {
-        share,
-        canShare,
-        clipboard: {} as Navigator['clipboard'],
-      },
+    const result = await shareText('hello', {
+      share,
+      canShare: vi.fn(),
+      clipboard: { writeText } as unknown as Navigator['clipboard'],
     });
-    expect(mode).toBe('fallback');
+
+    expect(result).toBe('fallback');
+    expect(writeText).toHaveBeenCalledWith('hello');
   });
 });
 

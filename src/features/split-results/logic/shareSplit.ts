@@ -5,12 +5,6 @@ type ShareNavigator = Pick<Navigator, 'share' | 'canShare' | 'clipboard'>;
 
 type ShareSupport = 'native' | 'fallback';
 
-type ShareFinalSplitOptions = {
-  image: Blob;
-  fileName: string;
-  navigator?: ShareNavigator;
-};
-
 export function buildSplitShareText(args: {
   people: Person[];
   receiptName: string;
@@ -36,16 +30,6 @@ export function getShareSupport(
   if (!navigatorLike || typeof navigatorLike.share !== 'function') {
     return 'fallback';
   }
-
-  if (typeof File === 'undefined') {
-    return 'fallback';
-  }
-
-  if (typeof navigatorLike.canShare === 'function') {
-    const probeFile = new File([''], 'split-final.png', { type: 'image/png' });
-    return navigatorLike.canShare({ files: [probeFile] }) ? 'native' : 'fallback';
-  }
-
   return 'native';
 }
 
@@ -60,34 +44,25 @@ export async function copyShareText(
   await navigatorLike.clipboard.writeText(text);
 }
 
-export async function shareFinalSplit(options: ShareFinalSplitOptions): Promise<ShareSupport> {
-  const navigatorLike = options.navigator ?? getNavigator();
+export async function shareText(
+  text: string,
+  navigatorLike: ShareNavigator | undefined = getNavigator(),
+): Promise<ShareSupport> {
   if (!navigatorLike || typeof navigatorLike.share !== 'function') {
-    return 'fallback';
-  }
-
-  if (typeof File === 'undefined') {
-    return 'fallback';
-  }
-
-  const file = new File([options.image], options.fileName, {
-    type: options.image.type || 'image/png',
-  });
-
-  if (typeof navigatorLike.canShare === 'function' && !navigatorLike.canShare({ files: [file] })) {
+    await copyShareText(text, navigatorLike);
     return 'fallback';
   }
 
   try {
-    await navigatorLike.share({ files: [file] });
+    await navigatorLike.share({ text });
+    return 'native';
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error;
     }
+    await copyShareText(text, navigatorLike);
     return 'fallback';
   }
-
-  return 'native';
 }
 
 export function downloadImage(blob: Blob, fileName: string): void {

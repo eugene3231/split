@@ -4,7 +4,7 @@ import { useReceiptSplit } from '@shared/hooks/useReceiptSplit';
 import { useReceiptStore } from '@shared/stores/receiptStore';
 import {
   buildSplitShareText,
-  shareFinalSplit,
+  shareText,
   copyShareText,
 } from '@features/split-results/logic/shareSplit';
 import {
@@ -129,35 +129,30 @@ describe('Export and sharing integration', () => {
     expect(consolidatedSplit.totalByPersonCents[bob.id]).toBeGreaterThan(1000);
   });
 
-  it('native share — shareFinalSplit returns native when navigator.share available', async () => {
+  it('native share — shareText returns native when navigator.share available', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
-    const canShare = vi.fn(() => true);
-    const blob = new Blob(['image'], { type: 'image/png' });
 
-    const mode = await shareFinalSplit({
-      image: blob,
-      fileName: 'split.png',
-      navigator: {
-        share,
-        canShare,
-        clipboard: {} as Navigator['clipboard'],
-      },
+    const mode = await shareText('summary text', {
+      share,
+      canShare: vi.fn(),
+      clipboard: {} as Navigator['clipboard'],
     });
 
     expect(mode).toBe('native');
-    expect(share).toHaveBeenCalledTimes(1);
+    expect(share).toHaveBeenCalledWith({ text: 'summary text' });
   });
 
-  it('fallback share — shareFinalSplit returns fallback when navigator.share unavailable', async () => {
-    const blob = new Blob(['image'], { type: 'image/png' });
+  it('fallback share — shareText falls back to clipboard when navigator.share unavailable', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
 
-    const mode = await shareFinalSplit({
-      image: blob,
-      fileName: 'split.png',
-      navigator: undefined,
+    const mode = await shareText('summary text', {
+      share: undefined as unknown as Navigator['share'],
+      canShare: vi.fn(),
+      clipboard: { writeText } as unknown as Navigator['clipboard'],
     });
 
     expect(mode).toBe('fallback');
+    expect(writeText).toHaveBeenCalledWith('summary text');
   });
 
   it('copyShareText — works with clipboard API', async () => {
