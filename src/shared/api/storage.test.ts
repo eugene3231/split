@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   LOCAL_STORAGE_DRAFT_KEY,
+  LOCAL_STORAGE_EXCHANGE_RATES_KEY,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
   defaultDiscountState,
@@ -12,12 +13,15 @@ import {
   clearSessionGeminiApiKey,
   exportDraftToJson,
   importDraftFromJson,
+  loadExchangeRates,
   loadPersistedDraft,
   loadPersistedOcrSettings,
   loadSessionGeminiApiKey,
+  saveExchangeRates,
   savePersistedDraft,
   savePersistedOcrSettings,
   saveSessionGeminiApiKey,
+  normalizePersistedFinalSplit,
 } from '@shared/api/storage';
 
 beforeEach(() => {
@@ -508,5 +512,107 @@ describe('storage availability failures', () => {
     expect(() => clearSessionGeminiApiKey()).not.toThrow();
 
     sessionStorageGetter.mockRestore();
+  });
+});
+
+describe('clearPersistedDraft', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('removes the draft key from localStorage', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_DRAFT_KEY,
+      JSON.stringify({
+        version: 2,
+        people: [],
+        receipts: [],
+        activeReceiptId: '',
+        payerMobile: '',
+        savedAt: '',
+      }),
+    );
+    expect(window.localStorage.getItem(LOCAL_STORAGE_DRAFT_KEY)).not.toBeNull();
+    clearPersistedDraft();
+    expect(window.localStorage.getItem(LOCAL_STORAGE_DRAFT_KEY)).toBeNull();
+  });
+});
+
+describe('loadExchangeRates', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('returns null when no rates are stored', () => {
+    expect(loadExchangeRates()).toBeNull();
+  });
+
+  it('returns rates from valid stored data', () => {
+    saveExchangeRates({ USD: 1.35, EUR: 1.25 });
+    const rates = loadExchangeRates();
+    expect(rates).toEqual({ USD: 1.35, EUR: 1.25 });
+  });
+
+  it('returns null when stored data is missing rates key', () => {
+    window.localStorage.setItem(LOCAL_STORAGE_EXCHANGE_RATES_KEY, JSON.stringify({ savedAt: 123 }));
+    expect(loadExchangeRates()).toBeNull();
+  });
+
+  it('returns null for malformed JSON', () => {
+    window.localStorage.setItem(LOCAL_STORAGE_EXCHANGE_RATES_KEY, '{broken');
+    expect(loadExchangeRates()).toBeNull();
+  });
+
+  it('filters out non-finite values', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_EXCHANGE_RATES_KEY,
+      JSON.stringify({ rates: { USD: 1.35, BAD: Infinity, WORSE: NaN, ZERO: 0 } }),
+    );
+    const rates = loadExchangeRates();
+    expect(rates).toEqual({ USD: 1.35, ZERO: 0 });
+  });
+});
+
+describe('loadPersistedOcrSettings', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('returns null for malformed JSON', () => {
+    window.localStorage.setItem(LOCAL_STORAGE_OCR_SETTINGS_KEY, '{invalid');
+    expect(loadPersistedOcrSettings()).toBeNull();
+  });
+
+  it('returns null for non-v1 version', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_OCR_SETTINGS_KEY,
+      JSON.stringify({ version: 2, geminiModel: 'test', savedAt: '' }),
+    );
+    expect(loadPersistedOcrSettings()).toBeNull();
+  });
+});
+
+describe('normalizePersistedFinalSplit', () => {
+  it('returns zeros for non-record input', () => {
+    const result = normalizePersistedFinalSplit('not an object');
+    expect(result).toEqual({
+      subtotalCents: 0,
+      serviceChargeCents: 0,
+      gstCents: 0,
+      grandTotalCents: 0,
+      totalByPersonCents: {},
+    });
+  });
+
+  it('normalizes a valid record', () => {
+    const result = normalizePersistedFinalSplit({
+      subtotalCents: 1000,
+      serviceChargeCents: 100,
+      gstCents: 70,
+      grandTotalCents: 1170,
+      totalByPersonCents: { p1: 600, p2: 570 },
+    });
+    expect(result.subtotalCents).toBe(1000);
+    expect(result.totalByPersonCents).toEqual({ p1: 600, p2: 570 });
   });
 });

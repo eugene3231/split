@@ -3,12 +3,46 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReceiptImportActions } from './ReceiptImportActions';
 
 let storeMock: Record<string, unknown>;
+let geminiStoreMock: Record<string, unknown> = {
+  geminiApiKeyInput: 'test-key',
+  setShowApiKeyModal: vi.fn(),
+};
 
 vi.mock('@shared/stores/receiptStore', () => ({
   useReceiptStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
     selector(storeMock),
   ),
 }));
+
+vi.mock('@shared/stores/scanStore', () => ({
+  useScanStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
+    selector(scanStoreMock),
+  ),
+  getScanState: vi.fn(
+    (map: Record<string, unknown>, id: string) => map[id] ?? defaultScanStateMock,
+  ),
+}));
+
+vi.mock('@shared/stores/geminiStore', () => ({
+  useGeminiStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
+    selector(geminiStoreMock),
+  ),
+}));
+
+vi.mock('zustand/shallow', () => ({
+  useShallow: (fn: (state: Record<string, unknown>) => unknown) => fn,
+}));
+
+const defaultScanStateMock = {
+  isScanning: false,
+  scanStatus: '',
+  scanError: null,
+  scanWarnings: [],
+  loadingMessage: '',
+  loadingMessageIndex: 0,
+};
+
+let scanStoreMock: Record<string, unknown> = { scanStateByReceipt: {} };
 
 function setStoreReceiptFile(file: File | null) {
   storeMock = {
@@ -21,10 +55,10 @@ function setStoreReceiptFile(file: File | null) {
       },
     ],
     activeReceiptId: 'r1',
+  };
+  scanStoreMock = {
+    ...scanStoreMock,
     scanStateByReceipt: {},
-    geminiApiKeyInput: 'test-key',
-    setReceiptCurrency: vi.fn(),
-    setShowApiKeyModal: vi.fn(),
   };
 }
 

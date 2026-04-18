@@ -97,4 +97,32 @@ describe('applyChargeDetection', () => {
     expect(next.percentInput).toBe('9');
     expect(next.detectedSource).toBeNull();
   });
+
+  it('resolves amount mode with unparseable amountInput as 0', () => {
+    expect(
+      resolveChargeCents(
+        {
+          ...baseChargeState,
+          mode: 'amount',
+          amountInput: 'not a number',
+        },
+        1000,
+        1000,
+      ),
+    ).toBe(0);
+  });
+
+  it('applies charge detection with amount 9.5 to set amount mode', () => {
+    const next = applyChargeDetection(baseChargeState, {
+      enabled: true,
+      amount: 9.5,
+      percent: null,
+      confidence: 0.8,
+      source: 'ocr',
+    });
+
+    expect(next.mode).toBe('amount');
+    expect(next.amountInput).toBe('9.50');
+    expect(next.detectedConfidence).toBe(0.8);
+  });
 });
