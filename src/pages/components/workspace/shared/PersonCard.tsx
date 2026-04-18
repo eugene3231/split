@@ -1,4 +1,5 @@
-import { formatCurrencyFromCents, parseNumber } from '@shared/logic/core/money';
+import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import { buildChargeLabel } from '@shared/logic/computation/chargeLabels';
 import type { ChargeState, Person, SplitResult } from '@shared/types';
 import { PersonAvatar } from '@pages/components/workspace/shared/PersonAvatar';
 
@@ -19,16 +20,6 @@ interface Props {
   receiptBreakdown?: ReceiptBreakdownEntry[];
   currency?: string;
   qrDataUrl?: string;
-}
-
-function buildChargeLabel(label: string, charge: ChargeState): string {
-  if (!charge.enabled) return `${label} (off)`;
-  if (charge.mode === 'percent') {
-    const parsed = parseNumber(charge.percentInput);
-    if (parsed !== null) return `${label} (${parsed.toFixed(2).replace(/\.?0+$/, '')}%)`;
-    return `${label} (%)`;
-  }
-  return label;
 }
 
 export function PersonCard({

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
-import { formatCurrencyFromCents, getCurrencySymbol } from '@shared/logic/core/money';
+import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight';
 import {
   buildSplitShareText,
@@ -10,13 +10,16 @@ import {
   shareFinalSplit,
 } from '@features/split-results/logic/shareSplit';
 import { PersonCard } from '@pages/components/workspace/shared/PersonCard';
-import { ReceiptNameField } from '@pages/components/workspace/shared/ReceiptNameField';
 import { BASE_CURRENCY } from '@shared/constants';
-import { cn } from '@shared/utils/cn';
 import { convertSplitResult } from '@shared/logic/core/exchangeRates';
 import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useCurrencyStore } from '@shared/stores/currencyStore';
 import { normalizeMobile } from '@shared/logic/core/paynow';
 import { generatePaynowQrDataUrls } from '@shared/logic/core/paynowQr';
+import { SummaryTabs } from './SummaryTabs';
+import { CurrencyToggle } from './CurrencyToggle';
+import { GrandTotalCard } from './GrandTotalCard';
+import { ExportActions } from './ExportActions';
 
 type Props = {
   people: Person[];
@@ -59,26 +62,10 @@ export function SummaryStep({
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
   const [copied, setCopied] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [editingTabId, setEditingTabId] = useState<string | null>(null);
-  const [editingTabName, setEditingTabName] = useState('');
-  const [mobileError, setMobileError] = useState<string | null>(null);
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
-  const tabInputRef = useRef<HTMLInputElement>(null);
   const copyTimeoutRef = useRef<number | null>(null);
 
   const payerMobile = useReceiptStore((s) => s.payerMobile);
-  const setPayerMobile = useReceiptStore((s) => s.setPayerMobile);
-
-  const startEditingTab = (id: string, name: string) => {
-    setEditingTabId(id);
-    setEditingTabName(name);
-    requestAnimationFrame(() => tabInputRef.current?.select());
-  };
-
-  const commitTabRename = () => {
-    if (editingTabId && editingTabName.trim()) onRenameReceipt(editingTabId, editingTabName.trim());
-    setEditingTabId(null);
-  };
 
   const activeReceiptIndex = receipts.findIndex((r) => r.id === activeTab);
   const currentSplit =
@@ -92,7 +79,7 @@ export function SummaryStep({
   const currentCurrency =
     activeTab === 'total' ? BASE_CURRENCY : (currentReceipt?.currency ?? BASE_CURRENCY);
   const isForeignCurrency = currentCurrency !== BASE_CURRENCY;
-  const exchangeRates = useReceiptStore((s) => s.exchangeRates);
+  const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
   const convertedSplit = isForeignCurrency
     ? convertSplitResult(
         currentSplit,
@@ -145,17 +132,6 @@ export function SummaryStep({
     // `sgdSplitForQr` transitively — no need to list them directly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payerMobile, qrAmountsKey]);
-
-  const handlePayerMobileChange = (value: string) => {
-    setPayerMobile(value);
-    setMobileError(null);
-  };
-
-  const handlePayerMobileBlur = () => {
-    if (payerMobile.trim() && !normalizeMobile(payerMobile)) {
-      setMobileError('Enter a valid SG mobile number, e.g. +65 9123 4567');
-    }
-  };
 
   const handleDownload = async () => {
     setBusy('downloading');
@@ -236,67 +212,12 @@ export function SummaryStep({
         </div>
 
         {isMultiReceipt && (
-          <div className="flex overflow-x-auto gap-3 pb-1" style={{ scrollbarWidth: 'none' }}>
-            <button
-              type="button"
-              data-testid="summary-tab-total"
-              onClick={() => setActiveTab('total')}
-              className={cn(
-                'flex-shrink-0 px-6 py-2.5 rounded-full font-bold transition-all',
-                activeTab === 'total'
-                  ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
-                  : 'bg-surface-container-high text-on-surface-variant font-semibold hover:bg-surface-container-highest',
-              )}
-            >
-              Total ({receipts.length} receipts)
-            </button>
-            {receipts.map((r, index) => (
-              <div
-                key={r.id}
-                data-testid={`summary-tab-receipt-${index}`}
-                onClick={() => setActiveTab(r.id)}
-                onDoubleClick={() => startEditingTab(r.id, r.name || `Receipt ${index + 1}`)}
-                className={cn(
-                  'flex-shrink-0 flex items-center gap-1.5 px-6 py-2.5 rounded-full font-semibold transition-all cursor-pointer select-none',
-                  activeTab === r.id
-                    ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
-                    : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest',
-                )}
-              >
-                {editingTabId === r.id ? (
-                  <input
-                    ref={tabInputRef}
-                    value={editingTabName}
-                    onChange={(e) => setEditingTabName(e.target.value)}
-                    onBlur={commitTabRename}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') commitTabRename();
-                      if (e.key === 'Escape') setEditingTabId(null);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    size={Math.max(editingTabName.length, 6)}
-                    className="bg-transparent outline-none font-semibold text-on-primary"
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    {r.name || `Receipt ${index + 1}`}
-                    {activeTab === r.id && (
-                      <span
-                        className="material-symbols-outlined !text-xs opacity-70"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEditingTab(r.id, r.name || `Receipt ${index + 1}`);
-                        }}
-                      >
-                        edit
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
+          <SummaryTabs
+            receipts={receipts}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onRenameReceipt={onRenameReceipt}
+          />
         )}
       </div>
 
@@ -341,34 +262,12 @@ export function SummaryStep({
         <div className="lg:col-span-8 order-2 lg:order-1">
           <div className="flex items-center justify-between mb-3">
             {isForeignCurrency || (activeTab === 'total' && hasAnyForeignReceipt) ? (
-              <div className="flex items-center gap-1 bg-surface-container rounded-full p-0.5 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setShowBaseCurrency(false)}
-                  className={cn(
-                    'px-3 py-1 rounded-full transition-all',
-                    !showBaseCurrency
-                      ? 'bg-primary text-on-primary shadow-sm'
-                      : 'text-on-surface-variant hover:text-on-surface',
-                  )}
-                >
-                  {activeTab === 'total'
-                    ? 'Original'
-                    : `${getCurrencySymbol(currentCurrency)} ${currentCurrency}`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowBaseCurrency(true)}
-                  className={cn(
-                    'px-3 py-1 rounded-full transition-all',
-                    showBaseCurrency
-                      ? 'bg-primary text-on-primary shadow-sm'
-                      : 'text-on-surface-variant hover:text-on-surface',
-                  )}
-                >
-                  {getCurrencySymbol(BASE_CURRENCY)} {BASE_CURRENCY}
-                </button>
-              </div>
+              <CurrencyToggle
+                showBaseCurrency={showBaseCurrency}
+                onToggle={setShowBaseCurrency}
+                activeTab={activeTab}
+                currentCurrency={currentCurrency}
+              />
             ) : (
               <span />
             )}
@@ -425,100 +324,21 @@ export function SummaryStep({
 
         {/* Right: Grand total + export */}
         <div className="lg:col-span-4 flex flex-col gap-4 order-1 lg:order-2">
-          {/* Grand total card */}
-          <div
-            className="rounded-2xl p-6 text-left shadow-md"
-            style={{ background: 'linear-gradient(135deg, #2d6a7f 0%, #1e5068 100%)' }}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <span className="text-sm font-bold uppercase tracking-widest text-white flex-1 min-w-0 mr-2">
-                {currentReceipt ? (
-                  <ReceiptNameField
-                    key={currentReceipt.id}
-                    name={currentReceipt.name}
-                    onRename={(name) => onRenameReceipt(currentReceipt.id, name)}
-                    className="text-white placeholder:text-white/40"
-                    iconClassName="text-white"
-                  />
-                ) : (
-                  'Grand Total'
-                )}
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
-                <span className="material-symbols-outlined text-white/50 text-sm">
-                  account_balance_wallet
-                </span>
-              </div>
-            </div>
-            <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-xl font-semibold text-white/60">
-                {getCurrencySymbol(displayCurrency)}
-              </span>
-              <span className="text-4xl font-semibold text-white font-headline leading-none">
-                {(grandTotal / 100).toFixed(2)}
-              </span>
-            </div>
-
-            {/* PayNow input */}
-            <div className="mb-4">
-              <label htmlFor="payer-mobile" className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-1.5">
-                Your PayNow Number
-              </label>
-              <input
-                id="payer-mobile"
-                type="tel"
-                value={payerMobile}
-                onChange={(e) => handlePayerMobileChange(e.target.value)}
-                onBlur={handlePayerMobileBlur}
-                placeholder="+65 9123 4567"
-                className="w-full bg-white/10 text-white placeholder:text-white/30 rounded-xl px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-white/30"
-              />
-              {mobileError && (
-                <p className="text-xs text-red-300 mt-1">{mobileError}</p>
-              )}
-            </div>
-
-            <div className="border-t border-white/10 pt-4 flex items-center gap-2.5">
-              <span
-                className="material-symbols-outlined !text-sm text-cyan-300"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                verified
-              </span>
-              <span className="text-sm font-medium text-white">
-                Fully reconciled across {people.length} {people.length === 1 ? 'person' : 'people'}
-              </span>
-            </div>
-          </div>
-
-          {/* Export actions */}
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              data-testid="export-save-image-btn"
-              onClick={handleDownload}
-              disabled={busy !== null}
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-surface-container-highest text-primary font-bold text-sm hover:bg-primary hover:text-on-primary transition-all disabled:opacity-60"
-            >
-              <span className="material-symbols-outlined text-base">
-                {nativeShareSupported ? 'share' : 'image'}
-              </span>
-              {busy === 'downloading' ? 'Generating…' : nativeShareSupported ? 'Share' : 'Save Image'}
-            </button>
-            <button
-              type="button"
-              data-testid="export-copy-text-btn"
-              onClick={handleCopy}
-              disabled={busy !== null}
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-outline-variant/30 text-primary font-bold text-sm hover:border-primary transition-all disabled:opacity-60"
-            >
-              <span className="material-symbols-outlined text-base">
-                {copied ? 'check' : 'content_copy'}
-              </span>
-              {copied ? 'Copied!' : busy === 'copying' ? 'Copying…' : 'Copy Text'}
-            </button>
-            {exportError && <p className="text-sm text-error">{exportError}</p>}
-          </div>
+          <GrandTotalCard
+            grandTotal={grandTotal}
+            displayCurrency={displayCurrency}
+            currentReceipt={currentReceipt ?? null}
+            people={people}
+            onRenameReceipt={onRenameReceipt}
+          />
+          <ExportActions
+            busy={busy}
+            copied={copied}
+            exportError={exportError}
+            nativeShareSupported={nativeShareSupported}
+            onDownload={handleDownload}
+            onCopy={handleCopy}
+          />
         </div>
       </div>
 

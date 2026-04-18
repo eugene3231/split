@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/shallow';
 import { computeSplit, computeConsolidatedSplit } from '@shared/logic/computation/split';
 import { useReconciliation } from '@shared/hooks/useReconciliation';
 import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useCurrencyStore } from '@shared/stores/currencyStore';
 import {
   BASE_CURRENCY,
   defaultDiscountState,
@@ -19,7 +20,7 @@ export function useReceiptSplit() {
       setDiscount: state.setDiscount,
     })),
   );
-  const exchangeRates = useReceiptStore((state) => state.exchangeRates);
+  const exchangeRates = useCurrencyStore((state) => state.exchangeRates);
 
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
 

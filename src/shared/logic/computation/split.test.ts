@@ -306,4 +306,114 @@ describe('computeSplit', () => {
     expect(split.subtotalByPersonCents.p1).toBe(500);
     expect(split.lineItemsByPerson.p1).toHaveLength(1);
   });
+
+  it('handles all-zero weight distribution by falling back to equal weights', () => {
+    const people: Person[] = [
+      { id: 'p1', name: 'Alice' },
+      { id: 'p2', name: 'Ben' },
+    ];
+
+    const items: EditableItem[] = [
+      {
+        id: 'item-1',
+        name: 'Free item',
+        amountInput: '0',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['p1', 'p2'],
+        },
+      },
+      {
+        id: 'item-2',
+        name: 'Paid item',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'single',
+          personId: 'p1',
+          personIds: ['p1'],
+        },
+      },
+    ];
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: { ...disabledCharge, enabled: true, mode: 'amount', amountInput: '0.00' },
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    expect(split.grandTotalCents).toBe(1000);
+    expect(split.totalByPersonCents.p1).toBe(1000);
+    expect(split.totalByPersonCents.p2).toBe(0);
+  });
+
+  it('distributes fractional remainders correctly across unequal shares', () => {
+    const people: Person[] = [
+      { id: 'p1', name: 'Alice' },
+      { id: 'p2', name: 'Ben' },
+      { id: 'p3', name: 'Cara' },
+    ];
+
+    const items: EditableItem[] = [
+      {
+        id: 'item-1',
+        name: 'Expensive',
+        amountInput: '100.01',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['p1', 'p2', 'p3'],
+        },
+      },
+    ];
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    const total =
+      split.totalByPersonCents.p1 + split.totalByPersonCents.p2 + split.totalByPersonCents.p3;
+    expect(total).toBe(split.grandTotalCents);
+  });
+
+  it('distributes charges equally when all subtotals are zero', () => {
+    const people: Person[] = [
+      { id: 'p1', name: 'Alice' },
+      { id: 'p2', name: 'Ben' },
+    ];
+
+    const items: EditableItem[] = [];
+
+    const serviceCharge: ChargeState = {
+      enabled: true,
+      mode: 'amount',
+      amountInput: '10.00',
+      percentInput: '',
+      detectedConfidence: null,
+      detectedSource: null,
+    };
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge,
+      gst: disabledCharge,
+    });
+
+    expect(split.subtotalCents).toBe(0);
+    expect(split.serviceChargeCents).toBe(1000);
+    expect(split.totalByPersonCents.p1).toBe(500);
+    expect(split.totalByPersonCents.p2).toBe(500);
+    expect(split.grandTotalCents).toBe(1000);
+  });
 });

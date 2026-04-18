@@ -24,7 +24,7 @@
 
 - **React 19 + TypeScript + Vite** — UI framework and build tooling
 - **Tailwind CSS 4** — Utility-first styling
-- **Zustand** — State management (`receiptStore` for all receipt data and actions)
+- **Zustand** — State management (split into `receiptStore`, `scanStore`, `geminiStore`, `currencyStore`)
 - **Zod** — Schema validation for Gemini API responses
 - **Vitest + Testing Library** — Unit testing
 
@@ -72,14 +72,20 @@ src/
       assignment/          # Item assignment utilities
       core/                # ID generation, money parsing/formatting
     stores/
-      receiptStore.ts      # Central Zustand store: all receipt data and actions
+      receiptStore.ts      # Workspace state: people, receipts, items, assignments
+      scanStore.ts         # Per-receipt scan state: loading, errors, warnings
+      geminiStore.ts       # API key, model selection, modal visibility
+      currencyStore.ts     # Exchange rate fetching and caching
     utils/
       personColors.ts      # Per-person colour palette
 ```
 
 **Key files:**
 
-- `src/shared/stores/receiptStore.ts` — Central Zustand store
+- `src/shared/stores/receiptStore.ts` — Workspace state (people, receipts, items, assignments)
+- `src/shared/stores/scanStore.ts` — Per-receipt scan state (loading, errors, warnings)
+- `src/shared/stores/geminiStore.ts` — API key, model selection, modal visibility
+- `src/shared/stores/currencyStore.ts` — Exchange rate fetching and caching
 - `src/features/receipt-scanner/logic/ocr.ts` — Gemini API call
 - `src/features/receipt-scanner/logic/gemini-schema.ts` — Zod schema (constrains Gemini output + validates response)
 - `src/shared/logic/computation/split.ts` — Split calculation engine
@@ -187,13 +193,12 @@ When a value requires a side effect to produce (e.g. `URL.createObjectURL`) but 
 
 ```tsx
 // ✅ useMemo derives the value; useEffect handles cleanup only
-const previewUrl = useMemo(
-  () => (file ? URL.createObjectURL(file) : null),
-  [file],
-);
+const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
 useEffect(() => {
-  return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+  return () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  };
 }, [previewUrl]);
 ```
 

@@ -50,6 +50,19 @@ describe('sanitizeItemAssignment', () => {
     expect(next.assignment.personId).toBe('p1');
   });
 
+  it('falls back to empty string for single assignment when people list is empty', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'single',
+        personId: 'missing',
+        personIds: ['p1', 'p2'],
+      },
+    });
+
+    const next = sanitizeItemAssignment(item, []);
+    expect(next.assignment.personId).toBe('');
+  });
+
   it('keeps valid single assignment unchanged', () => {
     const item = buildItem({
       assignment: {

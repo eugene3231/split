@@ -20,11 +20,18 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '.claude/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
-      include: [
-        'src/shared/logic/computation/**/*.ts',
-        'src/shared/api/storage.ts',
-        'src/features/receipt-import/logic/ocr.ts',
+      reporter: ['text', 'html', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: [
+        '**/*.test.{ts,tsx}',
+        '**/*.d.ts',
+        '**/ocrFixtures.ts',
+        '**/index.ts',
+        '**/receiptSplitImage*.ts',
+        '**/types.ts',
+        '**/constants.ts',
+        '**/components/**',
+        '**/pages/components/**',
       ],
     },
   },

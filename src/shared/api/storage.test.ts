@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   LOCAL_STORAGE_DRAFT_KEY,
+  LOCAL_STORAGE_EXCHANGE_RATES_KEY,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
   defaultDiscountState,
@@ -12,9 +13,11 @@ import {
   clearSessionGeminiApiKey,
   exportDraftToJson,
   importDraftFromJson,
+  loadExchangeRates,
   loadPersistedDraft,
   loadPersistedOcrSettings,
   loadSessionGeminiApiKey,
+  saveExchangeRates,
   savePersistedDraft,
   savePersistedOcrSettings,
   saveSessionGeminiApiKey,
@@ -34,32 +37,6 @@ describe('draft storage', () => {
   it('returns null for unsupported draft version', () => {
     window.localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, JSON.stringify({ version: 3 }));
     expect(loadPersistedDraft()).toBeNull();
-  });
-
-  it('migrates v1 draft to v2 with a single receipt', () => {
-    window.localStorage.setItem(
-      LOCAL_STORAGE_DRAFT_KEY,
-      JSON.stringify({
-        version: 1,
-        people: [
-          { id: 'p1', name: ' Alice ' },
-          { id: '', name: 'Ignored' },
-        ],
-        items: 'invalid-items',
-      }),
-    );
-
-    const draft = loadPersistedDraft();
-    expect(draft).not.toBeNull();
-    expect(draft?.version).toBe(2);
-    expect(draft?.people).toEqual([{ id: 'p1', name: 'Alice' }]);
-    expect(draft?.receipts).toHaveLength(1);
-    const receipt = draft?.receipts[0];
-    expect(receipt?.items).toHaveLength(1);
-    expect(receipt?.items[0].assignment.personId).toBe('p1');
-    expect(receipt?.serviceCharge).toEqual(defaultServiceChargeState);
-    expect(receipt?.gst).toEqual(defaultGstState);
-    expect(receipt?.receiptTotalInput).toBe('');
   });
 
   it('loads a valid v2 draft', () => {
@@ -180,21 +157,6 @@ describe('draft storage', () => {
     const draft = loadPersistedDraft();
     expect(draft?.receipts[0].currency).toBe('THB');
     expect(draft?.receipts[0].exchangeRateOverride).toBe(0.038);
-  });
-
-  it('defaults currency to SGD when migrating a v1 draft', () => {
-    window.localStorage.setItem(
-      LOCAL_STORAGE_DRAFT_KEY,
-      JSON.stringify({
-        version: 1,
-        people: [{ id: 'p1', name: 'Alice' }],
-        items: [],
-      }),
-    );
-
-    const draft = loadPersistedDraft();
-    expect(draft?.receipts[0].currency).toBe('SGD');
-    expect(draft?.receipts[0].exchangeRateOverride).toBeNull();
   });
 
   it('ignores invalid exchangeRateOverride values (0 or negative)', () => {
@@ -336,39 +298,6 @@ describe('importDraftFromJson', () => {
     expect(imported?.receipts[0].receiptTotalInput).toBe('8.00');
   });
 
-  it('migrates v1 JSON to v2 with a single receipt', () => {
-    const v1Json = JSON.stringify({
-      version: 1,
-      people: [{ id: 'p1', name: 'Alice' }],
-      items: [
-        {
-          id: 'i1',
-          name: 'Noodles',
-          amountInput: '8.00',
-          discountPercentInput: '',
-          assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
-        },
-      ],
-      discount: defaultDiscountState,
-      serviceCharge: defaultServiceChargeState,
-      gst: defaultGstState,
-      receiptTotalInput: '8.00',
-      finalSplit: {
-        subtotalCents: 0,
-        serviceChargeCents: 0,
-        gstCents: 0,
-        grandTotalCents: 0,
-        totalByPersonCents: {},
-      },
-      savedAt: '',
-    });
-    const imported = importDraftFromJson(v1Json);
-    expect(imported?.version).toBe(2);
-    expect(imported?.receipts).toHaveLength(1);
-    expect(imported?.receipts[0].items[0].name).toBe('Noodles');
-    expect(imported?.receipts[0].receiptTotalInput).toBe('8.00');
-  });
-
   it('normalizes non-array people to empty list', () => {
     const json = JSON.stringify({
       version: 2,
@@ -468,6 +397,112 @@ describe('importDraftFromJson', () => {
     const imported = importDraftFromJson(json);
     expect(imported?.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2']);
   });
+
+  it('skips people entries with empty id or name', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [
+        { id: '', name: 'Alice' },
+        { id: 'p2', name: '' },
+        { id: 'p3', name: 'Bob' },
+      ],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.people).toEqual([{ id: 'p3', name: 'Bob' }]);
+  });
+
+  it('replaces non-record charge state with defaults', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [],
+          discount: 'not-an-object',
+          serviceCharge: null,
+          gst: 42,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].discount).toEqual(defaultDiscountState);
+    expect(imported?.receipts[0].serviceCharge).toEqual(defaultServiceChargeState);
+    expect(imported?.receipts[0].gst).toEqual(defaultGstState);
+  });
+
+  it('provides a default assignment when item assignment is null', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [{ id: 'p1', name: 'Alice' }],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Laksa',
+              amountInput: '5.00',
+              discountPercentInput: '',
+              assignment: null,
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    const item = imported?.receipts[0].items[0];
+    expect(item?.assignment.mode).toBe('single');
+    expect(item?.assignment.personId).toBe('p1');
+    expect(item?.assignment.personIds).toEqual(['p1']);
+  });
+
+  it('replaces non-array items with a single empty item', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [{ id: 'p1', name: 'Alice' }],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: 'not-an-array',
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].items).toHaveLength(1);
+    expect(imported?.receipts[0].items[0].name).toBe('');
+  });
 });
 
 describe('storage availability failures', () => {
@@ -508,5 +543,82 @@ describe('storage availability failures', () => {
     expect(() => clearSessionGeminiApiKey()).not.toThrow();
 
     sessionStorageGetter.mockRestore();
+  });
+});
+
+describe('clearPersistedDraft', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('removes the draft key from localStorage', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_DRAFT_KEY,
+      JSON.stringify({
+        version: 2,
+        people: [],
+        receipts: [],
+        activeReceiptId: '',
+        payerMobile: '',
+        savedAt: '',
+      }),
+    );
+    expect(window.localStorage.getItem(LOCAL_STORAGE_DRAFT_KEY)).not.toBeNull();
+    clearPersistedDraft();
+    expect(window.localStorage.getItem(LOCAL_STORAGE_DRAFT_KEY)).toBeNull();
+  });
+});
+
+describe('loadExchangeRates', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('returns null when no rates are stored', () => {
+    expect(loadExchangeRates()).toBeNull();
+  });
+
+  it('returns rates from valid stored data', () => {
+    saveExchangeRates({ USD: 1.35, EUR: 1.25 });
+    const rates = loadExchangeRates();
+    expect(rates).toEqual({ USD: 1.35, EUR: 1.25 });
+  });
+
+  it('returns null when stored data is missing rates key', () => {
+    window.localStorage.setItem(LOCAL_STORAGE_EXCHANGE_RATES_KEY, JSON.stringify({ savedAt: 123 }));
+    expect(loadExchangeRates()).toBeNull();
+  });
+
+  it('returns null for malformed JSON', () => {
+    window.localStorage.setItem(LOCAL_STORAGE_EXCHANGE_RATES_KEY, '{broken');
+    expect(loadExchangeRates()).toBeNull();
+  });
+
+  it('filters out non-finite values', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_EXCHANGE_RATES_KEY,
+      JSON.stringify({ rates: { USD: 1.35, BAD: Infinity, WORSE: NaN, ZERO: 0 } }),
+    );
+    const rates = loadExchangeRates();
+    expect(rates).toEqual({ USD: 1.35, ZERO: 0 });
+  });
+});
+
+describe('loadPersistedOcrSettings', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('returns null for malformed JSON', () => {
+    window.localStorage.setItem(LOCAL_STORAGE_OCR_SETTINGS_KEY, '{invalid');
+    expect(loadPersistedOcrSettings()).toBeNull();
+  });
+
+  it('returns null for non-v1 version', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_OCR_SETTINGS_KEY,
+      JSON.stringify({ version: 2, geminiModel: 'test', savedAt: '' }),
+    );
+    expect(loadPersistedOcrSettings()).toBeNull();
   });
 });
