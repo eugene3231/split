@@ -1,6 +1,11 @@
 import { useMemo } from 'react';
 import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
 import { isSimpleItemAssigned } from '@pages/logic/wizardValidation';
+import {
+  togglePersonInAssignment,
+  selectAllPeople,
+  selectNone,
+} from '@shared/logic/assignment/assignActions';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import type { ItemsSubPhase } from '@pages/types';
 import { PersonAvatar } from '@pages/components/workspace/shared/PersonAvatar';
@@ -139,31 +144,18 @@ function AssignPhase({
 
   const handleTogglePerson = (personId: string, checked: boolean) => {
     if (!activeItem) return;
-    onUpdateItem(activeItem.id, (currentItem) => {
-      const currentIds = new Set(currentItem.assignment.personIds);
-      if (checked) currentIds.add(personId);
-      else currentIds.delete(personId);
-      return {
-        ...currentItem,
-        assignment: { mode: 'equal', personId: '', personIds: Array.from(currentIds) },
-      };
-    });
+    const updated = togglePersonInAssignment(personId, checked, activeItem);
+    onUpdateItem(activeItem.id, () => updated);
   };
 
   const handleSelectAll = () => {
     if (!activeItem) return;
-    onUpdateItem(activeItem.id, (current) => ({
-      ...current,
-      assignment: { mode: 'equal', personId: '', personIds: people.map((p) => p.id) },
-    }));
+    onUpdateItem(activeItem.id, () => selectAllPeople(people, activeItem));
   };
 
   const handleSelectNone = () => {
     if (!activeItem) return;
-    onUpdateItem(activeItem.id, (current) => ({
-      ...current,
-      assignment: { mode: 'equal', personId: '', personIds: [] },
-    }));
+    onUpdateItem(activeItem.id, () => selectNone(activeItem));
   };
 
   if (!activeItem) {

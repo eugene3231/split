@@ -1,5 +1,6 @@
 import type { EditableItem, Person } from '@shared/types';
-import { createId, sameStringArray } from '@shared/logic/core/id';
+import { createId } from '@shared/logic/core/id';
+import { isEqual } from 'lodash-es';
 
 export function createEmptyItem(people: Person[]): EditableItem {
   return {
@@ -39,7 +40,7 @@ export function sanitizeItemAssignment(item: EditableItem, people: Person[]): Ed
   const filteredIds = item.assignment.personIds.filter((personId) => validIds.has(personId));
   const nextIds = Array.from(new Set(filteredIds));
 
-  if (sameStringArray(nextIds, item.assignment.personIds)) {
+  if (isEqual(nextIds, item.assignment.personIds)) {
     return item;
   }
 

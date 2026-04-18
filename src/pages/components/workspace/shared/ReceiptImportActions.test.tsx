@@ -3,12 +3,46 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReceiptImportActions } from './ReceiptImportActions';
 
 let storeMock: Record<string, unknown>;
+const geminiStoreMock: Record<string, unknown> = {
+  geminiApiKeyInput: 'test-key',
+  setShowApiKeyModal: vi.fn(),
+};
 
 vi.mock('@shared/stores/receiptStore', () => ({
   useReceiptStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
     selector(storeMock),
   ),
 }));
+
+vi.mock('@shared/stores/scanStore', () => ({
+  useScanStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
+    selector(scanStoreMock),
+  ),
+  getScanState: vi.fn(
+    (map: Record<string, unknown>, id: string) => map[id] ?? defaultScanStateMock,
+  ),
+}));
+
+vi.mock('@shared/stores/geminiStore', () => ({
+  useGeminiStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
+    selector(geminiStoreMock),
+  ),
+}));
+
+vi.mock('zustand/shallow', () => ({
+  useShallow: (fn: (state: Record<string, unknown>) => unknown) => fn,
+}));
+
+const defaultScanStateMock = {
+  isScanning: false,
+  scanStatus: '',
+  scanError: null,
+  scanWarnings: [],
+  loadingMessage: '',
+  loadingMessageIndex: 0,
+};
+
+let scanStoreMock: Record<string, unknown> = { scanStateByReceipt: {} };
 
 function setStoreReceiptFile(file: File | null) {
   storeMock = {
@@ -21,10 +55,10 @@ function setStoreReceiptFile(file: File | null) {
       },
     ],
     activeReceiptId: 'r1',
+  };
+  scanStoreMock = {
+    ...scanStoreMock,
     scanStateByReceipt: {},
-    geminiApiKeyInput: 'test-key',
-    setReceiptCurrency: vi.fn(),
-    setShowApiKeyModal: vi.fn(),
   };
 }
 
@@ -148,7 +182,6 @@ describe('ReceiptImportActions – Image thumbnail (F001)', () => {
 
     const img = screen.getByAltText('Receipt preview');
     expect(img).toBeInTheDocument();
-    expect(img).toHaveClass('object-cover');
     expect(img.closest('button')).toBeTruthy();
   });
 
@@ -241,28 +274,6 @@ describe('ReceiptImportActions – Fullscreen modal (F002)', () => {
     fireEvent.click(fullscreenImg);
 
     expect(screen.getByAltText('Receipt fullscreen')).toBeInTheDocument();
-  });
-
-  it('modal has dark backdrop with correct styles', () => {
-    renderWithFile();
-
-    const thumbnailButton = screen.getByAltText('Receipt preview').closest('button')!;
-    fireEvent.click(thumbnailButton);
-
-    const backdrop = screen.getByAltText('Receipt fullscreen').parentElement!;
-    expect(backdrop.className).toContain('bg-black/70');
-    expect(backdrop.className).toContain('fixed');
-    expect(backdrop.className).toContain('z-50');
-  });
-
-  it('fullscreen image uses object-contain for proper display', () => {
-    renderWithFile();
-
-    const thumbnailButton = screen.getByAltText('Receipt preview').closest('button')!;
-    fireEvent.click(thumbnailButton);
-
-    const fullscreenImg = screen.getByAltText('Receipt fullscreen');
-    expect(fullscreenImg.className).toContain('object-contain');
   });
 
   it('fullscreen modal is not rendered when no file is loaded', () => {

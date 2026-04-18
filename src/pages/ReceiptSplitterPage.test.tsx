@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GEMINI_MODEL } from '@shared/constants';
 import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useGeminiStore } from '@shared/stores/geminiStore';
 
 const { generateReceiptSplitImageLightMock } = vi.hoisted(() => ({
   generateReceiptSplitImageLightMock: vi.fn(),
@@ -21,12 +22,13 @@ import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage';
 function resetStore() {
   useReceiptStore.setState({
     peopleInput: '',
+    initialized: false,
+  });
+  useGeminiStore.setState({
     geminiApiKeyInput: 'test-key',
     rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
-    scanStateByReceipt: {},
     showApiKeyModal: false,
-    initialized: false,
   });
 }
 
@@ -577,7 +579,7 @@ describe('ReceiptSplitterPage integration', () => {
 
   describe('GeminiApiKeyModal', () => {
     beforeEach(() => {
-      useReceiptStore.setState({ geminiApiKeyInput: '' });
+      useGeminiStore.setState({ geminiApiKeyInput: '' });
     });
 
     it('shows the modal when navigating from people to receipt without an API key', async () => {
@@ -595,7 +597,7 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue();
       fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
       expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument();
-      expect(useReceiptStore.getState().geminiApiKeyInput).toBe('');
+      expect(useGeminiStore.getState().geminiApiKeyInput).toBe('');
     });
 
     it('saving a key closes the modal and persists the value in the store', async () => {
@@ -606,11 +608,11 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.change(screen.getByLabelText(/API Key/i), { target: { value: 'my-gemini-key' } });
       fireEvent.click(screen.getByRole('button', { name: /Save/i }));
       expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument();
-      expect(useReceiptStore.getState().geminiApiKeyInput).toBe('my-gemini-key');
+      expect(useGeminiStore.getState().geminiApiKeyInput).toBe('my-gemini-key');
     });
 
     it('does not show the modal when an API key is already set', async () => {
-      useReceiptStore.setState({ geminiApiKeyInput: 'existing-key' });
+      useGeminiStore.setState({ geminiApiKeyInput: 'existing-key' });
       seedV2Draft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());

@@ -81,6 +81,10 @@ describe('getEffectiveRate', () => {
     // override of 0 is invalid, should fall through to rates map
     expect(getEffectiveRate('USD', rates, 0)).toBe(1.35);
   });
+
+  it('returns 1 for completely unknown currency not in rates or fallbacks', () => {
+    expect(getEffectiveRate('ZZZ', {}, null)).toBe(1);
+  });
 });
 
 // ─── convertCents ─────────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useScanStore, getScanState } from '@shared/stores/scanStore';
+import { useGeminiStore } from '@shared/stores/geminiStore';
 import { cn } from '@shared/utils/cn';
 
 interface Props {
@@ -18,29 +20,29 @@ export function ReceiptImportActions({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const { hasApiKey, receiptFile, isScanning, scanStatus, scanError, loadingMessage } =
-    useReceiptStore(
-      useShallow((state) => {
-        const active = state.receipts.find((r) => r.id === state.activeReceiptId);
-        const scanState = state.scanStateByReceipt[state.activeReceiptId];
-        return {
-          hasApiKey: state.geminiApiKeyInput.trim().length > 0,
-          receiptFile: active?.receiptFile ?? null,
-          isScanning: scanState?.isScanning ?? false,
-          scanStatus: scanState?.scanStatus ?? '',
-          scanError: scanState?.scanError ?? null,
-          loadingMessage: scanState?.loadingMessage ?? '',
-        };
-      }),
-    );
-  const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal);
+  const hasApiKey = useGeminiStore((s) => s.geminiApiKeyInput.trim().length > 0);
+  const receiptFile = useReceiptStore(
+    useShallow((s) => s.receipts.find((r) => r.id === s.activeReceiptId)?.receiptFile ?? null),
+  );
+  const activeReceiptId = useReceiptStore((s) => s.activeReceiptId);
+  const scan = useScanStore(
+    useShallow((s) => {
+      const ss = getScanState(s.scanStateByReceipt, activeReceiptId);
+      return {
+        isScanning: ss.isScanning,
+        scanStatus: ss.scanStatus,
+        scanError: ss.scanError,
+        loadingMessage: ss.loadingMessage,
+      };
+    }),
+  );
+  const setShowApiKeyModal = useGeminiStore((s) => s.setShowApiKeyModal);
 
   const previewUrl = useMemo(
     () => (receiptFile?.type.startsWith('image/') ? URL.createObjectURL(receiptFile) : null),
     [receiptFile],
   );
 
-  // Revoke the object URL when it changes (file swapped) or on unmount.
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -72,7 +74,6 @@ export function ReceiptImportActions({
         Scan Receipt
       </h4>
 
-      {/* Upload + Capture tiles */}
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col items-center justify-center p-4 bg-surface-container-low rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
           <span className="material-symbols-outlined text-primary mb-2">upload_file</span>
@@ -100,7 +101,6 @@ export function ReceiptImportActions({
         </label>
       </div>
 
-      {/* Ready to scan row — shown once a file is selected */}
       {receiptFile && (
         <div className="pt-3 border-t border-surface-container-high space-y-3">
           <div className="flex items-center gap-2 text-xs text-on-surface-variant">
@@ -171,27 +171,26 @@ export function ReceiptImportActions({
             type="button"
             data-testid="scan-receipt-btn"
             onClick={onScanReceipt}
-            disabled={isScanning || !hasApiKey}
+            disabled={scan.isScanning || !hasApiKey}
             className={cn(
               'w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95',
-              isScanning || !hasApiKey
+              scan.isScanning || !hasApiKey
                 ? 'bg-surface-container-high text-on-surface-variant cursor-not-allowed opacity-50'
                 : 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/20',
             )}
           >
             <span className="material-symbols-outlined text-sm">
-              {isScanning ? 'sync' : 'document_scanner'}
+              {scan.isScanning ? 'sync' : 'document_scanner'}
             </span>
-            {isScanning ? loadingMessage || 'Scanning…' : 'Scan Receipt'}
+            {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan Receipt'}
           </button>
-          {scanStatus && !isScanning && (
-            <p className="text-xs text-secondary font-medium">{scanStatus}</p>
+          {scan.scanStatus && !scan.isScanning && (
+            <p className="text-xs text-secondary font-medium">{scan.scanStatus}</p>
           )}
-          {scanError && <p className="text-xs text-error font-medium">{scanError}</p>}
+          {scan.scanError && <p className="text-xs text-error font-medium">{scan.scanError}</p>}
         </div>
       )}
 
-      {/* Mock receipts */}
       {mockReceipts.length > 0 && (
         <div className="pt-3 border-t border-surface-container-high flex items-center gap-2 flex-wrap">
           {mockReceipts.map(({ onLoad }, i) => (
