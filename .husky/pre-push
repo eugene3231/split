@@ -1,1 +1,3 @@
-pnpm prepush
+pnpm typecheck
+pnpm test
+pnpm build
