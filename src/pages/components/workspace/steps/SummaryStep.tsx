@@ -6,6 +6,8 @@ import {
   buildSplitShareText,
   copyShareText,
   downloadImage,
+  getShareSupport,
+  shareFinalSplit,
 } from '@features/split-results/logic/shareSplit';
 import { PersonCard } from '@pages/components/workspace/shared/PersonCard';
 import { ReceiptNameField } from '@pages/components/workspace/shared/ReceiptNameField';
@@ -114,6 +116,8 @@ export function SummaryStep({
 
   const grandTotal = Object.values(displaySplit.totalByPersonCents).reduce((s, v) => s + v, 0);
 
+  const nativeShareSupported = getShareSupport() === 'native';
+
   const handleDownload = async () => {
     setBusy('downloading');
     setExportError(null);
@@ -131,8 +135,16 @@ export function SummaryStep({
         includeItemDetails: showDetails,
         currency: displayCurrency,
       });
-      await downloadImage(blob, 'split-result.png');
-    } catch {
+      if (nativeShareSupported) {
+        const result = await shareFinalSplit({ image: blob, fileName: 'split-result.png' });
+        if (result === 'fallback') {
+          await downloadImage(blob, 'split-result.png');
+        }
+      } else {
+        await downloadImage(blob, 'split-result.png');
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
       setExportError('Failed to generate image.');
     } finally {
       setBusy(null);
@@ -426,8 +438,10 @@ export function SummaryStep({
               disabled={busy !== null}
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-surface-container-highest text-primary font-bold text-sm hover:bg-primary hover:text-on-primary transition-all disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-base">image</span>
-              {busy === 'downloading' ? 'Generating…' : 'Save Image'}
+              <span className="material-symbols-outlined text-base">
+                {nativeShareSupported ? 'share' : 'image'}
+              </span>
+              {busy === 'downloading' ? 'Generating…' : nativeShareSupported ? 'Share' : 'Save Image'}
             </button>
             <button
               type="button"
