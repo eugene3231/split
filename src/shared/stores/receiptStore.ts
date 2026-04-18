@@ -397,10 +397,9 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     },
     handleLoadMockWorkspace: () => {
       const people = ['Alice', 'Bob', 'Charlie', 'David'].map((name) => ({ id: createId(), name }));
-      const receipts = MOCK_RECEIPT_FIXTURES.map((fixture) => ({
-        ...createBlankReceipt(people, fixture.label),
-        id: createId(),
-      }));
+      const receipts = MOCK_RECEIPT_FIXTURES.map((fixture) =>
+        createBlankReceipt(people, fixture.label),
+      );
       set({ people, receipts, activeReceiptId: receipts[0].id });
       useScanStore.getState().resetScanStates();
       MOCK_RECEIPT_FIXTURES.forEach((fixture, i) => {

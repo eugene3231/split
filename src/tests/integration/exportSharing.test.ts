@@ -7,8 +7,8 @@ import {
   shareFinalSplit,
   copyShareText,
 } from '@features/split-results/logic/shareSplit';
-import { percentCharge } from './testHelpers';
 import {
+  percentCharge,
   resetAllStores,
   seedStore,
   makePerson,
