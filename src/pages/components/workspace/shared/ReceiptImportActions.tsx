@@ -36,7 +36,7 @@ export function ReceiptImportActions({
   const setShowApiKeyModal = useReceiptStore((state) => state.setShowApiKeyModal);
 
   const previewUrl = useMemo(
-    () => (receiptFile ? URL.createObjectURL(receiptFile) : null),
+    () => (receiptFile?.type.startsWith('image/') ? URL.createObjectURL(receiptFile) : null),
     [receiptFile],
   );
 
@@ -122,6 +122,7 @@ export function ReceiptImportActions({
             <button
               type="button"
               onClick={() => setIsFullscreen(true)}
+              aria-label={`Open fullscreen preview of ${receiptFile.name}`}
               className="truncate flex-1 text-left cursor-pointer hover:text-primary transition-colors"
             >
               {receiptFile.name}
@@ -217,6 +218,7 @@ export function ReceiptImportActions({
         >
           <button
             type="button"
+            autoFocus
             onClick={() => setIsFullscreen(false)}
             className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer"
             aria-label="Close preview"

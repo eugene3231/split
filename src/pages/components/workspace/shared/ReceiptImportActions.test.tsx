@@ -197,11 +197,11 @@ describe('ReceiptImportActions – Fullscreen modal (F002)', () => {
     expect(screen.getByAltText('Receipt fullscreen')).toBeInTheDocument();
   });
 
-  it('clicking the fullscreen icon opens the modal when image is loaded', () => {
+  it('clicking the filename opens the fullscreen modal', () => {
     renderWithFile();
 
-    const fullscreenBtn = screen.getByRole('button', { name: /view fullscreen/i });
-    fireEvent.click(fullscreenBtn);
+    const filenameBtn = screen.getByRole('button', { name: /open fullscreen preview/i });
+    fireEvent.click(filenameBtn);
 
     expect(screen.getByAltText('Receipt fullscreen')).toBeInTheDocument();
   });
