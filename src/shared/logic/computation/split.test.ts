@@ -384,4 +384,36 @@ describe('computeSplit', () => {
       split.totalByPersonCents.p1 + split.totalByPersonCents.p2 + split.totalByPersonCents.p3;
     expect(total).toBe(split.grandTotalCents);
   });
+
+  it('distributes charges equally when all subtotals are zero', () => {
+    const people: Person[] = [
+      { id: 'p1', name: 'Alice' },
+      { id: 'p2', name: 'Ben' },
+    ];
+
+    const items: EditableItem[] = [];
+
+    const serviceCharge: ChargeState = {
+      enabled: true,
+      mode: 'amount',
+      amountInput: '10.00',
+      percentInput: '',
+      detectedConfidence: null,
+      detectedSource: null,
+    };
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge,
+      gst: disabledCharge,
+    });
+
+    expect(split.subtotalCents).toBe(0);
+    expect(split.serviceChargeCents).toBe(1000);
+    expect(split.totalByPersonCents.p1).toBe(500);
+    expect(split.totalByPersonCents.p2).toBe(500);
+    expect(split.grandTotalCents).toBe(1000);
+  });
 });

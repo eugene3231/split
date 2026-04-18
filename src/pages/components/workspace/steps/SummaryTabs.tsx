@@ -30,6 +30,7 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
       <button
         type="button"
         data-testid="summary-tab-total"
+        data-active={activeTab === 'total' ? 'true' : undefined}
         onClick={() => onTabChange('total')}
         className={cn(
           'flex-shrink-0 px-6 py-2.5 rounded-full font-bold transition-all',
@@ -44,6 +45,7 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
         <div
           key={r.id}
           data-testid={`summary-tab-receipt-${index}`}
+          data-active={activeTab === r.id ? 'true' : undefined}
           onClick={() => onTabChange(r.id)}
           onDoubleClick={() => startEditingTab(r.id, r.name || `Receipt ${index + 1}`)}
           className={cn(

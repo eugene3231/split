@@ -1,4 +1,5 @@
 import { cn } from '@shared/utils/cn';
+import { getContinueLabel } from '@pages/logic/wizardSteps';
 import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
 
 interface Props {
@@ -9,18 +10,6 @@ interface Props {
   onBack: () => void;
   onNext: () => void;
   grandTotalFormatted?: string;
-}
-
-function getContinueLabel(
-  activeStep: SimpleWizardStep,
-  itemsSubPhase: ItemsSubPhase,
-  isLastAssignableItem: boolean,
-): string {
-  if (activeStep === 'people') return 'Add Receipts';
-  if (activeStep === 'receipt') return 'Assign Items';
-  if (activeStep === 'items' && itemsSubPhase === 'assign')
-    return isLastAssignableItem ? 'Review Items' : 'Next Item';
-  return 'Summary';
 }
 
 export function BottomNav({

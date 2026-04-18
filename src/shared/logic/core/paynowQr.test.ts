@@ -53,4 +53,16 @@ describe('generatePaynowQrDataUrls', () => {
     );
     expect(result.p1).toBe('data:image/png;base64,mockqr');
   });
+
+  it('returns empty string for person when QR generation fails', async () => {
+    const { default: QRCode } = await import('qrcode');
+    (QRCode.toDataURL as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('QR fail'));
+
+    const result = await generatePaynowQrDataUrls(
+      makePeople(['Alice']),
+      makeSplit({ p1: 1000 }),
+      '+6591234567',
+    );
+    expect(result.p1).toBe('');
+  });
 });

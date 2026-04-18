@@ -86,7 +86,7 @@ describe('SummaryTabs', () => {
     expect(onTabChange).toHaveBeenCalledWith('total');
   });
 
-  it('highlights the active tab', () => {
+  it('marks the active tab as active', () => {
     const receipts = [makeReceipt('r1', 'Dinner')];
     render(
       <SummaryTabs
@@ -98,6 +98,6 @@ describe('SummaryTabs', () => {
     );
 
     const receiptTab = screen.getByTestId('summary-tab-receipt-0');
-    expect(receiptTab.className).toContain('bg-primary');
+    expect(receiptTab).toHaveAttribute('data-active', 'true');
   });
 });
