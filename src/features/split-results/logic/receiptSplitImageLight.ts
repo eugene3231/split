@@ -65,14 +65,24 @@ function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): 
     y += 72 + BETWEEN_CARD_GAP;
   } else {
     for (let rowStart = 0; rowStart < options.people.length; rowStart += COLS) {
-      const rowPeople = options.people.slice(rowStart, Math.min(rowStart + COLS, options.people.length));
+      const rowPeople = options.people.slice(
+        rowStart,
+        Math.min(rowStart + COLS, options.people.length),
+      );
       let rowHeight = 0;
       for (const person of rowPeople) {
         const amountCents = sgdSplit.totalByPersonCents[person.id] ?? 0;
         const hasQr = hasValidMobile && amountCents > 0;
         rowHeight = Math.max(
           rowHeight,
-          measurePersonCardHeight(person.id, options.split, options.receipts, options.splitByReceipt, options.includeItemDetails, hasQr),
+          measurePersonCardHeight(
+            person.id,
+            options.split,
+            options.receipts,
+            options.splitByReceipt,
+            options.includeItemDetails,
+            hasQr,
+          ),
         );
       }
       y += rowHeight + BETWEEN_CARD_GAP;
@@ -129,7 +139,11 @@ export async function generateReceiptSplitImageLight(
   if (!ctx) throw new Error('Unable to initialize canvas renderer.');
 
   // Pre-generate QR images (async, before any drawing)
-  const qrImages = await preloadQrImages(options.people, options.sgdSplit ?? options.split, options.payerMobile);
+  const qrImages = await preloadQrImages(
+    options.people,
+    options.sgdSplit ?? options.split,
+    options.payerMobile,
+  );
 
   // Light background
   ctx.fillStyle = '#f5f5f5';
