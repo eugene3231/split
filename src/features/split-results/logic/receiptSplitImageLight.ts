@@ -28,6 +28,7 @@ type GenerateReceiptSplitImageLightOptions = {
 };
 
 // Layout constants
+const CANVAS_PADDING = 56; // horizontal/vertical page margin
 const CARD_PAD = 32;
 const AVATAR_RADIUS = 22;
 const AVATAR_GAP = 16; // gap between avatar and name
@@ -40,13 +41,14 @@ const DIVIDER_H = 22; // space around divider line
 const BODY_TOP_PAD = 24; // gap between header and nested card
 const NESTED_BOTTOM_PAD = 24; // padding below last charge row inside nested card
 const BETWEEN_CARD_GAP = 20; // vertical gap between person cards
+const GRAND_TOTAL_CARD_H = 116; // fixed height of the grand total card
+const GRAND_TOTAL_AFTER_GAP = 32; // gap below grand total card
 
 function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): number {
   const COLS = 2;
-  const cardWidth = CANVAS_WIDTH - 56 * 2;
 
-  let y = 56 + 36 + 40; // start + title + subtitle
-  y += 116 + 32; // grand total card height + gap
+  let y = CANVAS_PADDING + 36 + 40; // start + title + subtitle
+  y += GRAND_TOTAL_CARD_H + GRAND_TOTAL_AFTER_GAP;
 
   if (options.people.length === 0) {
     y += 72 + BETWEEN_CARD_GAP;
@@ -68,7 +70,7 @@ function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): 
     y += 72 + BETWEEN_CARD_GAP;
   }
 
-  return Math.max(240, Math.ceil(y + 56));
+  return Math.max(240, Math.ceil(y + CANVAS_PADDING));
 }
 
 export async function generateReceiptSplitImageLight(
@@ -89,8 +91,8 @@ export async function generateReceiptSplitImageLight(
   ctx.fillStyle = '#f5f5f5';
   ctx.fillRect(0, 0, scratch.width, scratch.height);
 
-  let y = 56;
-  const x = 56;
+  let y = CANVAS_PADDING;
+  const x = CANVAS_PADDING;
   const cardWidth = CANVAS_WIDTH - x * 2;
 
   // Title
@@ -112,7 +114,7 @@ export async function generateReceiptSplitImageLight(
     split: options.split,
     currency: options.currency,
   });
-  y += 32;
+  y += GRAND_TOTAL_AFTER_GAP;
 
   // Person cards — 2-column grid
   if (options.people.length === 0) {
@@ -188,7 +190,7 @@ export async function generateReceiptSplitImageLight(
     y += warnH + BETWEEN_CARD_GAP;
   }
 
-  const requiredHeight = Math.max(240, Math.ceil(y + 56));
+  const requiredHeight = Math.max(240, Math.ceil(y + CANVAS_PADDING));
 
   const output = document.createElement('canvas');
   output.width = CANVAS_WIDTH;
@@ -210,7 +212,7 @@ type GrandTotalCardArgs = {
 };
 
 function drawGrandTotalCard(ctx: CanvasRenderingContext2D, args: GrandTotalCardArgs): number {
-  const h = 116;
+  const h = GRAND_TOTAL_CARD_H;
 
   ctx.save();
   const grad = ctx.createLinearGradient(args.x, args.y, args.x + args.width, args.y);
