@@ -15,6 +15,8 @@ Scan a receipt, assign items, and share the result — no accounts or invites ne
 - **Manual overrides** — edit any extracted item or charge before finalising
 - **Per-person breakdown** — view each person's total with a full item, taxes, and service charge breakdown
 - **Auto-save** — progress is saved to localStorage so nothing is lost on refresh
+- **Multi-currency** — each receipt can use a different currency, with live exchange rates and a toggle to view totals in SGD
+- **PayNow QR** — enter your PayNow mobile number and per-person QR codes are generated for instant payment (also embedded in exported images)
 - **Shareable summary** — export as an image or text summary to send to your group chat for easy bill collection
 
 ## Stack
