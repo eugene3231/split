@@ -143,7 +143,8 @@ export function SummaryStep({
       } else {
         await downloadImage(blob, 'split-result.png');
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
       setExportError('Failed to generate image.');
     } finally {
       setBusy(null);
