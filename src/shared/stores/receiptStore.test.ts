@@ -509,7 +509,13 @@ describe('receiptStore additional coverage', () => {
       total: 10.45,
       detected: {
         gst: { enabled: true, amount: null, percent: 9, confidence: 0.95, source: 'mock' },
-        serviceCharge: { enabled: false, amount: null, percent: null, confidence: null, source: '' },
+        serviceCharge: {
+          enabled: false,
+          amount: null,
+          percent: null,
+          confidence: null,
+          source: '',
+        },
       },
       warnings: [],
     });
