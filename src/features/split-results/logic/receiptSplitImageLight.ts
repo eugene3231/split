@@ -12,6 +12,7 @@ import {
   drawRoundedRect,
   drawLightTwoColumnRow,
 } from '@features/split-results/logic/receiptSplitImageLightHelpers';
+import { normalizeMobile } from '@shared/logic/core/paynow';
 import { generatePaynowQrDataUrls } from '@shared/logic/core/paynowQr';
 
 type GenerateReceiptSplitImageLightOptions = {
@@ -54,6 +55,8 @@ const GRAND_TOTAL_AFTER_GAP = 32; // gap below grand total card
 
 function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): number {
   const COLS = 2;
+  const hasValidMobile = !!options.payerMobile && !!normalizeMobile(options.payerMobile);
+  const sgdSplit = options.sgdSplit ?? options.split;
 
   let y = CANVAS_PADDING + 36 + 40; // start + title + subtitle
   y += GRAND_TOTAL_CARD_H + GRAND_TOTAL_AFTER_GAP;
@@ -65,9 +68,11 @@ function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): 
       const rowPeople = options.people.slice(rowStart, Math.min(rowStart + COLS, options.people.length));
       let rowHeight = 0;
       for (const person of rowPeople) {
+        const amountCents = sgdSplit.totalByPersonCents[person.id] ?? 0;
+        const hasQr = hasValidMobile && amountCents > 0;
         rowHeight = Math.max(
           rowHeight,
-          measurePersonCardHeight(person.id, options.split, options.receipts, options.splitByReceipt, options.includeItemDetails),
+          measurePersonCardHeight(person.id, options.split, options.receipts, options.splitByReceipt, options.includeItemDetails, hasQr),
         );
       }
       y += rowHeight + BETWEEN_CARD_GAP;
