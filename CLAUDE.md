@@ -15,10 +15,11 @@
 **Key features:**
 
 - Gemini-powered OCR (no backend — calls Gemini directly from the browser)
-- Simple mode (4-step wizard) and Advanced mode (more granular control)
 - Per-item discounts and global charges (tax, service charge, global discount)
+- Multi-currency receipts with exchange rate conversion (base currency: SGD)
+- PayNow QR code generation per person so they can pay directly from the summary screen
 - Auto-save to localStorage — progress persists across page refreshes
-- Export as PNG or text summary for sharing in group chats
+- Export as PNG or share/copy text summary for group chats
 
 ## Tech Stack
 
@@ -59,6 +60,7 @@ src/
       persistence.ts       # Wizard state save/load (localStorage)
       wizardState.ts       # Step resolution logic
       wizardValidation.ts  # Per-step validation
+      paynow.ts            # PayNow mobile number normalisation
   shared/
     types.ts               # Core types: Person, EditableItem, ChargeState, SplitResult
     constants.ts           # Defaults, Gemini model IDs, storage keys
@@ -70,7 +72,7 @@ src/
     logic/
       computation/         # computeSplit() and charge calculation engine
       assignment/          # Item assignment utilities
-      core/                # ID generation, money parsing/formatting
+      core/                # ID generation, money parsing/formatting, PayNow QR generation, exchange rates
     stores/
       receiptStore.ts      # Workspace state: people, receipts, items, assignments
       scanStore.ts         # Per-receipt scan state: loading, errors, warnings
@@ -85,7 +87,9 @@ src/
 - `src/shared/stores/receiptStore.ts` — Workspace state (people, receipts, items, assignments)
 - `src/shared/stores/scanStore.ts` — Per-receipt scan state (loading, errors, warnings)
 - `src/shared/stores/geminiStore.ts` — API key, model selection, modal visibility
-- `src/shared/stores/currencyStore.ts` — Exchange rate fetching and caching
+- `src/shared/stores/currencyStore.ts` — Exchange rate fetching and caching (base currency: SGD)
+- `src/shared/logic/core/paynowQr.ts` — PayNow QR code generation per person
+- `src/shared/logic/core/exchangeRates.ts` — Currency conversion helpers
 - `src/features/receipt-scanner/logic/ocr.ts` — Gemini API call
 - `src/features/receipt-scanner/logic/gemini-schema.ts` — Zod schema (constrains Gemini output + validates response)
 - `src/shared/logic/computation/split.ts` — Split calculation engine
@@ -308,7 +312,7 @@ Define functions and objects outside components when they don't depend on props/
 ## File & Folder Structure
 
 - `features/` — domain features, each with `components/`, `hooks/`, `logic/`, `index.ts`
-- `pages/` — page-level orchestration; `components/` split into `advanced/` and `simple/` sub-folders
+- `pages/` — page-level orchestration; `components/workspace/` contains the wizard steps and shared UI
 - `shared/` — cross-cutting logic, hooks, stores, and types used across features and pages
 
 Co-locate tests with the file they test. Use `logic/` for pure functions, `hooks/` for stateful abstractions.

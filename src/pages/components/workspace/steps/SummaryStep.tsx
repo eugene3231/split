@@ -4,10 +4,9 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight';
 import {
   buildSplitShareText,
-  copyShareText,
   downloadImage,
   getShareSupport,
-  shareFinalSplit,
+  shareText,
 } from '@features/split-results/logic/shareSplit';
 import { PersonCard } from '@pages/components/workspace/shared/PersonCard';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -152,23 +151,15 @@ export function SummaryStep({
         currency: displayCurrency,
         payerMobile: normalizeMobile(payerMobile) ?? undefined,
       });
-      if (nativeShareSupported) {
-        const result = await shareFinalSplit({ image: blob, fileName: 'split-result.png' });
-        if (result === 'fallback') {
-          await downloadImage(blob, 'split-result.png');
-        }
-      } else {
-        await downloadImage(blob, 'split-result.png');
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
+      downloadImage(blob, 'split-result.png');
+    } catch {
       setExportError('Failed to generate image.');
     } finally {
       setBusy(null);
     }
   };
 
-  const handleCopy = async () => {
+  const handleShare = async () => {
     setBusy('copying');
     const text = buildSplitShareText({
       people,
@@ -177,12 +168,16 @@ export function SummaryStep({
       currency: displayCurrency,
     });
     try {
-      await copyShareText(text);
+      await shareText(text);
       setBusy(null);
       setCopied(true);
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        setBusy(null);
+        return;
+      }
       setBusy(null);
     }
   };
@@ -337,7 +332,7 @@ export function SummaryStep({
             exportError={exportError}
             nativeShareSupported={nativeShareSupported}
             onDownload={handleDownload}
-            onCopy={handleCopy}
+            onShare={handleShare}
           />
         </div>
       </div>

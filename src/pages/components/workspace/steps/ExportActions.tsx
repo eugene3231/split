@@ -6,7 +6,7 @@ interface Props {
   exportError: string | null;
   nativeShareSupported: boolean;
   onDownload: () => void;
-  onCopy: () => void;
+  onShare: () => void;
 }
 
 export function ExportActions({
@@ -15,7 +15,7 @@ export function ExportActions({
   exportError,
   nativeShareSupported,
   onDownload,
-  onCopy,
+  onShare,
 }: Props) {
   return (
     <div className="flex flex-col gap-2">
@@ -26,26 +26,26 @@ export function ExportActions({
         disabled={busy !== null}
         className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-surface-container-highest text-primary font-bold text-sm hover:bg-primary hover:text-on-primary transition-all disabled:opacity-60"
       >
-        <span className="material-symbols-outlined text-base">
-          {nativeShareSupported ? 'share' : 'image'}
-        </span>
-        {busy === 'downloading'
-          ? 'Generating…'
-          : nativeShareSupported
-            ? 'Share'
-            : 'Save Image'}
+        <span className="material-symbols-outlined text-base">image</span>
+        {busy === 'downloading' ? 'Generating…' : 'Save Image'}
       </button>
       <button
         type="button"
         data-testid="export-copy-text-btn"
-        onClick={onCopy}
+        onClick={onShare}
         disabled={busy !== null}
         className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-outline-variant/30 text-primary font-bold text-sm hover:border-primary transition-all disabled:opacity-60"
       >
         <span className="material-symbols-outlined text-base">
-          {copied ? 'check' : 'content_copy'}
+          {copied ? 'check' : nativeShareSupported ? 'share' : 'content_copy'}
         </span>
-        {copied ? 'Copied!' : busy === 'copying' ? 'Copying…' : 'Copy Text'}
+        {copied
+          ? 'Copied!'
+          : busy === 'copying'
+            ? 'Sharing…'
+            : nativeShareSupported
+              ? 'Share'
+              : 'Copy Text'}
       </button>
       {exportError && <p className="text-sm text-error">{exportError}</p>}
     </div>
