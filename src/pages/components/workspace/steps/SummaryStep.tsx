@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import QRCode from 'qrcode';
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { formatCurrencyFromCents, getCurrencySymbol } from '@shared/logic/core/money';
 import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight';
@@ -16,7 +15,8 @@ import { BASE_CURRENCY } from '@shared/constants';
 import { cn } from '@shared/utils/cn';
 import { convertSplitResult } from '@shared/logic/core/exchangeRates';
 import { useReceiptStore } from '@shared/stores/receiptStore';
-import { normalizeMobile, buildPaynowString } from '@shared/logic/core/paynow';
+import { normalizeMobile } from '@shared/logic/core/paynow';
+import { generatePaynowQrDataUrls } from '@shared/logic/core/paynowQr';
 
 type Props = {
   people: Person[];
@@ -134,30 +134,15 @@ export function SummaryStep({
     .join(',');
 
   useEffect(() => {
-    const normalised = normalizeMobile(payerMobile);
-    if (!normalised) {
-      setQrDataUrls({});
-      return;
-    }
     let cancelled = false;
-    Promise.all(
-      people.map(async (person) => {
-        const amountCents = sgdSplitForQr.totalByPersonCents[person.id] ?? 0;
-        if (amountCents <= 0) return [person.id, ''] as const;
-        try {
-          const paynowStr = buildPaynowString(normalised, amountCents);
-          const dataUrl = await QRCode.toDataURL(paynowStr, { width: 160, margin: 1 });
-          return [person.id, dataUrl] as const;
-        } catch {
-          return [person.id, ''] as const;
-        }
-      }),
-    ).then((entries) => {
-      if (!cancelled) setQrDataUrls(Object.fromEntries(entries));
+    generatePaynowQrDataUrls(people, sgdSplitForQr, payerMobile).then((urls) => {
+      if (!cancelled) setQrDataUrls(urls);
     });
     return () => {
       cancelled = true;
     };
+    // qrAmountsKey encodes every person's SGD amount, so it covers `people` and
+    // `sgdSplitForQr` transitively — no need to list them directly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payerMobile, qrAmountsKey]);
 
@@ -178,7 +163,8 @@ export function SummaryStep({
     try {
       const blob = await generateReceiptSplitImageLight({
         people,
-        split: sgdSplitForQr,
+        split: displaySplit,
+        sgdSplit: sgdSplitForQr,
         receipts,
         splitByReceipt,
         discount: currentDiscount,
@@ -475,10 +461,11 @@ export function SummaryStep({
 
             {/* PayNow input */}
             <div className="mb-4">
-              <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-1.5">
+              <label htmlFor="payer-mobile" className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-1.5">
                 Your PayNow Number
               </label>
               <input
+                id="payer-mobile"
                 type="tel"
                 value={payerMobile}
                 onChange={(e) => handlePayerMobileChange(e.target.value)}

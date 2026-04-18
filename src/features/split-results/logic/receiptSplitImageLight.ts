@@ -1,4 +1,3 @@
-import QRCode from 'qrcode';
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { formatCurrencyFromCents, parseNumber } from '@shared/logic/core/money';
 import {
@@ -13,7 +12,7 @@ import {
   drawRoundedRect,
   drawLightTwoColumnRow,
 } from '@features/split-results/logic/receiptSplitImageLightHelpers';
-import { buildPaynowString } from '@shared/logic/core/paynow';
+import { generatePaynowQrDataUrls } from '@shared/logic/core/paynowQr';
 
 type GenerateReceiptSplitImageLightOptions = {
   people: Person[];
@@ -29,6 +28,8 @@ type GenerateReceiptSplitImageLightOptions = {
   currency?: string;
   /** Normalised payer PayNow mobile (+65XXXXXXXX). When set, a QR code is embedded in each person card. */
   payerMobile?: string;
+  /** SGD-denominated split used for QR amounts. Falls back to `split` when omitted. */
+  sgdSplit?: SplitResult;
 };
 
 // Layout constants
@@ -91,31 +92,19 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/**
- * Pre-generate one QR HTMLImageElement per person.
- * Returns an empty map if payerMobile is falsy or QR generation fails.
- */
 async function preloadQrImages(
   people: Person[],
   split: SplitResult,
   payerMobile: string | undefined,
 ): Promise<Map<string, HTMLImageElement>> {
   if (!payerMobile) return new Map();
+  const dataUrls = await generatePaynowQrDataUrls(people, split, payerMobile, QR_SIZE);
   const entries = await Promise.all(
-    people.map(async (person) => {
-      const amountCents = split.totalByPersonCents[person.id] ?? 0;
-      if (amountCents <= 0) return null;
-      try {
-        const paynowStr = buildPaynowString(payerMobile, amountCents);
-        const dataUrl = await QRCode.toDataURL(paynowStr, { width: QR_SIZE, margin: 1 });
-        const img = await loadImage(dataUrl);
-        return [person.id, img] as const;
-      } catch {
-        return null;
-      }
-    }),
+    Object.entries(dataUrls)
+      .filter(([, url]) => url)
+      .map(async ([id, url]) => [id, await loadImage(url)] as const),
   );
-  return new Map(entries.filter((e): e is [string, HTMLImageElement] => e !== null));
+  return new Map(entries);
 }
 
 // ─── Main export ───────────────────────────────────────────────────────────────
@@ -135,7 +124,7 @@ export async function generateReceiptSplitImageLight(
   if (!ctx) throw new Error('Unable to initialize canvas renderer.');
 
   // Pre-generate QR images (async, before any drawing)
-  const qrImages = await preloadQrImages(options.people, options.split, options.payerMobile);
+  const qrImages = await preloadQrImages(options.people, options.sgdSplit ?? options.split, options.payerMobile);
 
   // Light background
   ctx.fillStyle = '#f5f5f5';
