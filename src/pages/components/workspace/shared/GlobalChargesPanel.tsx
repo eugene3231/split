@@ -79,7 +79,7 @@ export function GlobalChargesPanel({
               value={receiptTotalInput}
               onChange={(e) => onReceiptTotalInputChange(e.target.value)}
               placeholder="0.00"
-              className="w-full bg-surface-container-high border-2 border-transparent focus:border-primary/20 rounded-2xl py-5 pl-8 pr-4 text-3xl font-extrabold font-headline text-on-surface transition-all outline-none"
+              className="w-full bg-surface-container-high pl-12 border-2 border-transparent focus:border-primary/20 rounded-2xl py-5 pl-8 pr-4 text-3xl font-extrabold font-headline text-on-surface transition-all outline-none"
             />
           </div>
         </div>
