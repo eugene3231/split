@@ -43,29 +43,46 @@ export function PersonCard({
   return (
     <div className="bg-surface-container-lowest rounded-2xl p-6 flex flex-col h-full">
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
           <PersonAvatar name={person.name} colorIndex={colorIndex} />
           <h3 className="text-2xl font-bold text-primary">{person.name}</h3>
         </div>
-        <div className="flex items-start gap-3">
-          {qrDataUrl && (
+        <div className="text-right">
+          <span className="text-[10px] uppercase font-semibold tracking-widest text-on-surface-variant block leading-none mb-1">
+            {receiptBreakdown ? 'Total Consolidated' : 'Total Due'}
+          </span>
+          <p className="text-3xl font-semibold text-on-surface leading-none font-headline">
+            {formatCurrencyFromCents(total, currency)}
+          </p>
+        </div>
+      </div>
+
+      {/* PayNow QR — centered below header */}
+      {qrDataUrl && (
+        <div className="flex flex-col items-center mb-4 gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              const a = document.createElement('a');
+              a.href = qrDataUrl;
+              a.download = `paynow-${person.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+              a.click();
+            }}
+            className="cursor-pointer flex flex-col items-center gap-1.5"
+          >
             <img
               src={qrDataUrl}
               alt={`PayNow QR for ${person.name}`}
-              className="w-20 h-20 rounded-lg border border-outline-variant/20"
+              className="w-40 h-auto rounded-xl border border-outline-variant/20"
             />
-          )}
-          <div className="text-right">
-            <span className="text-[10px] uppercase font-semibold tracking-widest text-on-surface-variant block leading-none mb-1">
-              {receiptBreakdown ? 'Total Consolidated' : 'Total Due'}
+            <span className="flex items-center gap-1 text-xs text-on-surface-variant">
+              <span className="material-symbols-outlined text-sm">download</span>
+              Click to download
             </span>
-            <p className="text-3xl font-semibold text-on-surface leading-none font-headline">
-              {formatCurrencyFromCents(total, currency)}
-            </p>
-          </div>
+          </button>
         </div>
-      </div>
+      )}
 
       {/* Receipt totals summary (collapsed view) */}
       {!showDetails && receiptBreakdown && receiptBreakdown.length > 0 && (

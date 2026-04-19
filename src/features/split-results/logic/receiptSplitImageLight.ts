@@ -35,9 +35,10 @@ type GenerateReceiptSplitImageLightOptions = {
 
 // Layout constants
 const CANVAS_PADDING = 56; // horizontal/vertical page margin
-const QR_SIZE = 160; // QR code dimensions (square)
+const QR_SIZE = 160; // QR code dimensions (logical px, square)
 const QR_GAP = 20; // vertical gap between nested card and QR block
-const QR_LABEL_H = 28; // height reserved for the "Scan to pay" label
+// Caption: padV(10) + 2×(labelLineH(17)+valueLineH(23)) + groupGap(8) + padV(10) = 108px logical
+const QR_CAPTION_H = 108;
 const CARD_PAD = 32;
 const AVATAR_RADIUS = 22;
 const AVATAR_GAP = 16; // gap between avatar and name
@@ -342,7 +343,7 @@ function measurePersonCardHeight(
   }
 
   const nestedH = NESTED_PAD + nestedBodyH + NESTED_BOTTOM_PAD;
-  const qrBlockH = hasQr ? QR_GAP + QR_SIZE + QR_LABEL_H : 0;
+  const qrBlockH = hasQr ? QR_GAP + QR_SIZE + QR_CAPTION_H : 0;
   return CARD_PAD + HEADER_H + BODY_TOP_PAD + nestedH + qrBlockH + CARD_PAD;
 }
 
@@ -401,7 +402,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
   const nestedX = innerX;
   const nestedY = args.y + CARD_PAD + HEADER_H + BODY_TOP_PAD;
   const nestedW = innerWidth;
-  const qrBlockH = args.qrImage ? QR_GAP + QR_SIZE + QR_LABEL_H : 0;
+  const qrBlockH = args.qrImage ? QR_GAP + QR_SIZE + QR_CAPTION_H : 0;
   const nestedH = args.height - (CARD_PAD + HEADER_H + BODY_TOP_PAD + qrBlockH + CARD_PAD);
   drawNestedCard(ctx, nestedX, nestedY, nestedW, nestedH);
 
@@ -575,16 +576,11 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
 
   // ── QR code block ────────────────────────────────────────────────────────────
   if (args.qrImage) {
-    const qrY = args.y + args.height - CARD_PAD - QR_LABEL_H - QR_SIZE;
-    // Centre the QR horizontally within the card
+    const qrDisplayH = QR_SIZE + QR_CAPTION_H;
+    const qrY = args.y + args.height - CARD_PAD - qrDisplayH;
     const qrX = args.x + (args.width - QR_SIZE) / 2;
-    ctx.drawImage(args.qrImage, qrX, qrY, QR_SIZE, QR_SIZE);
-    // Label below QR
-    ctx.fillStyle = '#49454f';
-    ctx.font = '500 18px system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Scan to pay', args.x + args.width / 2, qrY + QR_SIZE + 20);
-    ctx.textAlign = 'left';
+    // Draw at natural aspect ratio — the image includes the mobile/amount caption
+    ctx.drawImage(args.qrImage, qrX, qrY, QR_SIZE, qrDisplayH);
   }
 }
 

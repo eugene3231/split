@@ -1,11 +1,21 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { generatePaynowQrDataUrls } from '@shared/logic/core/paynowQr';
+
+class MockImage {
+  onload: (() => void) | null = null;
+  onerror: ((e: unknown) => void) | null = null;
+  set src(_: string) {
+    Promise.resolve().then(() => this.onload?.());
+  }
+}
 
 vi.mock('qrcode', () => ({
   default: {
-    toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,mockqr'),
+    toCanvas: vi.fn().mockResolvedValue(undefined),
   },
 }));
+
+vi.stubGlobal('Image', MockImage);
 
 const makePeople = (names: string[]) => names.map((name, i) => ({ id: `p${i + 1}`, name }));
 
@@ -26,6 +36,12 @@ const makeSplit = (totalByPersonCents: Record<string, number>) => ({
 });
 
 describe('generatePaynowQrDataUrls', () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(
+      'data:image/png;base64,mockqr',
+    );
+  });
+
   it('returns empty object when payerMobile is invalid', async () => {
     const result = await generatePaynowQrDataUrls(
       makePeople(['Alice']),
@@ -56,7 +72,7 @@ describe('generatePaynowQrDataUrls', () => {
 
   it('returns empty string for person when QR generation fails', async () => {
     const { default: QRCode } = await import('qrcode');
-    (QRCode.toDataURL as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('QR fail'));
+    (QRCode.toCanvas as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('QR fail'));
 
     const result = await generatePaynowQrDataUrls(
       makePeople(['Alice']),
