@@ -32,6 +32,7 @@ export default defineConfig({
         '**/constants.ts',
         '**/components/**',
         '**/pages/components/**',
+        '**/testHelpers.ts',
       ],
       thresholds: {
         lines: 80,
