@@ -13,7 +13,7 @@ import { analyzeReceiptWithGemini, applyOcrPayload } from '@features/receipt-sca
 import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures';
 import {
   buildInitialItems,
-  createSimpleEmptyItem,
+  createDefaultItem,
   convertItemsToSimpleEqualMode,
   syncItemsWithPeople,
 } from '@shared/logic/assignment/simpleAssignments';
@@ -28,7 +28,7 @@ function createBlankReceipt(people: Person[], name: string): Receipt {
   return {
     id: createId(),
     name,
-    items: [createSimpleEmptyItem(people)],
+    items: [createDefaultItem(people)],
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
@@ -271,7 +271,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       set((state) => ({
         receipts: state.receipts.map((r) =>
           r.id === state.activeReceiptId
-            ? { ...r, items: [...r.items, createSimpleEmptyItem(state.people)] }
+            ? { ...r, items: [...r.items, createDefaultItem(state.people)] }
             : r,
         ),
       }));
@@ -342,7 +342,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
                 receiptFile: file,
                 ...(file
                   ? {
-                      items: [createSimpleEmptyItem(state.people)],
+                      items: [createDefaultItem(state.people)],
                       discount: { ...defaultDiscountState },
                       serviceCharge: { ...defaultServiceChargeState },
                       gst: { ...defaultGstState },

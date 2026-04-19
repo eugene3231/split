@@ -1,6 +1,6 @@
 import type { EditableItem, Person } from '@shared/types';
 import { resolveDiscountedAmountCents } from '@shared/logic/computation/pricing';
-import type { SimpleWizardStep } from '@pages/types';
+import type { WizardStep } from '@pages/types';
 
 export function hasAnyValidReceiptItem(items: EditableItem[]): boolean {
   return items.some((item) => resolveDiscountedAmountCents(item) !== null);
@@ -13,10 +13,10 @@ export function getDetectedItemsCount(items: EditableItem[]): number {
 export function getAssignedItemsCount(items: EditableItem[], people: Person[]): number {
   const validPeople = new Set(people.map((person) => person.id));
 
-  return items.filter((item) => isSimpleItemAssigned(item, validPeople)).length;
+  return items.filter((item) => isItemAssigned(item, validPeople)).length;
 }
 
-export function isSimpleItemAssigned(item: EditableItem, validPeople: Set<string>): boolean {
+export function isItemAssigned(item: EditableItem, validPeople: Set<string>): boolean {
   if (item.assignment.mode !== 'equal') {
     return false;
   }
@@ -26,7 +26,7 @@ export function isSimpleItemAssigned(item: EditableItem, validPeople: Set<string
 }
 
 export function isStepValid(
-  step: SimpleWizardStep,
+  step: WizardStep,
   args: { items: EditableItem[]; people: Person[] },
 ): boolean {
   if (step === 'people') {

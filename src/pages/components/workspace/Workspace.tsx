@@ -4,7 +4,7 @@ import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtur
 import { useReceiptStore } from '@shared/stores/receiptStore';
 import { useReceiptSplit } from '@shared/hooks/useReceiptSplit';
 import { getAssignedItemsCount, getDetectedItemsCount } from '@pages/logic/wizardValidation';
-import { useSimpleWizard } from '@pages/hooks/useSimpleWizard';
+import { useWizard } from '@pages/hooks/useWizard';
 import { useReceiptSplitterController } from '@pages/hooks/useReceiptSplitterController';
 import { TopAppBar } from '@pages/components/workspace/TopAppBar';
 import { BottomNav } from '@pages/components/workspace/BottomNav';
@@ -93,7 +93,7 @@ export function Workspace() {
     handleNext,
     handleBack,
     handleAddReceipt,
-  } = useSimpleWizard(items, people, normalizeItems, receipts, activeReceiptId, setActiveReceiptId);
+  } = useWizard(items, people, normalizeItems, receipts, activeReceiptId, setActiveReceiptId);
 
   const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items]);
   const assignedItemCount = useMemo(() => getAssignedItemsCount(items, people), [items, people]);
@@ -129,7 +129,7 @@ export function Workspace() {
   return (
     <div
       className="bg-surface text-on-surface font-body min-h-screen flex flex-col"
-      data-testid="simple-wizard"
+      data-testid="workspace"
     >
       <TopAppBar
         activeStep={activeStep}

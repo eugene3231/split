@@ -1,9 +1,9 @@
 import { cn } from '@shared/utils/cn';
 import { getStepNumber, isStepCompleted, STEP_LABELS, STEP_ORDER } from '@pages/logic/wizardSteps';
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
+import type { ItemsSubPhase, WizardStep } from '@pages/types';
 
 interface Props {
-  activeStep: SimpleWizardStep;
+  activeStep: WizardStep;
   itemsSubPhase: ItemsSubPhase;
   assignedItemCount: number;
   detectedItemsCount: number;

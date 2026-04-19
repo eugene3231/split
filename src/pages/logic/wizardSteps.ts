@@ -1,17 +1,17 @@
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
+import type { ItemsSubPhase, WizardStep } from '@pages/types';
 
-export const STEP_ORDER: SimpleWizardStep[] = ['people', 'receipt', 'items', 'final'];
+export const STEP_ORDER: WizardStep[] = ['people', 'receipt', 'items', 'final'];
 
-export function getStepNumber(step: SimpleWizardStep): number {
+export function getStepNumber(step: WizardStep): number {
   return STEP_ORDER.indexOf(step) + 1;
 }
 
-export function isStepCompleted(step: SimpleWizardStep, activeStep: SimpleWizardStep): boolean {
+export function isStepCompleted(step: WizardStep, activeStep: WizardStep): boolean {
   return STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf(activeStep);
 }
 
 export function getContinueLabel(
-  activeStep: SimpleWizardStep,
+  activeStep: WizardStep,
   itemsSubPhase: ItemsSubPhase,
   isLastAssignableItem: boolean,
 ): string {
@@ -22,7 +22,7 @@ export function getContinueLabel(
   return 'Summary';
 }
 
-export const STEP_LABELS: Record<SimpleWizardStep, string> = {
+export const STEP_LABELS: Record<WizardStep, string> = {
   people: 'People',
   receipt: 'Receipt',
   items: 'Assign',
