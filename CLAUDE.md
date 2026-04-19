@@ -336,3 +336,11 @@ Name hooks `use[Noun]` (e.g. `useMediaQuery`, `useLocalStorage`).
 - Delete dead code — don't comment it out
 - Prefer named exports for components (easier to refactor/search)
 - Keep `index.ts` barrel files shallow — deep barrels slow down builds
+
+---
+
+# Testing
+
+See [TESTING.md](./TESTING.md) for the full testing guide, patterns, and examples.
+
+**Short version:** test logic (pure functions, store actions, hooks), skip components. Every new feature must ship with tests.

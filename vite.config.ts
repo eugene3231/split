@@ -20,7 +20,7 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '.claude/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
+      reporter: ['text', 'text-summary', 'html', 'lcov'],
       include: ['src/**/*.ts'],
       exclude: [
         '**/*.test.{ts,tsx}',
