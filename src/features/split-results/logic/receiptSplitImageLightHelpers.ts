@@ -2,6 +2,8 @@
 // Reuses shared constants and utilities from the base helpers file.
 
 import { ellipsizeText } from '@features/split-results/logic/receiptSplitImageHelpers';
+import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import { BASE_CURRENCY } from '@shared/constants';
 
 export {
   CANVAS_WIDTH,
@@ -102,6 +104,36 @@ export function drawAvatar(
   ctx.textBaseline = 'alphabetic';
 }
 
+/**
+ * Draws two right-aligned currency conversion lines:
+ *   ≈ $X.XX SGD
+ *   1 SGD = Y.YYYYY [fromCurrency]
+ *
+ * @param rightEdge - x coordinate of the right edge (text is right-aligned to this)
+ * @param y - baseline y of the first line; second line is drawn at y + lineH
+ */
+export function drawCurrencyConversionLines(
+  ctx: CanvasRenderingContext2D,
+  rightEdge: number,
+  y: number,
+  lineH: number,
+  totalCents: number,
+  conversionRate: number,
+  fromCurrency: string,
+): void {
+  const sgdAmount = Math.round(totalCents * conversionRate);
+  const rate = parseFloat((1 / conversionRate).toFixed(5));
+
+  ctx.save();
+  ctx.font = '400 18px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#49454f';
+  ctx.textAlign = 'right';
+  ctx.fillText(`≈ ${formatCurrencyFromCents(sgdAmount, BASE_CURRENCY)}`, rightEdge, y);
+  ctx.fillText(`1 ${BASE_CURRENCY} = ${rate} ${fromCurrency}`, rightEdge, y + lineH);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
 export type LightTwoColumnRowArgs = {
   x: number;
   y: number;
@@ -122,7 +154,7 @@ export function drawLightTwoColumnRow(
   args: LightTwoColumnRowArgs,
 ): void {
   const style = args.italic ? 'italic ' : '';
-  const weight = args.emphasized ? 700 : 600;
+  const weight = args.emphasized ? 700 : 400;
   const valueFont = `${style}${weight} ${args.size}px system-ui, -apple-system, sans-serif`;
   const labelFont = `${style}500 ${Math.max(14, args.size - 2)}px system-ui, -apple-system, sans-serif`;
 

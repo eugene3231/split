@@ -11,6 +11,7 @@ import {
   drawAvatar,
   drawRoundedRect,
   drawLightTwoColumnRow,
+  drawCurrencyConversionLines,
 } from '@features/split-results/logic/receiptSplitImageLightHelpers';
 import { normalizeMobile } from '@shared/logic/core/paynow';
 import { generatePaynowQrDataUrls } from '@shared/logic/core/paynowQr';
@@ -31,6 +32,12 @@ type GenerateReceiptSplitImageLightOptions = {
   payerMobile?: string;
   /** SGD-denominated split used for QR amounts. Falls back to `split` when omitted. */
   sgdSplit?: SplitResult;
+  /** SGD-per-native rate for a single foreign-currency receipt tab. Draws conversion lines in each person card header. */
+  conversionRate?: number;
+  /** Native currency code paired with conversionRate (e.g. 'JPY'). */
+  fromCurrency?: string;
+  /** Per-receipt effective rates, parallel to receipts/splitByReceipt. Draws conversion lines inside each receipt sub-card. */
+  effectiveRatesByReceipt?: (number | undefined)[];
 };
 
 // Layout constants
@@ -43,19 +50,25 @@ const CARD_PAD = 32;
 const AVATAR_RADIUS = 22;
 const AVATAR_GAP = 16; // gap between avatar and name
 const HEADER_H = 88; // height of the person card header section
-const NESTED_PAD = 24; // padding inside nested card
+const NESTED_PAD = 0; // top margin before first receipt sub-card (sub-cards have their own RECEIPT_SUB_CARD_PAD)
 const LINE_ROW_H = 34; // height per line item row
 const RECEIPT_LABEL_H = 40; // height of receipt name row within nested card
 const CHARGE_ROW_H = 34; // height per charge row
 const DIVIDER_H = 22; // space around divider line
-const BODY_TOP_PAD = 24; // gap between header and nested card
-const NESTED_BOTTOM_PAD = 24; // padding below last charge row inside nested card
+const BODY_TOP_PAD = 16; // gap between person card header and first receipt sub-card
+const NESTED_BOTTOM_PAD = 0; // bottom margin after last receipt sub-card (CARD_PAD already provides space)
 const BETWEEN_CARD_GAP = 20; // vertical gap between person cards
 const GRAND_TOTAL_CARD_H = 116; // fixed height of the grand total card
 const GRAND_TOTAL_AFTER_GAP = 32; // gap below grand total card
+const RECEIPT_SUB_CARD_PAD = 20; // inner padding (top/bottom) per receipt sub-card
+const RECEIPT_SUB_CARD_GAP = 12; // gap between stacked receipt sub-cards
+const CURRENCY_LINE_H = 22; // height per currency conversion text line
+const RECEIPT_HEADER_SEP_H = 16; // vertical space of separator between receipt header and item rows
 
-function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): number {
-  const COLS = 2;
+function computeRequiredHeight(
+  options: GenerateReceiptSplitImageLightOptions,
+  cols: number,
+): number {
   const hasValidMobile = !!options.payerMobile && !!normalizeMobile(options.payerMobile);
   const sgdSplit = options.sgdSplit ?? options.split;
 
@@ -65,10 +78,10 @@ function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): 
   if (options.people.length === 0) {
     y += 72 + BETWEEN_CARD_GAP;
   } else {
-    for (let rowStart = 0; rowStart < options.people.length; rowStart += COLS) {
+    for (let rowStart = 0; rowStart < options.people.length; rowStart += cols) {
       const rowPeople = options.people.slice(
         rowStart,
-        Math.min(rowStart + COLS, options.people.length),
+        Math.min(rowStart + cols, options.people.length),
       );
       let rowHeight = 0;
       for (const person of rowPeople) {
@@ -83,6 +96,8 @@ function computeRequiredHeight(options: GenerateReceiptSplitImageLightOptions): 
             options.splitByReceipt,
             options.includeItemDetails,
             hasQr,
+            !!(options.conversionRate && options.fromCurrency),
+            options.effectiveRatesByReceipt,
           ),
         );
       }
@@ -132,9 +147,12 @@ export async function generateReceiptSplitImageLight(
     throw new Error('Image export is only available in the browser.');
   }
 
+  const COLS = options.people.length >= 5 ? 3 : 2;
+  const canvasWidth = COLS === 3 ? 2700 : CANVAS_WIDTH;
+
   const scratch = document.createElement('canvas');
-  scratch.width = CANVAS_WIDTH;
-  scratch.height = computeRequiredHeight(options);
+  scratch.width = canvasWidth;
+  scratch.height = computeRequiredHeight(options, COLS);
 
   const ctx = scratch.getContext('2d');
   if (!ctx) throw new Error('Unable to initialize canvas renderer.');
@@ -152,7 +170,7 @@ export async function generateReceiptSplitImageLight(
 
   let y = CANVAS_PADDING;
   const x = CANVAS_PADDING;
-  const cardWidth = CANVAS_WIDTH - x * 2;
+  const cardWidth = canvasWidth - x * 2;
 
   // Title
   ctx.fillStyle = '#1c1b1f';
@@ -175,7 +193,7 @@ export async function generateReceiptSplitImageLight(
   });
   y += GRAND_TOTAL_AFTER_GAP;
 
-  // Person cards — 2-column grid
+  // Person cards — adaptive column grid
   if (options.people.length === 0) {
     drawLightCardShell(ctx, x, y, cardWidth, 72);
     ctx.fillStyle = '#49454f';
@@ -183,7 +201,6 @@ export async function generateReceiptSplitImageLight(
     ctx.fillText('No people added yet.', x + CARD_PAD, y + 46);
     y += 72 + BETWEEN_CARD_GAP;
   } else {
-    const COLS = 2;
     const COL_GAP = 24;
     const colWidth = Math.floor((cardWidth - COL_GAP * (COLS - 1)) / COLS);
 
@@ -204,6 +221,8 @@ export async function generateReceiptSplitImageLight(
             options.splitByReceipt,
             options.includeItemDetails,
             qrImages.has(person.id),
+            !!(options.conversionRate && options.fromCurrency),
+            options.effectiveRatesByReceipt,
           ),
         );
       }
@@ -226,6 +245,9 @@ export async function generateReceiptSplitImageLight(
           gst: options.gst,
           currency: options.currency,
           qrImage: qrImages.get(person.id),
+          conversionRate: options.conversionRate,
+          fromCurrency: options.fromCurrency,
+          effectiveRatesByReceipt: options.effectiveRatesByReceipt,
         });
       }
 
@@ -254,11 +276,11 @@ export async function generateReceiptSplitImageLight(
   const requiredHeight = Math.max(240, Math.ceil(y + CANVAS_PADDING));
 
   const output = document.createElement('canvas');
-  output.width = CANVAS_WIDTH;
+  output.width = canvasWidth;
   output.height = requiredHeight;
   const outCtx = output.getContext('2d');
   if (!outCtx) throw new Error('Unable to finalize image export.');
-  outCtx.drawImage(scratch, 0, 0, CANVAS_WIDTH, requiredHeight, 0, 0, output.width, output.height);
+  outCtx.drawImage(scratch, 0, 0, canvasWidth, requiredHeight, 0, 0, output.width, output.height);
   return canvasToBlob(output);
 }
 
@@ -305,14 +327,23 @@ function measureReceiptBlockHeight(
   personId: string,
   receiptSplit: SplitResult,
   includeLineItems: boolean,
+  effectiveRate?: number,
 ): number {
   const lines = receiptSplit.lineItemsByPerson[personId] ?? [];
   const discountCents = receiptSplit.discountByPersonCents[personId] ?? 0;
   const chargeRows = 2 + (discountCents > 0 ? 1 : 0); // Service + GST [+ Discount]
+  const hasRate = effectiveRate !== undefined;
   const detailH = includeLineItems
-    ? lines.length * LINE_ROW_H + DIVIDER_H + chargeRows * CHARGE_ROW_H
-    : 0;
-  return RECEIPT_LABEL_H + detailH;
+    ? lines.length * LINE_ROW_H + RECEIPT_HEADER_SEP_H + DIVIDER_H + chargeRows * CHARGE_ROW_H
+    : RECEIPT_HEADER_SEP_H;
+  // Sub-card: top-pad + receipt-name-row + optional-conversion-lines + items/separator + bottom-pad
+  return (
+    RECEIPT_SUB_CARD_PAD +
+    RECEIPT_LABEL_H +
+    (hasRate ? CURRENCY_LINE_H * 2 : 0) +
+    detailH +
+    RECEIPT_SUB_CARD_PAD
+  );
 }
 
 function measurePersonCardHeight(
@@ -322,16 +353,29 @@ function measurePersonCardHeight(
   splitByReceipt: SplitResult[] | undefined,
   includeLineItems: boolean,
   hasQr: boolean = false,
+  hasPersonConversion: boolean = false,
+  effectiveRatesByReceipt?: (number | undefined)[],
 ): number {
+  const effectiveHeaderH = HEADER_H + (hasPersonConversion ? CURRENCY_LINE_H * 2 : 0);
+
   let nestedBodyH: number;
 
   if (receipts && splitByReceipt && receipts.length > 0) {
     let bodyH = 0;
+    let validReceiptCount = 0;
     for (let i = 0; i < receipts.length; i++) {
       const rSplit = splitByReceipt[i];
       if (!rSplit) continue;
-      bodyH += measureReceiptBlockHeight(personId, rSplit, includeLineItems);
+      bodyH += measureReceiptBlockHeight(
+        personId,
+        rSplit,
+        includeLineItems,
+        effectiveRatesByReceipt?.[i],
+      );
+      validReceiptCount++;
     }
+    // Add gaps between sub-cards (N-1 gaps for N receipts)
+    bodyH += Math.max(0, validReceiptCount - 1) * RECEIPT_SUB_CARD_GAP;
     nestedBodyH = bodyH;
   } else {
     const lines = split.lineItemsByPerson[personId] ?? [];
@@ -342,9 +386,10 @@ function measurePersonCardHeight(
       : 0;
   }
 
+  // nestedH: outer NESTED_PAD wraps all receipt sub-cards (sub-cards have their own internal padding)
   const nestedH = NESTED_PAD + nestedBodyH + NESTED_BOTTOM_PAD;
   const qrBlockH = hasQr ? QR_GAP + QR_SIZE + QR_CAPTION_H : 0;
-  return CARD_PAD + HEADER_H + BODY_TOP_PAD + nestedH + qrBlockH + CARD_PAD;
+  return CARD_PAD + effectiveHeaderH + BODY_TOP_PAD + nestedH + qrBlockH + CARD_PAD;
 }
 
 // ─── Person card drawing ──────────────────────────────────────────────────────
@@ -365,6 +410,12 @@ type PersonCardArgs = {
   gst: ChargeState;
   currency?: string;
   qrImage?: HTMLImageElement;
+  /** Person-level SGD conversion rate (ReceiptTabView, single foreign receipt). */
+  conversionRate?: number;
+  /** Native currency code paired with conversionRate. */
+  fromCurrency?: string;
+  /** Per-receipt effective rates, parallel to receipts/splitByReceipt. */
+  effectiveRatesByReceipt?: (number | undefined)[];
 };
 
 function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): void {
@@ -373,6 +424,8 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
 
   const innerX = args.x + CARD_PAD;
   const innerWidth = args.width - CARD_PAD * 2;
+  const hasPersonConversion = !!(args.conversionRate && args.fromCurrency);
+  const effectiveHeaderH = HEADER_H + (hasPersonConversion ? CURRENCY_LINE_H * 2 : 0);
 
   // ── Header ──────────────────────────────────────────────────────────────────
   const avatarCX = innerX + AVATAR_RADIUS;
@@ -398,40 +451,86 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
   );
   ctx.textAlign = 'left';
 
-  // ── Nested card ─────────────────────────────────────────────────────────────
-  const nestedX = innerX;
-  const nestedY = args.y + CARD_PAD + HEADER_H + BODY_TOP_PAD;
-  const nestedW = innerWidth;
-  const qrBlockH = args.qrImage ? QR_GAP + QR_SIZE + QR_CAPTION_H : 0;
-  const nestedH = args.height - (CARD_PAD + HEADER_H + BODY_TOP_PAD + qrBlockH + CARD_PAD);
-  drawNestedCard(ctx, nestedX, nestedY, nestedW, nestedH);
+  if (hasPersonConversion) {
+    drawCurrencyConversionLines(
+      ctx,
+      args.x + args.width - CARD_PAD,
+      args.y + CARD_PAD + 58 + CURRENCY_LINE_H,
+      CURRENCY_LINE_H,
+      total,
+      args.conversionRate!,
+      args.fromCurrency!,
+    );
+  }
 
-  const niX = nestedX + NESTED_PAD;
-  const niW = nestedW - NESTED_PAD * 2;
-  let rowY = nestedY + NESTED_PAD;
+  // ── Per-receipt sub-cards ────────────────────────────────────────────────────
+  const nestedX = innerX;
+  const nestedY = args.y + CARD_PAD + effectiveHeaderH + BODY_TOP_PAD;
+  const nestedW = innerWidth;
+  // Inner x/width used for content inside each sub-card
+  const niX = nestedX + RECEIPT_SUB_CARD_PAD;
+  const niW = nestedW - RECEIPT_SUB_CARD_PAD * 2;
+  let subCardY = nestedY + NESTED_PAD;
 
   if (args.receipts && args.splitByReceipt && args.receipts.length > 0) {
-    // ── Per-receipt breakdown ────────────────────────────────────────────────
     for (let i = 0; i < args.receipts.length; i++) {
       const receipt = args.receipts[i];
       const rSplit = args.splitByReceipt[i];
       if (!rSplit) continue;
 
+      const effectiveRate = args.effectiveRatesByReceipt?.[i];
       const personReceiptTotal = rSplit.totalByPersonCents[args.person.id] ?? 0;
+      const subCardH = measureReceiptBlockHeight(
+        args.person.id,
+        rSplit,
+        args.includeLineItems,
+        effectiveRate,
+      );
 
-      // Receipt name + person total for that receipt
+      // Draw sub-card background (gray rounded rect, like UI's bg-surface-container-low)
+      drawNestedCard(ctx, nestedX, subCardY, nestedW, subCardH);
+
+      let rowY = subCardY + RECEIPT_SUB_CARD_PAD;
+
+      // ── Receipt header: bold name left, subtotal right ──────────────────────
       drawLightTwoColumnRow(ctx, {
         x: niX,
-        y: rowY + 26,
+        y: rowY + RECEIPT_LABEL_H - 14,
         width: niW,
         label: receipt.name || `Receipt ${i + 1}`,
         value: formatCurrencyFromCents(personReceiptTotal, receipt.currency),
         emphasized: true,
-        size: 21,
+        size: 20,
       });
+
+      // Optional per-receipt currency conversion lines below subtotal
+      if (effectiveRate !== undefined) {
+        drawCurrencyConversionLines(
+          ctx,
+          niX + niW,
+          rowY + RECEIPT_LABEL_H + 18,
+          CURRENCY_LINE_H,
+          personReceiptTotal,
+          effectiveRate,
+          receipt.currency ?? 'SGD',
+        );
+        rowY += CURRENCY_LINE_H * 2;
+      }
       rowY += RECEIPT_LABEL_H;
 
-      // Line items + charges (only when showing details)
+      // Header separator
+      const sepY = rowY + Math.floor(RECEIPT_HEADER_SEP_H / 2);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(202,196,208,0.30)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(niX, sepY);
+      ctx.lineTo(niX + niW, sepY);
+      ctx.stroke();
+      ctx.restore();
+      rowY += RECEIPT_HEADER_SEP_H;
+
+      // ── Line items + charges ────────────────────────────────────────────────
       if (args.includeLineItems) {
         const lines = rSplit.lineItemsByPerson[args.person.id] ?? [];
         for (const line of lines) {
@@ -451,7 +550,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
           rowY += LINE_ROW_H;
         }
 
-        // Divider
+        // Divider before charges
         const divY = rowY + 2;
         ctx.strokeStyle = 'rgba(202,196,208,0.40)';
         ctx.lineWidth = 1;
@@ -461,7 +560,6 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
         ctx.stroke();
         rowY = divY + DIVIDER_H - 4;
 
-        // Charge rows
         const discountCents = rSplit.discountByPersonCents[args.person.id] ?? 0;
         const serviceAmt = rSplit.serviceByPersonCents[args.person.id] ?? 0;
         const gstAmt = rSplit.gstByPersonCents[args.person.id] ?? 0;
@@ -500,11 +598,17 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
           italic: true,
           size: 19,
         });
-        rowY += CHARGE_ROW_H;
       }
+
+      subCardY += subCardH + RECEIPT_SUB_CARD_GAP;
     }
   } else {
-    // ── Single-receipt fallback ───────────────────────────────────────────────
+    // ── Single-receipt fallback (no receipts array provided) ─────────────────
+    const subCardH = measureReceiptBlockHeight(args.person.id, args.split, args.includeLineItems);
+    drawNestedCard(ctx, nestedX, subCardY, nestedW, subCardH);
+
+    let rowY = subCardY + RECEIPT_SUB_CARD_PAD + RECEIPT_HEADER_SEP_H;
+
     if (args.includeLineItems) {
       const lines = args.split.lineItemsByPerson[args.person.id] ?? [];
       for (const line of lines) {
