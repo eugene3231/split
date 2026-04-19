@@ -2,6 +2,7 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { buildChargeLabel } from '@shared/logic/computation/chargeLabels';
 import type { ChargeState, Person, SplitResult } from '@shared/types';
 import { PersonAvatar } from '@pages/components/workspace/shared/PersonAvatar';
+import { buildDownloadFilename } from '@features/split-results/logic/shareSplit';
 
 interface ReceiptBreakdownEntry {
   name: string;
@@ -66,7 +67,7 @@ export function PersonCard({
             onClick={() => {
               const a = document.createElement('a');
               a.href = qrDataUrl;
-              a.download = `paynow-${person.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+              a.download = buildDownloadFilename('paynow', person.name);
               a.click();
             }}
             className="cursor-pointer flex flex-col items-center gap-1.5"
