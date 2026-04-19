@@ -3,6 +3,7 @@ import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight';
 import {
+  buildDownloadFilename,
   buildSplitShareText,
   downloadImage,
   getShareSupport,
@@ -151,7 +152,7 @@ export function SummaryStep({
         currency: displayCurrency,
         payerMobile: normalizeMobile(payerMobile) ?? undefined,
       });
-      downloadImage(blob, 'split-result.png');
+      downloadImage(blob, buildDownloadFilename('split', currentReceipt?.name));
     } catch {
       setExportError('Failed to generate image.');
     } finally {
