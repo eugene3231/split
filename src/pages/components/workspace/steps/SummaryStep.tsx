@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight';
@@ -11,17 +11,15 @@ import {
 } from '@features/split-results/logic/shareSplit';
 import { PersonCard } from '@pages/components/workspace/shared/PersonCard';
 import { BASE_CURRENCY } from '@shared/constants';
-import { convertSplitResult } from '@shared/logic/core/exchangeRates';
-import { useReceiptStore } from '@shared/stores/receiptStore';
-import { useCurrencyStore } from '@shared/stores/currencyStore';
 import { normalizeMobile } from '@shared/logic/core/paynow';
-import { generatePaynowQrDataUrls } from '@shared/logic/core/paynowQr';
+import { useReceiptStore } from '@shared/stores/receiptStore';
 import { SummaryTabs } from './SummaryTabs';
 import { CurrencyToggle } from './CurrencyToggle';
 import { GrandTotalCard } from './GrandTotalCard';
 import { ExportActions } from './ExportActions';
+import { useSummaryView } from './useSummaryView';
 
-type Props = {
+export type SummaryStepProps = {
   people: Person[];
   receipts: Receipt[];
   activeReceiptId: string;
@@ -52,7 +50,7 @@ export function SummaryStep({
   onApplyDiscount,
   onAddReceipt,
   onRenameReceipt,
-}: Props) {
+}: SummaryStepProps) {
   const isMultiReceipt = receipts.length > 1;
   const [activeTab, setActiveTab] = useState<string>(
     isMultiReceipt ? 'total' : (receipts[0]?.id ?? 'total'),
@@ -62,76 +60,29 @@ export function SummaryStep({
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
   const [copied, setCopied] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
   const copyTimeoutRef = useRef<number | null>(null);
 
   const payerMobile = useReceiptStore((s) => s.payerMobile);
-
-  const activeReceiptIndex = receipts.findIndex((r) => r.id === activeTab);
-  const currentSplit =
-    activeTab === 'total' ? consolidatedSplit : (splitByReceipt[activeReceiptIndex] ?? split);
-  const currentReceipt = activeTab === 'total' ? null : receipts[activeReceiptIndex];
-  const currentDiscount = currentReceipt?.discount ?? discount;
-  const currentServiceCharge = currentReceipt?.serviceCharge ?? serviceCharge;
-  const currentGst = currentReceipt?.gst ?? gst;
-
-  // Consolidated tab shows SGD; individual receipt tabs show the receipt's native currency
-  const currentCurrency =
-    activeTab === 'total' ? BASE_CURRENCY : (currentReceipt?.currency ?? BASE_CURRENCY);
-  const isForeignCurrency = currentCurrency !== BASE_CURRENCY;
-  const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
-  const convertedSplit = isForeignCurrency
-    ? convertSplitResult(
-        currentSplit,
-        currentCurrency,
-        BASE_CURRENCY,
-        exchangeRates,
-        currentReceipt?.exchangeRateOverride ?? null,
-      )
-    : null;
-  const displaySplit = isForeignCurrency && showBaseCurrency ? convertedSplit! : currentSplit;
-  const displayCurrency = isForeignCurrency && showBaseCurrency ? BASE_CURRENCY : currentCurrency;
-
-  const hasAnyForeignReceipt = receipts.some(
-    (r) => (r.currency ?? BASE_CURRENCY) !== BASE_CURRENCY,
-  );
-  const convertedSplitByReceipt = splitByReceipt.map((s, i) => {
-    const currency = receipts[i]?.currency ?? BASE_CURRENCY;
-    return currency !== BASE_CURRENCY
-      ? convertSplitResult(
-          s,
-          currency,
-          BASE_CURRENCY,
-          exchangeRates,
-          receipts[i]?.exchangeRateOverride ?? null,
-        )
-      : s;
+  const { view, qrDataUrls } = useSummaryView({
+    people,
+    receipts,
+    split,
+    consolidatedSplit,
+    splitByReceipt,
+    discount,
+    serviceCharge,
+    gst,
+    activeTab,
+    showBaseCurrency,
   });
 
-  const grandTotal = Object.values(displaySplit.totalByPersonCents).reduce((s, v) => s + v, 0);
+  // Narrow per-tab fields to avoid repetitive view.kind checks in JSX
+  const receiptForExport = view.kind === 'receipt' ? view.receipt : null;
+  const nativeCurrency = view.kind === 'receipt' ? view.nativeCurrency : BASE_CURRENCY;
+  const showCurrencyControls =
+    (view.kind === 'receipt' && view.isForeign) || (view.kind === 'total' && view.hasAnyForeign);
 
   const nativeShareSupported = getShareSupport() === 'native';
-
-  // The split used for QR amounts is always in SGD regardless of display currency.
-  const sgdSplitForQr = isForeignCurrency ? (convertedSplit ?? currentSplit) : currentSplit;
-
-  // Stable key that changes whenever the per-person SGD amounts change (e.g. on tab switch).
-  const qrAmountsKey = people
-    .map((p) => `${p.id}:${sgdSplitForQr.totalByPersonCents[p.id] ?? 0}`)
-    .join(',');
-
-  useEffect(() => {
-    let cancelled = false;
-    generatePaynowQrDataUrls(people, sgdSplitForQr, payerMobile).then((urls) => {
-      if (!cancelled) setQrDataUrls(urls);
-    });
-    return () => {
-      cancelled = true;
-    };
-    // qrAmountsKey encodes every person's SGD amount, so it covers `people` and
-    // `sgdSplitForQr` transitively — no need to list them directly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payerMobile, qrAmountsKey]);
 
   const handleDownload = async () => {
     setBusy('downloading');
@@ -139,20 +90,20 @@ export function SummaryStep({
     try {
       const blob = await generateReceiptSplitImageLight({
         people,
-        split: displaySplit,
-        sgdSplit: sgdSplitForQr,
+        split: view.displaySplit,
+        sgdSplit: view.sgdSplit,
         receipts,
         splitByReceipt,
-        discount: currentDiscount,
-        serviceCharge: currentServiceCharge,
-        gst: currentGst,
-        receiptName: currentReceipt?.name,
+        discount: view.discount,
+        serviceCharge: view.serviceCharge,
+        gst: view.gst,
+        receiptName: receiptForExport?.name,
         reconciliationCents,
         includeItemDetails: showDetails,
-        currency: displayCurrency,
+        currency: view.displayCurrency,
         payerMobile: normalizeMobile(payerMobile) ?? undefined,
       });
-      downloadImage(blob, buildDownloadFilename('split', currentReceipt?.name));
+      downloadImage(blob, buildDownloadFilename('split', receiptForExport?.name));
     } catch {
       setExportError('Failed to generate image.');
     } finally {
@@ -164,9 +115,9 @@ export function SummaryStep({
     setBusy('copying');
     const text = buildSplitShareText({
       people,
-      receiptName: currentReceipt?.name ?? '',
-      split: displaySplit,
-      currency: displayCurrency,
+      receiptName: receiptForExport?.name ?? '',
+      split: view.displaySplit,
+      currency: view.displayCurrency,
     });
     try {
       await shareText(text);
@@ -189,21 +140,21 @@ export function SummaryStep({
       <div className="mb-8">
         {/* Desktop header */}
         <div className="mb-6 hidden md:block">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-2 font-headline">
+          <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
             Final Breakdown
           </h1>
-          <p className="text-on-surface-variant text-lg">
-            Review the consolidated total or individual receipt details.
+          <p className="text-lg text-on-surface-variant">
+            Review the consolidated grand total or individual receipt details.
           </p>
         </div>
 
         {/* Mobile header */}
         <div className="mb-4 md:hidden">
-          <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">
+          <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
             Final Breakdown
           </h1>
-          <p className="text-on-surface-variant text-xs mt-0.5">
-            Review the consolidated total or individual receipt details.
+          <p className="mt-0.5 text-xs text-on-surface-variant">
+            Review the consolidated grand total or individual receipt details.
           </p>
         </div>
 
@@ -220,9 +171,9 @@ export function SummaryStep({
       {/* Discrepancy notice */}
       {reconciliationCents !== null && reconciliationCents !== 0 && (
         <div className="mb-8">
-          <div className="bg-error-container/30 border border-error/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-error/20 bg-error-container/30 p-6 md:flex-row">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-error-container flex items-center justify-center text-on-error-container flex-shrink-0">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-error-container text-on-error-container">
                 <span
                   className="material-symbols-outlined"
                   style={{ fontVariationSettings: "'FILL' 1" }}
@@ -243,7 +194,7 @@ export function SummaryStep({
               <button
                 type="button"
                 onClick={onApplyDiscount}
-                className="whitespace-nowrap bg-on-error-container text-on-primary px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+                className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
               >
                 Apply Corrective Discount
               </button>
@@ -253,17 +204,42 @@ export function SummaryStep({
       )}
 
       {/* Main two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
-        {/* Left: Person cards (single column) */}
-        <div className="lg:col-span-8 order-2 lg:order-1">
-          <div className="flex items-center justify-between mb-3">
-            {isForeignCurrency || (activeTab === 'total' && hasAnyForeignReceipt) ? (
-              <CurrencyToggle
-                showBaseCurrency={showBaseCurrency}
-                onToggle={setShowBaseCurrency}
-                activeTab={activeTab}
-                currentCurrency={currentCurrency}
-              />
+      <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-12">
+        {/* Left: Person cards */}
+        <div className="order-2 lg:order-1 lg:col-span-8">
+          <div className="mb-3 flex items-center justify-between">
+            {showCurrencyControls ? (
+              <div className="flex flex-wrap items-center gap-4">
+                <CurrencyToggle
+                  showBaseCurrency={showBaseCurrency}
+                  onToggle={setShowBaseCurrency}
+                  activeTab={activeTab}
+                  currentCurrency={nativeCurrency}
+                />
+                {view.kind === 'total' && view.foreignRates.length > 0 ? (
+                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+                    <span className="material-symbols-outlined text-sm">currency_exchange</span>
+                    <span>
+                      {view.foreignRates.map(({ currency, rate, hasCustomRate }, i) => (
+                        <span key={currency}>
+                          {i > 0 && <span className="mx-1 opacity-40">·</span>}1 {BASE_CURRENCY} ={' '}
+                          {parseFloat((1 / rate).toFixed(5))} {currency}
+                          {hasCustomRate ? ' (custom)' : ''}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                ) : view.kind === 'receipt' && view.effectiveRate ? (
+                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+                    <span className="material-symbols-outlined text-sm">currency_exchange</span>
+                    <span>
+                      1 {BASE_CURRENCY} = {parseFloat((1 / view.effectiveRate).toFixed(5))}{' '}
+                      {view.nativeCurrency}
+                      {view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <span />
             )}
@@ -271,7 +247,7 @@ export function SummaryStep({
               type="button"
               data-testid="summary-show-details-btn"
               onClick={() => setShowDetails((v) => !v)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
+              className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
             >
               <span className="material-symbols-outlined text-base">
                 {showDetails ? 'expand_less' : 'expand_more'}
@@ -279,39 +255,33 @@ export function SummaryStep({
               {showDetails ? 'Hide details' : 'Show details'}
             </button>
           </div>
+
           <div className="flex flex-col gap-6">
             {people.map((person, index) => (
               <PersonCard
                 key={person.id}
                 person={person}
                 colorIndex={index}
-                split={displaySplit}
-                discount={currentDiscount}
-                serviceCharge={currentServiceCharge}
-                gst={currentGst}
+                split={view.displaySplit}
+                discount={view.discount}
+                serviceCharge={view.serviceCharge}
+                gst={view.gst}
                 showDetails={showDetails}
-                currency={displayCurrency}
-                qrDataUrl={qrDataUrls[person.id]}
-                receiptBreakdown={
-                  activeTab === 'total' && isMultiReceipt
-                    ? receipts.map((r, i) => {
-                        const receiptCurrency = r.currency ?? BASE_CURRENCY;
-                        const usedSplit = showBaseCurrency
-                          ? convertedSplitByReceipt[i]
-                          : splitByReceipt[i];
-                        const usedCurrency = showBaseCurrency ? BASE_CURRENCY : receiptCurrency;
-                        return {
-                          name: r.name || `Receipt ${i + 1}`,
-                          split: usedSplit,
-                          currency: usedCurrency,
-                        };
-                      })
+                currency={view.displayCurrency}
+                conversionRate={
+                  view.kind === 'receipt' && view.isForeign
+                    ? (view.effectiveRate ?? undefined)
                     : undefined
                 }
+                fromCurrency={
+                  view.kind === 'receipt' && view.isForeign ? view.nativeCurrency : undefined
+                }
+                qrDataUrl={qrDataUrls[person.id]}
+                receiptBreakdown={view.kind === 'total' ? view.receiptBreakdowns : undefined}
               />
             ))}
             {people.length === 0 && (
-              <p className="text-center text-on-surface-variant text-sm py-8">
+              <p className="py-8 text-center text-sm text-on-surface-variant">
                 Add people to see the breakdown.
               </p>
             )}
@@ -319,11 +289,11 @@ export function SummaryStep({
         </div>
 
         {/* Right: Grand total + export */}
-        <div className="lg:col-span-4 flex flex-col gap-4 order-1 lg:order-2">
+        <div className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-4">
           <GrandTotalCard
-            grandTotal={grandTotal}
-            displayCurrency={displayCurrency}
-            currentReceipt={currentReceipt ?? null}
+            grandTotal={view.grandTotal}
+            displayCurrency={view.displayCurrency}
+            currentReceipt={receiptForExport}
             people={people}
             onRenameReceipt={onRenameReceipt}
           />
@@ -339,12 +309,12 @@ export function SummaryStep({
       </div>
 
       {/* Add receipt secondary action */}
-      <div className="flex justify-center mb-4">
+      <div className="mb-4 flex justify-center">
         <button
           type="button"
           data-testid="summary-add-receipt-btn"
           onClick={onAddReceipt}
-          className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
+          className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
         >
           <span className="material-symbols-outlined text-base">add_box</span>
           Add new receipt
