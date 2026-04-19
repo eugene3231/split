@@ -482,6 +482,109 @@ describe('importDraftFromJson', () => {
     expect(item?.assignment.personIds).toEqual(['p1']);
   });
 
+  it('round-trips weights through import', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [
+        { id: 'p1', name: 'Alice' },
+        { id: 'p2', name: 'Bob' },
+      ],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Wine',
+              amountInput: '30.00',
+              discountPercentInput: '',
+              assignment: {
+                mode: 'equal',
+                personId: '',
+                personIds: ['p1', 'p2'],
+                weights: { p1: 2, p2: 1 },
+              },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 2, p2: 1 });
+  });
+
+  it('drops invalid weight entries (zero, negative, non-number, Infinity)', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [{ id: 'p1', name: 'Alice' }],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Item',
+              amountInput: '10.00',
+              discountPercentInput: '',
+              assignment: {
+                mode: 'equal',
+                personId: '',
+                personIds: ['p1'],
+                weights: { p1: 2, bad1: 0, bad2: -1, bad3: 'string', bad4: Infinity },
+              },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 2 });
+  });
+
+  it('leaves weights undefined when weights field is absent', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [{ id: 'p1', name: 'Alice' }],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Item',
+              amountInput: '10.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].items[0].assignment.weights).toBeUndefined();
+  });
+
   it('replaces non-array items with a single empty item', () => {
     const json = JSON.stringify({
       version: 2,

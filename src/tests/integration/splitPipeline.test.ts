@@ -655,6 +655,32 @@ describe('Split pipeline integration', () => {
       expect(sumValues(split.totalByPersonCents)).toBe(split.grandTotalCents);
     });
 
+    it('25: weighted 2:1 split — per-person totals reflect weights and sum to grand total', () => {
+      const alice = makePerson('Alice');
+      const bob = makePerson('Bob');
+      const receipt = makeReceipt({
+        items: [
+          makeItem({
+            amountInput: '30.00',
+            assignment: {
+              mode: 'equal',
+              personId: '',
+              personIds: [alice.id, bob.id],
+              weights: { [alice.id]: 2, [bob.id]: 1 },
+            },
+          }),
+        ],
+      });
+
+      seedStore([alice, bob], [receipt]);
+      const { result } = useSplitFromStore();
+      const { split } = result.current;
+
+      expect(split.subtotalByPersonCents[alice.id]).toBe(2000);
+      expect(split.subtotalByPersonCents[bob.id]).toBe(1000);
+      expect(sumValues(split.totalByPersonCents)).toBe(split.grandTotalCents);
+    });
+
     it('24: discount larger than subtotal — totals stay non-negative', () => {
       const alice = makePerson('Alice');
       const bob = makePerson('Bob');

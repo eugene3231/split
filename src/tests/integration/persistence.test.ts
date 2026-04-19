@@ -194,6 +194,36 @@ describe('Persistence integration', () => {
     expect(restoredR1.items.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('weighted assignment survives export/import round-trip', () => {
+    const alice = makePerson('Alice');
+    const bob = makePerson('Bob');
+    const r1 = makeReceipt({
+      items: [
+        makeItem({
+          amountInput: '30.00',
+          assignment: {
+            mode: 'equal',
+            personId: '',
+            personIds: [alice.id, bob.id],
+            weights: { [alice.id]: 2, [bob.id]: 1 },
+          },
+        }),
+      ],
+    });
+
+    seedStore([alice, bob], [r1]);
+    const json = useReceiptStore.getState().getExportJson();
+
+    resetAllStores();
+    useReceiptStore.getState().importFromJson(json);
+
+    const restored = useReceiptStore.getState();
+    expect(restored.receipts[0].items[0].assignment.weights).toEqual({
+      [alice.id]: 2,
+      [bob.id]: 1,
+    });
+  });
+
   it('wizard state persists and restores via localStorage', () => {
     const wizardState = {
       version: 1 as const,

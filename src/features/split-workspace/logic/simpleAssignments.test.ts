@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Person } from '@shared/types';
-import { buildInitialItems, createDefaultItem } from './simpleAssignments';
+import {
+  buildInitialItems,
+  createDefaultItem,
+  normalizeItemAssignments,
+} from './simpleAssignments';
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },
@@ -39,6 +43,89 @@ describe('buildInitialItems', () => {
     expect(result).toHaveLength(1);
     expect(result[0].assignment.mode).toBe('equal');
     expect(result[0].assignment.personIds).toEqual(['p1', 'p2']);
+  });
+});
+
+describe('normalizeItemAssignments', () => {
+  it('filters removed person out of equal-mode personIds', () => {
+    const items = [
+      {
+        id: 'i1',
+        name: 'Shared',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: { mode: 'equal' as const, personId: '', personIds: ['p1', 'p2'] },
+      },
+    ];
+    const result = normalizeItemAssignments(items, [{ id: 'p1', name: 'Alice' }]);
+    expect(result[0].assignment.personIds).toEqual(['p1']);
+  });
+
+  it('coerces single-mode item personIds to all current people', () => {
+    const items = [
+      {
+        id: 'i1',
+        name: 'Solo',
+        amountInput: '5.00',
+        discountPercentInput: '',
+        assignment: { mode: 'single' as const, personId: 'p1', personIds: ['p1'] },
+      },
+    ];
+    const result = normalizeItemAssignments(items, people);
+    expect(result[0].assignment.mode).toBe('equal');
+    expect(result[0].assignment.personIds).toEqual(['p1', 'p2']);
+  });
+
+  it('preserves weights for surviving people and drops for removed person', () => {
+    const items = [
+      {
+        id: 'i1',
+        name: 'Weighted',
+        amountInput: '30.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal' as const,
+          personId: '',
+          personIds: ['p1', 'p2'],
+          weights: { p1: 2, p2: 1 },
+        },
+      },
+    ];
+    const result = normalizeItemAssignments(items, [{ id: 'p1', name: 'Alice' }]);
+    expect(result[0].assignment.weights).toEqual({ p1: 2 });
+  });
+
+  it('returns undefined weights when all weighted people are removed', () => {
+    const items = [
+      {
+        id: 'i1',
+        name: 'Gone',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal' as const,
+          personId: '',
+          personIds: ['p2'],
+          weights: { p2: 3 },
+        },
+      },
+    ];
+    const result = normalizeItemAssignments(items, [{ id: 'p1', name: 'Alice' }]);
+    expect(result[0].assignment.weights).toBeUndefined();
+  });
+
+  it('passes through undefined when item has no weights', () => {
+    const items = [
+      {
+        id: 'i1',
+        name: 'Equal',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: { mode: 'equal' as const, personId: '', personIds: ['p1', 'p2'] },
+      },
+    ];
+    const result = normalizeItemAssignments(items, people);
+    expect(result[0].assignment.weights).toBeUndefined();
   });
 });
 
