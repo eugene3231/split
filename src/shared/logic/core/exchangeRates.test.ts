@@ -268,4 +268,11 @@ describe('getForeignReceiptRates', () => {
     expect(result).toHaveLength(1);
     expect(result[0].currency).toBe('USD');
   });
+
+  it('treats receipt with null currency as SGD and excludes it (defensive runtime check)', () => {
+    const receipt = { ...makeReceipt('SGD'), currency: null as unknown as string };
+    const result = getForeignReceiptRates([receipt], rates);
+    // null ?? BASE_CURRENCY = 'SGD' → skipped
+    expect(result).toEqual([]);
+  });
 });

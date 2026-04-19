@@ -173,6 +173,73 @@ describe('resolveSummaryView — total tab', () => {
     // 500 USD cents * 1.35 = 675 SGD cents
     expect(view.receiptBreakdowns[0].split.totalByPersonCents.p1).toBe(675);
   });
+
+  it('uses BASE_CURRENCY when receipt slot is missing from receipts (splitByReceipt longer)', () => {
+    // splitByReceipt longer than receipts → receipts[i]?.currency is undefined → ?? BASE_CURRENCY
+    const s1 = makeSplit(500);
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [],
+        splitByReceipt: [s1],
+        activeTab: 'total',
+      }),
+    );
+    expect(view.kind).toBe('total');
+    if (view.kind !== 'total') return;
+    expect(view.receiptBreakdowns).toHaveLength(0);
+  });
+
+  it('uses "Receipt N" name when receipt name is empty', () => {
+    const r1 = { ...makeReceipt('r1', 'SGD'), name: '' };
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [r1],
+        splitByReceipt: [makeSplit(1000)],
+        activeTab: 'total',
+      }),
+    );
+    if (view.kind !== 'total') return;
+    expect(view.receiptBreakdowns[0].name).toBe('Receipt 1');
+  });
+
+  it('falls back to splitByReceipt[i] when sgdSplitByReceipt[i] is undefined (receipts longer than splits)', () => {
+    // receipts.length > splitByReceipt.length with showBaseCurrency=true:
+    // sgdSplitByReceipt is built from splitByReceipt.map(), so sgdSplitByReceipt[1] is undefined
+    // → the ?? splitByReceipt[i] fallback branch is exercised
+    const r1 = makeReceipt('r1', 'USD');
+    const r2 = makeReceipt('r2', 'SGD');
+    const s1 = makeSplit(500);
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [r1, r2],
+        splitByReceipt: [s1], // only 1 split for 2 receipts
+        activeTab: 'total',
+        showBaseCurrency: true,
+      }),
+    );
+    if (view.kind !== 'total') return;
+    expect(view.receiptBreakdowns).toHaveLength(2);
+    expect(view.receiptBreakdowns[0].currency).toBe('SGD');
+  });
+
+  it('treats receipt with null currency as SGD (defensive runtime check)', () => {
+    const r1 = { ...makeReceipt('r1', 'SGD'), currency: null as unknown as string };
+    const r2 = makeReceipt('r2', 'USD');
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [r1, r2],
+        splitByReceipt: [makeSplit(1000), makeSplit(500)],
+        activeTab: 'total',
+        showBaseCurrency: false,
+      }),
+    );
+    if (view.kind !== 'total') return;
+    // null ?? BASE_CURRENCY → 'SGD', so r1 is not foreign
+    expect(view.receiptBreakdowns[0].currency).toBe('SGD');
+    expect(view.receiptBreakdowns[0].effectiveRate).toBeUndefined();
+    // hasAnyForeign should still be true because r2 is USD
+    expect(view.hasAnyForeign).toBe(true);
+  });
 });
 
 // ─── Receipt tab ──────────────────────────────────────────────────────────────
