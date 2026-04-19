@@ -25,7 +25,12 @@ export interface TotalTabView extends BaseView {
   hasAnyForeign: boolean;
   foreignRates: ForeignCurrencyRate[];
   /** Per-receipt breakdown shown inside each PersonCard on the consolidated tab. */
-  receiptBreakdowns: { name: string; split: SplitResult; currency: string }[];
+  receiptBreakdowns: {
+    name: string;
+    split: SplitResult;
+    currency: string;
+    effectiveRate?: number;
+  }[];
 }
 
 export interface ReceiptTabView extends BaseView {
@@ -79,11 +84,19 @@ function resolveTotalTab({
       : s;
   });
 
-  const receiptBreakdowns = receipts.map((r, i) => ({
-    name: r.name || `Receipt ${i + 1}`,
-    split: (showBaseCurrency ? sgdSplitByReceipt[i] : splitByReceipt[i]) ?? splitByReceipt[i],
-    currency: showBaseCurrency ? BASE_CURRENCY : (r.currency ?? BASE_CURRENCY),
-  }));
+  const receiptBreakdowns = receipts.map((r, i) => {
+    const currency = showBaseCurrency ? BASE_CURRENCY : (r.currency ?? BASE_CURRENCY);
+    const isForeign = (r.currency ?? BASE_CURRENCY) !== BASE_CURRENCY;
+    return {
+      name: r.name || `Receipt ${i + 1}`,
+      split: (showBaseCurrency ? sgdSplitByReceipt[i] : splitByReceipt[i]) ?? splitByReceipt[i],
+      currency,
+      effectiveRate:
+        !showBaseCurrency && isForeign
+          ? getEffectiveRate(r.currency!, exchangeRates, r.exchangeRateOverride ?? null)
+          : undefined,
+    };
+  });
 
   return {
     kind: 'total',

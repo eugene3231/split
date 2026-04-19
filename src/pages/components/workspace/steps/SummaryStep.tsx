@@ -217,18 +217,7 @@ export function SummaryStep({
                   currentCurrency={nativeCurrency}
                 />
                 {view.kind === 'total' && view.foreignRates.length > 0 ? (
-                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                    <span className="material-symbols-outlined text-sm">currency_exchange</span>
-                    <span>
-                      {view.foreignRates.map(({ currency, rate, hasCustomRate }, i) => (
-                        <span key={currency}>
-                          {i > 0 && <span className="mx-1 opacity-40">·</span>}1 {BASE_CURRENCY} ={' '}
-                          {parseFloat((1 / rate).toFixed(5))} {currency}
-                          {hasCustomRate ? ' (custom)' : ''}
-                        </span>
-                      ))}
-                    </span>
-                  </div>
+                  <></>
                 ) : view.kind === 'receipt' && view.effectiveRate ? (
                   <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
                     <span className="material-symbols-outlined text-sm">currency_exchange</span>
@@ -269,12 +258,14 @@ export function SummaryStep({
                 showDetails={showDetails}
                 currency={view.displayCurrency}
                 conversionRate={
-                  view.kind === 'receipt' && view.isForeign
+                  view.kind === 'receipt' && view.isForeign && !showBaseCurrency
                     ? (view.effectiveRate ?? undefined)
                     : undefined
                 }
                 fromCurrency={
-                  view.kind === 'receipt' && view.isForeign ? view.nativeCurrency : undefined
+                  view.kind === 'receipt' && view.isForeign && !showBaseCurrency
+                    ? view.nativeCurrency
+                    : undefined
                 }
                 qrDataUrl={qrDataUrls[person.id]}
                 receiptBreakdown={view.kind === 'total' ? view.receiptBreakdowns : undefined}

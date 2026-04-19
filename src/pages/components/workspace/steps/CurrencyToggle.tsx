@@ -23,7 +23,7 @@ export function CurrencyToggle({ showBaseCurrency, onToggle, activeTab, currentC
         )}
       >
         {activeTab === 'total'
-          ? 'Original'
+          ? 'As billed'
           : `${getCurrencySymbol(currentCurrency)} ${currentCurrency}`}
       </button>
       <button
