@@ -1,10 +1,46 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  buildDownloadFilename,
   buildSplitShareText,
   copyShareText,
   getShareSupport,
   shareText,
 } from '@features/split-results/logic/shareSplit';
+
+describe('buildDownloadFilename', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-19T10:00:00'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('produces prefix-date when no label is given', () => {
+    expect(buildDownloadFilename('split')).toBe('split-19-04-2026.png');
+  });
+
+  it('produces prefix-slug-date when a label is given', () => {
+    expect(buildDownloadFilename('split', 'Dinner at Raffles')).toBe(
+      'split-dinner-at-raffles-19-04-2026.png',
+    );
+  });
+
+  it('collapses consecutive special characters into a single hyphen', () => {
+    expect(buildDownloadFilename('paynow', 'Alice & Bob!!!')).toBe(
+      'paynow-alice-bob-19-04-2026.png',
+    );
+  });
+
+  it('strips leading and trailing hyphens from the slug', () => {
+    expect(buildDownloadFilename('split', '---hello---')).toBe('split-hello-19-04-2026.png');
+  });
+
+  it('uses the prefix only when label is an empty string', () => {
+    expect(buildDownloadFilename('split', '')).toBe('split-19-04-2026.png');
+  });
+});
 
 describe('buildSplitShareText', () => {
   it('formats a compact chat summary with the grand total and each person total', () => {
