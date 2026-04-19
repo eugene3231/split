@@ -102,6 +102,16 @@ export function SummaryStep({
         includeItemDetails: showDetails,
         currency: view.displayCurrency,
         payerMobile: normalizeMobile(payerMobile) ?? undefined,
+        conversionRate:
+          view.kind === 'receipt' && view.isForeign && !showBaseCurrency
+            ? (view.effectiveRate ?? undefined)
+            : undefined,
+        fromCurrency:
+          view.kind === 'receipt' && view.isForeign && !showBaseCurrency
+            ? view.nativeCurrency
+            : undefined,
+        effectiveRatesByReceipt:
+          view.kind === 'total' ? view.receiptBreakdowns.map((b) => b.effectiveRate) : undefined,
       });
       downloadImage(blob, buildDownloadFilename('split', receiptForExport?.name));
     } catch {
