@@ -34,18 +34,18 @@ export function LineItemCard({
   const discountVisible = showDiscount || !!item.discountPercentInput;
 
   return (
-    <div className="bg-surface-container-lowest px-3 py-2.5 rounded-xl shadow-sm border border-surface-container-highest hover:border-primary/20 transition-all group relative">
+    <div className="group relative rounded-xl border border-surface-container-highest bg-surface-container-lowest px-3 py-2.5 shadow-sm transition-all hover:border-primary/20">
       {/* Name + Price row */}
-      <div className="flex justify-between items-center gap-3">
+      <div className="flex items-center justify-between gap-3">
         <input
           type="text"
           value={item.name}
           onChange={(e) => onUpdate((current) => ({ ...current, name: e.target.value }))}
           placeholder="Item name"
-          className="bg-transparent border-none p-0 focus:ring-0 font-medium text-on-surface w-full text-base outline-none placeholder:text-outline"
+          className="w-full border-none bg-transparent p-0 text-base font-medium text-on-surface outline-none placeholder:text-outline focus:ring-0"
         />
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex items-center gap-1 bg-surface-container rounded-lg px-2 py-1">
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="flex items-center gap-1 rounded-lg bg-surface-container px-2 py-1">
             <span className="text-xs font-bold text-on-surface-variant">{currencySymbol}</span>
             <input
               type="text"
@@ -53,14 +53,14 @@ export function LineItemCard({
               value={item.amountInput}
               onChange={(e) => onUpdate((current) => ({ ...current, amountInput: e.target.value }))}
               placeholder="0.00"
-              className="bg-transparent border-none p-0 focus:ring-0 font-bold text-primary w-16 text-right text-base outline-none placeholder:text-outline"
+              className="w-16 border-none bg-transparent p-0 text-right text-base font-bold text-primary outline-none placeholder:text-outline focus:ring-0"
             />
           </div>
           <button
             type="button"
             onClick={onRemove}
             aria-label="Remove item"
-            className="flex items-center justify-center text-error opacity-40 hover:opacity-100 transition-opacity"
+            className="flex items-center justify-center text-error opacity-40 transition-opacity hover:opacity-100"
           >
             <span className="material-symbols-outlined !text-base">close</span>
           </button>
@@ -71,11 +71,11 @@ export function LineItemCard({
       {discountVisible && (
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-secondary text-sm">loyalty</span>
+            <span className="material-symbols-outlined text-sm text-secondary">loyalty</span>
             <span className="text-xs font-bold text-secondary">Discount</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-surface-container rounded border border-secondary-container/50 px-1.5 py-0.5">
+            <div className="flex items-center rounded border border-secondary-container/50 bg-surface-container px-1.5 py-0.5">
               <input
                 ref={discountInputRef}
                 type="text"
@@ -85,15 +85,15 @@ export function LineItemCard({
                   onUpdate((current) => ({ ...current, discountPercentInput: e.target.value }))
                 }
                 placeholder="0"
-                className="bg-transparent border-none p-0 focus:ring-0 font-bold text-secondary w-8 text-right text-xs outline-none"
+                className="w-8 border-none bg-transparent p-0 text-right text-xs font-bold text-secondary outline-none focus:ring-0"
               />
-              <span className="text-[10px] font-bold text-secondary ml-0.5">%</span>
+              <span className="ml-0.5 text-[10px] font-bold text-secondary">%</span>
             </div>
             <button
               type="button"
               onClick={handleHideDiscount}
               aria-label="Remove discount"
-              className="flex items-center justify-center text-error opacity-40 hover:opacity-100 transition-opacity"
+              className="flex items-center justify-center text-error opacity-40 transition-opacity hover:opacity-100"
             >
               <span className="material-symbols-outlined !text-base">close</span>
             </button>
@@ -102,19 +102,19 @@ export function LineItemCard({
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-1.5">
+      <div className="mt-1.5 flex items-center justify-between">
         {!discountVisible && (
           <button
             type="button"
             onClick={handleShowDiscount}
-            className="flex items-center gap-0.5 text-[10px] font-semibold text-on-surface-variant hover:text-primary transition-colors"
+            className="flex items-center gap-0.5 text-[10px] font-semibold text-on-surface-variant transition-colors hover:text-primary"
           >
             <span className="material-symbols-outlined text-xs">add</span>
             <span>Discount</span>
           </button>
         )}
         {discount.enabled && (
-          <span className="text-[10px] text-on-surface-variant italic ml-auto">
+          <span className="ml-auto text-[10px] text-on-surface-variant italic">
             {discount.mode === 'percent'
               ? `${discount.percentInput || '0'}% bill discount`
               : 'Bill discount'}{' '}

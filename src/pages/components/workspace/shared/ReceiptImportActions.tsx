@@ -66,17 +66,17 @@ export function ReceiptImportActions({
   return (
     <div
       className={cn(
-        'p-6 bg-surface-container-lowest rounded-2xl shadow-sm space-y-4 border border-outline-variant/20',
+        'space-y-4 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm',
         receiptFile && !hasApiKey && 'ring-2 ring-error',
       )}
     >
-      <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+      <h4 className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
         Scan Receipt
       </h4>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col items-center justify-center p-4 bg-surface-container-low rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
-          <span className="material-symbols-outlined text-primary mb-2">upload_file</span>
+        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl bg-surface-container-low p-4 transition-colors hover:bg-surface-container-high">
+          <span className="material-symbols-outlined mb-2 text-primary">upload_file</span>
           <span className="text-[10px] font-bold text-primary">UPLOAD</span>
           <input
             ref={fileInputRef}
@@ -87,8 +87,8 @@ export function ReceiptImportActions({
             onChange={handleFileChange}
           />
         </label>
-        <label className="flex flex-col items-center justify-center p-4 bg-surface-container-low rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
-          <span className="material-symbols-outlined text-primary mb-2">photo_camera</span>
+        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl bg-surface-container-low p-4 transition-colors hover:bg-surface-container-high">
+          <span className="material-symbols-outlined mb-2 text-primary">photo_camera</span>
           <span className="text-[10px] font-bold text-primary">CAPTURE</span>
           <input
             ref={cameraInputRef}
@@ -102,18 +102,18 @@ export function ReceiptImportActions({
       </div>
 
       {receiptFile && (
-        <div className="pt-3 border-t border-surface-container-high space-y-3">
+        <div className="space-y-3 border-t border-surface-container-high pt-3">
           <div className="flex items-center gap-2 text-xs text-on-surface-variant">
             {previewUrl ? (
               <button
                 type="button"
                 onClick={() => setIsFullscreen(true)}
-                className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer ring-1 ring-outline-variant/30 hover:ring-primary hover:ring-2 transition-all"
+                className="h-8 w-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg ring-1 ring-outline-variant/30 transition-all hover:ring-2 hover:ring-primary"
               >
                 <img
                   src={previewUrl}
                   alt="Receipt preview"
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               </button>
             ) : (
@@ -123,7 +123,7 @@ export function ReceiptImportActions({
               type="button"
               onClick={() => setIsFullscreen(true)}
               aria-label={`Open fullscreen preview of ${receiptFile.name}`}
-              className="truncate flex-1 text-left cursor-pointer hover:text-primary transition-colors"
+              className="flex-1 cursor-pointer truncate text-left transition-colors hover:text-primary"
             >
               {receiptFile.name}
             </button>
@@ -134,7 +134,7 @@ export function ReceiptImportActions({
                 onReceiptFileSelected(null);
               }}
               aria-label="Remove upload"
-              className="flex-shrink-0 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+              className="flex-shrink-0 cursor-pointer text-on-surface-variant transition-colors hover:text-error"
             >
               <span className="material-symbols-outlined text-sm">close</span>
             </button>
@@ -160,7 +160,7 @@ export function ReceiptImportActions({
               type="button"
               onClick={() => setShowApiKeyModal(true)}
               className={cn(
-                'text-xs font-bold underline cursor-pointer',
+                'cursor-pointer text-xs font-bold underline',
                 hasApiKey ? 'text-on-surface-variant hover:text-primary' : 'text-error',
               )}
             >
@@ -173,9 +173,9 @@ export function ReceiptImportActions({
             onClick={onScanReceipt}
             disabled={scan.isScanning || !hasApiKey}
             className={cn(
-              'w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95',
+              'flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all active:scale-95',
               scan.isScanning || !hasApiKey
-                ? 'bg-surface-container-high text-on-surface-variant cursor-not-allowed opacity-50'
+                ? 'cursor-not-allowed bg-surface-container-high text-on-surface-variant opacity-50'
                 : 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/20',
             )}
           >
@@ -185,21 +185,21 @@ export function ReceiptImportActions({
             {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan Receipt'}
           </button>
           {scan.scanStatus && !scan.isScanning && (
-            <p className="text-xs text-secondary font-medium">{scan.scanStatus}</p>
+            <p className="text-xs font-medium text-secondary">{scan.scanStatus}</p>
           )}
-          {scan.scanError && <p className="text-xs text-error font-medium">{scan.scanError}</p>}
+          {scan.scanError && <p className="text-xs font-medium text-error">{scan.scanError}</p>}
         </div>
       )}
 
       {mockReceipts.length > 0 && (
-        <div className="pt-3 border-t border-surface-container-high flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 border-t border-surface-container-high pt-3">
           {mockReceipts.map(({ onLoad }, i) => (
             <button
               key={i}
               type="button"
               data-testid={`load-mock-receipt-btn-${i}`}
               onClick={onLoad}
-              className="px-2.5 py-1 rounded-lg bg-surface-container-low text-[10px] font-semibold text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors uppercase tracking-wide"
+              className="rounded-lg bg-surface-container-low px-2.5 py-1 text-[10px] font-semibold tracking-wide text-on-surface-variant uppercase transition-colors hover:bg-surface-container hover:text-primary"
             >
               Load Mock Receipt {i + 1}
             </button>
@@ -212,14 +212,14 @@ export function ReceiptImportActions({
           role="dialog"
           aria-modal="true"
           aria-label="Receipt image preview"
-          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
           onClick={() => setIsFullscreen(false)}
         >
           <button
             type="button"
             autoFocus
             onClick={() => setIsFullscreen(false)}
-            className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer"
+            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
             aria-label="Close preview"
           >
             <span className="material-symbols-outlined">close</span>

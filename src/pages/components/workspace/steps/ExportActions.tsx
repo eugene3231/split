@@ -24,7 +24,7 @@ export function ExportActions({
         data-testid="export-save-image-btn"
         onClick={onDownload}
         disabled={busy !== null}
-        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-surface-container-highest text-primary font-bold text-sm hover:bg-primary hover:text-on-primary transition-all disabled:opacity-60"
+        className="flex items-center justify-center gap-2 rounded-xl bg-surface-container-highest px-6 py-3 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-on-primary disabled:opacity-60"
       >
         <span className="material-symbols-outlined text-base">image</span>
         {busy === 'downloading' ? 'Generating…' : 'Save Image'}
@@ -34,7 +34,7 @@ export function ExportActions({
         data-testid="export-copy-text-btn"
         onClick={onShare}
         disabled={busy !== null}
-        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-outline-variant/30 text-primary font-bold text-sm hover:border-primary transition-all disabled:opacity-60"
+        className="flex items-center justify-center gap-2 rounded-xl border border-outline-variant/30 px-6 py-3 text-sm font-bold text-primary transition-all hover:border-primary disabled:opacity-60"
       >
         <span className="material-symbols-outlined text-base">
           {copied ? 'check' : nativeShareSupported ? 'share' : 'content_copy'}

@@ -18,7 +18,7 @@ export function ReceiptNameField({ name, onRename, className, iconClassName }: P
   };
 
   return (
-    <span className="inline-flex items-center gap-1 w-fit max-w-full">
+    <span className="inline-flex w-fit max-w-full items-center gap-1">
       <span
         ref={ref}
         contentEditable
@@ -35,7 +35,7 @@ export function ReceiptNameField({ name, onRename, className, iconClassName }: P
           }
         }}
         className={cn(
-          'font-bold text-sm text-on-surface bg-transparent outline-none cursor-text whitespace-nowrap rounded px-1 -mx-1 border border-transparent hover:border-outline-variant focus:border-primary transition-colors',
+          '-mx-1 cursor-text rounded border border-transparent bg-transparent px-1 text-sm font-bold whitespace-nowrap text-on-surface transition-colors outline-none hover:border-outline-variant focus:border-primary',
           className,
         )}
       >
@@ -43,7 +43,7 @@ export function ReceiptNameField({ name, onRename, className, iconClassName }: P
       </span>
       <span
         className={cn(
-          'material-symbols-outlined !text-xs flex-shrink-0 opacity-60',
+          'material-symbols-outlined flex-shrink-0 !text-xs opacity-60',
           iconClassName ?? 'text-on-surface-variant',
         )}
       >

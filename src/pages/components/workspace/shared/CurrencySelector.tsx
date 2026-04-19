@@ -11,7 +11,7 @@ export function CurrencySelector({ value, onChange, className }: Props) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`bg-surface-container border border-outline-variant/40 rounded-lg px-2 py-1 text-sm font-semibold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer ${className ?? ''}`}
+      className={`cursor-pointer rounded-lg border border-outline-variant/40 bg-surface-container px-2 py-1 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/40 focus:outline-none ${className ?? ''}`}
     >
       {SUPPORTED_CURRENCIES.map((code) => (
         <option key={code} value={code}>

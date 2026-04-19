@@ -18,16 +18,16 @@ export function ProgressIndicator({
   // Final step shows the 4-circle connected stepper
   if (activeStep === 'final') {
     return (
-      <div className="mb-10 flex items-center justify-between max-w-2xl mx-auto">
+      <div className="mx-auto mb-10 flex max-w-2xl items-center justify-between">
         {STEP_ORDER.map((step, i) => {
           const completed = isStepCompleted(step, activeStep);
           const isCurrent = step === activeStep;
           return (
-            <div key={step} className="flex items-center flex-1">
-              <div className="flex flex-col items-center gap-2 group">
+            <div key={step} className="flex flex-1 items-center">
+              <div className="group flex flex-col items-center gap-2">
                 <div
                   className={cn(
-                    'w-10 h-10 rounded-full flex items-center justify-center font-bold transition-transform group-hover:scale-105',
+                    'flex h-10 w-10 items-center justify-center rounded-full font-bold transition-transform group-hover:scale-105',
                     completed
                       ? 'bg-secondary text-on-secondary'
                       : isCurrent
@@ -48,7 +48,7 @@ export function ProgressIndicator({
                 </div>
                 <span
                   className={cn(
-                    'text-[10px] font-bold uppercase tracking-widest',
+                    'text-[10px] font-bold tracking-widest uppercase',
                     completed
                       ? 'text-secondary'
                       : isCurrent
@@ -62,7 +62,7 @@ export function ProgressIndicator({
               {i < STEP_ORDER.length - 1 && (
                 <div
                   className={cn(
-                    'h-0.5 flex-1 mx-4',
+                    'mx-4 h-0.5 flex-1',
                     completed ? 'bg-secondary' : 'bg-surface-container-highest',
                   )}
                 />
@@ -89,21 +89,21 @@ export function ProgressIndicator({
 
   return (
     <div className="mb-10">
-      <div className="flex items-center justify-between text-on-surface-variant mb-2">
+      <div className="mb-2 flex items-center justify-between text-on-surface-variant">
         <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
             {stepNumber}
           </span>
           <span className="font-bold text-primary">{STEP_LABELS[activeStep]}</span>
           {contextText && (
-            <span className="text-xs font-medium text-on-surface-variant ml-2">{contextText}</span>
+            <span className="ml-2 text-xs font-medium text-on-surface-variant">{contextText}</span>
           )}
         </div>
         <span className="text-sm font-medium text-primary">Step {stepNumber} of 4</span>
       </div>
-      <div className="h-0.5 bg-surface-container-highest rounded-full overflow-hidden">
+      <div className="h-0.5 overflow-hidden rounded-full bg-surface-container-highest">
         <div
-          className="h-full bg-primary rounded-full transition-all duration-500"
+          className="h-full rounded-full bg-primary transition-all duration-500"
           style={{ width: `${trackFillPercent}%` }}
         />
       </div>

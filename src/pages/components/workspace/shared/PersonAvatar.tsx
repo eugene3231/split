@@ -13,7 +13,7 @@ export function PersonAvatar({ name, colorIndex, size = 'md' }: Props) {
 
   return (
     <div
-      className={`${sizeClasses} rounded-full flex items-center justify-center font-bold flex-shrink-0`}
+      className={`${sizeClasses} flex flex-shrink-0 items-center justify-center rounded-full font-bold`}
       style={{ backgroundColor: color.avatarBg, color: color.avatarText }}
     >
       {initial}

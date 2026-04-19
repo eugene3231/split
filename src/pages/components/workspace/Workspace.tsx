@@ -128,7 +128,7 @@ export function Workspace() {
 
   return (
     <div
-      className="bg-surface text-on-surface font-body min-h-screen flex flex-col"
+      className="font-body flex min-h-screen flex-col bg-surface text-on-surface"
       data-testid="workspace"
     >
       <TopAppBar
@@ -138,7 +138,7 @@ export function Workspace() {
         detectedItemsCount={detectedItemsCount}
       />
 
-      <main className="flex-grow max-w-7xl mx-auto w-full px-6 md:px-8 pt-4 md:pt-10 pb-48">
+      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-48 md:px-8 md:pt-10">
         {activeStep === 'people' && (
           <PeopleStep
             people={people}

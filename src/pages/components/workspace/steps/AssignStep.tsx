@@ -49,20 +49,20 @@ export function AssignStep({
     <div>
       {/* Header — desktop */}
       <div className="mb-6 hidden md:block">
-        <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-on-surface tracking-tight mb-2">
+        <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
           Assign Items
         </h1>
-        <p className="text-on-surface-variant text-lg">
+        <p className="text-lg text-on-surface-variant">
           Assign each item to the people who ordered it.
         </p>
       </div>
 
       {/* Header — mobile */}
       <div className="mb-4 md:hidden">
-        <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">
+        <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
           Assign Items
         </h1>
-        <p className="text-on-surface-variant text-xs mt-0.5">
+        <p className="mt-0.5 text-xs text-on-surface-variant">
           Assign each item to the people who ordered it.
         </p>
       </div>
@@ -84,7 +84,7 @@ export function AssignStep({
       />
 
       {itemsSubPhase === 'assign' && activeReceipt && (
-        <div className="flex items-center gap-2 mt-3 mb-1 px-1">
+        <div className="mt-3 mb-1 flex items-center gap-2 px-1">
           <span className="material-symbols-outlined text-sm text-outline">receipt_long</span>
           <ReceiptNameField
             key={activeReceiptId}
@@ -160,7 +160,7 @@ function AssignPhase({
 
   if (!activeItem) {
     return (
-      <p className="text-sm text-on-surface-variant text-center py-12">No items available yet.</p>
+      <p className="py-12 text-center text-sm text-on-surface-variant">No items available yet.</p>
     );
   }
 
@@ -171,12 +171,12 @@ function AssignPhase({
       {/* Counter + nav arrows */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+          <p className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
             Assigning Items
           </p>
           <p
             data-testid="assign-item-counter"
-            className="text-2xl font-extrabold text-on-surface font-headline"
+            className="font-headline text-2xl font-extrabold text-on-surface"
           >
             Item {activeItemIndex + 1} of {items.length}
           </p>
@@ -187,7 +187,7 @@ function AssignPhase({
             data-testid="assign-prev-item-btn"
             onClick={() => onActiveItemIndexChange(Math.max(0, activeItemIndex - 1))}
             disabled={activeItemIndex === 0}
-            className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors disabled:opacity-30"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
           >
             <span className="material-symbols-outlined text-on-surface">chevron_left</span>
           </button>
@@ -196,7 +196,7 @@ function AssignPhase({
             data-testid="assign-next-item-btn"
             onClick={() => onActiveItemIndexChange(Math.min(items.length - 1, activeItemIndex + 1))}
             disabled={activeItemIndex >= items.length - 1}
-            className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors disabled:opacity-30"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
           >
             <span className="material-symbols-outlined text-on-surface">chevron_right</span>
           </button>
@@ -204,16 +204,16 @@ function AssignPhase({
       </div>
 
       {/* Item card */}
-      <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-[0_8px_24px_rgba(25,28,29,0.06)]">
-        <div className="flex justify-between items-start mb-1">
-          <h2 className="text-2xl md:text-3xl font-bold font-headline text-on-surface">
+      <div className="rounded-2xl bg-surface-container-lowest p-5 shadow-[0_8px_24px_rgba(25,28,29,0.06)]">
+        <div className="mb-1 flex items-start justify-between">
+          <h2 className="font-headline text-2xl font-bold text-on-surface md:text-3xl">
             {activeItem.name || 'Untitled item'}
           </h2>
           {isAssigned ? (
             <div
               data-testid="assign-item-status"
               data-assigned="true"
-              className="flex items-center gap-1.5 text-secondary font-bold text-sm flex-shrink-0 ml-3"
+              className="ml-3 flex flex-shrink-0 items-center gap-1.5 text-sm font-bold text-secondary"
             >
               <span
                 className="material-symbols-outlined text-sm"
@@ -227,7 +227,7 @@ function AssignPhase({
             <div
               data-testid="assign-item-status"
               data-assigned="false"
-              className="flex items-center gap-1.5 text-error font-bold text-sm flex-shrink-0 ml-3"
+              className="ml-3 flex flex-shrink-0 items-center gap-1.5 text-sm font-bold text-error"
             >
               <span
                 className="material-symbols-outlined text-sm"
@@ -239,13 +239,13 @@ function AssignPhase({
             </div>
           )}
         </div>
-        <div className="text-3xl md:text-4xl font-extrabold font-headline text-primary">
+        <div className="font-headline text-3xl font-extrabold text-primary md:text-4xl">
           {priceCents !== null ? formatCurrencyFromCents(priceCents, currency) : '—'}
         </div>
       </div>
 
       {/* Who's sharing header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <span className="text-base font-semibold text-on-surface">Who's sharing?</span>
         <div className="flex gap-3">
           <button
@@ -253,7 +253,7 @@ function AssignPhase({
             data-testid="assign-select-all-btn"
             onClick={handleSelectAll}
             disabled={people.length === 0}
-            className="text-primary font-bold text-sm hover:opacity-70 transition-opacity disabled:opacity-40"
+            className="text-sm font-bold text-primary transition-opacity hover:opacity-70 disabled:opacity-40"
           >
             Select all
           </button>
@@ -262,7 +262,7 @@ function AssignPhase({
             data-testid="assign-select-none-btn"
             onClick={handleSelectNone}
             disabled={people.length === 0}
-            className="text-on-surface-variant font-semibold text-sm hover:opacity-70 transition-opacity disabled:opacity-40"
+            className="text-sm font-semibold text-on-surface-variant transition-opacity hover:opacity-70 disabled:opacity-40"
           >
             None
           </button>
@@ -270,7 +270,7 @@ function AssignPhase({
       </div>
 
       {/* Person toggle buttons */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {people.map((person, index) => {
           const isSelected = activeItem.assignment.personIds.includes(person.id);
           const assignedCount = activeItem.assignment.personIds.length;
@@ -292,15 +292,15 @@ function AssignPhase({
                 }));
               }}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left',
+                'flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all',
                 isSelected
-                  ? 'bg-surface-container-lowest border-2 border-secondary shadow-[0_4px_14px_rgba(27,109,36,0.2)]'
-                  : 'bg-surface-container-low border-2 border-transparent hover:bg-surface-container',
+                  ? 'border-2 border-secondary bg-surface-container-lowest shadow-[0_4px_14px_rgba(27,109,36,0.2)]'
+                  : 'border-2 border-transparent bg-surface-container-low hover:bg-surface-container',
               )}
             >
               <PersonAvatar name={person.name} colorIndex={index} />
-              <div className="flex-1 min-w-0">
-                <span className="block font-bold text-on-surface text-sm">{person.name}</span>
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-on-surface">{person.name}</span>
                 <span
                   className={cn(
                     'text-sm font-semibold',
@@ -311,9 +311,9 @@ function AssignPhase({
                 </span>
               </div>
               {isSelected && (
-                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center">
+                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
                   <span
-                    className="material-symbols-outlined !text-xs text-on-secondary leading-none"
+                    className="material-symbols-outlined !text-xs leading-none text-on-secondary"
                     style={{ fontVariationSettings: "'FILL' 1" }}
                   >
                     check
@@ -326,7 +326,7 @@ function AssignPhase({
       </div>
 
       {/* Double-tap hint */}
-      <div className="flex items-center gap-1.5 text-on-surface-variant text-xs italic">
+      <div className="flex items-center gap-1.5 text-xs text-on-surface-variant italic">
         <span className="material-symbols-outlined text-sm">info</span>
         Double-tap a person to assign only them.
       </div>
@@ -345,8 +345,8 @@ type ReviewPhaseProps = {
 function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold font-headline text-on-surface">Review Assignments</h2>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-headline text-2xl font-bold text-on-surface">Review Assignments</h2>
         <span className="text-sm text-on-surface-variant">
           {items.length} item{items.length !== 1 ? 's' : ''}
         </span>
@@ -366,16 +366,16 @@ function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
               className={cn(
                 'flex items-center justify-between gap-3 rounded-xl border p-4 transition-all',
                 isAssigned
-                  ? 'bg-surface-container-lowest border-surface-container-highest hover:border-outline-variant/30'
-                  : 'bg-surface-container-lowest border-error/50 hover:border-error',
+                  ? 'border-surface-container-highest bg-surface-container-lowest hover:border-outline-variant/30'
+                  : 'border-error/50 bg-surface-container-lowest hover:border-error',
               )}
             >
-              <div className="space-y-1 flex-1 min-w-0">
-                <p className="font-bold text-on-surface truncate">
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="truncate font-bold text-on-surface">
                   {item.name || `Item ${index + 1}`}
                 </p>
                 {priceCents !== null && (
-                  <span className="block text-sm font-bold text-primary font-headline">
+                  <span className="font-headline block text-sm font-bold text-primary">
                     {formatCurrencyFromCents(priceCents)}
                   </span>
                 )}
@@ -392,7 +392,7 @@ function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
                 type="button"
                 data-testid="wizard-edit-btn"
                 onClick={() => onEditItem(index)}
-                className="shrink-0 flex items-center gap-1 border border-outline-variant text-primary rounded-xl px-3 py-2 text-sm font-semibold hover:border-primary hover:bg-primary/5 transition-all"
+                className="flex shrink-0 items-center gap-1 rounded-xl border border-outline-variant px-3 py-2 text-sm font-semibold text-primary transition-all hover:border-primary hover:bg-primary/5"
               >
                 <span className="material-symbols-outlined text-sm">edit</span>
                 Edit

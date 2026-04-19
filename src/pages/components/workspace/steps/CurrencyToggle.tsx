@@ -11,12 +11,12 @@ interface Props {
 
 export function CurrencyToggle({ showBaseCurrency, onToggle, activeTab, currentCurrency }: Props) {
   return (
-    <div className="flex items-center gap-1 bg-surface-container rounded-full p-0.5 text-xs font-semibold">
+    <div className="flex items-center gap-1 rounded-full bg-surface-container p-0.5 text-xs font-semibold">
       <button
         type="button"
         onClick={() => onToggle(false)}
         className={cn(
-          'px-3 py-1 rounded-full transition-all',
+          'rounded-full px-3 py-1 transition-all',
           !showBaseCurrency
             ? 'bg-primary text-on-primary shadow-sm'
             : 'text-on-surface-variant hover:text-on-surface',
@@ -30,7 +30,7 @@ export function CurrencyToggle({ showBaseCurrency, onToggle, activeTab, currentC
         type="button"
         onClick={() => onToggle(true)}
         className={cn(
-          'px-3 py-1 rounded-full transition-all',
+          'rounded-full px-3 py-1 transition-all',
           showBaseCurrency
             ? 'bg-primary text-on-primary shadow-sm'
             : 'text-on-surface-variant hover:text-on-surface',

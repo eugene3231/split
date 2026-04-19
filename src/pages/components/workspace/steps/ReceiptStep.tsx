@@ -70,20 +70,20 @@ export function ReceiptStep({
     <div>
       {/* Step header — desktop */}
       <div className="mb-6 hidden md:block">
-        <h1 className="text-4xl md:text-5xl font-extrabold font-headline tracking-tight text-on-surface mb-2">
+        <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
           Add Receipts
         </h1>
-        <p className="text-on-surface-variant text-lg">
+        <p className="text-lg text-on-surface-variant">
           Verify scanned items and add missing charges.
         </p>
       </div>
 
       {/* Step header — mobile */}
       <div className="mb-4 md:hidden">
-        <h1 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">
+        <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
           Add Receipts
         </h1>
-        <p className="text-on-surface-variant text-xs mt-0.5">
+        <p className="mt-0.5 text-xs text-on-surface-variant">
           Verify scanned items and add missing charges.
         </p>
       </div>
@@ -112,16 +112,16 @@ export function ReceiptStep({
       </div>
 
       {/* Layout: left 8 cols + right 4 cols */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
         {/* Left: Image placeholder + items */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="space-y-6 lg:col-span-8">
           {/* Compact image placeholder */}
-          <div className="flex items-center gap-4 bg-surface-container-lowest rounded-2xl px-5 py-4">
-            <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-4 rounded-2xl bg-surface-container-lowest px-5 py-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-surface-container">
               <span className="material-symbols-outlined text-2xl text-outline">receipt_long</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <ReceiptNameField
                   key={activeReceiptId}
                   name={activeReceipt?.name ?? ''}
@@ -152,7 +152,7 @@ export function ReceiptStep({
           {/* Line items */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">
+              <h3 className="text-sm font-bold tracking-widest text-on-surface-variant uppercase">
                 Line Items
               </h3>
               {hasItems && (
@@ -180,16 +180,16 @@ export function ReceiptStep({
                   type="button"
                   data-testid="receipt-add-item-btn"
                   onClick={onAddItem}
-                  className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-outline-variant rounded-2xl text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-all"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant p-4 text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
                 >
                   <span className="material-symbols-outlined">add_circle</span>
-                  <span className="font-bold uppercase text-sm tracking-widest">Add New Item</span>
+                  <span className="text-sm font-bold tracking-widest uppercase">Add New Item</span>
                 </button>
               </div>
             ) : (
               <div
                 data-testid="receipt-empty-state"
-                className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-outline-variant/30 rounded-2xl bg-surface-bright text-center gap-3"
+                className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-outline-variant/30 bg-surface-bright py-12 text-center"
               >
                 <span className="material-symbols-outlined text-3xl text-outline">receipt</span>
                 <p className="text-sm font-semibold text-on-surface-variant">No items yet</p>
@@ -198,7 +198,7 @@ export function ReceiptStep({
                   type="button"
                   data-testid="receipt-add-item-btn"
                   onClick={onAddItem}
-                  className="mt-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-xl font-bold text-sm active:scale-95 transition-transform"
+                  className="mt-2 flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2 text-sm font-bold text-on-primary transition-transform active:scale-95"
                 >
                   <span className="material-symbols-outlined text-sm">add</span>
                   Add Item

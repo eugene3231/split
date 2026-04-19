@@ -21,20 +21,20 @@ export function ChargeToggle({ label, value, onChange }: Props) {
             aria-checked={isEnabled}
             onClick={() => onChange({ ...value, enabled: !isEnabled })}
             className={cn(
-              'w-10 h-6 rounded-full relative p-1 cursor-pointer transition-colors flex-shrink-0',
+              'relative h-6 w-10 flex-shrink-0 cursor-pointer rounded-full p-1 transition-colors',
               isEnabled ? 'bg-primary' : 'bg-surface-container-highest',
             )}
           >
             <div
               className={cn(
-                'w-4 h-4 bg-on-primary rounded-full transition-transform shadow-sm',
+                'h-4 w-4 rounded-full bg-on-primary shadow-sm transition-transform',
                 isEnabled ? 'translate-x-4' : 'translate-x-0',
               )}
             />
           </button>
           <span
             className={cn(
-              'font-bold text-sm',
+              'text-sm font-bold',
               isEnabled ? 'text-on-surface' : 'text-on-surface-variant',
             )}
           >
@@ -45,7 +45,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
         {/* $/% mode toggle */}
         <div
           className={cn(
-            'flex items-center bg-surface-container-low rounded-lg p-1',
+            'flex items-center rounded-lg bg-surface-container-low p-1',
             !isEnabled && 'opacity-50',
           )}
         >
@@ -53,9 +53,9 @@ export function ChargeToggle({ label, value, onChange }: Props) {
             type="button"
             onClick={() => isEnabled && onChange({ ...value, mode: 'amount' as ChargeMode })}
             className={cn(
-              'px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all',
+              'rounded-md px-2 py-0.5 text-[10px] font-extrabold transition-all',
               value.mode === 'amount'
-                ? 'bg-surface-container-lowest shadow-sm text-primary'
+                ? 'bg-surface-container-lowest text-primary shadow-sm'
                 : 'text-on-surface-variant',
             )}
           >
@@ -65,9 +65,9 @@ export function ChargeToggle({ label, value, onChange }: Props) {
             type="button"
             onClick={() => isEnabled && onChange({ ...value, mode: 'percent' as ChargeMode })}
             className={cn(
-              'px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all',
+              'rounded-md px-2 py-0.5 text-[10px] font-extrabold transition-all',
               value.mode === 'percent'
-                ? 'bg-surface-container-lowest shadow-sm text-primary'
+                ? 'bg-surface-container-lowest text-primary shadow-sm'
                 : 'text-on-surface-variant',
             )}
           >
@@ -78,7 +78,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
 
       {isEnabled && (
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-bold text-xs">
+          <span className="absolute top-1/2 left-3 -translate-y-1/2 text-xs font-bold text-primary">
             {value.mode === 'amount' ? '$' : '%'}
           </span>
           <input
@@ -93,7 +93,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
               )
             }
             placeholder={value.mode === 'amount' ? '0.00' : '0'}
-            className="w-full bg-surface-container-low border-none rounded-xl py-3 pl-7 pr-3 text-sm font-bold text-primary focus:ring-1 focus:ring-primary/20 outline-none"
+            className="w-full rounded-xl border-none bg-surface-container-low py-3 pr-3 pl-7 text-sm font-bold text-primary outline-none focus:ring-1 focus:ring-primary/20"
           />
         </div>
       )}
