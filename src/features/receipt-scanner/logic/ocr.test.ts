@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Dispatch, SetStateAction } from 'react';
 import { defaultGstState, defaultServiceChargeState } from '@shared/constants';
 import type { ChargeState, EditableItem, OcrResponse, Person } from '@shared/types';
@@ -204,6 +204,29 @@ describe('analyzeReceiptWithGemini', () => {
     await expect(
       analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
     ).rejects.toThrow('Gemini returned non-JSON response.');
+  });
+});
+
+describe('fileToBase64 error handling', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects when FileReader fires an error', async () => {
+    vi.stubGlobal(
+      'FileReader',
+      class {
+        onerror: (() => void) | null = null;
+        onload: (() => void) | null = null;
+        readAsDataURL() {
+          Promise.resolve().then(() => this.onerror?.());
+        }
+      },
+    );
+
+    await expect(
+      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
+    ).rejects.toThrow('Failed to read receipt file');
   });
 });
 
