@@ -9,8 +9,8 @@ import {
   resetAllStores,
   seedStore,
 } from './testHelpers';
-import { loadSimpleWizardState, saveSimpleWizardState } from '@pages/logic/persistence';
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
+import { loadWizardState, saveWizardState } from '@pages/logic/persistence';
+import type { ItemsSubPhase, WizardStep } from '@pages/types';
 
 beforeEach(() => {
   resetAllStores();
@@ -197,13 +197,13 @@ describe('Persistence integration', () => {
   it('wizard state persists and restores via localStorage', () => {
     const wizardState = {
       version: 1 as const,
-      step: 'items' as SimpleWizardStep,
+      step: 'items' as WizardStep,
       itemsSubPhase: 'review' as ItemsSubPhase,
       activeItemIndex: 2,
     };
 
-    saveSimpleWizardState(wizardState);
-    const loaded = loadSimpleWizardState();
+    saveWizardState(wizardState);
+    const loaded = loadWizardState();
 
     expect(loaded).not.toBeNull();
     expect(loaded!.step).toBe('items');
@@ -213,11 +213,11 @@ describe('Persistence integration', () => {
 
   it('wizard state handles invalid data gracefully', () => {
     window.localStorage.setItem('split:simple-wizard-state:v1', '{broken json');
-    const loaded = loadSimpleWizardState();
+    const loaded = loadWizardState();
     expect(loaded).toBeNull();
 
     window.localStorage.setItem('split:simple-wizard-state:v1', JSON.stringify({ version: 999 }));
-    const loaded2 = loadSimpleWizardState();
+    const loaded2 = loadWizardState();
     expect(loaded2).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
-import { isSimpleItemAssigned } from '@pages/logic/wizardValidation';
+import { isItemAssigned } from '@pages/logic/wizardValidation';
 import {
   togglePersonInAssignment,
   selectAllPeople,
@@ -140,7 +140,7 @@ function AssignPhase({
   currency,
 }: AssignPhaseProps) {
   const activeItem = items[activeItemIndex] ?? null;
-  const isAssigned = activeItem ? isSimpleItemAssigned(activeItem, validPeopleSet) : false;
+  const isAssigned = activeItem ? isItemAssigned(activeItem, validPeopleSet) : false;
 
   const handleTogglePerson = (personId: string, checked: boolean) => {
     if (!activeItem) return;
