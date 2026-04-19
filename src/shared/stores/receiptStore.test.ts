@@ -78,6 +78,27 @@ describe('scanStore + geminiStore', () => {
     expect(scanState.loadingMessage).not.toBe(firstScanState.loadingMessage);
   });
 
+  it('advanceLoadingMessage skips receipts that are not scanning', () => {
+    useScanStore.setState({
+      scanStateByReceipt: {
+        [TEST_RECEIPT_ID]: {
+          isScanning: false,
+          scanStatus: '',
+          scanError: null,
+          scanWarnings: [],
+          loadingMessage: 'old message',
+          loadingMessageIndex: 2,
+        },
+      },
+    });
+
+    useScanStore.getState().advanceLoadingMessage();
+
+    const scanState = useScanStore.getState().scanStateByReceipt[TEST_RECEIPT_ID];
+    expect(scanState.loadingMessageIndex).toBe(2);
+    expect(scanState.loadingMessage).toBe('old message');
+  });
+
   it('finishScan clears active loading state', () => {
     useScanStore.getState().startScan(TEST_RECEIPT_ID);
     useScanStore.getState().setScanError(TEST_RECEIPT_ID, 'network issue');
@@ -530,6 +551,42 @@ describe('receiptStore additional coverage', () => {
     const scanState = useScanStore.getState().scanStateByReceipt[receiptId];
     expect(scanState.isScanning).toBe(false);
     expect(scanState.scanError).toBeNull();
+  });
+
+  it('handleScanReceipt forwards status updates from analyzeReceiptWithGemini to scanStore', async () => {
+    useReceiptStore.getState().initialize();
+    useReceiptStore.getState().addPeopleFromInput('Alice');
+    const receiptId = useReceiptStore.getState().activeReceiptId;
+    const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
+    useReceiptStore.getState().handleReceiptFileSelected(file);
+    useGeminiStore.setState({ geminiApiKeyInput: 'test-key' });
+
+    let statusDuringCall: string | undefined;
+    analyzeReceiptWithGeminiMock.mockImplementationOnce(
+      async (_file: unknown, _key: unknown, _model: unknown, setStatus: (s: string) => void) => {
+        setStatus('Calling Gemini...');
+        statusDuringCall = useScanStore.getState().scanStateByReceipt[receiptId]?.scanStatus;
+        return {
+          items: [],
+          subtotal: null,
+          total: null,
+          detected: {
+            gst: { enabled: false, amount: null, percent: null, confidence: null, source: '' },
+            serviceCharge: {
+              enabled: false,
+              amount: null,
+              percent: null,
+              confidence: null,
+              source: '',
+            },
+          },
+          warnings: [],
+        };
+      },
+    );
+
+    await useReceiptStore.getState().handleScanReceipt();
+    expect(statusDuringCall).toBe('Calling Gemini...');
   });
 
   it('handleLoadMockWorkspace populates people and receipts from fixtures', () => {
