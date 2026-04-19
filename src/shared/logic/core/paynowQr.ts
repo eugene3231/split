@@ -44,7 +44,7 @@ function appendCaption(
   const padV = Math.round(10 * scale);
 
   const fields = [
-    { label: 'Mobile', value: mobile },
+    { label: 'Pay To', value: mobile },
     { label: 'Amount', value: `SGD ${(amountCents / 100).toFixed(2)}` },
   ];
 
