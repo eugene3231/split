@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Person } from '@shared/types';
-import { buildInitialItems, createSimpleEmptyItem } from './simpleAssignments';
+import { buildInitialItems, createDefaultItem } from './simpleAssignments';
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },
@@ -42,9 +42,9 @@ describe('buildInitialItems', () => {
   });
 });
 
-describe('createSimpleEmptyItem', () => {
+describe('createDefaultItem', () => {
   it('creates an item assigned to all people in equal mode', () => {
-    const item = createSimpleEmptyItem(people);
+    const item = createDefaultItem(people);
     expect(item.assignment.mode).toBe('equal');
     expect(item.assignment.personIds).toEqual(['p1', 'p2']);
     expect(item.name).toBe('');
@@ -52,7 +52,7 @@ describe('createSimpleEmptyItem', () => {
   });
 
   it('creates an item with empty personIds when no people exist', () => {
-    const item = createSimpleEmptyItem([]);
+    const item = createDefaultItem([]);
     expect(item.assignment.personIds).toEqual([]);
   });
 });

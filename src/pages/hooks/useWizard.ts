@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { useReceiptStore } from '@shared/stores/receiptStore';
 import { useGeminiStore } from '@shared/stores/geminiStore';
 import type { EditableItem, Person, Receipt } from '@shared/types';
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
-import { loadSimpleWizardState, saveSimpleWizardState } from '@pages/logic/persistence';
+import type { ItemsSubPhase, WizardStep } from '@pages/types';
+import { loadWizardState, saveWizardState } from '@pages/logic/persistence';
 import { clampActiveItemIndex, resolveWizardState } from '@pages/logic/wizardState';
 import { isStepValid } from '@pages/logic/wizardValidation';
 
-export function useSimpleWizard(
+export function useWizard(
   items: EditableItem[],
   people: Person[],
   normalizeItems: () => void,
@@ -19,8 +19,8 @@ export function useSimpleWizard(
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
 
-  const [initialWizardState] = useState(() => loadSimpleWizardState());
-  const [activeStepState, setActiveStep] = useState<SimpleWizardStep>(
+  const [initialWizardState] = useState(() => loadWizardState());
+  const [activeStepState, setActiveStep] = useState<WizardStep>(
     initialWizardState?.step ?? 'people',
   );
   const [itemsSubPhaseState, setItemsSubPhase] = useState<ItemsSubPhase>(
@@ -37,7 +37,7 @@ export function useSimpleWizard(
   const safeActiveItemIndex = clampActiveItemIndex(activeItemIndex, items.length);
 
   useEffect(() => {
-    saveSimpleWizardState({
+    saveWizardState({
       step: activeStep,
       itemsSubPhase,
       activeItemIndex: safeActiveItemIndex,

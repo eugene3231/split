@@ -135,7 +135,7 @@ describe('ReceiptSplitterPage integration', () => {
   describe('People step', () => {
     it('renders the people step as the initial step with continue disabled', () => {
       render(<ReceiptSplitterPage />);
-      expect(screen.getByTestId('simple-wizard')).toBeInTheDocument();
+      expect(screen.getByTestId('workspace')).toBeInTheDocument();
       expect(screen.getByTestId('people-empty-state')).toBeInTheDocument();
       expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled();
     });

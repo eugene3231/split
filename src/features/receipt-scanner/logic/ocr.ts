@@ -11,7 +11,7 @@ import { createItemFromOcr } from '@features/receipt-scanner/logic/itemMapper';
 import { toNullableNumber, roundMoney } from '@shared/logic/core/money';
 export {
   buildLocalMockOcrResponse,
-  buildSimpleModeMockOcrResponse,
+  buildMockOcrResponse,
 } from '@features/receipt-scanner/logic/ocrFixtures';
 import {
   geminiReceiptSchema,

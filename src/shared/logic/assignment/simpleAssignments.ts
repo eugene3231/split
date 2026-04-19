@@ -2,7 +2,7 @@ import type { EditableItem, Person } from '@shared/types';
 import { createId } from '@shared/logic/core/id';
 import { sanitizeItemAssignment } from '@shared/logic/assignment/items';
 
-export function createSimpleEmptyItem(people: Person[]): EditableItem {
+export function createDefaultItem(people: Person[]): EditableItem {
   const baseItem = {
     id: createId(),
     name: '',
@@ -52,7 +52,7 @@ export function syncItemsWithPeople(items: EditableItem[], people: Person[]): Ed
 
 export function buildInitialItems(items: EditableItem[], people: Person[]): EditableItem[] {
   if (items.length === 0) {
-    return [createSimpleEmptyItem(people)];
+    return [createDefaultItem(people)];
   }
 
   return syncItemsWithPeople(items, people);

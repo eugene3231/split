@@ -82,6 +82,6 @@ export function buildLocalMockOcrResponse(): OcrResponse {
   return MOCK_RECEIPT_FIXTURES[0].buildResponse();
 }
 
-export function buildSimpleModeMockOcrResponse(): OcrResponse {
+export function buildMockOcrResponse(): OcrResponse {
   return MOCK_RECEIPT_FIXTURES[1].buildResponse();
 }

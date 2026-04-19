@@ -3,5 +3,5 @@ export {
   analyzeReceiptWithGemini,
   applyOcrPayload,
   buildLocalMockOcrResponse,
-  buildSimpleModeMockOcrResponse,
+  buildMockOcrResponse,
 } from '@features/receipt-scanner/logic/ocr';

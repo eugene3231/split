@@ -1,5 +1,5 @@
 import type { EditableItem, Person } from '@shared/types';
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
+import type { ItemsSubPhase, WizardStep } from '@pages/types';
 import { isStepValid } from '@pages/logic/wizardValidation';
 
 export function clampActiveItemIndex(index: number, itemCount: number): number {
@@ -8,11 +8,11 @@ export function clampActiveItemIndex(index: number, itemCount: number): number {
 }
 
 export function resolveWizardState(
-  activeStep: SimpleWizardStep,
+  activeStep: WizardStep,
   itemsSubPhase: ItemsSubPhase,
   items: EditableItem[],
   people: Person[],
-): { activeStep: SimpleWizardStep; itemsSubPhase: ItemsSubPhase } {
+): { activeStep: WizardStep; itemsSubPhase: ItemsSubPhase } {
   if (activeStep === 'final' && !isStepValid('items', { items, people })) {
     return { activeStep: 'items', itemsSubPhase: 'assign' };
   }

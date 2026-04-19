@@ -1,6 +1,6 @@
-export const SIMPLE_WIZARD_STEPS = ['people', 'receipt', 'items', 'final'] as const;
+export const WIZARD_STEPS = ['people', 'receipt', 'items', 'final'] as const;
 
-export type SimpleWizardStep = (typeof SIMPLE_WIZARD_STEPS)[number];
+export type WizardStep = (typeof WIZARD_STEPS)[number];
 
 export type ItemsSubPhase = 'assign' | 'review';
 

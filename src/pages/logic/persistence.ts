@@ -1,20 +1,20 @@
-import { LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY } from '@shared/constants';
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
+import { LOCAL_STORAGE_WIZARD_STATE_KEY } from '@shared/constants';
+import type { ItemsSubPhase, WizardStep } from '@pages/types';
 
-type PersistedSimpleWizardState = {
+type PersistedWizardState = {
   version: 1;
-  step: SimpleWizardStep;
+  step: WizardStep;
   itemsSubPhase: ItemsSubPhase;
   activeItemIndex: number;
 };
 
-export function loadSimpleWizardState(): PersistedSimpleWizardState | null {
+export function loadWizardState(): PersistedWizardState | null {
   if (typeof window === 'undefined') {
     return null;
   }
 
   try {
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY);
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_WIZARD_STATE_KEY);
     if (!raw) {
       return null;
     }
@@ -42,8 +42,8 @@ export function loadSimpleWizardState(): PersistedSimpleWizardState | null {
   }
 }
 
-export function saveSimpleWizardState(state: {
-  step: SimpleWizardStep;
+export function saveWizardState(state: {
+  step: WizardStep;
   itemsSubPhase: ItemsSubPhase;
   activeItemIndex: number;
 }): void {
@@ -51,7 +51,7 @@ export function saveSimpleWizardState(state: {
     return;
   }
 
-  const payload: PersistedSimpleWizardState = {
+  const payload: PersistedWizardState = {
     version: 1,
     step: state.step,
     itemsSubPhase: state.itemsSubPhase,
@@ -59,13 +59,13 @@ export function saveSimpleWizardState(state: {
   };
 
   try {
-    window.localStorage.setItem(LOCAL_STORAGE_SIMPLE_WIZARD_STATE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(LOCAL_STORAGE_WIZARD_STATE_KEY, JSON.stringify(payload));
   } catch {
     // Ignore storage write failures.
   }
 }
 
-function normalizeStep(value: unknown): SimpleWizardStep {
+function normalizeStep(value: unknown): WizardStep {
   return value === 'people' || value === 'receipt' || value === 'items' || value === 'final'
     ? value
     : 'people';

@@ -1,8 +1,8 @@
 import { cn } from '@shared/utils/cn';
-import type { ItemsSubPhase, SimpleWizardStep } from '@pages/types';
+import type { ItemsSubPhase, WizardStep } from '@pages/types';
 
-const STEP_ORDER: SimpleWizardStep[] = ['people', 'receipt', 'items', 'final'];
-const STEP_LABELS: Record<SimpleWizardStep, string> = {
+const STEP_ORDER: WizardStep[] = ['people', 'receipt', 'items', 'final'];
+const STEP_LABELS: Record<WizardStep, string> = {
   people: 'People',
   receipt: 'Receipt',
   items: 'Assign',
@@ -10,7 +10,7 @@ const STEP_LABELS: Record<SimpleWizardStep, string> = {
 };
 
 interface Props {
-  activeStep: SimpleWizardStep;
+  activeStep: WizardStep;
   itemsSubPhase: ItemsSubPhase;
   assignedItemCount: number;
   detectedItemsCount: number;
