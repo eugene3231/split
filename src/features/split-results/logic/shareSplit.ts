@@ -65,6 +65,17 @@ export async function shareText(
   }
 }
 
+export function buildDownloadFilename(prefix: string, label?: string): string {
+  const date = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+  const slug = label
+    ? `-${label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')}`
+    : '';
+  return `${prefix}${slug}-${date}.png`;
+}
+
 export function downloadImage(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
