@@ -49,9 +49,9 @@ export function ReceiptTabs({
   };
 
   return (
-    <div className="flex items-center gap-3 mb-8">
+    <div className="mb-8 flex items-center gap-3">
       {/* Segmented pill */}
-      <div className="flex items-center bg-surface-container-low rounded-xl p-1 gap-0.5 overflow-x-auto">
+      <div className="flex items-center gap-0.5 overflow-x-auto rounded-xl bg-surface-container-low p-1">
         {receipts.map((receipt) => {
           const isActive = receipt.id === activeReceiptId;
           return (
@@ -60,9 +60,9 @@ export function ReceiptTabs({
               onClick={() => onSelect(receipt.id)}
               onDoubleClick={() => handleDoubleClick(receipt.id, receipt.name)}
               className={cn(
-                'group relative flex items-center gap-1.5 px-4 py-1.5 rounded-lg cursor-pointer select-none transition-all',
+                'group relative flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-1.5 transition-all select-none',
                 isActive
-                  ? 'bg-white shadow-sm text-on-surface'
+                  ? 'bg-white text-on-surface shadow-sm'
                   : 'text-on-surface-variant hover:text-on-surface',
               )}
             >
@@ -77,7 +77,7 @@ export function ReceiptTabs({
                     if (e.key === 'Escape') setEditingTabId(null);
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent outline-none w-24 font-bold text-sm"
+                  className="w-24 bg-transparent text-sm font-bold outline-none"
                   autoFocus
                 />
               ) : (
@@ -98,7 +98,7 @@ export function ReceiptTabs({
                         handleDoubleClick(receipt.id, receipt.name);
                       }}
                       aria-label="Rename receipt"
-                      className="flex-shrink-0 flex items-center opacity-40 hover:opacity-100 transition-opacity"
+                      className="flex flex-shrink-0 items-center opacity-40 transition-opacity hover:opacity-100"
                     >
                       <span className="material-symbols-outlined !text-sm leading-none">edit</span>
                     </button>
@@ -113,9 +113,9 @@ export function ReceiptTabs({
                     onRemove(receipt.id);
                   }}
                   aria-label={`Remove ${receipt.name}`}
-                  className="flex-shrink-0 h-3.5 w-3.5 flex opacity-40 hover:opacity-100 transition-opacity"
+                  className="flex h-3.5 w-3.5 flex-shrink-0 opacity-40 transition-opacity hover:opacity-100"
                 >
-                  <span className="material-symbols-outlined leading-none !text-base cursor-pointer">
+                  <span className="material-symbols-outlined cursor-pointer !text-base leading-none">
                     close
                   </span>
                 </button>
@@ -128,10 +128,10 @@ export function ReceiptTabs({
           <div
             onClick={appendTab.onClick}
             className={cn(
-              'flex items-center gap-2 px-4 py-1.5 rounded-lg cursor-pointer select-none transition-all',
+              'flex cursor-pointer items-center gap-2 rounded-lg px-4 py-1.5 transition-all select-none',
               appendTab.isActive
-                ? 'bg-white shadow-sm text-on-surface font-bold'
-                : 'text-on-surface-variant hover:text-on-surface font-semibold',
+                ? 'bg-white font-bold text-on-surface shadow-sm'
+                : 'font-semibold text-on-surface-variant hover:text-on-surface',
             )}
           >
             <span className="material-symbols-outlined text-sm">{appendTab.icon}</span>
@@ -145,10 +145,10 @@ export function ReceiptTabs({
         <button
           type="button"
           onClick={onAdd}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-all whitespace-nowrap"
+          className="flex items-center gap-1.5 rounded-xl px-3 py-2 whitespace-nowrap text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
         >
           <span className="material-symbols-outlined text-sm">add</span>
-          <span className="font-semibold text-sm">Add</span>
+          <span className="text-sm font-semibold">Add</span>
         </button>
       )}
     </div>

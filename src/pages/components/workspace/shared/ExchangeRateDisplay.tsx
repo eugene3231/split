@@ -107,20 +107,20 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
       </span>
       {isOverridden ? (
         <>
-          <span className="bg-warning/20 text-warning-container px-1.5 py-0.5 rounded text-xs font-semibold">
+          <span className="bg-warning/20 text-warning-container rounded px-1.5 py-0.5 text-xs font-semibold">
             Manual
           </span>
           <button
             type="button"
             onClick={resetToAuto}
-            className="text-xs text-on-surface-variant hover:text-primary transition-colors"
+            className="text-xs text-on-surface-variant transition-colors hover:text-primary"
             title="Reset to auto rate"
           >
             <span className="material-symbols-outlined text-sm">refresh</span>
           </button>
         </>
       ) : (
-        <span className="bg-secondary-container/50 text-on-secondary-container px-1.5 py-0.5 rounded text-xs font-semibold">
+        <span className="rounded bg-secondary-container/50 px-1.5 py-0.5 text-xs font-semibold text-on-secondary-container">
           Auto
         </span>
       )}

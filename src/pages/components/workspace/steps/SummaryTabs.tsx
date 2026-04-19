@@ -26,17 +26,17 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
   };
 
   return (
-    <div className="flex overflow-x-auto gap-3 pb-1" style={{ scrollbarWidth: 'none' }}>
+    <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
       <button
         type="button"
         data-testid="summary-tab-total"
         data-active={activeTab === 'total' ? 'true' : undefined}
         onClick={() => onTabChange('total')}
         className={cn(
-          'flex-shrink-0 px-6 py-2.5 rounded-full font-bold transition-all',
+          'flex-shrink-0 rounded-full px-6 py-2.5 font-bold transition-all',
           activeTab === 'total'
             ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
-            : 'bg-surface-container-high text-on-surface-variant font-semibold hover:bg-surface-container-highest',
+            : 'bg-surface-container-high font-semibold text-on-surface-variant hover:bg-surface-container-highest',
         )}
       >
         Total ({receipts.length} receipts)
@@ -49,7 +49,7 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
           onClick={() => onTabChange(r.id)}
           onDoubleClick={() => startEditingTab(r.id, r.name || `Receipt ${index + 1}`)}
           className={cn(
-            'flex-shrink-0 flex items-center gap-1.5 px-6 py-2.5 rounded-full font-semibold transition-all cursor-pointer select-none',
+            'flex flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-6 py-2.5 font-semibold transition-all select-none',
             activeTab === r.id
               ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
               : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest',
@@ -67,7 +67,7 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
               }}
               onClick={(e) => e.stopPropagation()}
               size={Math.max(editingTabName.length, 6)}
-              className="bg-transparent outline-none font-semibold text-on-primary"
+              className="bg-transparent font-semibold text-on-primary outline-none"
               autoFocus
             />
           ) : (

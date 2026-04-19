@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { SplitResult } from '@shared/types';
+import type { Receipt, SplitResult } from '@shared/types';
 import {
   convertCents,
   convertSplitResult,
   getEffectiveRate,
+  getForeignReceiptRates,
 } from '@shared/logic/core/exchangeRates';
 
 const rates: Record<string, number> = {
@@ -187,5 +188,91 @@ describe('convertSplitResult', () => {
     // 1000 cents * 1.5 = 1500 SGD cents
     expect(result.subtotalCents).toBe(1500);
     expect(result.grandTotalCents).toBe(1500);
+  });
+});
+
+// ─── getForeignReceiptRates ───────────────────────────────────────────────────
+
+function makeReceipt(currency: string, exchangeRateOverride: number | null = null): Receipt {
+  return {
+    id: 'r1',
+    name: 'Receipt',
+    items: [],
+    discount: {
+      enabled: false,
+      mode: 'percent',
+      amountInput: '',
+      percentInput: '',
+      detectedConfidence: null,
+      detectedSource: null,
+    },
+    serviceCharge: {
+      enabled: false,
+      mode: 'percent',
+      amountInput: '',
+      percentInput: '',
+      detectedConfidence: null,
+      detectedSource: null,
+    },
+    gst: {
+      enabled: false,
+      mode: 'percent',
+      amountInput: '',
+      percentInput: '',
+      detectedConfidence: null,
+      detectedSource: null,
+    },
+    receiptTotalInput: '',
+    currency,
+    exchangeRateOverride,
+  };
+}
+
+describe('getForeignReceiptRates', () => {
+  it('returns empty array when all receipts are SGD', () => {
+    const receipts = [makeReceipt('SGD'), makeReceipt('SGD')];
+    expect(getForeignReceiptRates(receipts, rates)).toEqual([]);
+  });
+
+  it('returns one entry per distinct foreign currency', () => {
+    const receipts = [makeReceipt('USD'), makeReceipt('JPY')];
+    const result = getForeignReceiptRates(receipts, rates);
+    expect(result).toHaveLength(2);
+    expect(result.map((r) => r.currency)).toEqual(['USD', 'JPY']);
+  });
+
+  it('deduplicates receipts sharing the same currency', () => {
+    const receipts = [makeReceipt('USD'), makeReceipt('USD')];
+    const result = getForeignReceiptRates(receipts, rates);
+    expect(result).toHaveLength(1);
+    expect(result[0].currency).toBe('USD');
+  });
+
+  it('uses override rate when present', () => {
+    const receipts = [makeReceipt('USD', 1.5)];
+    const result = getForeignReceiptRates(receipts, rates);
+    expect(result[0].rate).toBe(1.5);
+    expect(result[0].hasCustomRate).toBe(true);
+  });
+
+  it('uses rates map rate when no override', () => {
+    const receipts = [makeReceipt('USD')];
+    const result = getForeignReceiptRates(receipts, rates);
+    expect(result[0].rate).toBe(1.35);
+    expect(result[0].hasCustomRate).toBe(false);
+  });
+
+  it('excludes SGD receipts mixed with foreign receipts', () => {
+    const receipts = [makeReceipt('SGD'), makeReceipt('USD'), makeReceipt('SGD')];
+    const result = getForeignReceiptRates(receipts, rates);
+    expect(result).toHaveLength(1);
+    expect(result[0].currency).toBe('USD');
+  });
+
+  it('treats receipt with null currency as SGD and excludes it (defensive runtime check)', () => {
+    const receipt = { ...makeReceipt('SGD'), currency: null as unknown as string };
+    const result = getForeignReceiptRates([receipt], rates);
+    // null ?? BASE_CURRENCY = 'SGD' → skipped
+    expect(result).toEqual([]);
   });
 });
