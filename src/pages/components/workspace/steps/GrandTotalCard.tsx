@@ -74,7 +74,7 @@ export function GrandTotalCard({
           htmlFor="payer-mobile"
           className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-1.5"
         >
-          Your PayNow Number
+          PayNow Number
         </label>
         <input
           id="payer-mobile"
@@ -82,10 +82,16 @@ export function GrandTotalCard({
           value={payerMobile}
           onChange={(e) => handlePayerMobileChange(e.target.value)}
           onBlur={handlePayerMobileBlur}
-          placeholder="+65 9123 4567"
+          placeholder="9123 4567"
           className="w-full bg-white/10 text-white placeholder:text-white/30 rounded-xl px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-white/30"
         />
-        {mobileError && <p className="text-xs text-red-300 mt-1">{mobileError}</p>}
+        {mobileError ? (
+          <p className="text-xs text-red-300 mt-1">{mobileError}</p>
+        ) : (
+          <p className="text-xs text-white/50 mt-1.5">
+            Generates a PayNow QR per person so everyone can pay the bill payer back.
+          </p>
+        )}
       </div>
 
       <div className="border-t border-white/10 pt-4 flex items-center gap-2.5">
