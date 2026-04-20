@@ -72,22 +72,6 @@ export function computeSplit({
       netByPerson = allocateCents(netAmountCents, selectedIds, rawWeights);
       grossByPerson = allocateCents(grossAmountCents, selectedIds, rawWeights);
       assignedPersonIds = new Set(selectedIds);
-
-      const weightTotal = selectedIds.reduce((sum, id) => sum + rawWeights[id], 0);
-      const allEqual = selectedIds.every((id) => rawWeights[id] === rawWeights[selectedIds[0]]);
-      resolvedItems.push({
-        itemId: item.id,
-        name,
-        grossAmountCents,
-        discountPercent,
-        discountAmountCents,
-        assignedPersonIds,
-        netByPerson,
-        grossByPerson,
-        weightByPerson: allEqual ? undefined : rawWeights,
-        totalWeight: allEqual ? undefined : weightTotal,
-      });
-      continue;
     }
 
     resolvedItems.push({
@@ -126,8 +110,6 @@ export function computeSplit({
           assignedAmountCents: net,
           splitCount: resolved.assignedPersonIds.size,
           involved: true,
-          weight: resolved.weightByPerson?.[personId],
-          totalWeight: resolved.totalWeight,
         });
       } else {
         lineItemsByPerson[personId].push({
@@ -140,8 +122,6 @@ export function computeSplit({
           assignedAmountCents: 0,
           splitCount: resolved.assignedPersonIds.size,
           involved: false,
-          weight: resolved.weightByPerson?.[personId],
-          totalWeight: resolved.totalWeight,
         });
       }
     }

@@ -74,8 +74,6 @@ export type ResolvedItem = {
   assignedPersonIds: Set<string>;
   netByPerson: Record<string, number>;
   grossByPerson: Record<string, number>;
-  weightByPerson?: Record<string, number>;
-  totalWeight?: number;
 };
 
 export type PersonReceiptLineItem = {
@@ -88,8 +86,6 @@ export type PersonReceiptLineItem = {
   assignedAmountCents: number;
   splitCount: number;
   involved: boolean;
-  weight?: number;
-  totalWeight?: number;
 };
 
 export type Receipt = {
