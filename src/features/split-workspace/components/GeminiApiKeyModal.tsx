@@ -1,10 +1,13 @@
-import { useState, useRef, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
+import { GEMINI_MODELS } from '@features/receipt-scanner/constants';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 
 export function GeminiApiKeyModal() {
   const isOpen = useGeminiStore((state) => state.showApiKeyModal);
   const geminiApiKeyInput = useGeminiStore((state) => state.geminiApiKeyInput);
+  const geminiModel = useGeminiStore((state) => state.geminiModel);
   const setGeminiApiKeyInput = useGeminiStore((state) => state.setGeminiApiKeyInput);
+  const setGeminiModel = useGeminiStore((state) => state.setGeminiModel);
   const setRememberGeminiApiKey = useGeminiStore((state) => state.setRememberGeminiApiKey);
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
 
@@ -13,8 +16,10 @@ export function GeminiApiKeyModal() {
   return (
     <GeminiApiKeyModalContent
       initialKey={geminiApiKeyInput}
-      onSave={(key) => {
+      initialModel={geminiModel}
+      onSave={(key, model) => {
         setGeminiApiKeyInput(key);
+        setGeminiModel(model);
         if (key) setRememberGeminiApiKey(true);
         setShowApiKeyModal(false);
       }}
@@ -25,15 +30,22 @@ export function GeminiApiKeyModal() {
 
 interface GeminiApiKeyModalContentProps {
   initialKey: string;
-  onSave: (key: string) => void;
+  initialModel: string;
+  onSave: (key: string, model: string) => void;
   onClose: () => void;
 }
 
-function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyModalContentProps) {
+function GeminiApiKeyModalContent({
+  initialKey,
+  initialModel,
+  onSave,
+  onClose,
+}: GeminiApiKeyModalContentProps) {
   const [localKey, setLocalKey] = useState(initialKey);
+  const [localModel, setLocalModel] = useState(initialModel);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = () => onSave(localKey.trim());
+  const handleSave = () => onSave(localKey.trim(), localModel);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -114,6 +126,30 @@ function GeminiApiKeyModalContent({ initialKey, onSave, onClose }: GeminiApiKeyM
               >
                 Google AI Studio ↗
               </a>
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="new-modal-gemini-model"
+              className="font-label block text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+            >
+              Model
+            </label>
+            <select
+              id="new-modal-gemini-model"
+              value={localModel}
+              onChange={(e) => setLocalModel(e.target.value)}
+              className="font-body w-full cursor-pointer rounded-2xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 text-sm text-on-surface transition-all outline-none focus:border-primary/20"
+            >
+              {GEMINI_MODELS.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
+            <p className="font-body text-xs text-outline">
+              Choose which Gemini model to use for receipt extraction.
             </p>
           </div>
 
