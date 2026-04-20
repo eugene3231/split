@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { ChargeState, EditableItem, OcrResponse, Person } from '@shared/types';
-import { applyChargeDetection } from '@shared/logic/computation/charges';
+import { applyChargeDetection } from '@shared/logic/split/charges';
 import { createItemFromOcr } from '@features/receipt-scanner/logic/itemMapper';
 export {
   buildLocalMockOcrResponse,

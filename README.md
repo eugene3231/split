@@ -38,10 +38,10 @@ Scan a receipt, assign items, and share the result — no accounts or invites ne
 
 Current feature ownership:
 
-- `features/workspace` owns the bill-splitting workflow, wizard, receipt state, Gemini settings state, currency state, and summary/export wiring.
+- `features/split-workspace` owns the bill-splitting workflow, wizard, receipt state, Gemini settings state, currency state, and summary/export wiring.
 - `features/receipt-scanner` owns Gemini OCR analysis, parsing, scan lifecycle state, loading messages, and scan orchestration.
 - `features/payments` owns generic QR generation plus the PayNow adapter.
-- `features/split-results` owns exported image/text generation.
+- `features/sharing` owns exported image/text generation.
 
 ## Local setup
 
