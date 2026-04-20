@@ -383,7 +383,10 @@ function AssignPhase({
 
       {/* Weight steppers (shown in unequal mode) */}
       {unequalMode && canToggleUnequal && (
-        <div className="space-y-3 rounded-xl bg-surface-container-low p-4">
+        <div
+          data-testid="assign-weight-controls"
+          className="space-y-3 rounded-xl bg-surface-container-low p-4"
+        >
           <p className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
             Share weights
           </p>
@@ -399,6 +402,7 @@ function AssignPhase({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    data-testid={`assign-weight-decrement-${personId}`}
                     onClick={() => handleWeightChange(personId, -1)}
                     disabled={w <= 1}
                     className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
@@ -407,9 +411,15 @@ function AssignPhase({
                       remove
                     </span>
                   </button>
-                  <span className="w-6 text-center text-sm font-bold text-on-surface">{w}</span>
+                  <span
+                    data-testid={`assign-weight-value-${personId}`}
+                    className="w-6 text-center text-sm font-bold text-on-surface"
+                  >
+                    {w}
+                  </span>
                   <button
                     type="button"
+                    data-testid={`assign-weight-increment-${personId}`}
                     onClick={() => handleWeightChange(personId, 1)}
                     disabled={w >= 9}
                     className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"

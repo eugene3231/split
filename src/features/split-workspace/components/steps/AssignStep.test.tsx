@@ -1,8 +1,18 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { EditableItem, Person, Receipt } from '@shared/types';
 import { AssignStep } from './AssignStep';
 
-let storeMock: Record<string, unknown>;
+type AssignStepStoreMock = {
+  receipts: Receipt[];
+  activeReceiptId: string;
+  people: Person[];
+  setActiveReceiptId: ReturnType<typeof vi.fn>;
+  renameReceipt: ReturnType<typeof vi.fn>;
+  updateItem: ReturnType<typeof vi.fn>;
+};
+
+let storeMock: AssignStepStoreMock;
 
 vi.mock('@features/split-workspace/stores/receiptStore', () => ({
   useReceiptStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
@@ -15,8 +25,8 @@ vi.mock('zustand/shallow', () => ({
 }));
 
 function setStoreMock(withSavedWeights = true) {
-  const updateItem = vi.fn((itemId: string, updater: (item: any) => any) => {
-    const receipt = (storeMock.receipts as any[])[0];
+  const updateItem = vi.fn((itemId: string, updater: (item: EditableItem) => EditableItem) => {
+    const receipt = storeMock.receipts[0];
     storeMock = {
       ...storeMock,
       receipts: [
@@ -97,9 +107,11 @@ describe('AssignStep', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Unequal' })).toBeInTheDocument();
-    expect(screen.getByText('Share weights')).toBeInTheDocument();
-    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Bob').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('assign-weight-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('assign-weight-value-p1')).toHaveTextContent('2');
+    expect(screen.getByTestId('assign-weight-value-p2')).toHaveTextContent('1');
+    expect(screen.getByTestId('assign-weight-decrement-p1')).not.toBeDisabled();
+    expect(screen.getByTestId('assign-weight-decrement-p2')).toBeDisabled();
   });
 
   it('clears saved weights on the first toggle click', () => {
@@ -114,7 +126,7 @@ describe('AssignStep', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Unequal' }));
 
-    const weightedItem = (storeMock.receipts as any[])[0].items[1];
+    const weightedItem = storeMock.receipts[0].items[1];
     expect(weightedItem.assignment.weights).toBeUndefined();
   });
 });
