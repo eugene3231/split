@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
+import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from '@features/receipt-scanner/constants';
+import { LOCAL_STORAGE_OCR_SETTINGS_KEY } from '@features/split-workspace/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 
@@ -609,6 +610,25 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(screen.getByRole('button', { name: /Save/i }));
       expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument();
       expect(useGeminiStore.getState().geminiApiKeyInput).toBe('my-gemini-key');
+    });
+
+    it('shows the current Gemini model and saves model selection changes', async () => {
+      useGeminiStore.setState({ geminiApiKeyInput: '', geminiModel: GEMINI_MODELS[1] });
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      clickContinue();
+
+      expect(screen.getByLabelText(/Model/i)).toHaveValue(GEMINI_MODELS[1]);
+
+      fireEvent.change(screen.getByLabelText(/Model/i), { target: { value: GEMINI_MODELS[3] } });
+      fireEvent.change(screen.getByLabelText(/API Key/i), { target: { value: 'my-gemini-key' } });
+      fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+
+      expect(useGeminiStore.getState().geminiModel).toBe(GEMINI_MODELS[3]);
+      expect(window.localStorage.getItem(LOCAL_STORAGE_OCR_SETTINGS_KEY)).toContain(
+        GEMINI_MODELS[3],
+      );
     });
 
     it('does not show the modal when an API key is already set', async () => {
