@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useReceiptSplit } from '@features/workspace/hooks/useReceiptSplit';
-import { useReceiptStore } from '@features/workspace/stores/receiptStore';
-import { defaultServiceChargeState, defaultGstState } from '@features/workspace/constants';
+import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { defaultServiceChargeState, defaultGstState } from '@features/split-workspace/constants';
 import {
   disabledCharge,
   percentCharge,

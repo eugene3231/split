@@ -67,7 +67,7 @@ src/
       index.ts             # Public entrypoint
     split-results/         # Split export (PNG/text) — logic only, no legacy components
   pages/
-    ReceiptSplitterPage.tsx  # Thin route shell — imports from @features/workspace
+    ReceiptSplitterPage.tsx  # Thin route shell — imports from @features/split-workspace
   shared/
     types.ts               # Core types: Person, EditableItem, ChargeState, SplitResult
     constants.ts           # App-wide defaults only
@@ -81,10 +81,10 @@ src/
 
 **Key files:**
 
-- `src/features/workspace/stores/receiptStore.ts` — Workspace state (people, receipts, items, assignments)
+- `src/features/split-workspace/stores/receiptStore.ts` — Workspace state (people, receipts, items, assignments)
 - `src/features/receipt-scanner/stores/scanStore.ts` — Per-receipt scan state (loading, errors, warnings)
-- `src/features/workspace/stores/geminiStore.ts` — API key, model selection, modal visibility
-- `src/features/workspace/stores/currencyStore.ts` — Exchange rate fetching and caching (base currency: SGD)
+- `src/features/split-workspace/stores/geminiStore.ts` — API key, model selection, modal visibility
+- `src/features/split-workspace/stores/currencyStore.ts` — Exchange rate fetching and caching (base currency: SGD)
 - `src/features/payments/index.ts` — Payments feature public API (generic QR helpers + PayNow adapter)
 - `src/shared/logic/core/exchangeRates.ts` — Currency conversion helpers
 - `src/features/receipt-scanner/api/geminiApi.ts` — Gemini API call + response parsing entrypoint
@@ -310,7 +310,7 @@ Define functions and objects outside components when they don't depend on props/
 ## File & Folder Structure
 
 - `features/` — domain features, each with `components/`, `hooks/`, `logic/`, `index.ts`
-- `pages/` — page-level orchestration; `components/workspace/` contains the wizard steps and shared UI
+- `pages/` — page-level orchestration; `components/split-workspace/` contains the wizard steps and shared UI
 - `shared/` — cross-cutting logic, hooks, stores, and types used across features and pages
 
 Co-locate tests with the file they test. Use `logic/` for pure functions, `hooks/` for stateful abstractions.

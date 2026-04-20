@@ -1,9 +1,9 @@
 import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
-import { useReceiptStore } from '@features/workspace/stores/receiptStore';
-import { useCurrencyStore } from '@features/workspace/stores/currencyStore';
+import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
-import { useGeminiStore } from '@features/workspace/stores/geminiStore';
+import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 
 export const disabledCharge: ChargeState = {
   enabled: false,

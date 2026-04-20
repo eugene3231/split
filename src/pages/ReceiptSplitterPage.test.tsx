@@ -2,14 +2,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
-import { useReceiptStore } from '@features/workspace/stores/receiptStore';
-import { useGeminiStore } from '@features/workspace/stores/geminiStore';
+import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 
 const { generateReceiptSplitImageLightMock } = vi.hoisted(() => ({
   generateReceiptSplitImageLightMock: vi.fn(),
 }));
 
-vi.mock('../features/split-results/logic/receiptSplitImageLight', () => ({
+vi.mock('../features/sharing/logic/receiptSplitImageLight', () => ({
   generateReceiptSplitImageLight: generateReceiptSplitImageLightMock,
 }));
 
