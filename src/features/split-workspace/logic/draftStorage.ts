@@ -245,10 +245,24 @@ function normalizeDraftAssignment(value: unknown): ItemAssignment | null {
     : [];
   const uniquePersonIds = Array.from(new Set(personIds));
 
+  let weights: Record<string, number> | undefined;
+  if (isRecord(value.weights)) {
+    const parsed: Record<string, number> = {};
+    for (const [k, v] of Object.entries(value.weights)) {
+      if (typeof v === 'number' && v > 0 && Number.isFinite(v)) {
+        parsed[k] = Math.round(v);
+      }
+    }
+    if (Object.keys(parsed).length > 0) {
+      weights = parsed;
+    }
+  }
+
   return {
     mode,
     personId,
     personIds: uniquePersonIds,
+    weights,
   };
 }
 

@@ -10,6 +10,7 @@ export type ItemAssignment = {
   mode: AssignmentMode;
   personId: string;
   personIds: string[];
+  weights?: Record<string, number>;
 };
 
 export type EditableItem = {

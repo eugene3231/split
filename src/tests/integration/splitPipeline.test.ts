@@ -655,6 +655,70 @@ describe('Split pipeline integration', () => {
       expect(sumValues(split.totalByPersonCents)).toBe(split.grandTotalCents);
     });
 
+    it('25: weighted 2:1 split — per-person totals reflect weights and sum to grand total', () => {
+      const alice = makePerson('Alice');
+      const bob = makePerson('Bob');
+      const receipt = makeReceipt({
+        items: [
+          makeItem({
+            amountInput: '30.00',
+            assignment: {
+              mode: 'equal',
+              personId: '',
+              personIds: [alice.id, bob.id],
+              weights: { [alice.id]: 2, [bob.id]: 1 },
+            },
+          }),
+        ],
+      });
+
+      seedStore([alice, bob], [receipt]);
+      const { result } = useSplitFromStore();
+      const { split } = result.current;
+
+      expect(split.subtotalByPersonCents[alice.id]).toBe(2000);
+      expect(split.subtotalByPersonCents[bob.id]).toBe(1000);
+      expect(sumValues(split.totalByPersonCents)).toBe(split.grandTotalCents);
+    });
+
+    it('26: weighted 2:1 + service charge — charges distribute proportionally to weighted subtotals', () => {
+      const alice = makePerson('Alice');
+      const bob = makePerson('Bob');
+      const receipt = makeReceipt({
+        items: [
+          makeItem({
+            amountInput: '30.00',
+            assignment: {
+              mode: 'equal',
+              personId: '',
+              personIds: [alice.id, bob.id],
+              weights: { [alice.id]: 2, [bob.id]: 1 },
+            },
+          }),
+        ],
+        serviceCharge: percentCharge('10'),
+      });
+
+      seedStore([alice, bob], [receipt]);
+      const { result } = useSplitFromStore();
+      const { split } = result.current;
+
+      // Subtotals: Alice $20, Bob $10
+      expect(split.subtotalByPersonCents[alice.id]).toBe(2000);
+      expect(split.subtotalByPersonCents[bob.id]).toBe(1000);
+
+      // 10% service on $30 = $3 total, distributed 2:1
+      expect(split.serviceChargeCents).toBe(300);
+      expect(split.serviceByPersonCents[alice.id]).toBe(200);
+      expect(split.serviceByPersonCents[bob.id]).toBe(100);
+
+      // Totals: Alice $22, Bob $11
+      expect(split.totalByPersonCents[alice.id]).toBe(2200);
+      expect(split.totalByPersonCents[bob.id]).toBe(1100);
+      expect(split.grandTotalCents).toBe(3300);
+      expect(sumValues(split.totalByPersonCents)).toBe(split.grandTotalCents);
+    });
+
     it('24: discount larger than subtotal — totals stay non-negative', () => {
       const alice = makePerson('Alice');
       const bob = makePerson('Bob');

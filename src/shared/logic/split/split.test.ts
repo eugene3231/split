@@ -416,4 +416,105 @@ describe('computeSplit', () => {
     expect(split.totalByPersonCents.p2).toBe(500);
     expect(split.grandTotalCents).toBe(1000);
   });
+
+  it('splits a $30 item 2:1 between two people', () => {
+    const people: Person[] = [
+      { id: 'alice', name: 'Alice' },
+      { id: 'bob', name: 'Bob' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'i1',
+        name: 'Wine bottle',
+        amountInput: '30.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['alice', 'bob'],
+          weights: { alice: 2, bob: 1 },
+        },
+      },
+    ];
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    expect(split.subtotalCents).toBe(3000);
+    expect(split.subtotalByPersonCents.alice).toBe(2000);
+    expect(split.subtotalByPersonCents.bob).toBe(1000);
+    expect(split.lineItemsByPerson.alice[0]?.assignedAmountCents).toBe(2000);
+    expect(split.lineItemsByPerson.bob[0]?.assignedAmountCents).toBe(1000);
+  });
+
+  it('splits equally when weights are all 1 (same as no weights)', () => {
+    const people: Person[] = [
+      { id: 'alice', name: 'Alice' },
+      { id: 'bob', name: 'Bob' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'i1',
+        name: 'Shared dish',
+        amountInput: '20.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['alice', 'bob'],
+          weights: { alice: 1, bob: 1 },
+        },
+      },
+    ];
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    expect(split.subtotalByPersonCents.alice).toBe(1000);
+    expect(split.subtotalByPersonCents.bob).toBe(1000);
+  });
+
+  it('handles remainder correctly in a 2:1 split of an indivisible amount', () => {
+    const people: Person[] = [
+      { id: 'alice', name: 'Alice' },
+      { id: 'bob', name: 'Bob' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'i1',
+        name: 'Odd amount',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['alice', 'bob'],
+          weights: { alice: 2, bob: 1 },
+        },
+      },
+    ];
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    // $10 split 2:1 → alice $6.67, bob $3.33 (remainder to alice via largest-remainder)
+    expect(split.subtotalByPersonCents.alice).toBe(667);
+    expect(split.subtotalByPersonCents.bob).toBe(333);
+    expect(split.subtotalByPersonCents.alice + split.subtotalByPersonCents.bob).toBe(1000);
+  });
 });

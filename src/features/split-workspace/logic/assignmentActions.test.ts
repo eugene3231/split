@@ -62,3 +62,59 @@ describe('selectNone', () => {
     expect(result.assignment.mode).toBe('equal');
   });
 });
+
+describe('weight preservation', () => {
+  it('togglePersonInAssignment adds a person with default weight 1', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+      },
+    });
+    const result = togglePersonInAssignment('p3', true, item);
+    expect(result.assignment.personIds).toEqual(['p1', 'p2', 'p3']);
+    expect(result.assignment.weights).toEqual({ p1: 2, p2: 1, p3: 1 });
+  });
+
+  it('togglePersonInAssignment removes person and their weight entry', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+      },
+    });
+    const result = togglePersonInAssignment('p1', false, item);
+    expect(result.assignment.personIds).toEqual(['p2']);
+    expect(result.assignment.weights).toBeUndefined();
+  });
+
+  it('selectAllPeople clears weights (reset to equal)', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+      },
+    });
+    const result = selectAllPeople(people, item);
+    expect(result.assignment.weights).toBeUndefined();
+  });
+
+  it('selectNone clears weights', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+      },
+    });
+    const result = selectNone(item);
+    expect(result.assignment.weights).toBeUndefined();
+  });
+});

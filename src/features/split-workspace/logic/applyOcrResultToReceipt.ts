@@ -1,5 +1,5 @@
 import { applyChargeDetection } from '@shared/logic/split/charges';
-import { convertItemsToSimpleEqualMode } from '@features/split-workspace/logic/simpleAssignments';
+import { normalizeItemAssignments } from '@features/split-workspace/logic/simpleAssignments';
 import type { OcrResponse, Person, Receipt } from '@shared/types';
 import { createItemFromOcr } from '@features/receipt-scanner/logic/itemMapper';
 
@@ -15,7 +15,7 @@ export function buildReceiptOcrPatch(
 ): ReceiptOcrPatch {
   const nextItems =
     payload.items.length > 0
-      ? convertItemsToSimpleEqualMode(
+      ? normalizeItemAssignments(
           payload.items.map((item) => createItemFromOcr(item, people)),
           people,
         )
