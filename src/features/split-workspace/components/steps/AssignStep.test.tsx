@@ -1,5 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  defaultDiscountState,
+  defaultGstState,
+  defaultServiceChargeState,
+} from '@features/split-workspace/constants';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import { AssignStep } from './AssignStep';
 
@@ -43,7 +48,12 @@ function setStoreMock(withSavedWeights = true) {
       {
         id: 'r1',
         name: 'Receipt 1',
+        discount: { ...defaultDiscountState },
+        serviceCharge: { ...defaultServiceChargeState },
+        gst: { ...defaultGstState },
+        receiptTotalInput: '',
         currency: 'SGD',
+        exchangeRateOverride: null,
         items: [
           {
             id: 'equal-item',
