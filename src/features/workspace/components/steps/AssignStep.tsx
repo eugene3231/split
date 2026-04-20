@@ -7,7 +7,7 @@ import {
   selectAllPeople,
   selectNone,
 } from '@shared/logic/assignment/assignActions';
-import type { EditableItem } from '@shared/types';
+import type { EditableItem, Person } from '@shared/types';
 import type { ItemsSubPhase } from '@features/workspace/types';
 import { PersonAvatar } from '@features/workspace/components/shared/PersonAvatar';
 import { ReceiptTabs } from '@features/workspace/components/shared/ReceiptTabs';
