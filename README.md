@@ -13,7 +13,7 @@ Scan a receipt, assign items, and share the result — no accounts or invites ne
 ## Key Features
 
 - **Receipt scanning** — scan a receipt image using Google Gemini to auto-detect line items, taxes, and service charge
-- **Flexible item assignment** — assign items to one person or split equally across selected people, with per-item discount support
+- **Flexible item assignment** — assign items to one person, split equally, or split by custom share weights (e.g. 2:1) across selected people, with per-item discount support
 - **Manual overrides** — edit any extracted item or charge before finalising
 - **Per-person breakdown** — view each person's total with a full item, taxes, and service charge breakdown
 - **Auto-save** — progress is saved to localStorage so nothing is lost on refresh

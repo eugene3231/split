@@ -8,13 +8,14 @@
 
 1. **Add people** — Enter names for everyone splitting the bill
 2. **Scan receipt** — Upload a receipt image; Gemini extracts line items, tax, and service charges
-3. **Assign items** — Assign each item to one or more people (equal split or custom)
+3. **Assign items** — Assign each item to one or more people (equal split, or unequal split by share weights)
 4. **View summary** — See each person's itemized total including their share of tax/service/discounts
 5. **Export/share** — Download as a PNG image or copy a text summary
 
 **Key features:**
 
 - Gemini-powered OCR (no backend — calls Gemini directly from the browser)
+- Equal or weighted (unequal) splits per item — assign share ratios so costs divide proportionally
 - Per-item discounts and global charges (tax, service charge, global discount)
 - Multi-currency receipts with exchange rate conversion (base currency: SGD)
 - PayNow QR code generation per person so they can pay directly from the summary screen
