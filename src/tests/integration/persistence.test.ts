@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 import {
   percentCharge,
   amountCharge,
@@ -9,8 +9,8 @@ import {
   resetAllStores,
   seedStore,
 } from './testHelpers';
-import { loadWizardState, saveWizardState } from '@pages/logic/persistence';
-import type { ItemsSubPhase, WizardStep } from '@pages/types';
+import { loadWizardState, saveWizardState } from '@features/workspace/logic/persistence';
+import type { ItemsSubPhase, WizardStep } from '@features/workspace/types';
 
 beforeEach(() => {
   resetAllStores();
