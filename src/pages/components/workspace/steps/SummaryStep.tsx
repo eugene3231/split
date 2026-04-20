@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight';
@@ -17,6 +17,7 @@ import { SummaryTabs } from './SummaryTabs';
 import { CurrencyToggle } from './CurrencyToggle';
 import { GrandTotalCard } from './GrandTotalCard';
 import { ExportActions } from './ExportActions';
+import { ImagePreviewModal } from './ImagePreviewModal';
 import { useSummaryView } from './useSummaryView';
 
 export type SummaryStepProps = {
@@ -35,7 +36,7 @@ export type SummaryStepProps = {
   onRenameReceipt: (id: string, name: string) => void;
 };
 
-type ExportBusy = 'downloading' | 'copying' | null;
+type ExportBusy = 'downloading' | 'copying' | 'previewing' | null;
 
 export function SummaryStep({
   people,
@@ -56,11 +57,18 @@ export function SummaryStep({
     isMultiReceipt ? 'total' : (receipts[0]?.id ?? 'total'),
   );
   const [busy, setBusy] = useState<ExportBusy>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(true);
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
   const [copied, setCopied] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const copyTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const payerMobile = useReceiptStore((s) => s.payerMobile);
   const { view, qrDataUrls } = useSummaryView({
@@ -116,6 +124,43 @@ export function SummaryStep({
       downloadImage(blob, buildDownloadFilename('split', receiptForExport?.name));
     } catch {
       setExportError('Failed to generate image.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handlePreview = async () => {
+    setBusy('previewing');
+    setExportError(null);
+    try {
+      const blob = await generateReceiptSplitImageLight({
+        people,
+        split: view.displaySplit,
+        sgdSplit: view.sgdSplit,
+        receipts,
+        splitByReceipt,
+        discount: view.discount,
+        serviceCharge: view.serviceCharge,
+        gst: view.gst,
+        receiptName: receiptForExport?.name,
+        reconciliationCents,
+        includeItemDetails: showDetails,
+        currency: view.displayCurrency,
+        payerMobile: normalizeMobile(payerMobile) ?? undefined,
+        conversionRate:
+          view.kind === 'receipt' && view.isForeign && !showBaseCurrency
+            ? (view.effectiveRate ?? undefined)
+            : undefined,
+        fromCurrency:
+          view.kind === 'receipt' && view.isForeign && !showBaseCurrency
+            ? view.nativeCurrency
+            : undefined,
+        effectiveRatesByReceipt:
+          view.kind === 'total' ? view.receiptBreakdowns.map((b) => b.effectiveRate) : undefined,
+      });
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch {
+      setExportError('Failed to generate preview.');
     } finally {
       setBusy(null);
     }
@@ -305,6 +350,7 @@ export function SummaryStep({
             nativeShareSupported={nativeShareSupported}
             onDownload={handleDownload}
             onShare={handleShare}
+            onPreview={handlePreview}
           />
         </div>
       </div>
@@ -321,6 +367,7 @@ export function SummaryStep({
           Add new receipt
         </button>
       </div>
+      {previewUrl && <ImagePreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />}
     </div>
   );
 }
