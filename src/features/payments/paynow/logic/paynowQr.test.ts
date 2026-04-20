@@ -1,11 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { generatePaynowQrDataUrls } from './paynowQr';
 
+let shouldFailImageLoad = false;
+
 class MockImage {
   onload: (() => void) | null = null;
   onerror: ((e: unknown) => void) | null = null;
   set src(_: string) {
-    Promise.resolve().then(() => this.onload?.());
+    Promise.resolve().then(() => {
+      if (shouldFailImageLoad) {
+        this.onerror?.(new Error('image load failed'));
+        return;
+      }
+      this.onload?.();
+    });
   }
 }
 
@@ -37,6 +45,7 @@ const makeSplit = (totalByPersonCents: Record<string, number>) => ({
 
 describe('generatePaynowQrDataUrls', () => {
   beforeEach(() => {
+    shouldFailImageLoad = false;
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(
       'data:image/png;base64,mockqr',
     );
@@ -67,6 +76,18 @@ describe('generatePaynowQrDataUrls', () => {
       makeSplit({ p1: 1000 }),
       '+6591234567',
     );
+    expect(result.p1).toBe('data:image/png;base64,mockqr');
+  });
+
+  it('still returns a QR data URL when the logo image fails to load', async () => {
+    shouldFailImageLoad = true;
+
+    const result = await generatePaynowQrDataUrls(
+      makePeople(['Alice']),
+      makeSplit({ p1: 1000 }),
+      '+6591234567',
+    );
+
     expect(result.p1).toBe('data:image/png;base64,mockqr');
   });
 

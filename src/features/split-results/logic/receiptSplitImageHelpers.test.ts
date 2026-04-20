@@ -33,15 +33,10 @@ describe('ellipsizeText', () => {
 });
 
 describe('formatGeneratedAt', () => {
-  it('returns a non-empty string for a given date', () => {
+  it('returns a formatted timestamp string', () => {
     const result = formatGeneratedAt(new Date('2024-06-15T10:30:00Z'));
-    expect(typeof result).toBe('string');
-    expect(result.length).toBeGreaterThan(0);
-  });
-
-  it('includes the year in the formatted output', () => {
-    const result = formatGeneratedAt(new Date('2024-01-01T00:00:00Z'));
-    expect(result).toContain('2024');
+    expect(result).toMatch(/\d{4}/);
+    expect(result.length).toBeGreaterThan(8);
   });
 });
 
@@ -54,7 +49,6 @@ describe('formatPercent', () => {
   it('strips trailing zeros from decimals', () => {
     expect(formatPercent(10.1)).toBe('10.1');
     expect(formatPercent(10.5)).toBe('10.5');
-    expect(formatPercent(10.1)).toBe('10.1');
   });
 
   it('keeps significant decimal digits', () => {

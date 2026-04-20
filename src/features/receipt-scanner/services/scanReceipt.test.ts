@@ -130,4 +130,20 @@ describe('scanReceipt', () => {
     expect(scanState.scanError).toBe('Unable to scan receipt');
     expect(scanState.isScanning).toBe(false);
   });
+
+  it('stores the original Error message when Gemini analysis throws an Error', async () => {
+    analyzeReceiptWithGeminiMock.mockRejectedValue(new Error('rate limited'));
+
+    const result = await scanReceipt({
+      receiptId: 'r1',
+      receiptFile: new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' }),
+      apiKeyInput: 'test-key',
+      model: 'gemini-2.5-flash',
+    });
+
+    expect(result).toBeNull();
+    const scanState = useScanStore.getState().scanStateByReceipt.r1;
+    expect(scanState.scanError).toBe('rate limited');
+    expect(scanState.isScanning).toBe(false);
+  });
 });

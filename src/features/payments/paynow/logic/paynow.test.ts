@@ -71,33 +71,13 @@ describe('buildPaynowString', () => {
   const mobile = '+6591234567';
   const amountCents = 1250; // $12.50
 
-  it('starts with payload format indicator 000201', () => {
+  it('includes the expected PayNow payload structure and recipient details', () => {
     const str = buildPaynowString(mobile, amountCents);
     expect(str.startsWith('000201')).toBe(true);
-  });
-
-  it('contains SG.PAYNOW GUID', () => {
-    const str = buildPaynowString(mobile, amountCents);
     expect(str).toContain('SG.PAYNOW');
-  });
-
-  it('contains the normalised mobile number', () => {
-    const str = buildPaynowString(mobile, amountCents);
     expect(str).toContain('+6591234567');
-  });
-
-  it('contains the correct amount formatted as decimal', () => {
-    const str = buildPaynowString(mobile, amountCents);
     expect(str).toContain('12.50');
-  });
-
-  it('contains SGD currency code 702', () => {
-    const str = buildPaynowString(mobile, amountCents);
     expect(str).toContain('5303702');
-  });
-
-  it('contains Singapore city', () => {
-    const str = buildPaynowString(mobile, amountCents);
     expect(str).toContain('Singapore');
   });
 
