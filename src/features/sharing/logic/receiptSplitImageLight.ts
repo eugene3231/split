@@ -538,7 +538,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
             x: niX + 16,
             y: rowY + 22,
             width: niW - 16,
-            label: line.name,
+            label: line.weight && line.involved ? `${line.name} ×${line.weight}` : line.name,
             value: line.involved
               ? formatCurrencyFromCents(line.assignedAmountCents, receipt.currency)
               : '—',
@@ -616,7 +616,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
           x: niX + 16,
           y: rowY + 22,
           width: niW - 16,
-          label: line.name,
+          label: line.weight && line.involved ? `${line.name} ×${line.weight}` : line.name,
           value: line.involved
             ? formatCurrencyFromCents(line.assignedAmountCents, args.currency)
             : '—',

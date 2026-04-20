@@ -585,6 +585,82 @@ describe('importDraftFromJson', () => {
     expect(imported?.receipts[0].items[0].assignment.weights).toBeUndefined();
   });
 
+  it('rounds fractional imported weights to nearest integer', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [
+        { id: 'p1', name: 'Alice' },
+        { id: 'p2', name: 'Bob' },
+      ],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Item',
+              amountInput: '10.00',
+              discountPercentInput: '',
+              assignment: {
+                mode: 'equal',
+                personId: '',
+                personIds: ['p1', 'p2'],
+                weights: { p1: 2.7, p2: 1.3 },
+              },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 3, p2: 1 });
+  });
+
+  it('allows imported weights greater than 9', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [
+        { id: 'p1', name: 'Alice' },
+        { id: 'p2', name: 'Bob' },
+      ],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Item',
+              amountInput: '10.00',
+              discountPercentInput: '',
+              assignment: {
+                mode: 'equal',
+                personId: '',
+                personIds: ['p1', 'p2'],
+                weights: { p1: 15, p2: 1 },
+              },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 15, p2: 1 });
+  });
+
   it('replaces non-array items with a single empty item', () => {
     const json = JSON.stringify({
       version: 2,

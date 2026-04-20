@@ -517,4 +517,91 @@ describe('computeSplit', () => {
     expect(split.subtotalByPersonCents.bob).toBe(333);
     expect(split.subtotalByPersonCents.alice + split.subtotalByPersonCents.bob).toBe(1000);
   });
+
+  it('populates weight and totalWeight on line item when item has non-uniform weights', () => {
+    const people: Person[] = [
+      { id: 'alice', name: 'Alice' },
+      { id: 'bob', name: 'Bob' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'i1',
+        name: 'Wine',
+        amountInput: '30.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['alice', 'bob'],
+          weights: { alice: 2, bob: 1 },
+        },
+      },
+    ];
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    const aliceLine = split.lineItemsByPerson.alice[0];
+    const bobLine = split.lineItemsByPerson.bob[0];
+    expect(aliceLine?.weight).toBe(2);
+    expect(aliceLine?.totalWeight).toBe(3);
+    expect(bobLine?.weight).toBe(1);
+    expect(bobLine?.totalWeight).toBe(3);
+  });
+
+  it('omits weight and totalWeight when all weights are equal (no weights set)', () => {
+    const people: Person[] = [
+      { id: 'alice', name: 'Alice' },
+      { id: 'bob', name: 'Bob' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'i1',
+        name: 'Shared',
+        amountInput: '20.00',
+        discountPercentInput: '',
+        assignment: { mode: 'equal', personId: '', personIds: ['alice', 'bob'] },
+      },
+    ];
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    expect(split.lineItemsByPerson.alice[0]?.weight).toBeUndefined();
+    expect(split.lineItemsByPerson.alice[0]?.totalWeight).toBeUndefined();
+  });
+
+  it('omits weight and totalWeight for single-mode assignment', () => {
+    const people: Person[] = [
+      { id: 'alice', name: 'Alice' },
+      { id: 'bob', name: 'Bob' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'i1',
+        name: 'Solo item',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+      },
+    ];
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    expect(split.lineItemsByPerson.alice[0]?.weight).toBeUndefined();
+    expect(split.lineItemsByPerson.alice[0]?.totalWeight).toBeUndefined();
+  });
 });

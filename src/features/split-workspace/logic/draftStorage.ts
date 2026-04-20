@@ -250,7 +250,7 @@ function normalizeDraftAssignment(value: unknown): ItemAssignment | null {
     const parsed: Record<string, number> = {};
     for (const [k, v] of Object.entries(value.weights)) {
       if (typeof v === 'number' && v > 0 && Number.isFinite(v)) {
-        parsed[k] = v;
+        parsed[k] = Math.round(v);
       }
     }
     if (Object.keys(parsed).length > 0) {

@@ -17,10 +17,7 @@ export function createDefaultItem(people: Person[]): EditableItem {
   return baseItem;
 }
 
-export function normalizeItemAssignments(
-  items: EditableItem[],
-  people: Person[],
-): EditableItem[] {
+export function normalizeItemAssignments(items: EditableItem[], people: Person[]): EditableItem[] {
   const personIds = people.map((person) => person.id);
   const validPeople = new Set(personIds);
 
@@ -38,13 +35,20 @@ export function normalizeItemAssignments(
         )
       : undefined;
 
+    const finalWeights =
+      nextPersonIds.length < 2
+        ? undefined
+        : nextWeights && Object.keys(nextWeights).length > 0
+          ? nextWeights
+          : undefined;
+
     return {
       ...item,
       assignment: {
         mode: 'equal' as const,
         personId: '',
         personIds: nextPersonIds,
-        weights: nextWeights && Object.keys(nextWeights).length > 0 ? nextWeights : undefined,
+        weights: finalWeights,
       },
     };
   });

@@ -76,7 +76,7 @@ describe('normalizeItemAssignments', () => {
     expect(result[0].assignment.personIds).toEqual(['p1', 'p2']);
   });
 
-  it('preserves weights for surviving people and drops for removed person', () => {
+  it('clears weights when only 1 person remains after normalization', () => {
     const items = [
       {
         id: 'i1',
@@ -92,7 +92,28 @@ describe('normalizeItemAssignments', () => {
       },
     ];
     const result = normalizeItemAssignments(items, [{ id: 'p1', name: 'Alice' }]);
-    expect(result[0].assignment.weights).toEqual({ p1: 2 });
+    expect(result[0].assignment.personIds).toEqual(['p1']);
+    expect(result[0].assignment.weights).toBeUndefined();
+  });
+
+  it('preserves weights for surviving people when 2+ people remain', () => {
+    const items = [
+      {
+        id: 'i1',
+        name: 'Weighted',
+        amountInput: '30.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal' as const,
+          personId: '',
+          personIds: ['p1', 'p2', 'p3'],
+          weights: { p1: 3, p2: 2, p3: 1 },
+        },
+      },
+    ];
+    const result = normalizeItemAssignments(items, people);
+    expect(result[0].assignment.personIds).toEqual(['p1', 'p2']);
+    expect(result[0].assignment.weights).toEqual({ p1: 3, p2: 2 });
   });
 
   it('returns undefined weights when all weighted people are removed', () => {

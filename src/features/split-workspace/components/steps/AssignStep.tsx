@@ -191,10 +191,23 @@ function AssignPhase({
   const handleWeightChange = (personId: string, delta: number) => {
     if (!activeItem) return;
     const current = activeItem.assignment.weights?.[personId] ?? 1;
-    const next = Math.max(1, Math.min(9, current + delta));
+    const next = Math.max(1, current + delta);
     const updatedWeights: Record<string, number> = {};
     for (const id of selectedIds) {
       updatedWeights[id] = id === personId ? next : (weights?.[id] ?? 1);
+    }
+    onUpdateItem(activeItem.id, (item) => ({
+      ...item,
+      assignment: { ...item.assignment, weights: updatedWeights },
+    }));
+  };
+
+  const handleWeightSet = (personId: string, value: number) => {
+    if (!activeItem) return;
+    const clamped = Math.max(1, Math.round(value));
+    const updatedWeights: Record<string, number> = {};
+    for (const id of selectedIds) {
+      updatedWeights[id] = id === personId ? clamped : (weights?.[id] ?? 1);
     }
     onUpdateItem(activeItem.id, (item) => ({
       ...item,
@@ -293,16 +306,36 @@ function AssignPhase({
         <span className="text-base font-semibold text-on-surface">Who's sharing?</span>
         <div className="flex gap-3">
           {canToggleUnequal && (
-            <button
-              type="button"
-              onClick={handleUnequalToggle}
-              className={cn(
-                'text-sm font-semibold transition-opacity hover:opacity-70',
-                unequalMode ? 'text-primary' : 'text-on-surface-variant',
-              )}
-            >
-              {unequalMode ? 'Unequal' : 'Equal'}
-            </button>
+            <div className="flex overflow-hidden rounded-lg border border-outline-variant/40">
+              <button
+                type="button"
+                onClick={() => {
+                  if (unequalMode) handleUnequalToggle();
+                }}
+                className={cn(
+                  'px-2.5 py-1 text-xs font-semibold transition-colors',
+                  !unequalMode
+                    ? 'bg-primary text-on-primary'
+                    : 'text-on-surface-variant hover:bg-surface-container',
+                )}
+              >
+                Equal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!unequalMode) handleUnequalToggle();
+                }}
+                className={cn(
+                  'px-2.5 py-1 text-xs font-semibold transition-colors',
+                  unequalMode
+                    ? 'bg-primary text-on-primary'
+                    : 'text-on-surface-variant hover:bg-surface-container',
+                )}
+              >
+                Unequal
+              </button>
+            </div>
           )}
           <button
             type="button"
@@ -411,18 +444,29 @@ function AssignPhase({
                       remove
                     </span>
                   </button>
-                  <span
+                  <input
+                    type="text"
+                    inputMode="numeric"
                     data-testid={`assign-weight-value-${personId}`}
-                    className="w-6 text-center text-sm font-bold text-on-surface"
-                  >
-                    {w}
-                  </span>
+                    value={w}
+                    onChange={(e) => {
+                      const parsed = parseInt(e.target.value, 10);
+                      if (!isNaN(parsed)) handleWeightSet(personId, parsed);
+                    }}
+                    onBlur={(e) => {
+                      const parsed = parseInt(e.target.value, 10);
+                      handleWeightSet(personId, isNaN(parsed) ? 1 : parsed);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                    }}
+                    className="w-10 rounded-md border border-outline-variant/40 bg-surface text-center text-sm font-bold text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
+                  />
                   <button
                     type="button"
                     data-testid={`assign-weight-increment-${personId}`}
                     onClick={() => handleWeightChange(personId, 1)}
-                    disabled={w >= 9}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high"
                   >
                     <span className="material-symbols-outlined text-sm text-on-surface">add</span>
                   </button>

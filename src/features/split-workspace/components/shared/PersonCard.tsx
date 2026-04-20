@@ -189,6 +189,11 @@ export function PersonCard({
                               }
                             >
                               {line.name}
+                              {line.weight && line.involved && (
+                                <span className="ml-1 text-xs text-on-surface-variant/60">
+                                  ×{line.weight}
+                                </span>
+                              )}
                             </span>
                             <span
                               className={
@@ -264,6 +269,11 @@ export function PersonCard({
                         }
                       >
                         {line.name}
+                        {line.weight && line.involved && (
+                          <span className="ml-1 text-xs text-on-surface-variant/60">
+                            ×{line.weight}
+                          </span>
+                        )}
                       </span>
                       <span
                         className={

@@ -104,7 +104,9 @@ describe('AssignStep', () => {
       />,
     );
 
+    // Equal item: both toggle buttons shown, weight controls hidden
     expect(screen.getByRole('button', { name: 'Equal' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unequal' })).toBeInTheDocument();
     expect(screen.queryByText('Share weights')).not.toBeInTheDocument();
 
     rerender(
@@ -116,15 +118,15 @@ describe('AssignStep', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Unequal' })).toBeInTheDocument();
+    // Weighted item: both toggle buttons shown, weight controls visible
     expect(screen.getByTestId('assign-weight-controls')).toBeInTheDocument();
-    expect(screen.getByTestId('assign-weight-value-p1')).toHaveTextContent('2');
-    expect(screen.getByTestId('assign-weight-value-p2')).toHaveTextContent('1');
+    expect(screen.getByTestId('assign-weight-value-p1')).toHaveValue('2');
+    expect(screen.getByTestId('assign-weight-value-p2')).toHaveValue('1');
     expect(screen.getByTestId('assign-weight-decrement-p1')).not.toBeDisabled();
     expect(screen.getByTestId('assign-weight-decrement-p2')).toBeDisabled();
   });
 
-  it('clears saved weights on the first toggle click', () => {
+  it('clears saved weights when clicking Equal in unequal mode', () => {
     render(
       <AssignStep
         itemsSubPhase="assign"
@@ -134,7 +136,8 @@ describe('AssignStep', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Unequal' }));
+    // In unequal mode, click "Equal" to switch back (Unequal button does nothing)
+    fireEvent.click(screen.getByRole('button', { name: 'Equal' }));
 
     const weightedItem = storeMock.receipts[0].items[1];
     expect(weightedItem.assignment.weights).toBeUndefined();
