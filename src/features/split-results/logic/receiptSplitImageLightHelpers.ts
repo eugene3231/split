@@ -156,7 +156,7 @@ export function drawLightTwoColumnRow(
   const style = args.italic ? 'italic ' : '';
   const weight = args.emphasized ? 700 : 400;
   const valueFont = `${style}${weight} ${args.size}px system-ui, -apple-system, sans-serif`;
-  const labelFont = `${style}500 ${Math.max(14, args.size - 2)}px system-ui, -apple-system, sans-serif`;
+  const labelFont = `${style}${weight} ${Math.max(14, args.size - 2)}px system-ui, -apple-system, sans-serif`;
 
   ctx.font = valueFont;
   const valueWidth = ctx.measureText(args.value).width;
