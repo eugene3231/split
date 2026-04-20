@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useReceiptSplit } from '@shared/hooks/useReceiptSplit';
-import { useReceiptStore } from '@shared/stores/receiptStore';
+import { useReceiptSplit } from '@features/workspace/hooks/useReceiptSplit';
+import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 import {
   buildSplitShareText,
   shareText,

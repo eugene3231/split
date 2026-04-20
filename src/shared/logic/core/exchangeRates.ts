@@ -1,5 +1,26 @@
 import type { Receipt, SplitResult } from '@shared/types';
-import { BASE_CURRENCY, FALLBACK_RATES_TO_SGD } from '@shared/constants';
+import { BASE_CURRENCY } from '@shared/constants';
+
+// Approximate rates: 1 unit of foreign currency = X SGD
+// Used as offline fallback when the exchange rate API is unavailable.
+export const FALLBACK_RATES_TO_SGD: Record<string, number> = {
+  SGD: 1,
+  USD: 1.35,
+  EUR: 1.48,
+  GBP: 1.73,
+  THB: 0.038,
+  MYR: 0.3,
+  JPY: 0.009,
+  KRW: 0.00099,
+  TWD: 0.042,
+  IDR: 0.000083,
+  PHP: 0.024,
+  AUD: 0.88,
+  CNY: 0.19,
+  HKD: 0.17,
+  VND: 0.000053,
+  INR: 0.016,
+};
 
 /**
  * Returns the effective exchange rate for a currency to SGD.

@@ -32,72 +32,70 @@
 ## Best Practices
 
 - Prefer recomputing derived data (e.g. in `shared/logic/computation/split.ts`) over storing it
-- Keep components dumb — they should render what they're given, not compute it
+- Keep route shells thin. Feature components may own feature-local store selection when that reduces prop-drilling and keeps ownership local.
+
+## Architecture Rules
+
+- **`pages/`** contains route entrypoints only. No workflow logic, step logic, or feature-owned hooks.
+- **`features/<name>/`** owns the full implementation of a capability: components, hooks, logic, stores, state access, persistence, and feature-scoped UI.
+- **`shared/`** contains only primitives reused across **multiple features**. "Used by multiple pages in one workflow" does not qualify.
+- Default rule: start local to a feature, then promote to `shared/` only after real cross-feature reuse.
+- Stores live under their owning feature, not in a top-level `src/stores`.
 
 ## Repository Structure
 
 ```
 src/
   features/
-    receipt-scanner/       # Gemini API integration, OCR parsing, scan UI
+    workspace/             # Full bill-splitting workflow: wizard, steps, stores, persistence
+      components/          # Workspace UI (steps/, shared/ UI components)
+      hooks/               # useWizard, useReceiptSplitterController, useReceiptSplit, etc.
+      logic/               # wizardState, wizardValidation, summaryView, persistence + storage helpers
+      stores/              # receiptStore, geminiStore, currencyStore
+      api/                 # exchangeRateApi
+      types.ts             # WizardStep, ItemsSubPhase, WizardProgressContext
+      index.ts             # Public entrypoint (Workspace, GeminiApiKeyModal)
+    receipt-scanner/       # Gemini OCR: API call, parsing, scan state, loading ticker, scan orchestration
+      hooks/               # useLoadingTicker
+      logic/               # ocr payload application, gemini-schema, itemMapper, loadingMessages, geminiModel
+      services/            # scanReceipt orchestration
+      stores/              # scanStore
+      index.ts             # Public entrypoint
+    payments/              # QR generation and PayNow adapter
+      qr/logic/            # Generic QR rendering/data-url helpers
+      paynow/logic/        # paynow (mobile normalisation, payload), paynowQr (PayNow adapter)
+      index.ts             # Public entrypoint
     split-results/         # Split export (PNG/text) — logic only, no legacy components
   pages/
-    ReceiptSplitterPage.tsx          # Root page component
-    types.ts                         # Wizard-specific types (SimpleWizardStep etc.)
-    components/
-      workspace/
-        Workspace.tsx                # Main workspace (4-step wizard)
-        TopAppBar.tsx
-        BottomNav.tsx
-        ProgressIndicator.tsx
-        GeminiApiKeyModal.tsx
-        shared/                      # Reusable UI components
-        steps/                       # One component per wizard step/phase
-    hooks/
-      useReceiptSplitterController.ts  # Init, persistence
-      useSimpleWizard.ts               # Wizard step/phase state machine
-    logic/
-      persistence.ts       # Wizard state save/load (localStorage)
-      wizardState.ts       # Step resolution logic
-      wizardValidation.ts  # Per-step validation
-      paynow.ts            # PayNow mobile number normalisation
+    ReceiptSplitterPage.tsx  # Thin route shell — imports from @features/workspace
   shared/
     types.ts               # Core types: Person, EditableItem, ChargeState, SplitResult
-    constants.ts           # Defaults, Gemini model IDs, storage keys
-    api/
-      storage.ts           # localStorage read/write helpers
-    hooks/
-      useDraftPersistence.ts  # Auto-saves receipt state to localStorage
-      useReceiptSplit.ts      # Derives split result and reconciliation helpers
+    constants.ts           # App-wide defaults only
     logic/
       computation/         # computeSplit() and charge calculation engine
       assignment/          # Item assignment utilities
-      core/                # ID generation, money parsing/formatting, PayNow QR generation, exchange rates
-    stores/
-      receiptStore.ts      # Workspace state: people, receipts, items, assignments
-      scanStore.ts         # Per-receipt scan state: loading, errors, warnings
-      geminiStore.ts       # API key, model selection, modal visibility
-      currencyStore.ts     # Exchange rate fetching and caching
+      core/                # ID generation, money parsing/formatting, exchange rates
     utils/
       personColors.ts      # Per-person colour palette
 ```
 
 **Key files:**
 
-- `src/shared/stores/receiptStore.ts` — Workspace state (people, receipts, items, assignments)
-- `src/shared/stores/scanStore.ts` — Per-receipt scan state (loading, errors, warnings)
-- `src/shared/stores/geminiStore.ts` — API key, model selection, modal visibility
-- `src/shared/stores/currencyStore.ts` — Exchange rate fetching and caching (base currency: SGD)
-- `src/shared/logic/core/paynowQr.ts` — PayNow QR code generation per person
+- `src/features/workspace/stores/receiptStore.ts` — Workspace state (people, receipts, items, assignments)
+- `src/features/receipt-scanner/stores/scanStore.ts` — Per-receipt scan state (loading, errors, warnings)
+- `src/features/workspace/stores/geminiStore.ts` — API key, model selection, modal visibility
+- `src/features/workspace/stores/currencyStore.ts` — Exchange rate fetching and caching (base currency: SGD)
+- `src/features/payments/index.ts` — Payments feature public API (generic QR helpers + PayNow adapter)
 - `src/shared/logic/core/exchangeRates.ts` — Currency conversion helpers
-- `src/features/receipt-scanner/logic/ocr.ts` — Gemini API call
+- `src/features/receipt-scanner/api/geminiApi.ts` — Gemini API call + response parsing entrypoint
+- `src/features/receipt-scanner/services/scanReceipt.ts` — Scan orchestration and scan-state transitions
 - `src/features/receipt-scanner/logic/gemini-schema.ts` — Zod schema (constrains Gemini output + validates response)
 - `src/shared/logic/computation/split.ts` — Split calculation engine
 - `src/shared/types.ts` — All core types
 
 ## Gemini Integration
 
-Models are defined in src/shared/constants.ts
+Models are defined in `src/features/receipt-scanner/constants.ts`
 
 The prompt is intentionally minimal — the response schema does the heavy lifting. Gemini's controlled generation (`responseSchema` in `generationConfig`) constrains the model to return exactly the right JSON shape.
 

@@ -1,5 +1,4 @@
-import { GeminiApiKeyModal } from '@pages/components/workspace/GeminiApiKeyModal';
-import { Workspace } from '@pages/components/workspace/Workspace';
+import { GeminiApiKeyModal, Workspace } from '@features/workspace';
 
 export function ReceiptSplitterPage() {
   return (
