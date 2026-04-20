@@ -8,15 +8,6 @@ import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/workspace/stores/geminiStore';
 
-const { analyzeReceiptWithGemini: analyzeReceiptWithGeminiMock } = vi.hoisted(() => ({
-  analyzeReceiptWithGemini: vi.fn(),
-}));
-
-vi.mock('@features/receipt-scanner/api/geminiApi', async (importActual) => {
-  const actual = await importActual<typeof import('@features/receipt-scanner/api/geminiApi')>();
-  return { ...actual, analyzeReceiptWithGemini: analyzeReceiptWithGeminiMock };
-});
-
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...';
 const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...';
 
@@ -346,7 +337,7 @@ describe('receiptStore additional coverage', () => {
     expect(useReceiptStore.getState().receipts[0].receiptTotalInput).toBe('99.50');
   });
 
-  it('handleReceiptFileSelected clears items and scan feedback', () => {
+  it('handleReceiptFileSelected resets receipt draft fields', () => {
     useReceiptStore.getState().initialize();
     const receiptId = useReceiptStore.getState().activeReceiptId;
 
@@ -361,9 +352,6 @@ describe('receiptStore additional coverage', () => {
     expect(receipt.serviceCharge.enabled).toBe(true);
     expect(receipt.gst.enabled).toBe(true);
     expect(receipt.receiptTotalInput).toBe('');
-
-    const scan = useScanStore.getState().scanStateByReceipt[receiptId];
-    expect(scan.scanError).toBeNull();
   });
 
   it('handleReceiptFileSelected clears receiptFile when null is passed', () => {
@@ -433,40 +421,6 @@ describe('receiptStore additional coverage', () => {
     expect(receiptAfter.exchangeRateOverride).toBeNull();
   });
 
-  it('handleScanReceipt shows fallback error message for non-Error throws', async () => {
-    useReceiptStore.getState().initialize();
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-    const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
-    useReceiptStore.getState().handleReceiptFileSelected(file);
-    useGeminiStore.setState({ geminiApiKeyInput: 'test-key' });
-
-    analyzeReceiptWithGeminiMock.mockRejectedValue('string error');
-
-    await useReceiptStore.getState().handleScanReceipt();
-
-    const scanState = useScanStore.getState().scanStateByReceipt[receiptId];
-    expect(scanState.scanError).toBe('Unable to scan receipt');
-    expect(scanState.isScanning).toBe(false);
-  });
-
-  it('handleScanReceipt runs finishScan even when scan throws', async () => {
-    useReceiptStore.getState().initialize();
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-    const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
-    useReceiptStore.getState().handleReceiptFileSelected(file);
-    useGeminiStore.setState({ geminiApiKeyInput: 'test-key' });
-
-    analyzeReceiptWithGeminiMock.mockRejectedValue(new Error('API fail'));
-
-    await useReceiptStore.getState().handleScanReceipt();
-
-    const scanState = useScanStore.getState().scanStateByReceipt[receiptId];
-    expect(scanState.isScanning).toBe(false);
-    expect(scanState.scanError).toBe('API fail');
-  });
-
   it('removeItem removes an item when receipt has more than one', () => {
     useReceiptStore.getState().initialize();
     useReceiptStore.getState().addPeopleFromInput('Alice');
@@ -487,137 +441,16 @@ describe('receiptStore additional coverage', () => {
     expect(useReceiptStore.getState().payerMobile).toBe('+6591234567');
   });
 
-  it('handleScanReceipt returns early when no file is selected', async () => {
+  it('patchReceipt applies a partial receipt update by id', () => {
     useReceiptStore.getState().initialize();
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-    useGeminiStore.setState({ geminiApiKeyInput: 'test-key' });
-
-    await useReceiptStore.getState().handleScanReceipt();
-
     const receiptId = useReceiptStore.getState().activeReceiptId;
-    const scanState = useScanStore.getState().scanStateByReceipt[receiptId];
-    expect(scanState).toBeUndefined();
-  });
-
-  it('handleScanReceipt shows error when API key is missing', async () => {
-    useReceiptStore.getState().initialize();
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-    const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
-    useReceiptStore.getState().handleReceiptFileSelected(file);
-    useGeminiStore.setState({ geminiApiKeyInput: '' });
-
-    await useReceiptStore.getState().handleScanReceipt();
-
-    const scanState = useScanStore.getState().scanStateByReceipt[receiptId];
-    expect(scanState.scanError).toBe('Missing Gemini API key. Enter it above.');
-  });
-
-  it('handleScanReceipt applies payload items on successful scan', async () => {
-    useReceiptStore.getState().initialize();
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-    const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
-    useReceiptStore.getState().handleReceiptFileSelected(file);
-    useGeminiStore.setState({ geminiApiKeyInput: 'test-key' });
-
-    analyzeReceiptWithGeminiMock.mockResolvedValue({
-      items: [
-        { description: 'Nasi Lemak', amount: 7.5 },
-        { description: 'Teh Tarik', amount: 2.0 },
-      ],
-      subtotal: 9.5,
-      total: 10.45,
-      detected: {
-        gst: { enabled: true, amount: null, percent: 9, confidence: 0.95, source: 'mock' },
-        serviceCharge: {
-          enabled: false,
-          amount: null,
-          percent: null,
-          confidence: null,
-          source: '',
-        },
-      },
-      warnings: [],
+    useReceiptStore.getState().patchReceipt(receiptId, {
+      receiptTotalInput: '42.00',
+      currency: 'USD',
     });
 
-    await useReceiptStore.getState().handleScanReceipt();
-
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
-    expect(receipt.items).toHaveLength(2);
-    expect(receipt.items[0].name).toBe('Nasi Lemak');
-    expect(receipt.receiptTotalInput).toBe('10.45');
-
-    const scanState = useScanStore.getState().scanStateByReceipt[receiptId];
-    expect(scanState.isScanning).toBe(false);
-    expect(scanState.scanError).toBeNull();
-  });
-
-  it('handleScanReceipt forwards status updates from analyzeReceiptWithGemini to scanStore', async () => {
-    useReceiptStore.getState().initialize();
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-    const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
-    useReceiptStore.getState().handleReceiptFileSelected(file);
-    useGeminiStore.setState({ geminiApiKeyInput: 'test-key' });
-
-    let statusDuringCall: string | undefined;
-    analyzeReceiptWithGeminiMock.mockImplementationOnce(
-      async (_file: unknown, _key: unknown, _model: unknown, setStatus: (s: string) => void) => {
-        setStatus('Calling Gemini...');
-        statusDuringCall = useScanStore.getState().scanStateByReceipt[receiptId]?.scanStatus;
-        return {
-          items: [],
-          subtotal: null,
-          total: null,
-          detected: {
-            gst: { enabled: false, amount: null, percent: null, confidence: null, source: '' },
-            serviceCharge: {
-              enabled: false,
-              amount: null,
-              percent: null,
-              confidence: null,
-              source: '',
-            },
-          },
-          warnings: [],
-        };
-      },
-    );
-
-    await useReceiptStore.getState().handleScanReceipt();
-    expect(statusDuringCall).toBe('Calling Gemini...');
-  });
-
-  it('handleLoadMockWorkspace populates people and receipts from fixtures', () => {
-    useReceiptStore.getState().initialize();
-
-    useReceiptStore.getState().handleLoadMockWorkspace();
-
-    const { people, receipts } = useReceiptStore.getState();
-    expect(people).toHaveLength(4);
-    expect(receipts.length).toBeGreaterThan(0);
-    expect(receipts[0].items.length).toBeGreaterThan(0);
-  });
-
-  it('applyMockToCurrentReceipt populates items from fixture', () => {
-    useReceiptStore.getState().initialize();
-
-    useReceiptStore.getState().applyMockToCurrentReceipt(0);
-
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-    const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
-    expect(receipt.items.length).toBeGreaterThan(0);
-  });
-
-  it('applyMockToCurrentReceipt is a no-op for out-of-range index', () => {
-    useReceiptStore.getState().initialize();
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-    const itemsBefore = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.items;
-
-    useReceiptStore.getState().applyMockToCurrentReceipt(999);
-
-    const itemsAfter = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.items;
-    expect(itemsAfter).toHaveLength(itemsBefore.length);
+    expect(receipt.receiptTotalInput).toBe('42.00');
+    expect(receipt.currency).toBe('USD');
   });
 });

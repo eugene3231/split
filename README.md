@@ -28,6 +28,21 @@ Scan a receipt, assign items, and share the result — no accounts or invites ne
 - Tailwind CSS v4
 - Gemini API (`generateContent`) for receipt extraction
 
+## Architecture
+
+- `src/pages` contains route shells only.
+- `src/features/<name>` owns each capability end to end: components, hooks, stores, logic, feature-scoped API helpers, and reusable UI within that feature.
+- `src/shared` is only for primitives reused across multiple features.
+- Default rule: start local to a feature, promote to `shared` only after real cross-feature reuse appears.
+- Stores live under the feature that owns the state. There is no top-level `src/stores`.
+
+Current feature ownership:
+
+- `features/workspace` owns the bill-splitting workflow, wizard, receipt state, Gemini settings state, currency state, and summary/export wiring.
+- `features/receipt-scanner` owns Gemini OCR analysis, parsing, scan lifecycle state, loading messages, and scan orchestration.
+- `features/payments` owns generic QR generation plus the PayNow adapter.
+- `features/split-results` owns exported image/text generation.
+
 ## Local setup
 
 1. Install dependencies:
@@ -47,7 +62,7 @@ pnpm dev
 4. In `Scan Receipt Image`:
 
 - Enter your Gemini API key
-- Select model (`gemini-3-flash-preview`)
+- Select model
 - Optional: enable `Remember API key for this browser session`
 
 ## Mock receipt
@@ -58,6 +73,7 @@ Use the `Load Mock Receipt` button in the UI to populate sample items and charge
 
 - In this setup, Gemini is called directly from the browser.
 - API key is never persisted to localStorage. If enabled, it is stored only in `sessionStorage` for the current browser session.
-- To consider routing through your a dedicated backend so API keys are not exposed client-side.
+- Consider routing through a dedicated backend so API keys are not exposed client-side.
 - OCR extraction can still be imperfect; users are able to edit items/amounts before finalizing.
 - Draft fields reset when a new receipt image is uploaded.
+- Internal helpers are private by default; feature entrypoints should be preferred over deep imports.

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { Person, Receipt } from '@shared/types';
 import { getCurrencySymbol } from '@shared/logic/core/money';
+import { normalizeMobile } from '@features/payments';
 import { ReceiptNameField } from '@features/workspace/components/shared/ReceiptNameField';
-import { normalizeMobile } from '@features/payments/paynow/logic/paynow';
 import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 
 interface Props {

@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { create } from 'zustand';
 import {
   defaultDiscountState,
@@ -12,17 +11,13 @@ import {
 } from '@features/workspace/logic/draftStorage';
 import { BASE_CURRENCY } from '@shared/constants';
 import { createId } from '@shared/logic/core/id';
-import type { ChargeState, EditableItem, OcrResponse, Person, Receipt } from '@shared/types';
-import { analyzeReceiptWithGemini, applyOcrPayload } from '@features/receipt-scanner';
-import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures';
+import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 import {
   buildInitialItems,
   createDefaultItem,
   convertItemsToSimpleEqualMode,
   syncItemsWithPeople,
 } from '@shared/logic/assignment/simpleAssignments';
-import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
-import { useGeminiStore } from './geminiStore';
 
 // ---------------------------------------------------------------------------
 // Module-level helpers
@@ -84,9 +79,7 @@ type ReceiptStoreActions = {
   setReceiptTotalInput: (value: string) => void;
   normalizeItems: () => void;
   handleReceiptFileSelected: (file: File | null) => void;
-  handleScanReceipt: () => Promise<void>;
-  handleLoadMockWorkspace: () => void;
-  applyMockToCurrentReceipt: (index: number) => void;
+  patchReceipt: (receiptId: string, patch: Partial<Receipt>) => void;
   getExportJson: () => string;
   importFromJson: (raw: string) => void;
 
@@ -125,60 +118,6 @@ const initialState: ReceiptStoreState = {
 // ---------------------------------------------------------------------------
 
 export const useReceiptStore = create<ReceiptStore>((set, get) => {
-  function applyPayloadToReceipt(
-    payload: OcrResponse,
-    receiptId: string,
-    people: Person[],
-    setScanWarnings: Dispatch<SetStateAction<string[]>> = () => {},
-  ) {
-    applyOcrPayload(
-      payload,
-      people,
-      (updater) => {
-        set((state) => ({
-          receipts: state.receipts.map((r) =>
-            r.id === receiptId
-              ? { ...r, items: typeof updater === 'function' ? updater(r.items) : updater }
-              : r,
-          ),
-        }));
-      },
-      (next) => {
-        set((state) => ({
-          receipts: state.receipts.map((r) =>
-            r.id === receiptId
-              ? { ...r, serviceCharge: resolveSetStateAction(r.serviceCharge, next) }
-              : r,
-          ),
-        }));
-      },
-      (next) => {
-        set((state) => ({
-          receipts: state.receipts.map((r) =>
-            r.id === receiptId ? { ...r, gst: resolveSetStateAction(r.gst, next) } : r,
-          ),
-        }));
-      },
-      setScanWarnings,
-      (value) => {
-        set((state) => ({
-          receipts: state.receipts.map((r) =>
-            r.id === receiptId
-              ? { ...r, receiptTotalInput: resolveSetStateAction(r.receiptTotalInput, value) }
-              : r,
-          ),
-        }));
-      },
-    );
-    set((state) => ({
-      receipts: state.receipts.map((r) =>
-        r.id === receiptId
-          ? { ...r, items: convertItemsToSimpleEqualMode(r.items, state.people) }
-          : r,
-      ),
-    }));
-  }
-
   return {
     ...initialState,
 
@@ -357,64 +296,11 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
             : r,
         ),
       }));
-      useScanStore.getState().clearScanFeedback(get().activeReceiptId);
     },
-    handleScanReceipt: async () => {
-      const { geminiApiKeyInput, geminiModel } = useGeminiStore.getState();
-      const scanReceiptId = get().activeReceiptId;
-      const activeReceipt = get().receipts.find((r) => r.id === scanReceiptId);
-      const receiptFile = activeReceipt?.receiptFile ?? null;
-
-      if (!receiptFile) {
-        return;
-      }
-
-      if (!geminiApiKeyInput.trim()) {
-        useScanStore
-          .getState()
-          .setScanError(scanReceiptId, 'Missing Gemini API key. Enter it above.');
-        return;
-      }
-
-      useScanStore.getState().startScan(scanReceiptId);
-
-      const setScanStatusForReceipt = (next: SetStateAction<string>) =>
-        useScanStore.getState().setScanStatus(scanReceiptId, next);
-      const setScanWarningsForReceipt = (next: SetStateAction<string[]>) =>
-        useScanStore.getState().setScanWarnings(scanReceiptId, next);
-
-      try {
-        const payload = await analyzeReceiptWithGemini(
-          receiptFile,
-          geminiApiKeyInput,
-          geminiModel,
-          setScanStatusForReceipt,
-        );
-        const { people } = get();
-        applyPayloadToReceipt(payload, scanReceiptId, people, setScanWarningsForReceipt);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unable to scan receipt';
-        useScanStore.getState().setScanError(scanReceiptId, message);
-      } finally {
-        useScanStore.getState().finishScan(scanReceiptId);
-      }
-    },
-    handleLoadMockWorkspace: () => {
-      const people = ['Alice', 'Bob', 'Charlie', 'David'].map((name) => ({ id: createId(), name }));
-      const receipts = MOCK_RECEIPT_FIXTURES.map((fixture) =>
-        createBlankReceipt(people, fixture.label),
-      );
-      set({ people, receipts, activeReceiptId: receipts[0].id });
-      useScanStore.getState().resetScanStates();
-      MOCK_RECEIPT_FIXTURES.forEach((fixture, i) => {
-        applyPayloadToReceipt(fixture.buildResponse(), receipts[i].id, people);
-      });
-    },
-    applyMockToCurrentReceipt: (index: number) => {
-      const fixture = MOCK_RECEIPT_FIXTURES[index];
-      if (!fixture) return;
-      const { people, activeReceiptId } = get();
-      applyPayloadToReceipt(fixture.buildResponse(), activeReceiptId, people);
+    patchReceipt: (receiptId, patch) => {
+      set((state) => ({
+        receipts: state.receipts.map((r) => (r.id === receiptId ? { ...r, ...patch } : r)),
+      }));
     },
     getExportJson: () => {
       const { people, receipts, activeReceiptId, payerMobile } = get();
@@ -499,7 +385,3 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     },
   };
 });
-
-function resolveSetStateAction<T>(current: T, next: SetStateAction<T>): T {
-  return typeof next === 'function' ? (next as (prev: T) => T)(current) : next;
-}

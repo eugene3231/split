@@ -1,4 +1,7 @@
-import type { ChargeState, EditableItem, Receipt, SplitResult } from '@shared/types';
+import { useMemo } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { scanReceipt, useScanStore } from '@features/receipt-scanner';
+import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures';
 import { ReceiptImportActions } from '@features/workspace/components/shared/ReceiptImportActions';
 import { LineItemCard } from '@features/workspace/components/shared/LineItemCard';
 import { GlobalChargesPanel } from '@features/workspace/components/shared/GlobalChargesPanel';
@@ -6,69 +9,134 @@ import { ReceiptTabs } from '@features/workspace/components/shared/ReceiptTabs';
 import { ReceiptNameField } from '@features/workspace/components/shared/ReceiptNameField';
 import { CurrencySelector } from '@features/workspace/components/shared/CurrencySelector';
 import { ExchangeRateDisplay } from '@features/workspace/components/shared/ExchangeRateDisplay';
+import { useReceiptSplit } from '@features/workspace/hooks/useReceiptSplit';
+import { buildReceiptOcrPatch } from '@features/workspace/logic/applyOcrResultToReceipt';
+import { useGeminiStore } from '@features/workspace/stores/geminiStore';
 import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 import { BASE_CURRENCY } from '@shared/constants';
 
 type Props = {
-  receipts: Receipt[];
-  activeReceiptId: string;
-  onSelectReceipt: (id: string) => void;
   onAddReceipt: () => void;
-  onRemoveReceipt: (id: string) => void;
-  onRenameReceipt: (id: string, name: string) => void;
-  items: EditableItem[];
-  split: SplitResult;
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
-  reconciliationCents: number | null;
-  receiptTotalInput: string;
-  onApplyDiscount: () => void;
-  onReceiptFileSelected: (file: File | null) => void;
-  onScanReceipt: () => void;
-  mockReceipts: Array<{ label: string; onLoad: () => void }>;
-  onDiscountChange: (discount: ChargeState) => void;
-  onServiceChargeChange: (serviceCharge: ChargeState) => void;
-  onGstChange: (gst: ChargeState) => void;
-  onReceiptTotalInputChange: (value: string) => void;
-  onAddItem: () => void;
-  onRemoveItem: (id: string) => void;
-  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
 };
 
-export function ReceiptStep({
-  receipts,
-  activeReceiptId,
-  onSelectReceipt,
-  onAddReceipt,
-  onRemoveReceipt,
-  onRenameReceipt,
-  items,
-  split,
-  discount,
-  serviceCharge,
-  gst,
-  reconciliationCents,
-  receiptTotalInput,
-  onApplyDiscount,
-  onReceiptFileSelected,
-  onScanReceipt,
-  mockReceipts,
-  onDiscountChange,
-  onServiceChargeChange,
-  onGstChange,
-  onReceiptTotalInputChange,
-  onAddItem,
-  onRemoveItem,
-  onUpdateItem,
-}: Props) {
-  const setReceiptCurrency = useReceiptStore((s) => s.setReceiptCurrency);
-  const hasItems = items.length > 0;
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId);
+export function ReceiptStep({ onAddReceipt }: Props) {
+  const {
+    receipts,
+    activeReceiptId,
+    handleReceiptFileSelected,
+    addItem,
+    removeItem,
+    updateItem,
+    setDiscount,
+    setServiceCharge,
+    setGst,
+    setReceiptTotalInput,
+    setActiveReceiptId,
+    removeReceipt,
+    renameReceipt,
+    setReceiptCurrency,
+  } = useReceiptStore(
+    useShallow((state) => ({
+      receipts: state.receipts,
+      activeReceiptId: state.activeReceiptId,
+      handleReceiptFileSelected: state.handleReceiptFileSelected,
+      addItem: state.addItem,
+      removeItem: state.removeItem,
+      updateItem: state.updateItem,
+      setDiscount: state.setDiscount,
+      setServiceCharge: state.setServiceCharge,
+      setGst: state.setGst,
+      setReceiptTotalInput: state.setReceiptTotalInput,
+      setActiveReceiptId: state.setActiveReceiptId,
+      removeReceipt: state.removeReceipt,
+      renameReceipt: state.renameReceipt,
+      setReceiptCurrency: state.setReceiptCurrency,
+    })),
+  );
+  const { geminiApiKeyInput, geminiModel } = useGeminiStore(
+    useShallow((state) => ({
+      geminiApiKeyInput: state.geminiApiKeyInput,
+      geminiModel: state.geminiModel,
+    })),
+  );
+  const { split, reconciliationCents, handleApplyReconciliationDiscount } = useReceiptSplit();
+
+  const activeReceipt = receipts.find((receipt) => receipt.id === activeReceiptId) ?? receipts[0];
+  const items = activeReceipt?.items ?? [];
+  const discount = activeReceipt?.discount;
+  const serviceCharge = activeReceipt?.serviceCharge;
+  const gst = activeReceipt?.gst;
+  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? '';
   const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY;
+  const hasItems = items.length > 0;
+
+  const handleReceiptFileChange = (file: File | null) => {
+    handleReceiptFileSelected(file);
+    useScanStore.getState().clearScanFeedback(activeReceiptId);
+  };
+
+  const handleScanReceipt = async () => {
+    const scanReceiptId = activeReceiptId;
+    const receipt = useReceiptStore
+      .getState()
+      .receipts.find((candidate) => candidate.id === scanReceiptId);
+
+    const payload = await scanReceipt({
+      receiptId: scanReceiptId,
+      receiptFile: receipt?.receiptFile ?? null,
+      apiKeyInput: geminiApiKeyInput,
+      model: geminiModel,
+    });
+
+    if (!payload) {
+      return;
+    }
+
+    const {
+      people: currentPeople,
+      receipts: currentReceipts,
+      patchReceipt: applyPatch,
+    } = useReceiptStore.getState();
+    const currentReceipt = currentReceipts.find((candidate) => candidate.id === scanReceiptId);
+    if (!currentReceipt) {
+      return;
+    }
+
+    applyPatch(scanReceiptId, buildReceiptOcrPatch(currentReceipt, payload, currentPeople));
+  };
+
+  const mockReceipts = useMemo(
+    () =>
+      MOCK_RECEIPT_FIXTURES.map((fixture) => ({
+        label: fixture.label,
+        onLoad: () => {
+          const {
+            activeReceiptId: targetReceiptId,
+            people: currentPeople,
+            receipts: currentReceipts,
+          } = useReceiptStore.getState();
+          const receipt = currentReceipts.find((candidate) => candidate.id === targetReceiptId);
+          if (!receipt) {
+            return;
+          }
+
+          const payload = fixture.buildResponse();
+          useScanStore.getState().clearScanFeedback(targetReceiptId);
+          useScanStore.getState().setScanWarnings(targetReceiptId, payload.warnings);
+          useReceiptStore
+            .getState()
+            .patchReceipt(targetReceiptId, buildReceiptOcrPatch(receipt, payload, currentPeople));
+        },
+      })),
+    [],
+  );
+
+  if (!activeReceipt || !discount || !serviceCharge || !gst) {
+    return null;
+  }
+
   return (
     <div>
-      {/* Step header — desktop */}
       <div className="mb-6 hidden md:block">
         <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
           Add Receipts
@@ -78,7 +146,6 @@ export function ReceiptStep({
         </p>
       </div>
 
-      {/* Step header — mobile */}
       <div className="mb-4 md:hidden">
         <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
           Add Receipts
@@ -91,9 +158,9 @@ export function ReceiptStep({
       <ReceiptTabs
         receipts={receipts}
         activeReceiptId={activeReceiptId}
-        onSelect={onSelectReceipt}
-        onRemove={onRemoveReceipt}
-        onRename={onRenameReceipt}
+        onSelect={setActiveReceiptId}
+        onRemove={removeReceipt}
+        onRename={renameReceipt}
         appendTab={{
           icon: 'add',
           label: 'Add Receipt',
@@ -102,20 +169,16 @@ export function ReceiptStep({
         }}
       />
 
-      {/* Import actions row */}
       <div className="mb-6">
         <ReceiptImportActions
-          onReceiptFileSelected={onReceiptFileSelected}
-          onScanReceipt={onScanReceipt}
+          onReceiptFileSelected={handleReceiptFileChange}
+          onScanReceipt={handleScanReceipt}
           mockReceipts={mockReceipts}
         />
       </div>
 
-      {/* Layout: left 8 cols + right 4 cols */}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
-        {/* Left: Image placeholder + items */}
         <div className="space-y-6 lg:col-span-8">
-          {/* Compact image placeholder */}
           <div className="flex items-center gap-4 rounded-2xl bg-surface-container-lowest px-5 py-4">
             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-surface-container">
               <span className="material-symbols-outlined text-2xl text-outline">receipt_long</span>
@@ -124,15 +187,15 @@ export function ReceiptStep({
               <div className="flex flex-wrap items-center gap-2">
                 <ReceiptNameField
                   key={activeReceiptId}
-                  name={activeReceipt?.name ?? ''}
-                  onRename={(name) => onRenameReceipt(activeReceiptId, name)}
+                  name={activeReceipt.name}
+                  onRename={(name) => renameReceipt(activeReceiptId, name)}
                 />
                 <CurrencySelector
                   value={activeCurrency}
                   onChange={(currency) => setReceiptCurrency(activeReceiptId, currency)}
                 />
               </div>
-              {activeCurrency !== BASE_CURRENCY && activeReceipt && (
+              {activeCurrency !== BASE_CURRENCY ? (
                 <div className="mt-1">
                   <ExchangeRateDisplay
                     receiptId={activeReceiptId}
@@ -140,8 +203,7 @@ export function ReceiptStep({
                     exchangeRateOverride={activeReceipt.exchangeRateOverride}
                   />
                 </div>
-              )}
-              {activeCurrency === BASE_CURRENCY && (
+              ) : (
                 <p className="text-xs text-on-surface-variant">
                   Upload or scan to extract line items
                 </p>
@@ -149,7 +211,6 @@ export function ReceiptStep({
             </div>
           </div>
 
-          {/* Line items */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold tracking-widest text-on-surface-variant uppercase">
@@ -170,16 +231,15 @@ export function ReceiptStep({
                     item={item}
                     discount={discount}
                     currency={activeCurrency}
-                    onUpdate={(updater) => onUpdateItem(item.id, updater)}
-                    onRemove={() => onRemoveItem(item.id)}
+                    onUpdate={(updater) => updateItem(item.id, updater)}
+                    onRemove={() => removeItem(item.id)}
                   />
                 ))}
 
-                {/* Add item button */}
                 <button
                   type="button"
                   data-testid="receipt-add-item-btn"
-                  onClick={onAddItem}
+                  onClick={addItem}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant p-4 text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
                 >
                   <span className="material-symbols-outlined">add_circle</span>
@@ -197,7 +257,7 @@ export function ReceiptStep({
                 <button
                   type="button"
                   data-testid="receipt-add-item-btn"
-                  onClick={onAddItem}
+                  onClick={addItem}
                   className="mt-2 flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2 text-sm font-bold text-on-primary transition-transform active:scale-95"
                 >
                   <span className="material-symbols-outlined text-sm">add</span>
@@ -208,7 +268,6 @@ export function ReceiptStep({
           </div>
         </div>
 
-        {/* Right: Global charges sidebar */}
         <div className="lg:col-span-4">
           <GlobalChargesPanel
             split={split}
@@ -217,11 +276,11 @@ export function ReceiptStep({
             gst={gst}
             reconciliationCents={reconciliationCents}
             receiptTotalInput={receiptTotalInput}
-            onApplyDiscount={onApplyDiscount}
-            onDiscountChange={onDiscountChange}
-            onServiceChargeChange={onServiceChargeChange}
-            onGstChange={onGstChange}
-            onReceiptTotalInputChange={onReceiptTotalInputChange}
+            onApplyDiscount={handleApplyReconciliationDiscount}
+            onDiscountChange={setDiscount}
+            onServiceChargeChange={setServiceCharge}
+            onGstChange={setGst}
+            onReceiptTotalInputChange={setReceiptTotalInput}
             currency={activeCurrency}
           />
         </div>

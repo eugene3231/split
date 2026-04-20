@@ -32,7 +32,7 @@
 ## Best Practices
 
 - Prefer recomputing derived data (e.g. in `shared/logic/computation/split.ts`) over storing it
-- Keep components dumb — they should render what they're given, not compute it
+- Keep route shells thin. Feature components may own feature-local store selection when that reduces prop-drilling and keeps ownership local.
 
 ## Architecture Rules
 
@@ -50,28 +50,27 @@ src/
     workspace/             # Full bill-splitting workflow: wizard, steps, stores, persistence
       components/          # Workspace UI (steps/, shared/ UI components)
       hooks/               # useWizard, useReceiptSplitterController, useReceiptSplit, etc.
-      logic/               # wizardState, wizardValidation, summaryView, persistence
+      logic/               # wizardState, wizardValidation, summaryView, persistence + storage helpers
       stores/              # receiptStore, geminiStore, currencyStore
-      persistence/         # draftStorage, geminiSettingsStorage, exchangeRateStorage
       api/                 # exchangeRateApi
       types.ts             # WizardStep, ItemsSubPhase, WizardProgressContext
       index.ts             # Public entrypoint (Workspace, GeminiApiKeyModal)
-    receipt-scanner/       # Gemini OCR: API call, parsing, scan state, loading ticker
+    receipt-scanner/       # Gemini OCR: API call, parsing, scan state, loading ticker, scan orchestration
       hooks/               # useLoadingTicker
-      logic/               # ocr, gemini-schema, itemMapper, loadingMessages, geminiModel
+      logic/               # ocr payload application, gemini-schema, itemMapper, loadingMessages, geminiModel
+      services/            # scanReceipt orchestration
       stores/              # scanStore
       index.ts             # Public entrypoint
     payments/              # QR generation and PayNow adapter
-      paynow/logic/        # paynow (mobile normalisation, payload), paynowQr (QR rendering)
+      qr/logic/            # Generic QR rendering/data-url helpers
+      paynow/logic/        # paynow (mobile normalisation, payload), paynowQr (PayNow adapter)
       index.ts             # Public entrypoint
     split-results/         # Split export (PNG/text) — logic only, no legacy components
   pages/
     ReceiptSplitterPage.tsx  # Thin route shell — imports from @features/workspace
   shared/
     types.ts               # Core types: Person, EditableItem, ChargeState, SplitResult
-    constants.ts           # Defaults, Gemini model IDs, storage keys
-    api/
-      storage.ts           # Re-exports from feature persistence modules (backwards compat)
+    constants.ts           # App-wide defaults only
     logic/
       computation/         # computeSplit() and charge calculation engine
       assignment/          # Item assignment utilities
@@ -86,16 +85,17 @@ src/
 - `src/features/receipt-scanner/stores/scanStore.ts` — Per-receipt scan state (loading, errors, warnings)
 - `src/features/workspace/stores/geminiStore.ts` — API key, model selection, modal visibility
 - `src/features/workspace/stores/currencyStore.ts` — Exchange rate fetching and caching (base currency: SGD)
-- `src/features/payments/paynow/logic/paynowQr.ts` — PayNow QR code generation per person
+- `src/features/payments/index.ts` — Payments feature public API (generic QR helpers + PayNow adapter)
 - `src/shared/logic/core/exchangeRates.ts` — Currency conversion helpers
-- `src/features/receipt-scanner/logic/ocr.ts` — Gemini API call
+- `src/features/receipt-scanner/api/geminiApi.ts` — Gemini API call + response parsing entrypoint
+- `src/features/receipt-scanner/services/scanReceipt.ts` — Scan orchestration and scan-state transitions
 - `src/features/receipt-scanner/logic/gemini-schema.ts` — Zod schema (constrains Gemini output + validates response)
 - `src/shared/logic/computation/split.ts` — Split calculation engine
 - `src/shared/types.ts` — All core types
 
 ## Gemini Integration
 
-Models are defined in src/shared/constants.ts
+Models are defined in `src/features/receipt-scanner/constants.ts`
 
 The prompt is intentionally minimal — the response schema does the heavy lifting. Gemini's controlled generation (`responseSchema` in `generationConfig`) constrains the model to return exactly the right JSON shape.
 

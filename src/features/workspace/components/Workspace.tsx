@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures';
 import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/workspace/hooks/useReceiptSplit';
 import {
@@ -23,68 +22,19 @@ function formatCents(cents: number): string {
 export function Workspace() {
   useReceiptSplitterController();
 
-  const {
-    people,
-    receipts,
-    activeReceiptId,
-    addPeopleFromInput,
-    removePerson,
-    handleReceiptFileSelected,
-    handleScanReceipt,
-    applyMockToCurrentReceipt,
-    addItem,
-    removeItem,
-    updateItem,
-    normalizeItems,
-    setDiscount,
-    setServiceCharge,
-    setGst,
-    setReceiptTotalInput,
-    setActiveReceiptId,
-    removeReceipt,
-    renameReceipt,
-    peopleInput,
-    setPeopleInput,
-  } = useReceiptStore(
+  const { people, receipts, activeReceiptId, normalizeItems, setActiveReceiptId } = useReceiptStore(
     useShallow((state) => ({
       people: state.people,
       receipts: state.receipts,
       activeReceiptId: state.activeReceiptId,
-      addPeopleFromInput: state.addPeopleFromInput,
-      removePerson: state.removePerson,
-      handleReceiptFileSelected: state.handleReceiptFileSelected,
-      handleScanReceipt: state.handleScanReceipt,
-      applyMockToCurrentReceipt: state.applyMockToCurrentReceipt,
-      addItem: state.addItem,
-      removeItem: state.removeItem,
-      updateItem: state.updateItem,
       normalizeItems: state.normalizeItems,
-      setDiscount: state.setDiscount,
-      setServiceCharge: state.setServiceCharge,
-      setGst: state.setGst,
-      setReceiptTotalInput: state.setReceiptTotalInput,
       setActiveReceiptId: state.setActiveReceiptId,
-      removeReceipt: state.removeReceipt,
-      renameReceipt: state.renameReceipt,
-      peopleInput: state.peopleInput,
-      setPeopleInput: state.setPeopleInput,
     })),
   );
 
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
   const items = useMemo(() => activeReceipt?.items ?? [], [activeReceipt]);
-  const discount = activeReceipt?.discount;
-  const serviceCharge = activeReceipt?.serviceCharge;
-  const gst = activeReceipt?.gst;
-  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? '';
-
-  const {
-    split,
-    consolidatedSplit,
-    splitByReceipt,
-    reconciliationCents,
-    handleApplyReconciliationDiscount,
-  } = useReceiptSplit();
+  const { split, consolidatedSplit } = useReceiptSplit();
 
   const {
     activeStep,
@@ -110,11 +60,6 @@ export function Workspace() {
   );
   const grandTotalFormatted = grandTotalCents > 0 ? formatCents(grandTotalCents) : undefined;
 
-  const handlePeopleSubmit = (e: { preventDefault(): void }) => {
-    e.preventDefault();
-    addPeopleFromInput(peopleInput);
-  };
-
   const handleNextWithScroll = () => {
     handleNext();
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -125,7 +70,7 @@ export function Workspace() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  if (!activeReceipt || !discount || !serviceCharge || !gst) {
+  if (!activeReceipt) {
     return null;
   }
 
@@ -142,81 +87,20 @@ export function Workspace() {
       />
 
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-48 md:px-8 md:pt-10">
-        {activeStep === 'people' && (
-          <PeopleStep
-            people={people}
-            peopleInput={peopleInput}
-            onPeopleInputChange={setPeopleInput}
-            onPeopleSubmit={handlePeopleSubmit}
-            onRemovePerson={removePerson}
-          />
-        )}
+        {activeStep === 'people' && <PeopleStep />}
 
-        {activeStep === 'receipt' && (
-          <ReceiptStep
-            receipts={receipts}
-            activeReceiptId={activeReceiptId}
-            onSelectReceipt={setActiveReceiptId}
-            onAddReceipt={handleAddReceipt}
-            onRemoveReceipt={removeReceipt}
-            onRenameReceipt={renameReceipt}
-            items={items}
-            split={split}
-            discount={discount}
-            serviceCharge={serviceCharge}
-            gst={gst}
-            reconciliationCents={reconciliationCents}
-            receiptTotalInput={receiptTotalInput}
-            onApplyDiscount={handleApplyReconciliationDiscount}
-            onReceiptFileSelected={handleReceiptFileSelected}
-            onScanReceipt={handleScanReceipt}
-            mockReceipts={MOCK_RECEIPT_FIXTURES.map((f, i) => ({
-              label: f.label,
-              onLoad: () => applyMockToCurrentReceipt(i),
-            }))}
-            onDiscountChange={setDiscount}
-            onServiceChargeChange={setServiceCharge}
-            onGstChange={setGst}
-            onReceiptTotalInputChange={setReceiptTotalInput}
-            onAddItem={addItem}
-            onRemoveItem={removeItem}
-            onUpdateItem={updateItem}
-          />
-        )}
+        {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
 
         {activeStep === 'items' && (
           <AssignStep
-            receipts={receipts}
-            activeReceiptId={activeReceiptId}
-            onSelectReceipt={setActiveReceiptId}
-            onRenameReceipt={renameReceipt}
-            items={items}
-            people={people}
             itemsSubPhase={itemsSubPhase}
             activeItemIndex={safeActiveItemIndex}
             onActiveItemIndexChange={setActiveItemIndex}
             onItemsSubPhaseChange={setItemsSubPhase}
-            onUpdateItem={updateItem}
           />
         )}
 
-        {activeStep === 'final' && (
-          <SummaryStep
-            people={people}
-            receipts={receipts}
-            activeReceiptId={activeReceiptId}
-            split={split}
-            consolidatedSplit={consolidatedSplit}
-            splitByReceipt={splitByReceipt}
-            discount={discount}
-            serviceCharge={serviceCharge}
-            gst={gst}
-            reconciliationCents={reconciliationCents}
-            onApplyDiscount={handleApplyReconciliationDiscount}
-            onAddReceipt={handleAddReceipt}
-            onRenameReceipt={renameReceipt}
-          />
-        )}
+        {activeStep === 'final' && <SummaryStep onAddReceipt={handleAddReceipt} />}
       </main>
 
       <BottomNav

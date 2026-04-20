@@ -1,31 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { crc16, normalizeMobile, buildPaynowString } from './paynow';
+import { normalizeMobile, buildPaynowString } from './paynow';
 
-// ─── crc16 ───────────────────────────────────────────────────────────────────
-
-describe('crc16', () => {
-  it('returns 0xFFFF for empty string (init value, no bytes processed)', () => {
-    expect(crc16('')).toBe(0xffff);
-  });
-
-  it('returns 0x29B1 for "123456789" (CRC16-CCITT standard test vector)', () => {
-    expect(crc16('123456789')).toBe(0x29b1);
-  });
-
-  it('returns a 16-bit value', () => {
-    expect(crc16('hello')).toBeGreaterThanOrEqual(0);
-    expect(crc16('hello')).toBeLessThanOrEqual(0xffff);
-  });
-
-  it('is deterministic', () => {
-    const input = '000201010212';
-    expect(crc16(input)).toBe(crc16(input));
-  });
-
-  it('differs for different inputs', () => {
-    expect(crc16('abc')).not.toBe(crc16('def'));
-  });
-});
+function computeCrc16(str: string): number {
+  let crc = 0xffff;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+    }
+  }
+  return crc;
+}
 
 // ─── normalizeMobile ─────────────────────────────────────────────────────────
 
@@ -129,7 +114,7 @@ describe('buildPaynowString', () => {
     const str = buildPaynowString(mobile, amountCents);
     // The CRC covers everything up to and including the "6304" tag+length
     const payloadForCrc = str.slice(0, str.lastIndexOf('6304') + 4);
-    const expectedCrc = crc16(payloadForCrc).toString(16).toUpperCase().padStart(4, '0');
+    const expectedCrc = computeCrc16(payloadForCrc).toString(16).toUpperCase().padStart(4, '0');
     const actualCrc = str.slice(-4);
     expect(actualCrc).toBe(expectedCrc);
   });

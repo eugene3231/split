@@ -11,7 +11,7 @@
 // ─── CRC16-CCITT ─────────────────────────────────────────────────────────────
 
 /** CRC16-CCITT (poly 0x1021, init 0xFFFF) — required by the SGQR spec. */
-export function crc16(str: string): number {
+function crc16(str: string): number {
   let crc = 0xffff;
   for (let i = 0; i < str.length; i++) {
     crc ^= str.charCodeAt(i) << 8;

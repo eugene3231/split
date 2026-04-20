@@ -1,5 +1,5 @@
-import QRCode from 'qrcode';
 import type { Person, SplitResult } from '@shared/types';
+import { renderQrCanvas } from '@features/payments/qr/logic/renderQrCanvas';
 import { buildPaynowString, normalizeMobile } from './paynow';
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -102,12 +102,12 @@ export async function generatePaynowQrDataUrls(
         // Render at device pixel density so the data URL is sharp on retina screens.
         const scale = Math.ceil(window.devicePixelRatio ?? 2);
         const internalSize = qrSize * scale;
-        const canvas = document.createElement('canvas');
-        await QRCode.toCanvas(canvas, paynowStr, {
+        const canvas = await renderQrCanvas(paynowStr, {
+          canvas: document.createElement('canvas'),
           errorCorrectionLevel: 'Q',
-          width: internalSize,
+          size: internalSize,
           margin: 1,
-          color: { dark: '#7E197E' },
+          darkColor: '#7E197E',
         });
         if (logo) overlayLogo(canvas, logo, internalSize);
         const final = appendCaption(canvas, normalised, amountCents, scale);

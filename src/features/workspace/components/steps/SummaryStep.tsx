@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
+import { useShallow } from 'zustand/shallow';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { generateReceiptSplitImageLight } from '@features/split-results/logic/receiptSplitImageLight';
 import {
@@ -10,8 +10,9 @@ import {
   shareText,
 } from '@features/split-results/logic/shareSplit';
 import { PersonCard } from '@features/workspace/components/shared/PersonCard';
+import { useReceiptSplit } from '@features/workspace/hooks/useReceiptSplit';
 import { BASE_CURRENCY } from '@shared/constants';
-import { normalizeMobile } from '@features/payments/paynow/logic/paynow';
+import { normalizeMobile } from '@features/payments';
 import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 import { SummaryTabs } from './SummaryTabs';
 import { CurrencyToggle } from './CurrencyToggle';
@@ -21,37 +22,29 @@ import { ImagePreviewModal } from './ImagePreviewModal';
 import { useSummaryView } from './useSummaryView';
 
 export type SummaryStepProps = {
-  people: Person[];
-  receipts: Receipt[];
-  activeReceiptId: string;
-  split: SplitResult;
-  consolidatedSplit: SplitResult;
-  splitByReceipt: SplitResult[];
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
-  reconciliationCents: number | null;
-  onApplyDiscount: () => void;
   onAddReceipt: () => void;
-  onRenameReceipt: (id: string, name: string) => void;
 };
 
 type ExportBusy = 'downloading' | 'copying' | 'previewing' | null;
 
-export function SummaryStep({
-  people,
-  receipts,
-  split,
-  consolidatedSplit,
-  splitByReceipt,
-  discount,
-  serviceCharge,
-  gst,
-  reconciliationCents,
-  onApplyDiscount,
-  onAddReceipt,
-  onRenameReceipt,
-}: SummaryStepProps) {
+export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
+  const { people, receipts, payerMobile, renameReceipt, activeReceiptId } = useReceiptStore(
+    useShallow((state) => ({
+      people: state.people,
+      receipts: state.receipts,
+      payerMobile: state.payerMobile,
+      renameReceipt: state.renameReceipt,
+      activeReceiptId: state.activeReceiptId,
+    })),
+  );
+  const {
+    split,
+    consolidatedSplit,
+    splitByReceipt,
+    reconciliationCents,
+    handleApplyReconciliationDiscount,
+  } = useReceiptSplit();
+  const activeReceipt = receipts.find((receipt) => receipt.id === activeReceiptId) ?? receipts[0];
   const isMultiReceipt = receipts.length > 1;
   const [activeTab, setActiveTab] = useState<string>(
     isMultiReceipt ? 'total' : (receipts[0]?.id ?? 'total'),
@@ -69,20 +62,26 @@ export function SummaryStep({
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
-
-  const payerMobile = useReceiptStore((s) => s.payerMobile);
   const { view, qrDataUrls } = useSummaryView({
     people,
     receipts,
     split,
     consolidatedSplit,
     splitByReceipt,
-    discount,
-    serviceCharge,
-    gst,
+    discount: activeReceipt?.discount ?? { enabled: false, amountInput: '', percentInput: '' },
+    serviceCharge: activeReceipt?.serviceCharge ?? {
+      enabled: false,
+      amountInput: '',
+      percentInput: '',
+    },
+    gst: activeReceipt?.gst ?? { enabled: false, amountInput: '', percentInput: '' },
     activeTab,
     showBaseCurrency,
   });
+
+  if (!activeReceipt) {
+    return null;
+  }
 
   // Narrow per-tab fields to avoid repetitive view.kind checks in JSX
   const receiptForExport = view.kind === 'receipt' ? view.receipt : null;
@@ -218,7 +217,7 @@ export function SummaryStep({
             receipts={receipts}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            onRenameReceipt={onRenameReceipt}
+            onRenameReceipt={renameReceipt}
           />
         )}
       </div>
@@ -248,7 +247,7 @@ export function SummaryStep({
             {reconciliationCents < 0 && (
               <button
                 type="button"
-                onClick={onApplyDiscount}
+                onClick={handleApplyReconciliationDiscount}
                 className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
               >
                 Apply Corrective Discount
@@ -341,7 +340,7 @@ export function SummaryStep({
             displayCurrency={view.displayCurrency}
             currentReceipt={receiptForExport}
             people={people}
-            onRenameReceipt={onRenameReceipt}
+            onRenameReceipt={renameReceipt}
           />
           <ExportActions
             busy={busy}

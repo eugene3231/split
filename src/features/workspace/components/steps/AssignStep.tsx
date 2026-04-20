@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useShallow } from 'zustand/shallow';
 import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
 import { isItemAssigned } from '@features/workspace/logic/wizardValidation';
 import {
@@ -6,41 +7,51 @@ import {
   selectAllPeople,
   selectNone,
 } from '@shared/logic/assignment/assignActions';
-import type { EditableItem, Person, Receipt } from '@shared/types';
+import type { EditableItem } from '@shared/types';
 import type { ItemsSubPhase } from '@features/workspace/types';
 import { PersonAvatar } from '@features/workspace/components/shared/PersonAvatar';
 import { ReceiptTabs } from '@features/workspace/components/shared/ReceiptTabs';
 import { ReceiptNameField } from '@features/workspace/components/shared/ReceiptNameField';
+import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 import { BASE_CURRENCY } from '@shared/constants';
 import { cn } from '@shared/utils/cn';
 
 type Props = {
-  receipts: Receipt[];
-  activeReceiptId: string;
-  onSelectReceipt: (id: string) => void;
-  onRenameReceipt: (id: string, name: string) => void;
-  items: EditableItem[];
-  people: Person[];
   itemsSubPhase: ItemsSubPhase;
   activeItemIndex: number;
   onActiveItemIndexChange: (index: number) => void;
   onItemsSubPhaseChange: (phase: ItemsSubPhase) => void;
-  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
 };
 
 export function AssignStep({
-  receipts,
-  activeReceiptId,
-  onSelectReceipt,
-  onRenameReceipt,
-  items,
-  people,
   itemsSubPhase,
   activeItemIndex,
   onActiveItemIndexChange,
   onItemsSubPhaseChange,
-  onUpdateItem,
 }: Props) {
+  const {
+    receipts,
+    activeReceiptId,
+    items,
+    people,
+    setActiveReceiptId,
+    renameReceipt,
+    updateItem,
+  } = useReceiptStore(
+    useShallow((state) => {
+      const activeReceipt =
+        state.receipts.find((receipt) => receipt.id === state.activeReceiptId) ?? state.receipts[0];
+      return {
+        receipts: state.receipts,
+        activeReceiptId: state.activeReceiptId,
+        items: activeReceipt?.items ?? [],
+        people: state.people,
+        setActiveReceiptId: state.setActiveReceiptId,
+        renameReceipt: state.renameReceipt,
+        updateItem: state.updateItem,
+      };
+    }),
+  );
   const validPeopleSet = useMemo(() => new Set(people.map((p) => p.id)), [people]);
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId);
   const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY;
@@ -71,10 +82,10 @@ export function AssignStep({
         receipts={receipts}
         activeReceiptId={itemsSubPhase === 'review' ? '' : activeReceiptId}
         onSelect={(id) => {
-          onSelectReceipt(id);
+          setActiveReceiptId(id);
           onItemsSubPhaseChange('assign');
         }}
-        onRename={onRenameReceipt}
+        onRename={renameReceipt}
         appendTab={{
           icon: 'assignment_turned_in',
           label: 'Review All',
@@ -89,7 +100,7 @@ export function AssignStep({
           <ReceiptNameField
             key={activeReceiptId}
             name={activeReceipt.name}
-            onRename={(name) => onRenameReceipt(activeReceiptId, name)}
+            onRename={(name) => renameReceipt(activeReceiptId, name)}
           />
         </div>
       )}
@@ -101,7 +112,7 @@ export function AssignStep({
           validPeopleSet={validPeopleSet}
           activeItemIndex={activeItemIndex}
           onActiveItemIndexChange={onActiveItemIndexChange}
-          onUpdateItem={onUpdateItem}
+          onUpdateItem={updateItem}
           currency={activeCurrency}
         />
       ) : (

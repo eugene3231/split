@@ -13,8 +13,7 @@ import {
   drawLightTwoColumnRow,
   drawCurrencyConversionLines,
 } from '@features/split-results/logic/receiptSplitImageLightHelpers';
-import { normalizeMobile } from '@features/payments/paynow/logic/paynow';
-import { generatePaynowQrDataUrls } from '@features/payments/paynow/logic/paynowQr';
+import { generatePaynowQrDataUrls, normalizeMobile } from '@features/payments';
 
 type GenerateReceiptSplitImageLightOptions = {
   people: Person[];

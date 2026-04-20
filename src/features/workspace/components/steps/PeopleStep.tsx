@@ -1,22 +1,19 @@
 import { getPersonColor } from '@shared/utils/personColors';
-import type { Person } from '@shared/types';
 import { cn } from '@shared/utils/cn';
+import { useShallow } from 'zustand/shallow';
+import { useReceiptStore } from '@features/workspace/stores/receiptStore';
 
-type Props = {
-  people: Person[];
-  peopleInput: string;
-  onPeopleInputChange: (value: string) => void;
-  onPeopleSubmit: (event: { preventDefault(): void }) => void;
-  onRemovePerson: (id: string) => void;
-};
+export function PeopleStep() {
+  const { people, peopleInput, setPeopleInput, addPeopleFromInput, removePerson } = useReceiptStore(
+    useShallow((state) => ({
+      people: state.people,
+      peopleInput: state.peopleInput,
+      setPeopleInput: state.setPeopleInput,
+      addPeopleFromInput: state.addPeopleFromInput,
+      removePerson: state.removePerson,
+    })),
+  );
 
-export function PeopleStep({
-  people,
-  peopleInput,
-  onPeopleInputChange,
-  onPeopleSubmit,
-  onRemovePerson,
-}: Props) {
   return (
     <div className="space-y-5">
       {/* Header — desktop */}
@@ -39,12 +36,18 @@ export function PeopleStep({
 
       {/* Input card */}
       <div className="rounded-2xl bg-surface-container-lowest p-5 shadow-[0_8px_24px_rgba(25,28,29,0.06)]">
-        <form onSubmit={onPeopleSubmit} className="flex gap-3">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            addPeopleFromInput(peopleInput);
+          }}
+          className="flex gap-3"
+        >
           <input
             id="new-people-input"
             data-testid="people-input"
             value={peopleInput}
-            onChange={(e) => onPeopleInputChange(e.target.value)}
+            onChange={(e) => setPeopleInput(e.target.value)}
             placeholder="Names, e.g. Alice, Bob"
             className="flex-1 rounded-xl border-none bg-surface-container px-4 py-3 text-base text-on-surface outline-none placeholder:text-outline focus:ring-0"
           />
@@ -81,7 +84,7 @@ export function PeopleStep({
                 key={person.id}
                 type="button"
                 data-testid={`person-chip-${person.id}`}
-                onClick={() => onRemovePerson(person.id)}
+                onClick={() => removePerson(person.id)}
                 className={cn(
                   'flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition hover:opacity-75 active:scale-95',
                   color.lightBg,

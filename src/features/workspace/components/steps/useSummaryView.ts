@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { useCurrencyStore } from '@features/workspace/stores/currencyStore';
 import { useReceiptStore } from '@features/workspace/stores/receiptStore';
-import { generatePaynowQrDataUrls } from '@features/payments/paynow/logic/paynowQr';
+import { generatePaynowQrDataUrls } from '@features/payments';
 import { resolveSummaryView } from '@features/workspace/logic/summaryView';
 import type { SummaryView } from '@features/workspace/logic/summaryView';
 
