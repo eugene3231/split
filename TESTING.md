@@ -10,7 +10,7 @@ Every new feature or bug fix must ship with tests. No exceptions.
 
 **Unit tests** test one function, store action, or hook in isolation. Fast, pinpoint failures.
 
-**Integration tests** test that multiple stores and hooks wire together correctly — they catch bugs unit tests miss (e.g. a hook returning stale data after a store mutation).
+**Integration tests** test cross-step workflow behaviour and end-to-end state flow across multiple stores, hooks, and features — they catch bugs unit tests miss (e.g. persistence drift, export regressions, or a hook returning stale data after a store mutation).
 
 ---
 
@@ -26,13 +26,14 @@ Every new feature or bug fix must ship with tests. No exceptions.
 
 - A new hook reads from more than one store
 - A new flow spans multiple store actions (e.g. scan → assign → split)
+- A workflow crosses feature boundaries (e.g. persistence, export/share, currency, or receipt scanning)
 - A bug was caused by store/hook wiring — add a regression test
 
-**Don't test:**
+**Don't default to testing:**
 
-- Component rendering — test the logic the component calls instead
+- Pure rendering with no meaningful behaviour — prefer testing the underlying logic instead
 - Implementation details — assert on outputs and observable state only
-- The Gemini API — mock `analyzeReceiptWithGemini` at the module boundary
+- The real Gemini API — mock `analyzeReceiptWithGemini` at the module boundary in `@features/receipt-scanner/api/geminiApi`
 
 ---
 
@@ -76,8 +77,8 @@ const { analyzeReceiptWithGemini: mockOcr } = vi.hoisted(() => ({
   analyzeReceiptWithGemini: vi.fn(),
 }));
 
-vi.mock('@features/receipt-scanner/logic/ocr', async (importActual) => {
-  const actual = await importActual<typeof import('@features/receipt-scanner/logic/ocr')>();
+vi.mock('@features/receipt-scanner/api/geminiApi', async (importActual) => {
+  const actual = await importActual<typeof import('@features/receipt-scanner/api/geminiApi')>();
   return { ...actual, analyzeReceiptWithGemini: mockOcr };
 });
 ```

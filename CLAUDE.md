@@ -31,8 +31,16 @@
 
 ## Best Practices
 
-- Prefer recomputing derived data (e.g. in `shared/logic/computation/split.ts`) over storing it
+- Prefer recomputing derived data (e.g. in `shared/logic/split/split.ts`) over storing it
 - Keep route shells thin. Feature components may own feature-local store selection when that reduces prop-drilling and keeps ownership local.
+
+## UI / Export Parity Rules
+
+- `src/features/split-workspace/components/shared/PersonCard.tsx` and `src/features/sharing/logic/receiptSplitImageLight.ts` represent the same split-result card in two renderers: interactive UI and generated PNG export.
+- Any user-visible change to `PersonCard` must be reviewed against the export renderer in `receiptSplitImageLight.ts` and its helpers in `receiptSplitImageLightHelpers.ts` / `receiptSplitImageHelpers.ts`.
+- Keep these in sync for layout/content changes including header structure, avatar treatment, labels, totals, receipt sub-cards, charge rows, currency-conversion copy, QR placement, and empty states.
+- If a change only makes sense in one renderer, document that explicitly in the code change so the asymmetry is intentional rather than drift.
+- When touching either side, update or add tests that cover the shared expectation where practical.
 
 ## Architecture Rules
 
@@ -47,7 +55,7 @@
 ```
 src/
   features/
-    workspace/             # Full bill-splitting workflow: wizard, steps, stores, persistence
+    split-workspace/       # Full bill-splitting workflow: wizard, steps, stores, persistence
       components/          # Workspace UI (steps/, shared/ UI components)
       hooks/               # useWizard, useReceiptSplitterController, useReceiptSplit, etc.
       logic/               # wizardState, wizardValidation, summaryView, persistence + storage helpers
@@ -65,15 +73,14 @@ src/
       qr/logic/            # Generic QR rendering/data-url helpers
       paynow/logic/        # paynow (mobile normalisation, payload), paynowQr (PayNow adapter)
       index.ts             # Public entrypoint
-    split-results/         # Split export (PNG/text) — logic only, no legacy components
+    sharing/               # Split export/share logic (PNG/text)
   pages/
     ReceiptSplitterPage.tsx  # Thin route shell — imports from @features/split-workspace
   shared/
     types.ts               # Core types: Person, EditableItem, ChargeState, SplitResult
     constants.ts           # App-wide defaults only
     logic/
-      computation/         # computeSplit() and charge calculation engine
-      assignment/          # Item assignment utilities
+      split/               # Split calculation and charge/pricing helpers
       core/                # ID generation, money parsing/formatting, exchange rates
     utils/
       personColors.ts      # Per-person colour palette
@@ -90,7 +97,7 @@ src/
 - `src/features/receipt-scanner/api/geminiApi.ts` — Gemini API call + response parsing entrypoint
 - `src/features/receipt-scanner/services/scanReceipt.ts` — Scan orchestration and scan-state transitions
 - `src/features/receipt-scanner/logic/gemini-schema.ts` — Zod schema (constrains Gemini output + validates response)
-- `src/shared/logic/computation/split.ts` — Split calculation engine
+- `src/shared/logic/split/split.ts` — Split calculation engine
 - `src/shared/types.ts` — All core types
 
 ## Gemini Integration
@@ -135,7 +142,7 @@ Don't lift state higher than necessary. If only one component needs it, keep it 
 
 ## Avoiding useEffect
 
-`useEffect` is often a code smell. Before reaching for it, ask: _can this be derived, event-driven, or handled in the render cycle?_
+Treat `useEffect` as a tool with a high misuse rate. Before reaching for it, ask: _can this be derived, event-driven, or handled in the render cycle?_
 
 ### ❌ Common useEffect anti-patterns to avoid
 
@@ -225,6 +232,8 @@ If a component needs a long comment explaining what it does, it should probably 
 
 ### Prefer composition over configuration
 
+Heuristic, not a rule: prefer composition when it keeps the API smaller and clearer. Small focused prop APIs are still fine.
+
 ```tsx
 // ❌ Prop-drilling configuration
 <Card title="Hello" footer="Bye" hasImage showBorder />
@@ -248,7 +257,7 @@ return <Dashboard user={user} />;
 
 ### Avoid prop drilling beyond 2 levels
 
-Use composition, context, or a state manager instead.
+Heuristic, not a hard limit: if data/actions are crossing multiple layers and obscuring ownership, use composition, context, or a feature store instead.
 
 ---
 
@@ -286,7 +295,7 @@ Tailwind v4 uses CSS `@theme` blocks — don't scatter magic values, define colo
 
 ### Keep class lists readable — extract components early
 
-If a class list is getting long (>6–8 classes), it's a sign the element should become its own component.
+Heuristic, not a threshold: if a class list is hard to scan, repeated, or hiding a meaningful UI concept, extract a component or shared style primitive.
 
 ---
 
@@ -294,7 +303,7 @@ If a class list is getting long (>6–8 classes), it's a sign the element should
 
 ### Prefer stable references
 
-Define functions and objects outside components when they don't depend on props/state.
+Heuristic: define functions and objects outside components when they are truly static. Don't contort code for stable references unless it improves clarity or addresses a measured problem.
 
 ---
 
@@ -310,8 +319,8 @@ Define functions and objects outside components when they don't depend on props/
 ## File & Folder Structure
 
 - `features/` — domain features, each with `components/`, `hooks/`, `logic/`, `index.ts`
-- `pages/` — page-level orchestration; `components/split-workspace/` contains the wizard steps and shared UI
-- `shared/` — cross-cutting logic, hooks, stores, and types used across features and pages
+- `pages/` — route entrypoints and thin shells only
+- `shared/` — primitives reused across multiple features; default to feature-local first, then promote after real cross-feature reuse
 
 Co-locate tests with the file they test. Use `logic/` for pure functions, `hooks/` for stateful abstractions.
 
@@ -341,4 +350,4 @@ Name hooks `use[Noun]` (e.g. `useMediaQuery`, `useLocalStorage`).
 
 See [TESTING.md](./TESTING.md) for the full testing guide, patterns, and examples.
 
-**Short version:** test logic (pure functions, store actions, hooks), skip components. Every new feature must ship with tests.
+**Short version:** test logic first (pure functions, store actions, hooks), and add component/page tests when they protect important user flows, rendering contracts, or regressions. Use integration tests for cross-step workflow behaviour and end-to-end state flow across the bill-splitting experience. Every meaningful feature or bug fix should ship with tests at the right level.
