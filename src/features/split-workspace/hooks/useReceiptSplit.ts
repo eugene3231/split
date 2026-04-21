@@ -24,7 +24,7 @@ export function useReceiptSplit() {
 
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
 
-  const split = useMemo(
+  const activeSplit = useMemo(
     () =>
       computeSplit({
         people,
@@ -64,17 +64,24 @@ export function useReceiptSplit() {
   }, [splitByReceipt, people, receipts, exchangeRates]);
 
   const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation(
-    split,
+    activeSplit,
     activeReceipt?.discount ?? defaultDiscountState,
     setDiscount,
     activeReceipt?.receiptTotalInput ?? '',
   );
 
   return {
-    split,
-    consolidatedSplit,
-    splitByReceipt,
-    reconciliationCents,
-    handleApplyReconciliationDiscount,
+    active: {
+      receipt: activeReceipt ?? null,
+      split: activeSplit,
+    },
+    consolidated: {
+      split: consolidatedSplit,
+      splitByReceipt,
+    },
+    reconciliation: {
+      cents: reconciliationCents,
+      applyCorrectiveDiscount: handleApplyReconciliationDiscount,
+    },
   };
 }

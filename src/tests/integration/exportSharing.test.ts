@@ -35,20 +35,20 @@ describe('Export and sharing integration', () => {
 
     seedStore([alice, bob], [receipt]);
     const { result } = renderHook(() => useReceiptSplit());
-    const { consolidatedSplit } = result.current;
+    const { consolidated } = result.current;
 
     const text = buildSplitShareText({
       people: useReceiptStore.getState().people,
       receiptName: 'Receipt 1',
-      split: consolidatedSplit,
+      split: consolidated.split,
     });
 
     expect(text).toContain('Alice');
     expect(text).toContain('Bob');
     expect(text).toContain('Receipt 1');
 
-    const sumFromSplit = sumValues(consolidatedSplit.totalByPersonCents);
-    expect(sumFromSplit).toBe(consolidatedSplit.grandTotalCents);
+    const sumFromSplit = sumValues(consolidated.split.totalByPersonCents);
+    expect(sumFromSplit).toBe(consolidated.split.grandTotalCents);
   });
 
   it('single receipt view — buildSplitShareText shows per-receipt total', () => {
@@ -69,20 +69,20 @@ describe('Export and sharing integration', () => {
 
     seedStore([alice, bob], [receipt]);
     const { result } = renderHook(() => useReceiptSplit());
-    const { split } = result.current;
+    const { active } = result.current;
 
     const text = buildSplitShareText({
       people: useReceiptStore.getState().people,
       receiptName: 'Dinner',
-      split,
+      split: active.split,
     });
 
     expect(text).toContain('Alice');
     expect(text).toContain('Bob');
     expect(text).toContain('Dinner');
 
-    const sumFromSplit = sumValues(split.totalByPersonCents);
-    expect(sumFromSplit).toBe(split.grandTotalCents);
+    const sumFromSplit = sumValues(active.split.totalByPersonCents);
+    expect(sumFromSplit).toBe(active.split.grandTotalCents);
   });
 
   it('multi-currency — consolidated text uses base currency with converted totals', () => {
@@ -110,19 +110,21 @@ describe('Export and sharing integration', () => {
     seedStore([alice, bob], [rSgd, rUsd], { exchangeRates: { SGD: 1, USD: 1.35 } });
     const { result } = renderHook(() => useReceiptSplit());
 
-    const { consolidatedSplit } = result.current;
+    const { consolidated } = result.current;
     const text = buildSplitShareText({
       people: useReceiptStore.getState().people,
       receiptName: 'Split',
-      split: consolidatedSplit,
+      split: consolidated.split,
     });
 
     expect(text).toContain('Alice');
     expect(text).toContain('Bob');
 
-    expect(sumValues(consolidatedSplit.totalByPersonCents)).toBe(consolidatedSplit.grandTotalCents);
+    expect(sumValues(consolidated.split.totalByPersonCents)).toBe(
+      consolidated.split.grandTotalCents,
+    );
 
-    expect(consolidatedSplit.totalByPersonCents[bob.id]).toBeGreaterThan(1000);
+    expect(consolidated.split.totalByPersonCents[bob.id]).toBeGreaterThan(1000);
   });
 
   it('native share — shareText returns native when navigator.share available', async () => {

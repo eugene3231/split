@@ -11,9 +11,9 @@ import { useReceiptSplitterController } from '@features/split-workspace/hooks/us
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { BottomNav } from '@features/split-workspace/components/BottomNav';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
-import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep';
+import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep';
-import { SummaryStep } from '@features/split-workspace/components/steps/SummaryStep';
+import { SummaryStep } from '@features/split-workspace/components/steps/SummaryStep/SummaryStep';
 
 function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -34,7 +34,7 @@ export function Workspace() {
 
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
   const items = useMemo(() => activeReceipt?.items ?? [], [activeReceipt]);
-  const { split, consolidatedSplit } = useReceiptSplit();
+  const { active, consolidated } = useReceiptSplit();
 
   const {
     activeStep,
@@ -54,9 +54,9 @@ export function Workspace() {
   const grandTotalCents = useMemo(
     () =>
       Object.values(
-        consolidatedSplit?.totalByPersonCents ?? split?.totalByPersonCents ?? {},
+        consolidated.split?.totalByPersonCents ?? active.split?.totalByPersonCents ?? {},
       ).reduce((sum, v) => sum + v, 0),
-    [consolidatedSplit, split],
+    [consolidated.split, active.split],
   );
   const grandTotalFormatted = grandTotalCents > 0 ? formatCents(grandTotalCents) : undefined;
 

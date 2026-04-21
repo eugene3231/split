@@ -30,18 +30,11 @@ Scan a receipt, assign items, and share the result — no accounts or invites ne
 
 ## Architecture
 
-- `src/pages` contains route shells only.
-- `src/features/<name>` owns each capability end to end: components, hooks, stores, logic, feature-scoped API helpers, and reusable UI within that feature.
-- `src/shared` is only for primitives reused across multiple features.
-- Default rule: start local to a feature, promote to `shared` only after real cross-feature reuse appears.
-- Stores live under the feature that owns the state. There is no top-level `src/stores`.
+Project structure, feature ownership, and split-workspace layering live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Current feature ownership:
+## Testing
 
-- `features/split-workspace` owns the bill-splitting workflow, wizard, receipt state, Gemini settings state, currency state, and summary/export wiring.
-- `features/receipt-scanner` owns Gemini OCR analysis, parsing, scan lifecycle state, loading messages, and scan orchestration.
-- `features/payments` owns generic QR generation plus the PayNow adapter.
-- `features/sharing` owns exported image/text generation.
+Testing conventions, layout, and mocking guidance live in [docs/TESTING.md](docs/TESTING.md).
 
 ## Local setup
 
