@@ -147,6 +147,9 @@ export function PersonCard({
                   const entryDiscountAmt = entry.split.discountByPersonCents[person.id] ?? 0;
                   const entryServiceAmt = entry.split.serviceByPersonCents[person.id] ?? 0;
                   const entryGstAmt = entry.split.gstByPersonCents[person.id] ?? 0;
+                  // TODO: Total-tab receiptBreakdown entries currently reuse the top-level
+                  // discount/serviceCharge/gst props for charge labels. Amounts are per-receipt,
+                  // but the charge label metadata is not yet modeled per breakdown entry.
                   const hasCharges = entryDiscountAmt > 0 || entryServiceAmt > 0 || entryGstAmt > 0;
                   if (entryLines.length === 0) return null;
 

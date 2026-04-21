@@ -1,192 +1,61 @@
-import { useEffect, useRef, useState } from 'react';
-import { useShallow } from 'zustand/shallow';
+import { useState } from 'react';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
-import { generateReceiptSplitImageLight } from '@features/sharing/logic/receiptSplitImageLight';
-import {
-  buildDownloadFilename,
-  buildSplitShareText,
-  downloadImage,
-  getShareSupport,
-  shareText,
-} from '@features/sharing/logic/shareSplit';
-import { PersonCard } from '@features/split-workspace/components/shared/PersonCard';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { getShareSupport } from '@features/sharing/logic/shareSplit';
+import { PersonCard } from './PersonCard';
 import { BASE_CURRENCY } from '@shared/constants';
-import { normalizeMobile } from '@features/payments';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { SummaryTabs } from './SummaryTabs';
 import { CurrencyToggle } from './CurrencyToggle';
 import { GrandTotalCard } from './GrandTotalCard';
 import { ExportActions } from './ExportActions';
 import { ImagePreviewModal } from './ImagePreviewModal';
-import { useSummaryView } from './useSummaryView';
+import { useSummaryModel } from './useSummaryModel';
+import { useSummaryExport } from './useSummaryExport';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
 };
 
-type ExportBusy = 'downloading' | 'copying' | 'previewing' | null;
-
 export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
-  const { people, receipts, payerMobile, renameReceipt, activeReceiptId } = useReceiptStore(
-    useShallow((state) => ({
-      people: state.people,
-      receipts: state.receipts,
-      payerMobile: state.payerMobile,
-      renameReceipt: state.renameReceipt,
-      activeReceiptId: state.activeReceiptId,
-    })),
-  );
-  const {
-    split,
-    consolidatedSplit,
-    splitByReceipt,
-    reconciliationCents,
-    handleApplyReconciliationDiscount,
-  } = useReceiptSplit();
-  const activeReceipt = receipts.find((receipt) => receipt.id === activeReceiptId) ?? receipts[0];
-  const isMultiReceipt = receipts.length > 1;
-  const [activeTab, setActiveTab] = useState<string>(
-    isMultiReceipt ? 'total' : (receipts[0]?.id ?? 'total'),
-  );
-  const [busy, setBusy] = useState<ExportBusy>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const receipts = useReceiptStore.getState().receipts;
+    return receipts.length > 1 ? 'total' : (receipts[0]?.id ?? 'total');
+  });
   const [showDetails, setShowDetails] = useState(true);
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
-  const copyTimeoutRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
-  const { view, qrDataUrls } = useSummaryView({
-    people,
-    receipts,
-    split,
-    consolidatedSplit,
-    splitByReceipt,
-    discount: activeReceipt?.discount ?? { enabled: false, amountInput: '', percentInput: '' },
-    serviceCharge: activeReceipt?.serviceCharge ?? {
-      enabled: false,
-      amountInput: '',
-      percentInput: '',
-    },
-    gst: activeReceipt?.gst ?? { enabled: false, amountInput: '', percentInput: '' },
+  const model = useSummaryModel({
     activeTab,
     showBaseCurrency,
   });
+  const {
+    people,
+    receipts,
+    isMultiReceipt,
+    activeSummaryReceipt,
+    renameReceipt,
+    view,
+    qrDataUrls,
+  } = model;
+  const reconciliationCents = model.reconciliation.cents;
+  const { busy, copied, exportError, previewUrl, download, preview, share, closePreview } =
+    useSummaryExport({
+      model,
+      includeItemDetails: showDetails,
+      showBaseCurrency,
+    });
 
-  if (!activeReceipt) {
+  if (receipts.length === 0) {
     return null;
   }
 
   // Narrow per-tab fields to avoid repetitive view.kind checks in JSX
-  const receiptForExport = view.kind === 'receipt' ? view.receipt : null;
+  const receiptForExport = view.kind === 'receipt' ? view.receipt : activeSummaryReceipt;
   const nativeCurrency = view.kind === 'receipt' ? view.nativeCurrency : BASE_CURRENCY;
   const showCurrencyControls =
     (view.kind === 'receipt' && view.isForeign) || (view.kind === 'total' && view.hasAnyForeign);
 
   const nativeShareSupported = getShareSupport() === 'native';
-
-  const handleDownload = async () => {
-    setBusy('downloading');
-    setExportError(null);
-    try {
-      const blob = await generateReceiptSplitImageLight({
-        people,
-        split: view.displaySplit,
-        sgdSplit: view.sgdSplit,
-        receipts,
-        splitByReceipt,
-        discount: view.discount,
-        serviceCharge: view.serviceCharge,
-        gst: view.gst,
-        receiptName: receiptForExport?.name,
-        reconciliationCents,
-        includeItemDetails: showDetails,
-        currency: view.displayCurrency,
-        payerMobile: normalizeMobile(payerMobile) ?? undefined,
-        conversionRate:
-          view.kind === 'receipt' && view.isForeign && !showBaseCurrency
-            ? (view.effectiveRate ?? undefined)
-            : undefined,
-        fromCurrency:
-          view.kind === 'receipt' && view.isForeign && !showBaseCurrency
-            ? view.nativeCurrency
-            : undefined,
-        effectiveRatesByReceipt:
-          view.kind === 'total' ? view.receiptBreakdowns.map((b) => b.effectiveRate) : undefined,
-      });
-      downloadImage(blob, buildDownloadFilename('split', receiptForExport?.name));
-    } catch {
-      setExportError('Failed to generate image.');
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const handlePreview = async () => {
-    setBusy('previewing');
-    setExportError(null);
-    try {
-      const blob = await generateReceiptSplitImageLight({
-        people,
-        split: view.displaySplit,
-        sgdSplit: view.sgdSplit,
-        receipts,
-        splitByReceipt,
-        discount: view.discount,
-        serviceCharge: view.serviceCharge,
-        gst: view.gst,
-        receiptName: receiptForExport?.name,
-        reconciliationCents,
-        includeItemDetails: showDetails,
-        currency: view.displayCurrency,
-        payerMobile: normalizeMobile(payerMobile) ?? undefined,
-        conversionRate:
-          view.kind === 'receipt' && view.isForeign && !showBaseCurrency
-            ? (view.effectiveRate ?? undefined)
-            : undefined,
-        fromCurrency:
-          view.kind === 'receipt' && view.isForeign && !showBaseCurrency
-            ? view.nativeCurrency
-            : undefined,
-        effectiveRatesByReceipt:
-          view.kind === 'total' ? view.receiptBreakdowns.map((b) => b.effectiveRate) : undefined,
-      });
-      setPreviewUrl(URL.createObjectURL(blob));
-    } catch {
-      setExportError('Failed to generate preview.');
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const handleShare = async () => {
-    setBusy('copying');
-    const text = buildSplitShareText({
-      people,
-      receiptName: receiptForExport?.name ?? '',
-      split: view.displaySplit,
-      currency: view.displayCurrency,
-    });
-    try {
-      await shareText(text);
-      setBusy(null);
-      setCopied(true);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        setBusy(null);
-        return;
-      }
-      setBusy(null);
-    }
-  };
 
   return (
     <div>
@@ -247,7 +116,7 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
             {reconciliationCents < 0 && (
               <button
                 type="button"
-                onClick={handleApplyReconciliationDiscount}
+                onClick={model.reconciliation.applyCorrectiveDiscount}
                 className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
               >
                 Apply Corrective Discount
@@ -347,9 +216,9 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
             copied={copied}
             exportError={exportError}
             nativeShareSupported={nativeShareSupported}
-            onDownload={handleDownload}
-            onShare={handleShare}
-            onPreview={handlePreview}
+            onDownload={download}
+            onShare={share}
+            onPreview={preview}
           />
         </div>
       </div>
@@ -366,7 +235,7 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
           Add new receipt
         </button>
       </div>
-      {previewUrl && <ImagePreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />}
+      {previewUrl && <ImagePreviewModal url={previewUrl} onClose={closePreview} />}
     </div>
   );
 }

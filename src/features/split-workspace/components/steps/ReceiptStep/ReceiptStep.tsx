@@ -1,18 +1,12 @@
-import { useMemo } from 'react';
-import { useShallow } from 'zustand/shallow';
-import { scanReceipt, useScanStore } from '@features/receipt-scanner';
-import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures';
-import { ReceiptImportActions } from '@features/split-workspace/components/shared/ReceiptImportActions';
+import { ReceiptImportActions } from './ReceiptImportActions';
 import { LineItemCard } from '@features/split-workspace/components/shared/LineItemCard';
 import { GlobalChargesPanel } from '@features/split-workspace/components/shared/GlobalChargesPanel';
 import { ReceiptTabs } from '@features/split-workspace/components/shared/ReceiptTabs';
 import { ReceiptNameField } from '@features/split-workspace/components/shared/ReceiptNameField';
 import { CurrencySelector } from '@features/split-workspace/components/shared/CurrencySelector';
 import { ExchangeRateDisplay } from '@features/split-workspace/components/shared/ExchangeRateDisplay';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
-import { buildReceiptOcrPatch } from '@features/split-workspace/logic/applyOcrResultToReceipt';
-import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { useReceiptImport } from './useReceiptImport';
+import { useReceiptStepModel } from './useReceiptStepModel';
 import { BASE_CURRENCY } from '@shared/constants';
 
 type Props = {
@@ -23,7 +17,16 @@ export function ReceiptStep({ onAddReceipt }: Props) {
   const {
     receipts,
     activeReceiptId,
-    handleReceiptFileSelected,
+    activeReceipt,
+    items,
+    discount,
+    serviceCharge,
+    gst,
+    receiptTotalInput,
+    activeCurrency,
+    hasItems,
+    activeSplit,
+    reconciliation,
     addItem,
     removeItem,
     updateItem,
@@ -35,101 +38,10 @@ export function ReceiptStep({ onAddReceipt }: Props) {
     removeReceipt,
     renameReceipt,
     setReceiptCurrency,
-  } = useReceiptStore(
-    useShallow((state) => ({
-      receipts: state.receipts,
-      activeReceiptId: state.activeReceiptId,
-      handleReceiptFileSelected: state.handleReceiptFileSelected,
-      addItem: state.addItem,
-      removeItem: state.removeItem,
-      updateItem: state.updateItem,
-      setDiscount: state.setDiscount,
-      setServiceCharge: state.setServiceCharge,
-      setGst: state.setGst,
-      setReceiptTotalInput: state.setReceiptTotalInput,
-      setActiveReceiptId: state.setActiveReceiptId,
-      removeReceipt: state.removeReceipt,
-      renameReceipt: state.renameReceipt,
-      setReceiptCurrency: state.setReceiptCurrency,
-    })),
-  );
-  const { geminiApiKeyInput, geminiModel } = useGeminiStore(
-    useShallow((state) => ({
-      geminiApiKeyInput: state.geminiApiKeyInput,
-      geminiModel: state.geminiModel,
-    })),
-  );
-  const { split, reconciliationCents, handleApplyReconciliationDiscount } = useReceiptSplit();
-
-  const activeReceipt = receipts.find((receipt) => receipt.id === activeReceiptId) ?? receipts[0];
-  const items = activeReceipt?.items ?? [];
-  const discount = activeReceipt?.discount;
-  const serviceCharge = activeReceipt?.serviceCharge;
-  const gst = activeReceipt?.gst;
-  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? '';
-  const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY;
-  const hasItems = items.length > 0;
-
-  const handleReceiptFileChange = (file: File | null) => {
-    handleReceiptFileSelected(file);
-    useScanStore.getState().clearScanFeedback(activeReceiptId);
-  };
-
-  const handleScanReceipt = async () => {
-    const scanReceiptId = activeReceiptId;
-    const receipt = useReceiptStore
-      .getState()
-      .receipts.find((candidate) => candidate.id === scanReceiptId);
-
-    const payload = await scanReceipt({
-      receiptId: scanReceiptId,
-      receiptFile: receipt?.receiptFile ?? null,
-      apiKeyInput: geminiApiKeyInput,
-      model: geminiModel,
-    });
-
-    if (!payload) {
-      return;
-    }
-
-    const {
-      people: currentPeople,
-      receipts: currentReceipts,
-      patchReceipt: applyPatch,
-    } = useReceiptStore.getState();
-    const currentReceipt = currentReceipts.find((candidate) => candidate.id === scanReceiptId);
-    if (!currentReceipt) {
-      return;
-    }
-
-    applyPatch(scanReceiptId, buildReceiptOcrPatch(currentReceipt, payload, currentPeople));
-  };
-
-  const mockReceipts = useMemo(
-    () =>
-      MOCK_RECEIPT_FIXTURES.map((fixture) => ({
-        label: fixture.label,
-        onLoad: () => {
-          const {
-            activeReceiptId: targetReceiptId,
-            people: currentPeople,
-            receipts: currentReceipts,
-          } = useReceiptStore.getState();
-          const receipt = currentReceipts.find((candidate) => candidate.id === targetReceiptId);
-          if (!receipt) {
-            return;
-          }
-
-          const payload = fixture.buildResponse();
-          useScanStore.getState().clearScanFeedback(targetReceiptId);
-          useScanStore.getState().setScanWarnings(targetReceiptId, payload.warnings);
-          useReceiptStore
-            .getState()
-            .patchReceipt(targetReceiptId, buildReceiptOcrPatch(receipt, payload, currentPeople));
-        },
-      })),
-    [],
-  );
+  } = useReceiptStepModel();
+  const { handleReceiptFileChange, handleScanReceipt, mockReceipts } = useReceiptImport({
+    activeReceiptId,
+  });
 
   if (!activeReceipt || !discount || !serviceCharge || !gst) {
     return null;
@@ -270,13 +182,13 @@ export function ReceiptStep({ onAddReceipt }: Props) {
 
         <div className="lg:col-span-4">
           <GlobalChargesPanel
-            split={split}
+            split={activeSplit}
             discount={discount}
             serviceCharge={serviceCharge}
             gst={gst}
-            reconciliationCents={reconciliationCents}
+            reconciliationCents={reconciliation.cents}
             receiptTotalInput={receiptTotalInput}
-            onApplyDiscount={handleApplyReconciliationDiscount}
+            onApplyDiscount={reconciliation.applyCorrectiveDiscount}
             onDiscountChange={setDiscount}
             onServiceChargeChange={setServiceCharge}
             onGstChange={setGst}

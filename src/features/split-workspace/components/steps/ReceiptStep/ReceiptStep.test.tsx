@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ReceiptStep } from './ReceiptStep';
 
-vi.mock('@features/split-workspace/components/shared/ReceiptImportActions', () => ({
+vi.mock('./ReceiptImportActions', () => ({
   ReceiptImportActions: () => <div data-testid="receipt-import-actions" />,
 }));
 
@@ -30,9 +30,60 @@ vi.mock('@features/split-workspace/components/shared/ExchangeRateDisplay', () =>
   ExchangeRateDisplay: () => <div data-testid="exchange-rate-display" />,
 }));
 
-vi.mock('@features/split-workspace/hooks/useReceiptSplit', () => ({
-  useReceiptSplit: () => ({
-    split: {
+const disabledChargeState = {
+  enabled: false,
+  mode: 'amount' as const,
+  amountInput: '',
+  percentInput: '',
+  detectedConfidence: null,
+  detectedSource: null,
+};
+
+vi.mock('./useReceiptImport', () => ({
+  useReceiptImport: () => ({
+    handleReceiptFileChange: vi.fn(),
+    handleScanReceipt: vi.fn(),
+    mockReceipts: [],
+  }),
+}));
+
+vi.mock('./useReceiptStepModel', () => ({
+  useReceiptStepModel: () => ({
+    receipts: [
+      {
+        id: 'r1',
+        name: 'Receipt 1',
+        items: [],
+        discount: disabledChargeState,
+        serviceCharge: disabledChargeState,
+        gst: disabledChargeState,
+        receiptTotalInput: '',
+        currency: 'SGD',
+        exchangeRateOverride: null,
+        receiptFile: null,
+      },
+    ],
+    activeReceiptId: 'r1',
+    activeReceipt: {
+      id: 'r1',
+      name: 'Receipt 1',
+      items: [],
+      discount: disabledChargeState,
+      serviceCharge: disabledChargeState,
+      gst: disabledChargeState,
+      receiptTotalInput: '',
+      currency: 'SGD',
+      exchangeRateOverride: null,
+      receiptFile: null,
+    },
+    items: [],
+    discount: disabledChargeState,
+    serviceCharge: disabledChargeState,
+    gst: disabledChargeState,
+    receiptTotalInput: '',
+    activeCurrency: 'SGD',
+    hasItems: false,
+    activeSplit: {
       lineItemsByPerson: {},
       involvedCountByPerson: {},
       subtotalByPersonCents: {},
@@ -47,65 +98,22 @@ vi.mock('@features/split-workspace/hooks/useReceiptSplit', () => ({
       grandTotalCents: 0,
       unassignedItemCount: 0,
     },
-    consolidatedSplit: null,
-    splitByReceipt: [],
-    reconciliationCents: null,
-    handleApplyReconciliationDiscount: vi.fn(),
+    reconciliation: {
+      cents: null,
+      applyCorrectiveDiscount: vi.fn(),
+    },
+    addItem: vi.fn(),
+    removeItem: vi.fn(),
+    updateItem: vi.fn(),
+    setDiscount: vi.fn(),
+    setServiceCharge: vi.fn(),
+    setGst: vi.fn(),
+    setReceiptTotalInput: vi.fn(),
+    setActiveReceiptId: vi.fn(),
+    removeReceipt: vi.fn(),
+    renameReceipt: vi.fn(),
+    setReceiptCurrency: vi.fn(),
   }),
-}));
-
-vi.mock('@features/split-workspace/stores/geminiStore', () => ({
-  useGeminiStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
-    selector({
-      geminiApiKeyInput: 'test-key',
-      geminiModel: 'gemini-2.5-flash',
-    }),
-  ),
-}));
-
-const disabledChargeState = {
-  enabled: false,
-  mode: 'amount' as const,
-  amountInput: '',
-  percentInput: '',
-  detectedConfidence: null,
-  detectedSource: null,
-};
-
-vi.mock('@features/split-workspace/stores/receiptStore', () => ({
-  useReceiptStore: vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
-    selector({
-      people: [{ id: 'p1', name: 'Alice' }],
-      receipts: [
-        {
-          id: 'r1',
-          name: 'Receipt 1',
-          items: [],
-          discount: disabledChargeState,
-          serviceCharge: disabledChargeState,
-          gst: disabledChargeState,
-          receiptTotalInput: '',
-          currency: 'SGD',
-          exchangeRateOverride: null,
-          receiptFile: null,
-        },
-      ],
-      activeReceiptId: 'r1',
-      handleReceiptFileSelected: vi.fn(),
-      patchReceipt: vi.fn(),
-      addItem: vi.fn(),
-      removeItem: vi.fn(),
-      updateItem: vi.fn(),
-      setDiscount: vi.fn(),
-      setServiceCharge: vi.fn(),
-      setGst: vi.fn(),
-      setReceiptTotalInput: vi.fn(),
-      setActiveReceiptId: vi.fn(),
-      removeReceipt: vi.fn(),
-      renameReceipt: vi.fn(),
-      setReceiptCurrency: vi.fn(),
-    }),
-  ),
 }));
 
 describe('ReceiptStep', () => {

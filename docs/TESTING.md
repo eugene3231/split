@@ -39,10 +39,15 @@ Every new feature or bug fix must ship with tests. No exceptions.
 
 ## Where tests live
 
-| Type        | Location                            |
-| ----------- | ----------------------------------- |
-| Unit        | Co-located with the file under test |
-| Integration | `src/tests/integration/`            |
+| Type                      | Location                                                    |
+| ------------------------- | ----------------------------------------------------------- |
+| Unit / component          | Co-located with the file under test                         |
+| Page-level integration    | Co-located with the page when that is the clearest boundary |
+| Cross-feature integration | `src/tests/integration/`                                    |
+
+`src/test/setup.ts` is the shared test setup entrypoint.
+
+Step-private hooks and components should keep their tests colocated inside the step folder.
 
 ---
 
@@ -68,6 +73,14 @@ expect(split.subtotalCents).toBe(1000); // ✅
 expect(split.subtotalCents).toBe(total); // ❌ — requires chasing `total`
 ```
 
+### Avoid brittle assertions
+
+Prefer testing behaviour, state, and stable UI contracts over copy or incidental markup.
+
+- Assert on actions, visible states, aria/state attributes, and meaningful outputs.
+- Avoid asserting exact text copy unless that wording is the contract being tested.
+- Avoid broad content snapshots for interactive screens; they tend to break on harmless copy tweaks.
+
 ### Store tests
 
 Reset stores in `beforeEach` via `useXxxStore.setState(...)`. Mock external calls with `vi.hoisted` + `vi.mock`:
@@ -87,8 +100,20 @@ vi.mock('@features/receipt-scanner/api/geminiApi', async (importActual) => {
 
 Use the helpers in `src/tests/integration/testHelpers.ts` — `makePerson`, `makeItem`, `makeReceipt`, `seedStore`, `resetAllStores`, `sumValues`. Call `resetAllStores` in `beforeEach`.
 
+Use hook tests for step-model/import/export logic. Use page or integration tests for wizard progression and cross-step regressions.
+
+## Mocking boundaries
+
+- Mock external APIs at the module boundary.
+- Mock browser APIs like `URL.createObjectURL` or `navigator.clipboard` when needed.
+- In isolated component tests, mocking a step-private hook is preferred over recreating full store wiring.
+
+## Regression tests
+
+If a bug came from store wiring, hook composition, or cross-step state flow, add a regression test at that same boundary.
+
 ---
 
 ## Coverage target
 
-80% lines, functions, branches, statements. Run `pnpm test:coverage` to check.
+80% lines, functions, branches, statements. Run `npm run test:coverage` to check.
