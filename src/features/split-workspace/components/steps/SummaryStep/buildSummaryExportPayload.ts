@@ -1,5 +1,5 @@
 import { normalizeMobile } from '@features/payments';
-import type { SummaryModel } from '@features/split-workspace/components/steps/SummaryStep/useSummaryModel';
+import type { SummaryModel } from './useSummaryModel';
 
 type BuildSummaryExportPayloadArgs = {
   model: Pick<

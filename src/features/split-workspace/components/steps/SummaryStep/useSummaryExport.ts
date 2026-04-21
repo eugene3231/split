@@ -6,7 +6,7 @@ import {
   downloadImage,
   shareText,
 } from '@features/sharing/logic/shareSplit';
-import { buildSummaryExportPayload } from '@features/split-workspace/logic/buildSummaryExportPayload';
+import { buildSummaryExportPayload } from './buildSummaryExportPayload';
 import type { SummaryModel } from './useSummaryModel';
 
 type ExportBusy = 'downloading' | 'copying' | 'previewing' | null;
