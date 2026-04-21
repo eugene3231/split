@@ -34,10 +34,12 @@
 
 - Prefer recomputing derived data (e.g. in `shared/logic/split/split.ts`) over storing it
 - Keep route shells thin. Feature components may own feature-local store selection when that reduces prop-drilling and keeps ownership local.
+- Detailed project architecture: @docs/ARCHITECTURE.md
+- Testing guidance: @docs/TESTING.md
 
 ## UI / Export Parity Rules
 
-- `src/features/split-workspace/components/shared/PersonCard.tsx` and `src/features/sharing/logic/receiptSplitImageLight.ts` represent the same split-result card in two renderers: interactive UI and generated PNG export.
+- `src/features/split-workspace/components/steps/SummaryStep/PersonCard.tsx` and `src/features/sharing/logic/receiptSplitImageLight.ts` represent the same split-result card in two renderers: interactive UI and generated PNG export.
 - Any user-visible change to `PersonCard` must be reviewed against the export renderer in `receiptSplitImageLight.ts` and its helpers in `receiptSplitImageLightHelpers.ts` / `receiptSplitImageHelpers.ts`.
 - Keep these in sync for layout/content changes including header structure, avatar treatment, labels, totals, receipt sub-cards, charge rows, currency-conversion copy, QR placement, and empty states.
 - If a change only makes sense in one renderer, document that explicitly in the code change so the asymmetry is intentional rather than drift.
@@ -50,56 +52,18 @@
 - **`shared/`** contains only primitives reused across **multiple features**. "Used by multiple pages in one workflow" does not qualify.
 - Default rule: start local to a feature, then promote to `shared/` only after real cross-feature reuse.
 - Stores live under their owning feature, not in a top-level `src/stores`.
+- Once a workflow step grows private collaborators, colocate them under `components/steps/<StepName>/`. Hooks in those folders are still hook-layer responsibilities; the folder is a locality boundary, not a separate architecture layer.
 
 ## Repository Structure
 
-```
-src/
-  features/
-    split-workspace/       # Full bill-splitting workflow: wizard, steps, stores, persistence
-      components/          # Workspace UI (steps/, shared/ UI components)
-      hooks/               # useWizard, useReceiptSplitterController, useReceiptSplit, etc.
-      logic/               # wizardState, wizardValidation, summaryView, persistence + storage helpers
-      stores/              # receiptStore, geminiStore, currencyStore
-      api/                 # exchangeRateApi
-      types.ts             # WizardStep, ItemsSubPhase, WizardProgressContext
-      index.ts             # Public entrypoint (Workspace, GeminiApiKeyModal)
-    receipt-scanner/       # Gemini OCR: API call, parsing, scan state, loading ticker, scan orchestration
-      hooks/               # useLoadingTicker
-      logic/               # ocr payload application, gemini-schema, itemMapper, loadingMessages, geminiModel
-      services/            # scanReceipt orchestration
-      stores/              # scanStore
-      index.ts             # Public entrypoint
-    payments/              # QR generation and PayNow adapter
-      qr/logic/            # Generic QR rendering/data-url helpers
-      paynow/logic/        # paynow (mobile normalisation, payload), paynowQr (PayNow adapter)
-      index.ts             # Public entrypoint
-    sharing/               # Split export/share logic (PNG/text)
-  pages/
-    ReceiptSplitterPage.tsx  # Thin route shell — imports from @features/split-workspace
-  shared/
-    types.ts               # Core types: Person, EditableItem, ChargeState, SplitResult
-    constants.ts           # App-wide defaults only
-    logic/
-      split/               # Split calculation and charge/pricing helpers
-      core/                # ID generation, money parsing/formatting, exchange rates
-    utils/
-      personColors.ts      # Per-person colour palette
-```
+- `src/pages/` contains route shells only.
+- `src/features/split-workspace/` owns the bill-splitting workflow: wizard state, step components, step-private helpers, stores, and persistence.
+- `src/features/receipt-scanner/` owns Gemini OCR parsing and scan orchestration.
+- `src/features/payments/` owns QR and PayNow helpers.
+- `src/features/sharing/` owns PNG/text export logic.
+- `src/shared/` holds true cross-feature types, logic, constants, and utilities.
 
-**Key files:**
-
-- `src/features/split-workspace/stores/receiptStore.ts` — Workspace state (people, receipts, items, assignments)
-- `src/features/receipt-scanner/stores/scanStore.ts` — Per-receipt scan state (loading, errors, warnings)
-- `src/features/split-workspace/stores/geminiStore.ts` — API key, model selection, modal visibility
-- `src/features/split-workspace/stores/currencyStore.ts` — Exchange rate fetching and caching (base currency: SGD)
-- `src/features/payments/index.ts` — Payments feature public API (generic QR helpers + PayNow adapter)
-- `src/shared/logic/core/exchangeRates.ts` — Currency conversion helpers
-- `src/features/receipt-scanner/api/geminiApi.ts` — Gemini API call + response parsing entrypoint
-- `src/features/receipt-scanner/services/scanReceipt.ts` — Scan orchestration and scan-state transitions
-- `src/features/receipt-scanner/logic/gemini-schema.ts` — Zod schema (constrains Gemini output + validates response)
-- `src/shared/logic/split/split.ts` — Split calculation engine
-- `src/shared/types.ts` — All core types
+Use `docs/ARCHITECTURE.md` for the detailed feature layout, layering, and step data flow.
 
 ## Gemini Integration
 
