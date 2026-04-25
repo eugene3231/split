@@ -28,7 +28,10 @@ export function BottomNav({
   const continueDisabled = !canContinue && !(activeStep === 'items' && itemsSubPhase === 'assign');
 
   return (
-    <footer className="fixed bottom-0 left-0 z-50 w-full border-t border-surface-container-highest bg-surface/90 shadow-[0_-8px_24px_rgba(25,28,29,0.06)] backdrop-blur-xl">
+    <footer
+      className="fixed bottom-0 left-0 z-50 w-full border-t border-surface-container-highest bg-surface/90 shadow-[0_-8px_24px_rgba(25,28,29,0.06)] backdrop-blur-xl"
+      style={{ bottom: 'calc(100vh - 100dvh)' }}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 md:px-10">
         {/* Back */}
         {!isFirstStep && (
