@@ -1,4 +1,5 @@
 import type { EditableItem, Person } from '@shared/types';
+import { isItemAssigned } from '@features/split-workspace/logic/wizardValidation';
 
 export function togglePersonInAssignment(
   personId: string,
@@ -40,4 +41,32 @@ export function selectNone(currentItem: EditableItem): EditableItem {
     ...currentItem,
     assignment: { mode: 'equal' as const, personId: '', personIds: [], weights: undefined },
   };
+}
+
+export function splitUnassignedItemsEqually(
+  items: EditableItem[],
+  people: Person[],
+): EditableItem[] {
+  if (people.length === 0) {
+    return items;
+  }
+
+  const validPeopleSet = new Set(people.map((person) => person.id));
+  const personIds = people.map((person) => person.id);
+
+  return items.map((item) => {
+    if (isItemAssigned(item, validPeopleSet)) {
+      return item;
+    }
+
+    return {
+      ...item,
+      assignment: {
+        mode: 'equal' as const,
+        personId: '',
+        personIds,
+        weights: undefined,
+      },
+    };
+  });
 }

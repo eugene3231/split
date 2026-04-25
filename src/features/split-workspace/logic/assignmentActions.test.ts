@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { EditableItem, Person } from '@shared/types';
-import { togglePersonInAssignment, selectAllPeople, selectNone } from './assignmentActions';
+import {
+  togglePersonInAssignment,
+  selectAllPeople,
+  selectNone,
+  splitUnassignedItemsEqually,
+} from './assignmentActions';
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },
@@ -116,5 +121,69 @@ describe('weight preservation', () => {
     });
     const result = selectNone(item);
     expect(result.assignment.weights).toBeUndefined();
+  });
+});
+
+describe('splitUnassignedItemsEqually', () => {
+  it('assigns unassigned items to all people equally', () => {
+    const unassignedItem = buildItem({
+      id: 'unassigned',
+      assignment: { mode: 'equal', personId: '', personIds: [] },
+    });
+
+    const result = splitUnassignedItemsEqually([unassignedItem], people);
+
+    expect(result[0].assignment).toEqual({
+      mode: 'equal',
+      personId: '',
+      personIds: ['p1', 'p2', 'p3'],
+      weights: undefined,
+    });
+  });
+
+  it('preserves already assigned items and weighted splits', () => {
+    const weightedItem = buildItem({
+      id: 'weighted',
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+      },
+    });
+    const unassignedItem = buildItem({
+      id: 'unassigned',
+      assignment: { mode: 'equal', personId: '', personIds: [] },
+    });
+
+    const result = splitUnassignedItemsEqually([weightedItem, unassignedItem], people);
+
+    expect(result[0]).toBe(weightedItem);
+    expect(result[0].assignment.weights).toEqual({ p1: 2, p2: 1 });
+    expect(result[1].assignment.personIds).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  it('treats items assigned only to stale people as unassigned', () => {
+    const staleItem = buildItem({
+      id: 'stale',
+      assignment: { mode: 'equal', personId: '', personIds: ['removed-person'] },
+    });
+
+    const result = splitUnassignedItemsEqually([staleItem], people);
+
+    expect(result[0].assignment.personIds).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  it('leaves items unchanged when there are no people', () => {
+    const unassignedItem = buildItem({
+      id: 'unassigned',
+      assignment: { mode: 'equal', personId: '', personIds: [] },
+    });
+    const items = [unassignedItem];
+
+    const result = splitUnassignedItemsEqually(items, []);
+
+    expect(result).toBe(items);
+    expect(result[0]).toBe(unassignedItem);
   });
 });

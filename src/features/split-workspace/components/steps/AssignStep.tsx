@@ -37,6 +37,7 @@ export function AssignStep({
     setActiveReceiptId,
     renameReceipt,
     updateItem,
+    splitUnassignedItemsEquallyForActiveReceipt,
   } = useReceiptStore(
     useShallow((state) => {
       const activeReceipt =
@@ -49,6 +50,8 @@ export function AssignStep({
         setActiveReceiptId: state.setActiveReceiptId,
         renameReceipt: state.renameReceipt,
         updateItem: state.updateItem,
+        splitUnassignedItemsEquallyForActiveReceipt:
+          state.splitUnassignedItemsEquallyForActiveReceipt,
       };
     }),
   );
@@ -112,7 +115,9 @@ export function AssignStep({
           validPeopleSet={validPeopleSet}
           activeItemIndex={activeItemIndex}
           onActiveItemIndexChange={onActiveItemIndexChange}
+          onItemsSubPhaseChange={onItemsSubPhaseChange}
           onUpdateItem={updateItem}
+          onSplitUnassignedItemsEqually={splitUnassignedItemsEquallyForActiveReceipt}
           currency={activeCurrency}
         />
       ) : (
@@ -137,7 +142,9 @@ type AssignPhaseProps = {
   validPeopleSet: Set<string>;
   activeItemIndex: number;
   onActiveItemIndexChange: (index: number) => void;
+  onItemsSubPhaseChange: (phase: ItemsSubPhase) => void;
   onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
+  onSplitUnassignedItemsEqually: () => void;
   currency: string;
 };
 
@@ -147,11 +154,15 @@ function AssignPhase({
   validPeopleSet,
   activeItemIndex,
   onActiveItemIndexChange,
+  onItemsSubPhaseChange,
   onUpdateItem,
+  onSplitUnassignedItemsEqually,
   currency,
 }: AssignPhaseProps) {
   const activeItem = items[activeItemIndex] ?? null;
   const isAssigned = activeItem ? isItemAssigned(activeItem, validPeopleSet) : false;
+  const unassignedItemCount = items.filter((item) => !isItemAssigned(item, validPeopleSet)).length;
+  const canSplitRest = people.length > 0 && unassignedItemCount > 0;
 
   const selectedIds = activeItem?.assignment.personIds ?? [];
   const weights = activeItem?.assignment.weights;
@@ -173,6 +184,13 @@ function AssignPhase({
   const handleSelectNone = () => {
     if (!activeItem) return;
     onUpdateItem(activeItem.id, () => selectNone(activeItem));
+  };
+
+  const handleSplitRest = () => {
+    if (!canSplitRest) return;
+    onSplitUnassignedItemsEqually();
+    onActiveItemIndexChange(0);
+    onItemsSubPhaseChange('review');
   };
 
   const handleUnequalToggle = () => {
@@ -226,7 +244,7 @@ function AssignPhase({
   return (
     <div className="space-y-5">
       {/* Counter + nav arrows */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
             Assigning Items
@@ -238,7 +256,17 @@ function AssignPhase({
             Item {activeItemIndex + 1} of {items.length}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end md:self-auto">
+          <button
+            type="button"
+            data-testid="assign-split-rest-btn"
+            onClick={handleSplitRest}
+            disabled={!canSplitRest}
+            className="flex h-10 items-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-bold whitespace-nowrap text-on-primary transition-all hover:opacity-90 disabled:bg-surface-container-high disabled:text-on-surface-variant disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-base">group</span>
+            Split unassigned
+          </button>
           <button
             type="button"
             data-testid="assign-prev-item-btn"
@@ -305,38 +333,6 @@ function AssignPhase({
       <div className="flex items-center justify-between">
         <span className="text-base font-semibold text-on-surface">Who's sharing?</span>
         <div className="flex gap-3">
-          {canToggleUnequal && (
-            <div className="flex overflow-hidden rounded-lg border border-outline-variant/40">
-              <button
-                type="button"
-                onClick={() => {
-                  if (unequalMode) handleUnequalToggle();
-                }}
-                className={cn(
-                  'px-2.5 py-1 text-xs font-semibold transition-colors',
-                  !unequalMode
-                    ? 'bg-primary text-on-primary'
-                    : 'text-on-surface-variant hover:bg-surface-container',
-                )}
-              >
-                Equal
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!unequalMode) handleUnequalToggle();
-                }}
-                className={cn(
-                  'px-2.5 py-1 text-xs font-semibold transition-colors',
-                  unequalMode
-                    ? 'bg-primary text-on-primary'
-                    : 'text-on-surface-variant hover:bg-surface-container',
-                )}
-              >
-                Unequal
-              </button>
-            </div>
-          )}
           <button
             type="button"
             data-testid="assign-select-all-btn"
@@ -412,6 +408,55 @@ function AssignPhase({
             </button>
           );
         })}
+      </div>
+
+      <div
+        role="group"
+        aria-label="Split"
+        data-testid="assign-split-mode-toggle"
+        className="space-y-2 rounded-xl bg-surface-container-low p-3"
+      >
+        <span className="block text-xs font-bold tracking-widest text-on-surface-variant uppercase">
+          Split
+        </span>
+        <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-0.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (unequalMode) handleUnequalToggle();
+            }}
+            disabled={!canToggleUnequal}
+            className={cn(
+              'flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+              !unequalMode
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'text-on-surface-variant hover:bg-surface-container',
+            )}
+          >
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">
+              drag_handle
+            </span>
+            Equally
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!unequalMode) handleUnequalToggle();
+            }}
+            disabled={!canToggleUnequal}
+            className={cn(
+              'flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+              unequalMode
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'text-on-surface-variant hover:bg-surface-container',
+            )}
+          >
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">
+              pie_chart
+            </span>
+            By shares
+          </button>
+        </div>
       </div>
 
       {/* Weight steppers (shown in unequal mode) */}

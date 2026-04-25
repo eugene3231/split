@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import {
+  defaultDiscountState,
+  defaultGstState,
+  defaultServiceChargeState,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
 } from '@features/split-workspace/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
+import type { Person, Receipt } from '@shared/types';
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...';
 const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...';
@@ -452,5 +456,65 @@ describe('receiptStore additional coverage', () => {
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
     expect(receipt.receiptTotalInput).toBe('42.00');
     expect(receipt.currency).toBe('USD');
+  });
+
+  it('splitUnassignedItemsEquallyForActiveReceipt updates only the active receipt', () => {
+    const people: Person[] = [
+      { id: 'p1', name: 'Alice' },
+      { id: 'p2', name: 'Bob' },
+    ];
+    const receipts: Receipt[] = [
+      {
+        id: 'r1',
+        name: 'Receipt 1',
+        items: [
+          {
+            id: 'r1-unassigned',
+            name: 'Unassigned',
+            amountInput: '10.00',
+            discountPercentInput: '',
+            assignment: { mode: 'equal', personId: '', personIds: [] },
+          },
+        ],
+        discount: { ...defaultDiscountState },
+        serviceCharge: { ...defaultServiceChargeState },
+        gst: { ...defaultGstState },
+        receiptTotalInput: '',
+        currency: 'SGD',
+        exchangeRateOverride: null,
+      },
+      {
+        id: 'r2',
+        name: 'Receipt 2',
+        items: [
+          {
+            id: 'r2-unassigned',
+            name: 'Other receipt item',
+            amountInput: '12.00',
+            discountPercentInput: '',
+            assignment: { mode: 'equal', personId: '', personIds: [] },
+          },
+        ],
+        discount: { ...defaultDiscountState },
+        serviceCharge: { ...defaultServiceChargeState },
+        gst: { ...defaultGstState },
+        receiptTotalInput: '',
+        currency: 'SGD',
+        exchangeRateOverride: null,
+      },
+    ];
+    useReceiptStore.setState({
+      initialized: true,
+      people,
+      receipts,
+      activeReceiptId: 'r1',
+    });
+
+    useReceiptStore.getState().splitUnassignedItemsEquallyForActiveReceipt();
+
+    const state = useReceiptStore.getState();
+    expect(state.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2']);
+    expect(state.receipts[1]).toBe(receipts[1]);
+    expect(state.receipts[1].items[0].assignment.personIds).toEqual([]);
   });
 });
