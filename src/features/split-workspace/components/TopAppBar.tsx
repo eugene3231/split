@@ -153,7 +153,7 @@ export function TopAppBar({
                   >
                     {completed ? (
                       <span
-                        className="material-symbols-outlined text-[9px]"
+                        className="material-symbols-outlined text-[20px]!"
                         style={{ fontVariationSettings: "'FILL' 1" }}
                       >
                         check
