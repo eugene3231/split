@@ -32,7 +32,7 @@ export function TopAppBar({
 
   return (
     <header className="sticky top-0 z-40 border-b border-surface-container-highest bg-surface/80 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-6 px-6 py-4 md:px-8">
+      <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3 md:gap-6 md:px-8 md:py-4">
         {/* Logo */}
         <div className="font-headline shrink-0 text-2xl font-bold tracking-tight text-primary">
           Split
@@ -114,15 +114,63 @@ export function TopAppBar({
           })}
         </nav>
 
-        {/* Right: "STEP X: LABEL" on mobile, step count on desktop */}
-        <div
-          data-testid="wizard-step-context"
-          className="ml-auto w-32 shrink-0 text-right sm:w-40 md:w-44"
-        >
-          <p className="truncate text-xs font-bold tracking-widest text-on-surface-variant uppercase md:hidden">
-            Step {stepNumber}: {STEP_LABELS[activeStep]}
-          </p>
-          <p className="hidden truncate text-xs font-bold tracking-widest text-primary uppercase md:block">
+        {/* Mobile: compact interactive step buttons */}
+        <nav aria-label="Wizard steps" className="ml-auto flex flex-1 justify-end md:hidden">
+          <div className="grid grid-cols-4 gap-1">
+            {STEP_ORDER.map((step, i) => {
+              const completed = i < stepIndex;
+              const isCurrent = step === activeStep;
+              const disabled = !stepReachability[step];
+              return (
+                <button
+                  key={step}
+                  type="button"
+                  data-testid={`wizard-step-nav-mobile-${step}`}
+                  onClick={() => onStepSelect(step)}
+                  disabled={disabled}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  aria-label={`Step ${i + 1}: ${STEP_LABELS[step]}`}
+                  className={cn(
+                    'flex h-9 w-9 items-center justify-center rounded-xl transition-all',
+                    disabled
+                      ? 'cursor-not-allowed opacity-45'
+                      : isCurrent
+                        ? 'bg-primary/10'
+                        : 'active:scale-95',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all',
+                      disabled
+                        ? 'bg-surface-container-highest text-on-surface-variant'
+                        : completed
+                          ? 'bg-secondary text-on-secondary'
+                          : isCurrent
+                            ? 'bg-primary text-on-primary ring-4 ring-primary/10'
+                            : 'bg-surface-container-highest text-on-surface-variant',
+                    )}
+                  >
+                    {completed ? (
+                      <span
+                        className="material-symbols-outlined text-[10px]"
+                        style={{ fontVariationSettings: "'FILL' 1" }}
+                      >
+                        check
+                      </span>
+                    ) : (
+                      i + 1
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Right: step count on desktop */}
+        <div data-testid="wizard-step-context" className="hidden w-44 shrink-0 text-right md:block">
+          <p className="truncate text-xs font-bold tracking-widest text-primary uppercase">
             Step {stepNumber} of {STEP_ORDER.length}
           </p>
           {contextText && (
@@ -143,76 +191,6 @@ export function TopAppBar({
           </svg>
         </a>
       </div>
-
-      {/* Mobile: compact interactive step buttons */}
-      <nav
-        aria-label="Wizard steps"
-        className="border-t border-surface-container-highest px-3 py-2 md:hidden"
-      >
-        <div className="mx-auto grid max-w-7xl grid-cols-4 gap-1">
-          {STEP_ORDER.map((step, i) => {
-            const completed = i < stepIndex;
-            const isCurrent = step === activeStep;
-            const disabled = !stepReachability[step];
-            return (
-              <button
-                key={step}
-                type="button"
-                data-testid={`wizard-step-nav-mobile-${step}`}
-                onClick={() => onStepSelect(step)}
-                disabled={disabled}
-                aria-current={isCurrent ? 'step' : undefined}
-                className={cn(
-                  'flex min-w-0 flex-col items-center gap-1 rounded-xl px-1.5 py-2 transition-all',
-                  disabled
-                    ? 'cursor-not-allowed opacity-45'
-                    : isCurrent
-                      ? 'bg-primary/10'
-                      : 'active:scale-95',
-                )}
-              >
-                <span
-                  className={cn(
-                    'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all',
-                    disabled
-                      ? 'bg-surface-container-highest text-on-surface-variant'
-                      : completed
-                        ? 'bg-secondary text-on-secondary'
-                        : isCurrent
-                          ? 'bg-primary text-on-primary ring-4 ring-primary/10'
-                          : 'bg-surface-container-highest text-on-surface-variant',
-                  )}
-                >
-                  {completed ? (
-                    <span
-                      className="material-symbols-outlined text-[10px]"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      check
-                    </span>
-                  ) : (
-                    i + 1
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    'truncate text-[9px] font-bold tracking-wider uppercase',
-                    disabled
-                      ? 'text-on-surface-variant'
-                      : completed
-                        ? 'text-secondary'
-                        : isCurrent
-                          ? 'text-primary'
-                          : 'text-on-surface-variant',
-                  )}
-                >
-                  {STEP_LABELS[step]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
     </header>
   );
 }
