@@ -9,6 +9,9 @@ interface ReceiptBreakdownEntry {
   name: string;
   split: SplitResult;
   currency?: string;
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
   effectiveRate?: number;
 }
 
@@ -147,9 +150,6 @@ export function PersonCard({
                   const entryDiscountAmt = entry.split.discountByPersonCents[person.id] ?? 0;
                   const entryServiceAmt = entry.split.serviceByPersonCents[person.id] ?? 0;
                   const entryGstAmt = entry.split.gstByPersonCents[person.id] ?? 0;
-                  // TODO: Total-tab receiptBreakdown entries currently reuse the top-level
-                  // discount/serviceCharge/gst props for charge labels. Amounts are per-receipt,
-                  // but the charge label metadata is not yet modeled per breakdown entry.
                   const hasCharges = entryDiscountAmt > 0 || entryServiceAmt > 0 || entryGstAmt > 0;
                   if (entryLines.length === 0) return null;
 
@@ -212,7 +212,7 @@ export function PersonCard({
                             {entryDiscountAmt > 0 && (
                               <div className="flex justify-between pl-4 text-base">
                                 <span className="text-on-surface-variant italic">
-                                  {buildChargeLabel('Discount', discount)}
+                                  {buildChargeLabel('Discount', entry.discount)}
                                 </span>
                                 <span className="text-on-surface-variant italic">
                                   −{formatCurrencyFromCents(entryDiscountAmt, entry.currency)}
@@ -222,7 +222,7 @@ export function PersonCard({
                             {entryServiceAmt > 0 && (
                               <div className="flex justify-between pl-4 text-base">
                                 <span className="text-on-surface-variant italic">
-                                  {buildChargeLabel('Service Charge', serviceCharge)}
+                                  {buildChargeLabel('Service Charge', entry.serviceCharge)}
                                 </span>
                                 <span className="text-on-surface-variant italic">
                                   +{formatCurrencyFromCents(entryServiceAmt, entry.currency)}
@@ -232,7 +232,7 @@ export function PersonCard({
                             {entryGstAmt > 0 && (
                               <div className="flex justify-between pl-4 text-base">
                                 <span className="text-on-surface-variant italic">
-                                  {buildChargeLabel('GST / Tax', gst)}
+                                  {buildChargeLabel('GST / Tax', entry.gst)}
                                 </span>
                                 <span className="text-on-surface-variant italic">
                                   +{formatCurrencyFromCents(entryGstAmt, entry.currency)}

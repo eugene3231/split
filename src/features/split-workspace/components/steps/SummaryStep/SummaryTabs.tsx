@@ -43,11 +43,19 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
       </button>
       {receipts.map((r, index) => (
         <div
+          role="button"
+          tabIndex={0}
           key={r.id}
           data-testid={`summary-tab-receipt-${index}`}
           data-active={activeTab === r.id ? 'true' : undefined}
           onClick={() => onTabChange(r.id)}
           onDoubleClick={() => startEditingTab(r.id, r.name || `Receipt ${index + 1}`)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onTabChange(r.id);
+            }
+          }}
           className={cn(
             'flex flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-6 py-2.5 font-semibold transition-all select-none',
             activeTab === r.id
