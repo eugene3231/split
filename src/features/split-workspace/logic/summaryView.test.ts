@@ -202,6 +202,21 @@ describe('resolveSummaryView — total tab', () => {
     expect(view.receiptBreakdowns[0].name).toBe('Receipt 1');
   });
 
+  it('includes per-receipt charge metadata in receiptBreakdowns', () => {
+    const r1 = makeReceipt('r1', 'SGD');
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [r1],
+        splitByReceipt: [makeSplit(1000)],
+        activeTab: 'total',
+      }),
+    );
+    if (view.kind !== 'total') return;
+    expect(view.receiptBreakdowns[0].discount).toBe(r1.discount);
+    expect(view.receiptBreakdowns[0].serviceCharge).toBe(r1.serviceCharge);
+    expect(view.receiptBreakdowns[0].gst).toBe(r1.gst);
+  });
+
   it('falls back to splitByReceipt[i] when sgdSplitByReceipt[i] is undefined (receipts longer than splits)', () => {
     // receipts.length > splitByReceipt.length with showBaseCurrency=true:
     // sgdSplitByReceipt is built from splitByReceipt.map(), so sgdSplitByReceipt[1] is undefined

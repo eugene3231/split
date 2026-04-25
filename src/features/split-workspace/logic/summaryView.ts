@@ -29,6 +29,9 @@ export interface TotalTabView extends BaseView {
     name: string;
     split: SplitResult;
     currency: string;
+    discount: ChargeState;
+    serviceCharge: ChargeState;
+    gst: ChargeState;
     effectiveRate?: number;
   }[];
 }
@@ -91,6 +94,9 @@ function resolveTotalTab({
       name: r.name || `Receipt ${i + 1}`,
       split: (showBaseCurrency ? sgdSplitByReceipt[i] : splitByReceipt[i]) ?? splitByReceipt[i],
       currency,
+      discount: r.discount,
+      serviceCharge: r.serviceCharge,
+      gst: r.gst,
       effectiveRate:
         !showBaseCurrency && isForeign
           ? getEffectiveRate(r.currency!, exchangeRates, r.exchangeRateOverride ?? null)

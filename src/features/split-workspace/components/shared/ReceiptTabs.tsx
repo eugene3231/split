@@ -56,9 +56,17 @@ export function ReceiptTabs({
           const isActive = receipt.id === activeReceiptId;
           return (
             <div
+              role="button"
+              tabIndex={0}
               key={receipt.id}
               onClick={() => onSelect(receipt.id)}
               onDoubleClick={() => handleDoubleClick(receipt.id, receipt.name)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelect(receipt.id);
+                }
+              }}
               className={cn(
                 'group relative flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-1.5 transition-all select-none',
                 isActive
@@ -125,7 +133,8 @@ export function ReceiptTabs({
         })}
 
         {appendTab && (
-          <div
+          <button
+            type="button"
             onClick={appendTab.onClick}
             className={cn(
               'flex cursor-pointer items-center gap-2 rounded-lg px-4 py-1.5 transition-all select-none',
@@ -136,7 +145,7 @@ export function ReceiptTabs({
           >
             <span className="material-symbols-outlined text-sm">{appendTab.icon}</span>
             <span className="text-sm whitespace-nowrap">{appendTab.label}</span>
-          </div>
+          </button>
         )}
       </div>
 

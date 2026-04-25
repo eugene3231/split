@@ -70,6 +70,22 @@ describe('SummaryTabs', () => {
     expect(onTabChange).toHaveBeenCalledWith('r1');
   });
 
+  it('calls onTabChange when a receipt tab is activated with keyboard', () => {
+    const onTabChange = vi.fn();
+    const receipts = [makeReceipt('r1', 'Dinner')];
+    render(
+      <SummaryTabs
+        receipts={receipts}
+        activeTab="total"
+        onTabChange={onTabChange}
+        onRenameReceipt={vi.fn()}
+      />,
+    );
+
+    fireEvent.keyDown(screen.getByTestId('summary-tab-receipt-0'), { key: 'Enter' });
+    expect(onTabChange).toHaveBeenCalledWith('r1');
+  });
+
   it('calls onTabChange when the total tab is clicked', () => {
     const onTabChange = vi.fn();
     const receipts = [makeReceipt('r1', 'Dinner')];
