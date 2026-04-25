@@ -1,3 +1,4 @@
+import { useLayoutEffect, useState } from 'react';
 import { cn } from '@shared/utils/cn';
 import { getContinueLabel } from '@features/split-workspace/logic/wizardSteps';
 import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
@@ -10,6 +11,53 @@ interface Props {
   onBack: () => void;
   onNext: () => void;
   grandTotalFormatted?: string;
+}
+
+function getVisualViewportBottomInset() {
+  const viewport = window.visualViewport;
+
+  if (!viewport) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop));
+}
+
+function useVisualViewportBottomInset() {
+  const [bottomInset, setBottomInset] = useState(0);
+
+  useLayoutEffect(() => {
+    let frameId = 0;
+
+    const applyBottomInset = () => {
+      setBottomInset(getVisualViewportBottomInset());
+    };
+
+    const updateBottomInset = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(applyBottomInset);
+    };
+
+    applyBottomInset();
+    updateBottomInset();
+
+    window.visualViewport?.addEventListener('resize', updateBottomInset);
+    window.visualViewport?.addEventListener('scroll', updateBottomInset);
+    window.addEventListener('resize', updateBottomInset);
+    window.addEventListener('scroll', updateBottomInset, { passive: true });
+    window.addEventListener('orientationchange', updateBottomInset);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.visualViewport?.removeEventListener('resize', updateBottomInset);
+      window.visualViewport?.removeEventListener('scroll', updateBottomInset);
+      window.removeEventListener('resize', updateBottomInset);
+      window.removeEventListener('scroll', updateBottomInset);
+      window.removeEventListener('orientationchange', updateBottomInset);
+    };
+  }, []);
+
+  return bottomInset;
 }
 
 export function BottomNav({
@@ -26,11 +74,12 @@ export function BottomNav({
   const isSummaryStep = activeStep === 'items' && itemsSubPhase === 'review';
   const continueLabel = getContinueLabel(activeStep, itemsSubPhase, isLastAssignableItem);
   const continueDisabled = !canContinue && !(activeStep === 'items' && itemsSubPhase === 'assign');
+  const bottomInset = useVisualViewportBottomInset();
 
   return (
     <footer
       className="fixed bottom-0 left-0 z-50 w-full border-t border-surface-container-highest bg-surface/90 shadow-[0_-8px_24px_rgba(25,28,29,0.06)] backdrop-blur-xl"
-      style={{ bottom: 'calc(100vh - 100dvh)' }}
+      style={{ bottom: bottomInset }}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 md:px-10">
         {/* Back */}
