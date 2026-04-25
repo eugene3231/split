@@ -97,6 +97,14 @@ function clickBack() {
   fireEvent.click(screen.getByTestId('wizard-back-btn'));
 }
 
+function clickStepNav(step: 'people' | 'receipt' | 'items' | 'final') {
+  fireEvent.click(screen.getByTestId(`wizard-step-nav-${step}`));
+}
+
+function expectActiveStepNav(step: 'people' | 'receipt' | 'items' | 'final') {
+  expect(screen.getByTestId(`wizard-step-nav-${step}`)).toHaveAttribute('aria-current', 'step');
+}
+
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
@@ -225,6 +233,88 @@ describe('ReceiptSplitterPage integration', () => {
       clickBack(); // receipt → people
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1/i);
       expect(screen.queryByTestId('wizard-back-btn')).not.toBeInTheDocument();
+    });
+
+    it('jumps from summary directly back to people through the top nav', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+
+      clickContinue();
+      clickContinue();
+      clickContinue();
+      clickContinue();
+      expectActiveStepNav('final');
+
+      clickStepNav('people');
+
+      expectActiveStepNav('people');
+      expect(screen.getByTestId('people-list')).toBeInTheDocument();
+    });
+
+    it('jumps from summary directly back to receipt through the top nav', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+
+      clickContinue();
+      clickContinue();
+      clickContinue();
+      clickContinue();
+      expectActiveStepNav('final');
+
+      clickStepNav('receipt');
+
+      expectActiveStepNav('receipt');
+      expect(screen.getByTestId('receipt-add-item-btn')).toBeInTheDocument();
+    });
+
+    it('jumps from receipt directly to assign when receipt data is valid', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+
+      clickContinue();
+      expectActiveStepNav('receipt');
+
+      clickStepNav('items');
+
+      expectActiveStepNav('items');
+      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument();
+    });
+
+    it('jumps from receipt directly to summary when assignments are complete', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+
+      clickContinue();
+      expectActiveStepNav('receipt');
+
+      clickStepNav('final');
+
+      expectActiveStepNav('final');
+      expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
+    });
+
+    it('disables top-nav jumps until each step prerequisite is met', () => {
+      render(<ReceiptSplitterPage />);
+
+      expect(screen.getByTestId('wizard-step-nav-receipt')).toBeDisabled();
+      expect(screen.getByTestId('wizard-step-nav-items')).toBeDisabled();
+      expect(screen.getByTestId('wizard-step-nav-final')).toBeDisabled();
+
+      addPeople('Alice, Bob');
+
+      expect(screen.getByTestId('wizard-step-nav-receipt')).not.toBeDisabled();
+      expect(screen.getByTestId('wizard-step-nav-items')).toBeDisabled();
+      expect(screen.getByTestId('wizard-step-nav-final')).toBeDisabled();
+
+      clickStepNav('receipt');
+
+      expectActiveStepNav('receipt');
+      expect(screen.getByTestId('wizard-step-nav-items')).toBeDisabled();
+      expect(screen.getByTestId('wizard-step-nav-final')).toBeDisabled();
     });
 
     it('blocks continue on receipt step until valid items exist', async () => {

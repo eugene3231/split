@@ -1,19 +1,14 @@
 import { cn } from '@shared/utils/cn';
 import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
-
-const STEP_ORDER: WizardStep[] = ['people', 'receipt', 'items', 'final'];
-const STEP_LABELS: Record<WizardStep, string> = {
-  people: 'People',
-  receipt: 'Receipt',
-  items: 'Assign',
-  final: 'Summary',
-};
+import { STEP_LABELS, STEP_ORDER } from '@features/split-workspace/logic/wizardSteps';
 
 interface Props {
   activeStep: WizardStep;
   itemsSubPhase: ItemsSubPhase;
   assignedItemCount: number;
   detectedItemsCount: number;
+  stepReachability: Record<WizardStep, boolean>;
+  onStepSelect: (step: WizardStep) => void;
 }
 
 export function TopAppBar({
@@ -21,10 +16,11 @@ export function TopAppBar({
   itemsSubPhase,
   assignedItemCount,
   detectedItemsCount,
+  stepReachability,
+  onStepSelect,
 }: Props) {
   const stepIndex = STEP_ORDER.indexOf(activeStep);
   const stepNumber = stepIndex + 1;
-  const trackFillPercent = (stepNumber / STEP_ORDER.length) * 100;
 
   let contextText = '';
   if (activeStep === 'items') {
@@ -42,22 +38,40 @@ export function TopAppBar({
           Split
         </div>
 
-        {/* Desktop: connected step circles */}
-        <nav className="hidden flex-1 items-center justify-center md:flex">
+        {/* Desktop: connected step buttons */}
+        <nav
+          aria-label="Wizard steps"
+          className="hidden flex-1 items-center justify-center md:flex"
+        >
           {STEP_ORDER.map((step, i) => {
             const completed = i < stepIndex;
             const isCurrent = step === activeStep;
+            const disabled = !stepReachability[step];
             return (
               <div key={step} className="flex items-center">
-                <div className="flex flex-col items-center gap-1">
+                <button
+                  type="button"
+                  data-testid={`wizard-step-nav-${step}`}
+                  onClick={() => onStepSelect(step)}
+                  disabled={disabled}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  className={cn(
+                    'group flex flex-col items-center gap-1 rounded-xl px-2 py-1 transition-all',
+                    disabled
+                      ? 'cursor-not-allowed opacity-45'
+                      : 'hover:bg-surface-container-low active:scale-95',
+                  )}
+                >
                   <div
                     className={cn(
                       'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all',
-                      completed
-                        ? 'bg-secondary text-on-secondary'
-                        : isCurrent
-                          ? 'bg-primary text-on-primary ring-4 ring-primary/10'
-                          : 'bg-surface-container-highest text-on-surface-variant',
+                      disabled
+                        ? 'bg-surface-container-highest text-on-surface-variant'
+                        : completed
+                          ? 'bg-secondary text-on-secondary'
+                          : isCurrent
+                            ? 'bg-primary text-on-primary ring-4 ring-primary/10'
+                            : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >
                     {completed ? (
@@ -74,16 +88,18 @@ export function TopAppBar({
                   <span
                     className={cn(
                       'text-[9px] font-bold tracking-widest uppercase',
-                      completed
-                        ? 'text-secondary'
-                        : isCurrent
-                          ? 'text-primary'
-                          : 'text-on-surface-variant',
+                      disabled
+                        ? 'text-on-surface-variant'
+                        : completed
+                          ? 'text-secondary'
+                          : isCurrent
+                            ? 'text-primary'
+                            : 'text-on-surface-variant',
                     )}
                   >
                     {STEP_LABELS[step]}
                   </span>
-                </div>
+                </button>
                 {i < STEP_ORDER.length - 1 && (
                   <div
                     className={cn(
@@ -122,13 +138,75 @@ export function TopAppBar({
         </a>
       </div>
 
-      {/* Mobile: thin progress bar */}
-      <div className="h-0.5 bg-surface-container-highest md:hidden">
-        <div
-          className="h-full bg-primary transition-all duration-500"
-          style={{ width: `${trackFillPercent}%` }}
-        />
-      </div>
+      {/* Mobile: compact interactive step buttons */}
+      <nav
+        aria-label="Wizard steps"
+        className="border-t border-surface-container-highest px-3 py-2 md:hidden"
+      >
+        <div className="mx-auto grid max-w-7xl grid-cols-4 gap-1">
+          {STEP_ORDER.map((step, i) => {
+            const completed = i < stepIndex;
+            const isCurrent = step === activeStep;
+            const disabled = !stepReachability[step];
+            return (
+              <button
+                key={step}
+                type="button"
+                data-testid={`wizard-step-nav-mobile-${step}`}
+                onClick={() => onStepSelect(step)}
+                disabled={disabled}
+                aria-current={isCurrent ? 'step' : undefined}
+                className={cn(
+                  'flex min-w-0 flex-col items-center gap-1 rounded-xl px-1.5 py-2 transition-all',
+                  disabled
+                    ? 'cursor-not-allowed opacity-45'
+                    : isCurrent
+                      ? 'bg-primary/10'
+                      : 'active:scale-95',
+                )}
+              >
+                <span
+                  className={cn(
+                    'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all',
+                    disabled
+                      ? 'bg-surface-container-highest text-on-surface-variant'
+                      : completed
+                        ? 'bg-secondary text-on-secondary'
+                        : isCurrent
+                          ? 'bg-primary text-on-primary ring-4 ring-primary/10'
+                          : 'bg-surface-container-highest text-on-surface-variant',
+                  )}
+                >
+                  {completed ? (
+                    <span
+                      className="material-symbols-outlined text-[10px]"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      check
+                    </span>
+                  ) : (
+                    i + 1
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    'truncate text-[9px] font-bold tracking-wider uppercase',
+                    disabled
+                      ? 'text-on-surface-variant'
+                      : completed
+                        ? 'text-secondary'
+                        : isCurrent
+                          ? 'text-primary'
+                          : 'text-on-surface-variant',
+                  )}
+                >
+                  {STEP_LABELS[step]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </header>
   );
 }
