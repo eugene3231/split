@@ -38,6 +38,7 @@ export function TopAppBar({
           Split
         </div>
 
+        {/* TODO: Extract desktop/mobile step navigation into WizardStepNav when this grows again. */}
         {/* Desktop: connected step buttons */}
         <nav
           aria-label="Wizard steps"
@@ -114,14 +115,19 @@ export function TopAppBar({
         </nav>
 
         {/* Right: "STEP X: LABEL" on mobile, step count on desktop */}
-        <div data-testid="wizard-step-context" className="ml-auto shrink-0 text-right">
-          <p className="text-xs font-bold tracking-widest text-on-surface-variant uppercase md:hidden">
+        <div
+          data-testid="wizard-step-context"
+          className="ml-auto w-32 shrink-0 text-right sm:w-40 md:w-44"
+        >
+          <p className="truncate text-xs font-bold tracking-widest text-on-surface-variant uppercase md:hidden">
             Step {stepNumber}: {STEP_LABELS[activeStep]}
           </p>
-          <p className="hidden text-xs font-bold tracking-widest text-primary uppercase md:block">
+          <p className="hidden truncate text-xs font-bold tracking-widest text-primary uppercase md:block">
             Step {stepNumber} of {STEP_ORDER.length}
           </p>
-          {contextText && <p className="text-[10px] text-on-surface-variant">{contextText}</p>}
+          {contextText && (
+            <p className="truncate text-[10px] text-on-surface-variant">{contextText}</p>
+          )}
         </div>
 
         {/* GitHub link */}
