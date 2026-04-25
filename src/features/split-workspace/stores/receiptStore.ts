@@ -18,6 +18,7 @@ import {
   normalizeItemAssignments,
   syncItemsWithPeople,
 } from '@features/split-workspace/logic/simpleAssignments';
+import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentActions';
 
 // ---------------------------------------------------------------------------
 // Module-level helpers
@@ -73,6 +74,7 @@ type ReceiptStoreActions = {
   addItem: () => void;
   removeItem: (itemId: string) => void;
   updateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void;
+  splitUnassignedItemsEquallyForActiveReceipt: () => void;
   setDiscount: (next: ChargeState) => void;
   setServiceCharge: (next: ChargeState) => void;
   setGst: (next: ChargeState) => void;
@@ -237,6 +239,15 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         receipts: state.receipts.map((r) =>
           r.id === state.activeReceiptId
             ? { ...r, items: r.items.map((item) => (item.id === itemId ? updater(item) : item)) }
+            : r,
+        ),
+      }));
+    },
+    splitUnassignedItemsEquallyForActiveReceipt: () => {
+      set((state) => ({
+        receipts: state.receipts.map((r) =>
+          r.id === state.activeReceiptId
+            ? { ...r, items: splitUnassignedItemsEqually(r.items, state.people) }
             : r,
         ),
       }));
