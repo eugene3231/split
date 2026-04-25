@@ -43,8 +43,10 @@ export function Workspace() {
     setActiveItemIndex,
     setItemsSubPhase,
     canContinue,
+    stepReachability,
     handleNext,
     handleBack,
+    handleStepSelect,
     handleAddReceipt,
   } = useWizard(items, people, normalizeItems, receipts, activeReceiptId, setActiveReceiptId);
 
@@ -70,6 +72,11 @@ export function Workspace() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const handleStepSelectWithScroll = (step: Parameters<typeof handleStepSelect>[0]) => {
+    handleStepSelect(step);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   if (!activeReceipt) {
     return null;
   }
@@ -84,6 +91,8 @@ export function Workspace() {
         itemsSubPhase={itemsSubPhase}
         assignedItemCount={assignedItemCount}
         detectedItemsCount={detectedItemsCount}
+        stepReachability={stepReachability}
+        onStepSelect={handleStepSelectWithScroll}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-48 md:px-8 md:pt-10">

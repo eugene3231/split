@@ -52,6 +52,45 @@ export function useWizard(
       ? itemsSubPhase === 'review' && isStepValid('items', { items, people })
       : isStepValid(activeStep, { items, people });
 
+  const allReceiptItems = receipts.flatMap((receipt) => receipt.items);
+  const canReachReceipt = isStepValid('people', { items, people });
+  const canReachItems = canReachReceipt && isStepValid('receipt', { items, people });
+  const canReachFinal = canReachItems && isStepValid('items', { items: allReceiptItems, people });
+
+  const stepReachability: Record<WizardStep, boolean> = {
+    people: true,
+    receipt: canReachReceipt,
+    items: canReachItems,
+    final: canReachFinal,
+  };
+
+  const handleStepSelect = (targetStep: WizardStep) => {
+    if (!stepReachability[targetStep]) return;
+
+    if (targetStep === 'people') {
+      setActiveStep('people');
+      return;
+    }
+
+    if (targetStep === 'receipt') {
+      setActiveStep('receipt');
+      if (activeStep === 'people' && !geminiApiKeyInput.trim()) setShowApiKeyModal(true);
+      return;
+    }
+
+    if (targetStep === 'items') {
+      normalizeItems();
+      setItemsSubPhase('assign');
+      setActiveItemIndex(0);
+      setActiveStep('items');
+      return;
+    }
+
+    normalizeItems();
+    setItemsSubPhase('review');
+    setActiveStep('final');
+  };
+
   const handleNext = () => {
     if (activeStep === 'people') {
       if (!isStepValid('people', { items, people })) return;
@@ -126,8 +165,10 @@ export function useWizard(
     setActiveItemIndex: (index: number) => setActiveItemIndex(index),
     setItemsSubPhase: (phase: ItemsSubPhase) => setItemsSubPhase(phase),
     canContinue,
+    stepReachability,
     handleNext,
     handleBack,
+    handleStepSelect,
     handleAddReceipt,
   };
 }
