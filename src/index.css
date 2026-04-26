@@ -1,73 +1,102 @@
 @import 'tailwindcss';
 
 @theme {
-  /* Surface hierarchy */
-  --color-surface: #f8fafb;
-  --color-surface-bright: #f8fafb;
-  --color-surface-dim: #d8dadb;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f2f4f5;
-  --color-surface-container: #eceeef;
-  --color-surface-container-high: #e6e8e9;
-  --color-surface-container-highest: #e1e3e4;
-  --color-surface-variant: #e1e3e4;
-  --color-surface-tint: #206773;
+  /* ── Plate design tokens ────────────────────────────────────────── */
+  --color-bg: #fffcf7;
+  --color-ink: #0e0e0c;
+  --color-ink2: #5c5a55;
+  --color-cream: #f2ede2;
+  --color-cream-dim: #e8e2d4;
 
-  /* Primary */
-  --color-primary: #003d46;
-  --color-primary-container: #005662;
+  /* Accent palette — oklch uniform chroma 0.16 across hue wheel */
+  --color-accent-red: oklch(0.78 0.16 25);
+  --color-accent-orange: oklch(0.78 0.16 65);
+  --color-accent-green: oklch(0.78 0.16 145);
+  --color-accent-blue: oklch(0.78 0.16 235);
+  --color-accent-yellow: oklch(0.88 0.16 95);
+
+  /* Person avatar colors — deeper oklch tones, 8-stop hue wheel */
+  --color-person-1: oklch(0.62 0.18 25);
+  --color-person-2: oklch(0.55 0.14 145);
+  --color-person-3: oklch(0.6 0.16 65);
+  --color-person-4: oklch(0.55 0.14 235);
+  --color-person-5: oklch(0.55 0.15 305);
+  --color-person-6: oklch(0.58 0.14 185);
+  --color-person-7: oklch(0.6 0.14 45);
+  --color-person-8: oklch(0.55 0.13 265);
+
+  /* ── Alias map: old MD3 tokens → Plate values ───────────────────── */
+  /* Allows existing class names (bg-surface, text-primary, etc.) to
+     resolve to Plate values during incremental component migration. */
+
+  /* Surfaces */
+  --color-surface: var(--color-bg);
+  --color-surface-bright: var(--color-bg);
+  --color-surface-dim: var(--color-cream-dim);
+  --color-surface-container-lowest: var(--color-cream);
+  --color-surface-container-low: var(--color-cream);
+  --color-surface-container: #ebe5d8;
+  --color-surface-container-high: var(--color-cream-dim);
+  --color-surface-container-highest: var(--color-cream-dim);
+  --color-surface-variant: var(--color-cream-dim);
+  --color-surface-tint: var(--color-ink2);
+
+  /* Primary → ink */
+  --color-primary: var(--color-ink);
+  --color-primary-container: #1a1a18;
   --color-on-primary: #ffffff;
-  --color-on-primary-container: #89c9d7;
-  --color-on-primary-fixed: #001f25;
-  --color-on-primary-fixed-variant: #004e59;
-  --color-primary-fixed: #acedfb;
-  --color-primary-fixed-dim: #90d1df;
-  --color-inverse-primary: #90d1df;
+  --color-on-primary-container: #f2ede2;
+  --color-on-primary-fixed: #ffffff;
+  --color-on-primary-fixed-variant: #f2ede2;
+  --color-primary-fixed: #1a1a18;
+  --color-primary-fixed-dim: #2a2a28;
+  --color-inverse-primary: #f2ede2;
 
-  /* Secondary */
-  --color-secondary: #1b6d24;
-  --color-secondary-container: #a0f399;
-  --color-on-secondary: #ffffff;
-  --color-on-secondary-container: #217128;
-  --color-on-secondary-fixed: #002204;
-  --color-on-secondary-fixed-variant: #005312;
-  --color-secondary-fixed: #a3f69c;
-  --color-secondary-fixed-dim: #88d982;
+  /* Secondary → accent-green */
+  --color-secondary: var(--color-accent-green);
+  --color-secondary-container: oklch(0.88 0.1 145);
+  --color-on-secondary: var(--color-ink);
+  --color-on-secondary-container: var(--color-ink);
+  --color-on-secondary-fixed: var(--color-ink);
+  --color-on-secondary-fixed-variant: var(--color-ink);
+  --color-secondary-fixed: oklch(0.88 0.1 145);
+  --color-secondary-fixed-dim: oklch(0.78 0.16 145);
 
-  /* Tertiary */
-  --color-tertiary: #003f37;
-  --color-tertiary-container: #00584d;
-  --color-on-tertiary: #ffffff;
-  --color-on-tertiary-container: #73cfbe;
-  --color-on-tertiary-fixed: #00201b;
-  --color-on-tertiary-fixed-variant: #005047;
-  --color-tertiary-fixed: #97f3e2;
-  --color-tertiary-fixed-dim: #7ad7c6;
+  /* Tertiary → accent-blue */
+  --color-tertiary: var(--color-accent-blue);
+  --color-tertiary-container: oklch(0.88 0.1 235);
+  --color-on-tertiary: var(--color-ink);
+  --color-on-tertiary-container: var(--color-ink);
+  --color-on-tertiary-fixed: var(--color-ink);
+  --color-on-tertiary-fixed-variant: var(--color-ink);
+  --color-tertiary-fixed: oklch(0.88 0.1 235);
+  --color-tertiary-fixed-dim: oklch(0.78 0.16 235);
 
-  /* Error */
+  /* Error — keep */
   --color-error: #ba1a1a;
   --color-error-container: #ffdad6;
   --color-on-error: #ffffff;
   --color-on-error-container: #93000a;
 
   /* On-surface */
-  --color-on-surface: #191c1d;
-  --color-on-surface-variant: #3f484a;
-  --color-on-background: #191c1d;
-  --color-background: #f8fafb;
+  --color-on-surface: var(--color-ink);
+  --color-on-surface-variant: var(--color-ink2);
+  --color-on-background: var(--color-ink);
+  --color-background: var(--color-bg);
 
   /* Outlines */
-  --color-outline: #6f797b;
-  --color-outline-variant: #bfc8ca;
+  --color-outline: var(--color-ink2);
+  --color-outline-variant: #cdc8bd;
 
   /* Inverse */
-  --color-inverse-surface: #2e3132;
-  --color-inverse-on-surface: #eff1f2;
+  --color-inverse-surface: var(--color-ink);
+  --color-inverse-on-surface: var(--color-cream);
 
-  /* Font families */
-  --font-family-headline: 'Manrope', sans-serif;
-  --font-family-body: 'Inter', sans-serif;
-  --font-family-label: 'Inter', sans-serif;
+  /* ── Fonts ──────────────────────────────────────────────────────── */
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-headline: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-label: 'Inter', system-ui, sans-serif;
 }
 
 html,
@@ -78,6 +107,7 @@ body,
 
 body {
   margin: 0;
+  background-color: #fffcf7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -90,10 +120,10 @@ body {
     'opsz' 24;
 }
 
-/* Light theme scrollbar */
+/* Scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #bfc8ca transparent;
+  scrollbar-color: #cdc8bd transparent;
 }
 
 ::-webkit-scrollbar {
@@ -105,6 +135,6 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #bfc8ca;
+  background: #cdc8bd;
   border-radius: 10px;
 }

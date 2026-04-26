@@ -7,9 +7,16 @@ interface Props {
   activeTab: string;
   onTabChange: (id: string) => void;
   onRenameReceipt: (id: string, name: string) => void;
+  onAddReceipt: () => void;
 }
 
-export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt }: Props) {
+export function SummaryTabs({
+  receipts,
+  activeTab,
+  onTabChange,
+  onRenameReceipt,
+  onAddReceipt,
+}: Props) {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingTabName, setEditingTabName] = useState('');
   const tabInputRef = useRef<HTMLInputElement>(null);
@@ -26,28 +33,37 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
   };
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+    <div
+      role="tablist"
+      aria-label="Summary receipts"
+      className="flex items-end gap-5 overflow-x-auto border-b border-cream-dim/70 pb-0"
+      style={{ scrollbarWidth: 'none' }}
+    >
       <button
         type="button"
         data-testid="summary-tab-total"
         data-active={activeTab === 'total' ? 'true' : undefined}
         onClick={() => onTabChange('total')}
         className={cn(
-          'flex-shrink-0 rounded-full px-6 py-2.5 font-bold transition-all',
+          'relative -mb-px flex-shrink-0 px-0 py-3 text-sm font-semibold whitespace-nowrap transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-center after:rounded-full after:transition-transform',
           activeTab === 'total'
-            ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
-            : 'bg-surface-container-high font-semibold text-on-surface-variant hover:bg-surface-container-highest',
+            ? 'text-ink after:scale-x-100 after:bg-ink'
+            : 'text-ink2 after:scale-x-0 hover:text-ink',
         )}
       >
-        Total ({receipts.length} receipts)
+        All
+        <span className="ml-1.5 rounded-full bg-cream px-1.5 py-0.5 text-[10px] leading-none text-ink2">
+          {receipts.length}r
+        </span>
       </button>
       {receipts.map((r, index) => (
         <div
-          role="button"
+          role="tab"
           tabIndex={0}
           key={r.id}
           data-testid={`summary-tab-receipt-${index}`}
           data-active={activeTab === r.id ? 'true' : undefined}
+          aria-selected={activeTab === r.id}
           onClick={() => onTabChange(r.id)}
           onDoubleClick={() => startEditingTab(r.id, r.name || `Receipt ${index + 1}`)}
           onKeyDown={(e) => {
@@ -57,10 +73,10 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
             }
           }}
           className={cn(
-            'flex flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-6 py-2.5 font-semibold transition-all select-none',
+            'relative -mb-px flex flex-shrink-0 cursor-pointer items-center gap-1.5 px-0 py-3 text-sm font-semibold whitespace-nowrap transition-colors select-none after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-center after:rounded-full after:transition-transform',
             activeTab === r.id
-              ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
-              : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest',
+              ? 'text-ink after:scale-x-100 after:bg-ink'
+              : 'text-ink2 after:scale-x-0 hover:text-ink',
           )}
         >
           {editingTabId === r.id ? (
@@ -75,15 +91,18 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
               }}
               onClick={(e) => e.stopPropagation()}
               size={Math.max(editingTabName.length, 6)}
-              className="bg-transparent font-semibold text-on-primary outline-none"
+              className="max-w-32 bg-transparent font-semibold text-ink outline-none"
               autoFocus
             />
           ) : (
             <>
               {r.name || `Receipt ${index + 1}`}
+              <span className="rounded-full bg-cream px-1.5 py-0.5 text-[10px] leading-none text-ink2">
+                {index + 1}
+              </span>
               {activeTab === r.id && (
                 <span
-                  className="material-symbols-outlined !text-xs opacity-70"
+                  className="material-symbols-outlined !text-xs opacity-50"
                   onClick={(e) => {
                     e.stopPropagation();
                     startEditingTab(r.id, r.name || `Receipt ${index + 1}`);
@@ -96,6 +115,15 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
           )}
         </div>
       ))}
+      <button
+        type="button"
+        data-testid="summary-add-receipt-btn"
+        onClick={onAddReceipt}
+        aria-label="Add receipt"
+        className="-mb-px flex h-11 w-8 flex-shrink-0 items-center justify-center py-3 text-ink2 transition-colors hover:text-ink"
+      >
+        <span className="material-symbols-outlined text-lg">add</span>
+      </button>
     </div>
   );
 }

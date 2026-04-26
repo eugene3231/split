@@ -51,7 +51,7 @@ export function ReceiptTabs({
   return (
     <div className="mb-8 flex items-center gap-3">
       {/* Segmented pill */}
-      <div className="flex items-center gap-0.5 overflow-x-auto rounded-xl bg-surface-container-low p-1">
+      <div className="flex items-center gap-0.5 overflow-x-auto rounded-full bg-cream p-1">
         {receipts.map((receipt) => {
           const isActive = receipt.id === activeReceiptId;
           return (
@@ -68,10 +68,8 @@ export function ReceiptTabs({
                 }
               }}
               className={cn(
-                'group relative flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-1.5 transition-all select-none',
-                isActive
-                  ? 'bg-white text-on-surface shadow-sm'
-                  : 'text-on-surface-variant hover:text-on-surface',
+                'group relative flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 transition-all select-none',
+                isActive ? 'bg-ink text-white shadow-sm' : 'text-ink2 hover:text-ink',
               )}
             >
               {editingTabId === receipt.id ? (
@@ -137,10 +135,10 @@ export function ReceiptTabs({
             type="button"
             onClick={appendTab.onClick}
             className={cn(
-              'flex cursor-pointer items-center gap-2 rounded-lg px-4 py-1.5 transition-all select-none',
+              'flex cursor-pointer items-center gap-2 rounded-full px-4 py-1.5 transition-all select-none',
               appendTab.isActive
-                ? 'bg-white font-bold text-on-surface shadow-sm'
-                : 'font-semibold text-on-surface-variant hover:text-on-surface',
+                ? 'bg-ink font-bold text-white shadow-sm'
+                : 'font-semibold text-ink2 hover:text-ink',
             )}
           >
             <span className="material-symbols-outlined text-sm">{appendTab.icon}</span>
@@ -154,7 +152,7 @@ export function ReceiptTabs({
         <button
           type="button"
           onClick={onAdd}
-          className="flex items-center gap-1.5 rounded-xl px-3 py-2 whitespace-nowrap text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
+          className="flex items-center gap-1.5 rounded-full px-3 py-2 whitespace-nowrap text-ink2 transition-all hover:bg-cream hover:text-ink"
         >
           <span className="material-symbols-outlined text-sm">add</span>
           <span className="text-sm font-semibold">Add</span>

@@ -3,38 +3,48 @@
 export const CANVAS_WIDTH = 1800;
 export const SCRATCH_HEIGHT = 24000;
 
-// Raw canvas equivalents of PERSON_COLORS from personColors.ts
+// Plate palette — matches personColors.ts oklch-based colors
 const PERSON_CANVAS_COLORS = [
   {
-    headerBg: 'rgba(6, 182, 212, 0.15)',
-    headerBorder: 'rgba(6, 182, 212, 0.5)',
-    accent: '#67e8f9',
-  }, // cyan
+    headerBg: 'rgba(197, 74, 47, 0.15)',
+    headerBorder: 'rgba(197, 74, 47, 0.5)',
+    accent: '#c54a2f',
+  }, // tomato
   {
-    headerBg: 'rgba(139, 92, 246, 0.15)',
-    headerBorder: 'rgba(139, 92, 246, 0.5)',
-    accent: '#c4b5fd',
-  }, // violet
+    headerBg: 'rgba(42, 115, 56, 0.15)',
+    headerBorder: 'rgba(42, 115, 56, 0.5)',
+    accent: '#2a7338',
+  }, // basil
   {
-    headerBg: 'rgba(251, 191, 36, 0.15)',
-    headerBorder: 'rgba(251, 191, 36, 0.5)',
-    accent: '#fcd34d',
+    headerBg: 'rgba(184, 116, 32, 0.15)',
+    headerBorder: 'rgba(184, 116, 32, 0.5)',
+    accent: '#b87420',
+  }, // citrus
+  {
+    headerBg: 'rgba(51, 85, 152, 0.15)',
+    headerBorder: 'rgba(51, 85, 152, 0.5)',
+    accent: '#335598',
+  }, // mineral
+  {
+    headerBg: 'rgba(122, 61, 170, 0.15)',
+    headerBorder: 'rgba(122, 61, 170, 0.5)',
+    accent: '#7a3daa',
+  }, // purple
+  {
+    headerBg: 'rgba(26, 122, 106, 0.15)',
+    headerBorder: 'rgba(26, 122, 106, 0.5)',
+    accent: '#1a7a6a',
+  }, // teal
+  {
+    headerBg: 'rgba(184, 120, 40, 0.15)',
+    headerBorder: 'rgba(184, 120, 40, 0.5)',
+    accent: '#b87828',
   }, // amber
   {
-    headerBg: 'rgba(16, 185, 129, 0.15)',
-    headerBorder: 'rgba(16, 185, 129, 0.5)',
-    accent: '#6ee7b7',
-  }, // emerald
-  {
-    headerBg: 'rgba(244, 63, 94, 0.15)',
-    headerBorder: 'rgba(244, 63, 94, 0.5)',
-    accent: '#fda4af',
-  }, // rose
-  {
-    headerBg: 'rgba(249, 115, 22, 0.15)',
-    headerBorder: 'rgba(249, 115, 22, 0.5)',
-    accent: '#fdba74',
-  }, // orange
+    headerBg: 'rgba(80, 64, 160, 0.15)',
+    headerBorder: 'rgba(80, 64, 160, 0.5)',
+    accent: '#5040a0',
+  }, // indigo
 ];
 
 export function getPersonCanvasColor(index: number) {

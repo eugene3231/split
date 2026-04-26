@@ -13,8 +13,8 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount }: P
 
   if (isMatch) {
     return (
-      <div className="flex items-center gap-4 rounded-2xl border border-secondary-container/30 bg-secondary-container/20 p-4">
-        <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-secondary p-1 text-on-secondary">
+      <div className="flex items-center gap-4 rounded-2xl bg-accent-green/15 p-4">
+        <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-accent-green p-1 text-ink">
           <span
             className="material-symbols-outlined text-sm"
             style={{ fontVariationSettings: "'FILL' 1" }}
@@ -23,21 +23,17 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount }: P
           </span>
         </div>
         <div>
-          <p className="text-xs leading-tight font-extrabold text-on-secondary-container">
-            Totals match!
-          </p>
-          <p className="mt-0.5 text-[10px] text-on-secondary-container/80">
-            Verified against computed items.
-          </p>
+          <p className="text-xs leading-tight font-semibold text-ink">Totals match!</p>
+          <p className="mt-0.5 text-[10px] text-ink2">Verified against computed items.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-error-container/30 bg-error-container/20 p-4">
+    <div className="flex flex-col gap-3 rounded-2xl bg-accent-red/10 p-4">
       <div className="flex items-center gap-4">
-        <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-error p-1 text-on-error">
+        <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-accent-red p-1 text-ink">
           <span
             className="material-symbols-outlined text-sm"
             style={{ fontVariationSettings: "'FILL' 1" }}
@@ -46,10 +42,10 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount }: P
           </span>
         </div>
         <div>
-          <p className="text-xs leading-tight font-extrabold text-on-error-container">
+          <p className="text-xs leading-tight font-semibold text-ink">
             Mismatch found ({formatCurrencyFromCents(Math.abs(reconciliationCents))})
           </p>
-          <p className="mt-0.5 text-[10px] text-on-error-container/80">
+          <p className="mt-0.5 text-[10px] text-ink2">
             {isOver
               ? 'Computed total is lower than receipt.'
               : 'Computed total is higher than receipt.'}
@@ -61,7 +57,7 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount }: P
           type="button"
           data-testid="apply-discount-reconcile-btn"
           onClick={onApplyDiscount}
-          className="w-full rounded-lg bg-on-error-container py-2 text-[10px] font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
+          className="w-full rounded-full bg-ink py-2 text-[10px] font-semibold tracking-wide text-white uppercase transition-opacity hover:opacity-90"
         >
           Resolve Difference (Apply Discount)
         </button>

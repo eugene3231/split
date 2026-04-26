@@ -46,6 +46,7 @@ describe('SummaryTabs', () => {
         activeTab="total"
         onTabChange={vi.fn()}
         onRenameReceipt={vi.fn()}
+        onAddReceipt={vi.fn()}
       />,
     );
 
@@ -63,6 +64,7 @@ describe('SummaryTabs', () => {
         activeTab="total"
         onTabChange={onTabChange}
         onRenameReceipt={vi.fn()}
+        onAddReceipt={vi.fn()}
       />,
     );
 
@@ -79,6 +81,7 @@ describe('SummaryTabs', () => {
         activeTab="total"
         onTabChange={onTabChange}
         onRenameReceipt={vi.fn()}
+        onAddReceipt={vi.fn()}
       />,
     );
 
@@ -95,6 +98,7 @@ describe('SummaryTabs', () => {
         activeTab="r1"
         onTabChange={onTabChange}
         onRenameReceipt={vi.fn()}
+        onAddReceipt={vi.fn()}
       />,
     );
 
@@ -110,10 +114,28 @@ describe('SummaryTabs', () => {
         activeTab="r1"
         onTabChange={vi.fn()}
         onRenameReceipt={vi.fn()}
+        onAddReceipt={vi.fn()}
       />,
     );
 
     const receiptTab = screen.getByTestId('summary-tab-receipt-0');
     expect(receiptTab).toHaveAttribute('data-active', 'true');
+  });
+
+  it('calls onAddReceipt from the trailing plus control', () => {
+    const onAddReceipt = vi.fn();
+    const receipts = [makeReceipt('r1', 'Dinner')];
+    render(
+      <SummaryTabs
+        receipts={receipts}
+        activeTab="r1"
+        onTabChange={vi.fn()}
+        onRenameReceipt={vi.fn()}
+        onAddReceipt={onAddReceipt}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('summary-add-receipt-btn'));
+    expect(onAddReceipt).toHaveBeenCalledTimes(1);
   });
 });

@@ -14,13 +14,16 @@ export {
   ellipsizeText,
 } from '@features/sharing/logic/receiptSplitImageHelpers';
 
-// 5-color palette matching personColors.ts
+// 8-color palette matching personColors.ts (Plate oklch-based)
 const PERSON_LIGHT_COLORS = [
-  { avatarBg: '#86d97a', avatarText: '#003d46', accent: '#16a34a' }, // emerald
-  { avatarBg: '#89c8ef', avatarText: '#003d46', accent: '#0284c7' }, // sky
-  { avatarBg: '#5ecfbe', avatarText: '#003d46', accent: '#0d9488' }, // teal
-  { avatarBg: '#b4a8e8', avatarText: '#003d46', accent: '#7c3aed' }, // violet
-  { avatarBg: '#f5d87a', avatarText: '#003d46', accent: '#d97706' }, // amber
+  { avatarBg: '#c54a2f', avatarText: '#ffffff', accent: '#c54a2f' }, // tomato
+  { avatarBg: '#2a7338', avatarText: '#ffffff', accent: '#2a7338' }, // basil
+  { avatarBg: '#b87420', avatarText: '#ffffff', accent: '#b87420' }, // citrus
+  { avatarBg: '#335598', avatarText: '#ffffff', accent: '#335598' }, // mineral
+  { avatarBg: '#7a3daa', avatarText: '#ffffff', accent: '#7a3daa' }, // purple
+  { avatarBg: '#1a7a6a', avatarText: '#ffffff', accent: '#1a7a6a' }, // teal
+  { avatarBg: '#b87828', avatarText: '#ffffff', accent: '#b87828' }, // amber
+  { avatarBg: '#5040a0', avatarText: '#ffffff', accent: '#5040a0' }, // indigo
 ];
 
 export function getPersonLightColor(index: number) {
@@ -48,7 +51,7 @@ export function drawRoundedRect(
   ctx.closePath();
 }
 
-/** White card with subtle shadow — like bg-surface-container-lowest rounded-2xl */
+/** Cream card — like bg-cream rounded-[22px] */
 export function drawLightCardShell(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -57,17 +60,14 @@ export function drawLightCardShell(
   h: number,
 ): number {
   ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.10)';
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetY = 4;
-  ctx.fillStyle = '#ffffff';
-  drawRoundedRect(ctx, x, y, w, h, 16);
+  ctx.fillStyle = '#f2ede2';
+  drawRoundedRect(ctx, x, y, w, h, 22);
   ctx.fill();
   ctx.restore();
   return y + h;
 }
 
-/** Light gray inner card — like bg-surface-container-low rounded-xl */
+/** Cream-dim inner card — like bg-cream-dim rounded-[18px] */
 export function drawNestedCard(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -75,8 +75,8 @@ export function drawNestedCard(
   w: number,
   h: number,
 ): void {
-  ctx.fillStyle = '#f0f0f0';
-  drawRoundedRect(ctx, x, y, w, h, 12);
+  ctx.fillStyle = '#e8e2d4';
+  drawRoundedRect(ctx, x, y, w, h, 18);
   ctx.fill();
 }
 
@@ -96,7 +96,7 @@ export function drawAvatar(
   ctx.fill();
 
   ctx.fillStyle = textColor;
-  ctx.font = `700 ${Math.round(radius * 0.9)}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `600 ${Math.round(radius * 0.9)}px 'Fraunces', Georgia, serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(initial, cx, cy);
@@ -125,8 +125,8 @@ export function drawCurrencyConversionLines(
   const rate = parseFloat((1 / conversionRate).toFixed(5));
 
   ctx.save();
-  ctx.font = '400 18px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#49454f';
+  ctx.font = '400 18px Inter, system-ui, sans-serif';
+  ctx.fillStyle = '#5c5a55';
   ctx.textAlign = 'right';
   ctx.fillText(`≈ ${formatCurrencyFromCents(sgdAmount, BASE_CURRENCY)}`, rightEdge, y);
   ctx.fillText(`1 ${BASE_CURRENCY} = ${rate} ${fromCurrency}`, rightEdge, y + lineH);
@@ -155,19 +155,19 @@ export function drawLightTwoColumnRow(
 ): void {
   const style = args.italic ? 'italic ' : '';
   const weight = args.emphasized ? 700 : 400;
-  const valueFont = `${style}${weight} ${args.size}px system-ui, -apple-system, sans-serif`;
-  const labelFont = `${style}${weight} ${Math.max(14, args.size - 2)}px system-ui, -apple-system, sans-serif`;
+  const valueFont = `${style}${weight} ${args.size}px Inter, system-ui, sans-serif`;
+  const labelFont = `${style}${weight} ${Math.max(14, args.size - 2)}px Inter, system-ui, sans-serif`;
 
   ctx.font = valueFont;
   const valueWidth = ctx.measureText(args.value).width;
   const labelMaxWidth = Math.max(80, args.width - valueWidth - 16);
 
   ctx.font = labelFont;
-  ctx.fillStyle = args.labelColor ?? '#49454f';
+  ctx.fillStyle = args.labelColor ?? '#5c5a55';
   ctx.fillText(ellipsizeText(ctx, args.label, labelMaxWidth), args.x, args.y);
 
   ctx.font = valueFont;
-  ctx.fillStyle = args.valueColor ?? '#1c1b1f';
+  ctx.fillStyle = args.valueColor ?? '#0e0e0c';
   ctx.textAlign = 'right';
   ctx.fillText(args.value, args.x + args.width, args.y);
   ctx.textAlign = 'left';

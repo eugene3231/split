@@ -200,15 +200,15 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1/i);
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/People/i);
       clickContinue();
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Receipt/i);
       clickContinue();
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 3/i);
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Assign/i);
       clickContinue(); // assign → review
       clickContinue(); // review → final
       expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4/i);
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Summary/i);
     });
 
     it('supports back navigation through all steps', async () => {
@@ -228,10 +228,10 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument();
 
       clickBack(); // items/assign → receipt
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Receipt/i);
 
       clickBack(); // receipt → people
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1/i);
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/People/i);
       expect(screen.queryByTestId('wizard-back-btn')).not.toBeInTheDocument();
     });
 
@@ -565,7 +565,7 @@ describe('ReceiptSplitterPage integration', () => {
     it('navigates back to receipt step when add new receipt is clicked', async () => {
       await navigateToFinal();
       fireEvent.click(screen.getByTestId('summary-add-receipt-btn'));
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Receipt/i);
     });
   });
 
@@ -801,7 +801,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue(); // → receipt
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Receipt/i);
 
       await waitFor(() => {
         const saved = window.localStorage.getItem('split:simple-wizard-state:v1');
@@ -812,7 +812,7 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+        expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Receipt/i);
       });
     });
 

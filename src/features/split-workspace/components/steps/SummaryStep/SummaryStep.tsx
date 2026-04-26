@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { getShareSupport } from '@features/sharing/logic/shareSplit';
-import { PersonCard } from './PersonCard';
+import { PersonRowCompact } from './PersonRowCompact';
+import { buildRankedList } from './buildRankedList';
 import { BASE_CURRENCY } from '@shared/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { SummaryTabs } from './SummaryTabs';
@@ -9,8 +10,18 @@ import { CurrencyToggle } from './CurrencyToggle';
 import { GrandTotalCard } from './GrandTotalCard';
 import { ExportActions } from './ExportActions';
 import { ImagePreviewModal } from './ImagePreviewModal';
+import { PersonPaymentCard } from './PersonPaymentCard';
+import { PayNowQrSheet } from './PayNowQrSheet';
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
+
+const LARGE_GROUP_THRESHOLD = 7;
+
+function getUniqueItemCount(split: { lineItemsByPerson: Record<string, { itemId: string }[]> }) {
+  return new Set(
+    Object.values(split.lineItemsByPerson).flatMap((lines) => lines.map((line) => line.itemId)),
+  ).size;
+}
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
@@ -21,29 +32,46 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
     const receipts = useReceiptStore.getState().receipts;
     return receipts.length > 1 ? 'total' : (receipts[0]?.id ?? 'total');
   });
-  const [showDetails, setShowDetails] = useState(true);
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
+  const [summarySearch, setSummarySearch] = useState('');
+  const [sortDescending, setSortDescending] = useState(true);
+  const [expandedPersonId, setExpandedPersonId] = useState<string | null | undefined>(undefined);
+  const [payNowPersonId, setPayNowPersonId] = useState<string | null>(null);
+  const setPayerMobile = useReceiptStore((s) => s.setPayerMobile);
 
   const model = useSummaryModel({
     activeTab,
     showBaseCurrency,
   });
-  const {
-    people,
-    receipts,
-    isMultiReceipt,
-    activeSummaryReceipt,
-    renameReceipt,
-    view,
-    qrDataUrls,
-  } = model;
+  const { people, receipts, activeSummaryReceipt, renameReceipt, view, qrDataUrls, payerMobile } =
+    model;
   const reconciliationCents = model.reconciliation.cents;
   const { busy, copied, exportError, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
       model,
-      includeItemDetails: showDetails,
+      includeItemDetails: true,
       showBaseCurrency,
     });
+
+  const defaultExpandedPersonId =
+    people.length > 0 && people.length < LARGE_GROUP_THRESHOLD
+      ? (people.find((person) => (view.displaySplit.totalByPersonCents[person.id] ?? 0) > 0)?.id ??
+        people[0]?.id ??
+        null)
+      : null;
+  const hasChosenExpandedPerson =
+    expandedPersonId === null ||
+    (expandedPersonId !== undefined && people.some((person) => person.id === expandedPersonId));
+  const effectiveExpandedPersonId = hasChosenExpandedPerson
+    ? expandedPersonId
+    : defaultExpandedPersonId;
+
+  const payNowPerson = payNowPersonId
+    ? people.find((person) => person.id === payNowPersonId)
+    : null;
+  const payNowColorIndex = payNowPerson
+    ? people.findIndex((person) => person.id === payNowPerson.id)
+    : -1;
 
   if (receipts.length === 0) {
     return null;
@@ -56,160 +84,85 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
     (view.kind === 'receipt' && view.isForeign) || (view.kind === 'total' && view.hasAnyForeign);
 
   const nativeShareSupported = getShareSupport() === 'native';
+  const exchangeRateText =
+    view.kind === 'receipt' && view.effectiveRate
+      ? `1 ${BASE_CURRENCY} = ${parseFloat((1 / view.effectiveRate).toFixed(5))} ${
+          view.nativeCurrency
+        }${view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}`
+      : null;
+  const itemCount = getUniqueItemCount(view.displaySplit);
+  const itemCountLabel = `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
 
   return (
-    <div>
-      {/* Title + tabs */}
-      <div className="mb-8">
-        {/* Desktop header */}
-        <div className="mb-6 hidden md:block">
-          <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-            Final Breakdown
-          </h1>
-          <p className="text-lg text-on-surface-variant">
-            Review the consolidated grand total or individual receipt details.
-          </p>
-        </div>
+    <div className="relative">
+      {/* Receipt context + title */}
+      <div className="mb-4">
+        <SummaryTabs
+          receipts={receipts}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onRenameReceipt={renameReceipt}
+          onAddReceipt={onAddReceipt}
+        />
 
-        {/* Mobile header */}
-        <div className="mb-4 md:hidden">
-          <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
-            Final Breakdown
+        <div className="mt-4 flex items-start justify-between gap-3">
+          <h1 className="min-w-0 flex-1 font-display text-4xl leading-[0.95] font-medium tracking-tight text-ink sm:text-5xl">
+            The bill, <span className="font-display italic">divided.</span>
           </h1>
-          <p className="mt-0.5 text-xs text-on-surface-variant">
-            Review the consolidated grand total or individual receipt details.
-          </p>
+          {showCurrencyControls && (
+            <CurrencyToggle
+              showBaseCurrency={showBaseCurrency}
+              onToggle={setShowBaseCurrency}
+              activeTab={activeTab}
+              currentCurrency={nativeCurrency}
+            />
+          )}
         </div>
-
-        {isMultiReceipt && (
-          <SummaryTabs
-            receipts={receipts}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onRenameReceipt={renameReceipt}
-          />
-        )}
       </div>
 
       {/* Discrepancy notice */}
       {reconciliationCents !== null && reconciliationCents !== 0 && (
-        <div className="mb-8">
-          <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-error/20 bg-error-container/30 p-6 md:flex-row">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-error-container text-on-error-container">
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  warning
-                </span>
-              </div>
-              <div>
-                <h4 className="font-bold text-on-error-container">Reconciliation Discrepancy</h4>
-                <p className="text-sm text-on-error-container opacity-80">
-                  The sum of individual shares is{' '}
-                  {formatCurrencyFromCents(Math.abs(reconciliationCents))} off from the receipt
-                  total.
-                </p>
-              </div>
-            </div>
-            {reconciliationCents < 0 && (
-              <button
-                type="button"
-                onClick={model.reconciliation.applyCorrectiveDiscount}
-                className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
+        <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-[20px] bg-accent-red/10 p-5 md:flex-row md:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-accent-red text-ink">
+              <span
+                className="material-symbols-outlined text-sm"
+                style={{ fontVariationSettings: "'FILL' 1" }}
               >
-                Apply Corrective Discount
-              </button>
-            )}
+                warning
+              </span>
+            </div>
+            <div>
+              <p className="font-semibold text-ink">Reconciliation mismatch</p>
+              <p className="text-sm text-ink2">
+                {formatCurrencyFromCents(Math.abs(reconciliationCents))} off from the receipt total.
+              </p>
+            </div>
           </div>
+          {reconciliationCents < 0 && (
+            <button
+              type="button"
+              onClick={model.reconciliation.applyCorrectiveDiscount}
+              className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold whitespace-nowrap text-white transition-opacity hover:opacity-90"
+            >
+              Apply Corrective Discount
+            </button>
+          )}
         </div>
       )}
 
-      {/* Main two-column layout */}
-      <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Left: Person cards */}
-        <div className="order-2 lg:order-1 lg:col-span-8">
-          <div className="mb-3 flex items-center justify-between">
-            {showCurrencyControls ? (
-              <div className="flex flex-wrap items-center gap-4">
-                <CurrencyToggle
-                  showBaseCurrency={showBaseCurrency}
-                  onToggle={setShowBaseCurrency}
-                  activeTab={activeTab}
-                  currentCurrency={nativeCurrency}
-                />
-                {view.kind === 'total' && view.foreignRates.length > 0 ? (
-                  <></>
-                ) : view.kind === 'receipt' && view.effectiveRate ? (
-                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                    <span className="material-symbols-outlined text-sm">currency_exchange</span>
-                    <span>
-                      1 {BASE_CURRENCY} = {parseFloat((1 / view.effectiveRate).toFixed(5))}{' '}
-                      {view.nativeCurrency}
-                      {view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <span />
-            )}
-            <button
-              type="button"
-              data-testid="summary-show-details-btn"
-              onClick={() => setShowDetails((v) => !v)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
-            >
-              <span className="material-symbols-outlined text-base">
-                {showDetails ? 'expand_less' : 'expand_more'}
-              </span>
-              {showDetails ? 'Hide details' : 'Show details'}
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            {people.map((person, index) => (
-              <PersonCard
-                key={person.id}
-                person={person}
-                colorIndex={index}
-                split={view.displaySplit}
-                discount={view.discount}
-                serviceCharge={view.serviceCharge}
-                gst={view.gst}
-                showDetails={showDetails}
-                currency={view.displayCurrency}
-                conversionRate={
-                  view.kind === 'receipt' && view.isForeign && !showBaseCurrency
-                    ? (view.effectiveRate ?? undefined)
-                    : undefined
-                }
-                fromCurrency={
-                  view.kind === 'receipt' && view.isForeign && !showBaseCurrency
-                    ? view.nativeCurrency
-                    : undefined
-                }
-                qrDataUrl={qrDataUrls[person.id]}
-                receiptBreakdown={view.kind === 'total' ? view.receiptBreakdowns : undefined}
-              />
-            ))}
-            {people.length === 0 && (
-              <p className="py-8 text-center text-sm text-on-surface-variant">
-                Add people to see the breakdown.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Grand total + export */}
+      {/* Main layout — stacked on mobile, two-column on desktop */}
+      <div className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Right column first on mobile (hero card) */}
         <div className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-4">
           <GrandTotalCard
             grandTotal={view.grandTotal}
             displayCurrency={view.displayCurrency}
-            currentReceipt={receiptForExport}
+            currentReceipt={view.kind === 'receipt' ? receiptForExport : null}
             people={people}
             onRenameReceipt={renameReceipt}
+            split={view.displaySplit}
+            exchangeRateText={exchangeRateText}
           />
           <ExportActions
             busy={busy}
@@ -221,21 +174,122 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
             onPreview={preview}
           />
         </div>
+
+        {/* Person list */}
+        <div className="order-2 lg:order-1 lg:col-span-8">
+          <div className="mb-3 text-xs font-semibold tracking-[0.28em] text-ink2 uppercase">
+            Per person · {itemCountLabel}
+          </div>
+          {(() => {
+            const isLargeGroup = people.length >= LARGE_GROUP_THRESHOLD;
+
+            if (isLargeGroup) {
+              const ranked = buildRankedList(people, view.displaySplit);
+              const maxCents = ranked[0]?.totalCents ?? 0;
+              const filtered = summarySearch
+                ? ranked.filter((r) =>
+                    r.person.name.toLowerCase().includes(summarySearch.toLowerCase()),
+                  )
+                : ranked;
+              const displayed = sortDescending ? filtered : [...filtered].reverse();
+
+              return (
+                <>
+                  {/* Search + sort controls */}
+                  <div className="mb-3 flex gap-2">
+                    <div className="flex flex-1 items-center gap-2 rounded-[14px] bg-cream px-3 py-2.5">
+                      <span className="material-symbols-outlined text-sm text-ink2">search</span>
+                      <input
+                        type="text"
+                        placeholder="Find someone…"
+                        value={summarySearch}
+                        onChange={(e) => setSummarySearch(e.target.value)}
+                        className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink2/60"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSortDescending((v) => !v)}
+                      className="flex items-center gap-1.5 rounded-[14px] bg-cream px-3 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-cream-dim"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        {sortDescending ? 'arrow_downward' : 'arrow_upward'}
+                      </span>
+                      {sortDescending ? 'High → low' : 'Low → high'}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    {displayed.length > 0 ? (
+                      displayed.map(({ person, originalIndex, totalCents }, i) => (
+                        <PersonRowCompact
+                          key={person.id}
+                          rank={sortDescending ? i + 1 : ranked.length - i}
+                          person={person}
+                          colorIndex={originalIndex}
+                          totalCents={totalCents}
+                          maxCents={maxCents}
+                          currency={view.displayCurrency}
+                        />
+                      ))
+                    ) : (
+                      <p className="py-6 text-center text-sm text-ink2">
+                        No match for "{summarySearch}"
+                      </p>
+                    )}
+                  </div>
+                </>
+              );
+            }
+
+            return (
+              <>
+                <div className="flex flex-col gap-3">
+                  {people.map((person, index) => (
+                    <PersonPaymentCard
+                      key={person.id}
+                      person={person}
+                      colorIndex={index}
+                      split={view.displaySplit}
+                      discount={view.discount}
+                      serviceCharge={view.serviceCharge}
+                      gst={view.gst}
+                      expanded={effectiveExpandedPersonId === person.id}
+                      currency={view.displayCurrency}
+                      receiptBreakdown={view.kind === 'total' ? view.receiptBreakdowns : undefined}
+                      onToggle={() =>
+                        setExpandedPersonId(
+                          effectiveExpandedPersonId === person.id ? null : person.id,
+                        )
+                      }
+                      onShowPayNow={() => setPayNowPersonId(person.id)}
+                    />
+                  ))}
+                  {people.length === 0 && (
+                    <p className="py-8 text-center text-sm text-ink2">
+                      Add people to see the breakdown.
+                    </p>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </div>
       </div>
 
-      {/* Add receipt secondary action */}
-      <div className="mb-4 flex justify-center">
-        <button
-          type="button"
-          data-testid="summary-add-receipt-btn"
-          onClick={onAddReceipt}
-          className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
-        >
-          <span className="material-symbols-outlined text-base">add_box</span>
-          Add new receipt
-        </button>
-      </div>
       {previewUrl && <ImagePreviewModal url={previewUrl} onClose={closePreview} />}
+      {payNowPerson && payNowColorIndex >= 0 && (
+        <PayNowQrSheet
+          person={payNowPerson}
+          colorIndex={payNowColorIndex}
+          totalCents={view.displaySplit.totalByPersonCents[payNowPerson.id] ?? 0}
+          currency={view.displayCurrency}
+          payerMobile={payerMobile}
+          qrDataUrl={qrDataUrls[payNowPerson.id]}
+          onPayerMobileChange={setPayerMobile}
+          onClose={() => setPayNowPersonId(null)}
+        />
+      )}
     </div>
   );
 }

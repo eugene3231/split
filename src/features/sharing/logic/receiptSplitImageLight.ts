@@ -149,6 +149,10 @@ export async function generateReceiptSplitImageLight(
   const COLS = options.people.length >= 5 ? 3 : 2;
   const canvasWidth = COLS === 3 ? 2700 : CANVAS_WIDTH;
 
+  // Ensure Fraunces is loaded before drawing so canvas text renders correctly
+  await document.fonts.load('500 44px Fraunces');
+  await document.fonts.load('400 22px Inter');
+
   const scratch = document.createElement('canvas');
   scratch.width = canvasWidth;
   scratch.height = computeRequiredHeight(options, COLS);
@@ -163,8 +167,8 @@ export async function generateReceiptSplitImageLight(
     options.payerMobile,
   );
 
-  // Light background
-  ctx.fillStyle = '#f5f5f5';
+  // Warm off-white background
+  ctx.fillStyle = '#fffcf7';
   ctx.fillRect(0, 0, scratch.width, scratch.height);
 
   let y = CANVAS_PADDING;
@@ -172,13 +176,13 @@ export async function generateReceiptSplitImageLight(
   const cardWidth = canvasWidth - x * 2;
 
   // Title
-  ctx.fillStyle = '#1c1b1f';
-  ctx.font = '700 44px system-ui, -apple-system, sans-serif';
-  ctx.fillText(options.receiptName || 'Receipt Splitter', x, y);
+  ctx.fillStyle = '#0e0e0c';
+  ctx.font = '500 44px Fraunces, Georgia, serif';
+  ctx.fillText(options.receiptName || 'Split', x, y);
   y += 36;
 
-  ctx.fillStyle = '#49454f';
-  ctx.font = '500 22px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#5c5a55';
+  ctx.font = '400 22px Inter, system-ui, sans-serif';
   ctx.fillText(`Generated ${formatGeneratedAt(new Date())}`, x, y);
   y += 40;
 
@@ -195,8 +199,8 @@ export async function generateReceiptSplitImageLight(
   // Person cards — adaptive column grid
   if (options.people.length === 0) {
     drawLightCardShell(ctx, x, y, cardWidth, 72);
-    ctx.fillStyle = '#49454f';
-    ctx.font = '500 22px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#5c5a55';
+    ctx.font = '400 22px Inter, system-ui, sans-serif';
     ctx.fillText('No people added yet.', x + CARD_PAD, y + 46);
     y += 72 + BETWEEN_CARD_GAP;
   } else {
@@ -297,20 +301,17 @@ function drawGrandTotalCard(ctx: CanvasRenderingContext2D, args: GrandTotalCardA
   const h = GRAND_TOTAL_CARD_H;
 
   ctx.save();
-  const grad = ctx.createLinearGradient(args.x, args.y, args.x + args.width, args.y);
-  grad.addColorStop(0, '#2d6a7f');
-  grad.addColorStop(1, '#1e5068');
-  ctx.fillStyle = grad;
-  drawRoundedRect(ctx, args.x, args.y, args.width, h, 16);
+  ctx.fillStyle = '#0e0e0c';
+  drawRoundedRect(ctx, args.x, args.y, args.width, h, 28);
   ctx.fill();
   ctx.restore();
 
-  ctx.fillStyle = 'rgba(255,255,255,0.70)';
-  ctx.font = '700 20px system-ui, -apple-system, sans-serif';
-  ctx.fillText('GRAND TOTAL', args.x + CARD_PAD, args.y + 36);
+  ctx.fillStyle = 'rgba(255,255,255,0.50)';
+  ctx.font = '500 20px Inter, system-ui, sans-serif';
+  ctx.fillText('Grand total', args.x + CARD_PAD, args.y + 36);
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = '600 52px system-ui, -apple-system, sans-serif';
+  ctx.font = '500 52px Fraunces, Georgia, serif';
   ctx.fillText(
     formatCurrencyFromCents(args.split.grandTotalCents, args.currency),
     args.x + CARD_PAD,
@@ -432,17 +433,17 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
   const initial = args.person.name.trim().charAt(0).toUpperCase() || '?';
   drawAvatar(ctx, avatarCX, avatarCY, AVATAR_RADIUS, initial, color.avatarBg, color.avatarText);
 
-  ctx.fillStyle = '#1c1b1f';
-  ctx.font = '700 28px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#0e0e0c';
+  ctx.font = '500 28px Fraunces, Georgia, serif';
   ctx.fillText(args.person.name, innerX + AVATAR_RADIUS * 2 + AVATAR_GAP, args.y + CARD_PAD + 30);
 
   const total = args.split.totalByPersonCents[args.person.id] ?? 0;
-  ctx.font = '500 18px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#49454f';
+  ctx.font = '400 18px Inter, system-ui, sans-serif';
+  ctx.fillStyle = '#5c5a55';
   ctx.textAlign = 'right';
   ctx.fillText('Total Due', args.x + args.width - CARD_PAD, args.y + CARD_PAD + 18);
-  ctx.font = '600 32px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#1c1b1f';
+  ctx.font = '500 32px Fraunces, Georgia, serif';
+  ctx.fillStyle = '#0e0e0c';
   ctx.fillText(
     formatCurrencyFromCents(total, args.currency),
     args.x + args.width - CARD_PAD,

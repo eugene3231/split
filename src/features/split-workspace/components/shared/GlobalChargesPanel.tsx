@@ -35,12 +35,12 @@ export function GlobalChargesPanel({
   currency,
 }: Props) {
   return (
-    <div className="sticky top-24 rounded-3xl border border-surface-container-highest bg-surface-container-lowest p-8 shadow-lg">
-      <h3 className="font-headline mb-8 border-b border-surface-container-high pb-4 text-xl font-bold text-primary">
+    <div className="sticky top-24 rounded-[24px] bg-cream p-6">
+      <h3 className="mb-6 border-b border-cream-dim pb-4 font-display text-xl font-semibold text-ink">
         Global Charges
       </h3>
 
-      <div className="mb-10 space-y-6">
+      <div className="mb-8 space-y-6">
         <ChargeToggle label="GST / Tax" value={gst} onChange={onGstChange} />
         <ChargeToggle
           label="Service Charge"
@@ -63,12 +63,12 @@ export function GlobalChargesPanel({
         <div>
           <label
             htmlFor="receipt-total-new"
-            className="font-label mb-2 block text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+            className="mb-2 block font-label text-[10px] font-semibold tracking-widest text-ink2 uppercase"
           >
             Receipt Total (Override)
           </label>
           <div className="relative">
-            <span className="absolute top-1/2 left-4 -translate-y-1/2 font-bold text-on-surface-variant">
+            <span className="absolute top-1/2 left-4 -translate-y-1/2 font-bold text-ink2">
               {getCurrencySymbol(currency ?? BASE_CURRENCY)}
             </span>
             <input
@@ -79,7 +79,7 @@ export function GlobalChargesPanel({
               value={receiptTotalInput}
               onChange={(e) => onReceiptTotalInputChange(e.target.value)}
               placeholder="0.00"
-              className="font-headline w-full rounded-2xl border-2 border-transparent bg-surface-container-high py-5 pr-4 pl-8 pl-12 text-3xl font-extrabold text-on-surface transition-all outline-none focus:border-primary/20"
+              className="w-full rounded-2xl border-2 border-transparent bg-cream-dim py-5 pr-4 pl-12 font-display text-3xl font-semibold text-ink transition-all outline-none focus:border-ink/20"
             />
           </div>
         </div>

@@ -1,5 +1,6 @@
 import type { Person, SplitResult } from '@shared/types';
 import { renderQrCanvas } from '@features/payments/qr/logic/renderQrCanvas';
+import paynowLogoUrl from '@assets/paynow-logo.svg';
 import { buildPaynowString, normalizeMobile } from './paynow';
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -91,7 +92,7 @@ export async function generatePaynowQrDataUrls(
   const normalised = normalizeMobile(payerMobile);
   if (!normalised) return {};
 
-  const logo = await loadImage('/paynow-logo.svg').catch(() => null);
+  const logo = await loadImage(paynowLogoUrl).catch(() => null);
 
   const entries = await Promise.all(
     people.map(async (person) => {
