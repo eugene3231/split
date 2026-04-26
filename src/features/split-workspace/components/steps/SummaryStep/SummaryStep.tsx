@@ -177,7 +177,10 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
 
         {/* Person list */}
         <div className="order-2 lg:order-1 lg:col-span-8">
-          <div className="mb-3 text-xs font-semibold tracking-[0.28em] text-ink2 uppercase">
+          <div
+            data-testid="summary-per-person-header"
+            className="mb-3 text-xs font-semibold tracking-[0.28em] text-ink2 uppercase"
+          >
             Per person · {itemCountLabel}
           </div>
           {(() => {

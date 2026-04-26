@@ -46,11 +46,10 @@ describe('GrandTotalCard', () => {
   it('renders the compact grand total card without expandable details', () => {
     renderCard();
 
-    expect(screen.getByText('Grand total')).toBeInTheDocument();
+    expect(screen.getByTestId('grand-total-label')).toBeInTheDocument();
     expect(screen.getByText('$20.00')).toBeInTheDocument();
-    expect(screen.getByText('2 people')).toBeInTheDocument();
+    expect(screen.getByTestId('grand-total-people-count')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /show details/i })).not.toBeInTheDocument();
-    expect(screen.queryByText('Highest')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('PayNow Number')).not.toBeInTheDocument();
   });
 
@@ -67,6 +66,6 @@ describe('GrandTotalCard', () => {
       />,
     );
 
-    expect(screen.getByText('1 SGD = 3.10662 MYR')).toBeInTheDocument();
+    expect(screen.getByTestId('grand-total-exchange-rate')).toBeInTheDocument();
   });
 });

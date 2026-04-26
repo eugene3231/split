@@ -60,7 +60,7 @@ export function GrandTotalCard({
                 iconClassName="text-white/30"
               />
             ) : (
-              <span>Grand total</span>
+              <span data-testid="grand-total-label">Grand total</span>
             )}
           </div>
         </div>
@@ -76,8 +76,12 @@ export function GrandTotalCard({
         </div>
 
         <div className="mb-3 flex items-center justify-between gap-4 text-xs font-medium text-white/55">
-          <span>{peopleLabel}</span>
-          {exchangeRateText && <span className="text-right">{exchangeRateText}</span>}
+          <span data-testid="grand-total-people-count">{peopleLabel}</span>
+          {exchangeRateText && (
+            <span data-testid="grand-total-exchange-rate" className="text-right">
+              {exchangeRateText}
+            </span>
+          )}
         </div>
 
         {/* Stacked proportion bar — proportional widths when split data available */}

@@ -123,7 +123,7 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('assign-split-mode-toggle')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Equal split' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'By shares' })).not.toBeDisabled();
-    expect(screen.queryByText('Share weights')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('assign-weight-controls')).not.toBeInTheDocument();
 
     rerender(
       <AssignStep

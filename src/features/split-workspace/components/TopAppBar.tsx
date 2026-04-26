@@ -82,7 +82,11 @@ export function TopAppBar({
         </nav>
 
         {/* Step context */}
-        <div data-testid="wizard-step-context" className="flex items-baseline gap-2 text-right">
+        <div
+          data-testid="wizard-step-context"
+          data-step={activeStep}
+          className="flex items-baseline gap-2 text-right"
+        >
           <span className="font-body text-sm font-semibold text-ink">{stepLabel}</span>
           <span className="font-body text-sm text-ink2">
             {stepNumber}/{STEP_ORDER.length}

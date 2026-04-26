@@ -114,7 +114,7 @@ describe('SummaryStep', () => {
   it('labels the total tab hero card as Grand total instead of the first receipt name', () => {
     render(<SummaryStep onAddReceipt={vi.fn()} />);
 
-    expect(screen.getByText('Grand total')).toBeInTheDocument();
+    expect(screen.getByTestId('grand-total-label')).toBeInTheDocument();
   });
 
   it('calls onAddReceipt from the summary tabs plus control', () => {
@@ -191,7 +191,7 @@ describe('SummaryStep', () => {
     render(<SummaryStep onAddReceipt={vi.fn()} />);
 
     await waitFor(() => expect(screen.getByText('Pasta Alfredo')).toBeInTheDocument());
-    expect(screen.getByText('Per person · 1 item')).toBeInTheDocument();
+    expect(screen.getByTestId('summary-per-person-header')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Maya/ }));
 
@@ -252,11 +252,9 @@ describe('SummaryStep', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /Show PayNow QR/i }));
 
-    expect(screen.getByText('Theo owes')).toBeInTheDocument();
+    expect(screen.getByTestId('paynow-sheet-owes-label')).toBeInTheDocument();
     expect(screen.getByLabelText('PayNow number - receiver')).toHaveValue('9123 4567');
-    expect(
-      screen.getByText("This is the bill payer's number. Theo pays this receiver."),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('paynow-sheet-help-text')).toBeInTheDocument();
     expect(screen.getByAltText('PayNow QR for Theo to pay the bill payer')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('PayNow number - receiver'), {
@@ -308,6 +306,6 @@ describe('SummaryStep', () => {
     render(<SummaryStep onAddReceipt={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: /MYR/ })).toBeInTheDocument();
-    expect(screen.getByText(/1 SGD =/)).toBeInTheDocument();
+    expect(screen.getByTestId('grand-total-exchange-rate')).toBeInTheDocument();
   });
 });

@@ -499,6 +499,7 @@ function AssignOrbitView({
       <div className="flex items-center justify-between">
         <p
           data-testid="assign-item-counter"
+          data-item-index={activeItemIndex}
           className="font-body text-xs font-semibold tracking-widest text-ink2 uppercase"
         >
           Item {activeItemIndex + 1} of {items.length}
@@ -770,6 +771,7 @@ function AssignGridView({
       <div className="flex items-center justify-between">
         <p
           data-testid="assign-item-counter"
+          data-item-index={activeItemIndex}
           className="text-xs font-semibold tracking-widest text-ink2 uppercase"
         >
           Item {activeItemIndex + 1} of {items.length} · party of {people.length}

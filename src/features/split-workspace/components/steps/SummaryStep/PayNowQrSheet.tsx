@@ -57,7 +57,10 @@ export function PayNowQrSheet({
         <div className="mb-5 flex items-center gap-3">
           <PersonAvatar name={person.name} colorIndex={colorIndex} size="xl" />
           <div>
-            <p className="text-[11px] font-semibold tracking-[0.24em] text-ink2 uppercase">
+            <p
+              data-testid="paynow-sheet-owes-label"
+              className="text-[11px] font-semibold tracking-[0.24em] text-ink2 uppercase"
+            >
               {person.name} owes
             </p>
             <h2
@@ -103,7 +106,7 @@ export function PayNowQrSheet({
             />
           </div>
 
-          <p className="mt-3 text-xs text-ink2">
+          <p data-testid="paynow-sheet-help-text" className="mt-3 text-xs text-ink2">
             This is the bill payer's number. {person.name} pays this receiver.
           </p>
         </div>
