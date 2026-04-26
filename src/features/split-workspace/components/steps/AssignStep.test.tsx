@@ -121,7 +121,7 @@ describe('AssignStep', () => {
 
     // Equal item: both split buttons shown, weight controls hidden
     expect(screen.getByTestId('assign-split-mode-toggle')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Equally' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Equal split' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'By shares' })).not.toBeDisabled();
     expect(screen.queryByText('Share weights')).not.toBeInTheDocument();
 
@@ -139,10 +139,10 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('assign-weight-value-p1')).toHaveValue('2');
     expect(screen.getByTestId('assign-weight-value-p2')).toHaveValue('1');
     expect(screen.getByTestId('assign-weight-decrement-p1')).not.toBeDisabled();
-    expect(screen.getByTestId('assign-weight-decrement-p2')).toBeDisabled();
+    expect(screen.getByTestId('assign-weight-decrement-p2')).not.toBeDisabled();
   });
 
-  it('clears saved weights when clicking Equally in shares mode', () => {
+  it('clears saved weights when clicking Equal split in shares mode', () => {
     render(
       <AssignStep
         itemsSubPhase="assign"
@@ -152,8 +152,8 @@ describe('AssignStep', () => {
       />,
     );
 
-    // In shares mode, click "Equally" to switch back (By shares button does nothing)
-    fireEvent.click(screen.getByRole('button', { name: 'Equally' }));
+    // In shares mode, click "Equal split" to switch back (By shares button does nothing)
+    fireEvent.click(screen.getByRole('button', { name: 'Equal split' }));
 
     const weightedItem = storeMock.receipts[0].items[1];
     expect(weightedItem.assignment.weights).toBeUndefined();
@@ -185,7 +185,7 @@ describe('AssignStep', () => {
     );
 
     expect(screen.getByTestId('assign-split-mode-toggle')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Equally' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Equal split' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'By shares' })).toBeDisabled();
   });
 

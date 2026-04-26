@@ -541,9 +541,10 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1));
     });
 
-    it('does not show receipt tabs with a single receipt', async () => {
+    it('shows summary tabs with a single receipt', async () => {
       await navigateToFinal();
-      expect(screen.queryByTestId('summary-tab-total')).not.toBeInTheDocument();
+      expect(screen.getByTestId('summary-tab-total')).toBeInTheDocument();
+      expect(screen.getByTestId('summary-tab-receipt-0')).toBeInTheDocument();
     });
 
     it('shows receipt tabs when multiple receipts exist', async () => {
