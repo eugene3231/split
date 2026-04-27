@@ -21,7 +21,7 @@ export default defineConfig({
         test: {
           name: {
             label: 'unit',
-            color: 'blue',
+            color: 'green',
           },
           environment: 'jsdom',
           setupFiles: ['./src/tests/setup.ts'],
@@ -34,7 +34,7 @@ export default defineConfig({
         test: {
           name: {
             label: 'integration',
-            color: 'cyan',
+            color: 'blue',
           },
           environment: 'jsdom',
           setupFiles: ['./src/tests/setup.ts'],
