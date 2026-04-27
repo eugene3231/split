@@ -15,9 +15,34 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    exclude: ['**/node_modules/**', '.claude/**'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: {
+            label: 'unit',
+            color: 'blue',
+          },
+          environment: 'jsdom',
+          setupFiles: ['./src/tests/setup.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
+          exclude: ['**/node_modules/**', '.claude/**', 'src/tests/integration/**'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: {
+            label: 'integration',
+            color: 'cyan',
+          },
+          environment: 'jsdom',
+          setupFiles: ['./src/tests/setup.ts'],
+          include: ['src/tests/integration/**/*.test.ts'],
+          exclude: ['**/node_modules/**', '.claude/**'],
+        },
+      },
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'lcov'],
