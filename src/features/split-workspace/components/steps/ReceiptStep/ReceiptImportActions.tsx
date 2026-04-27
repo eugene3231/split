@@ -66,18 +66,18 @@ export function ReceiptImportActions({
   return (
     <div
       className={cn(
-        'space-y-4 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm',
+        'space-y-4 rounded-[20px] bg-cream p-5',
         receiptFile && !hasApiKey && 'ring-2 ring-error',
       )}
     >
-      <h4 className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
+      <h4 className="text-[10px] font-semibold tracking-widest text-ink2 uppercase">
         Scan Receipt
       </h4>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl bg-surface-container-low p-4 transition-colors hover:bg-surface-container-high">
-          <span className="material-symbols-outlined mb-2 text-primary">upload_file</span>
-          <span className="text-[10px] font-bold text-primary">UPLOAD</span>
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[14px] bg-ink p-4 text-white transition-opacity hover:opacity-90">
+          <span className="material-symbols-outlined">upload_file</span>
+          <span className="text-xs font-semibold">Upload</span>
           <input
             ref={fileInputRef}
             type="file"
@@ -87,9 +87,9 @@ export function ReceiptImportActions({
             onChange={handleFileChange}
           />
         </label>
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl bg-surface-container-low p-4 transition-colors hover:bg-surface-container-high">
-          <span className="material-symbols-outlined mb-2 text-primary">photo_camera</span>
-          <span className="text-[10px] font-bold text-primary">CAPTURE</span>
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[14px] bg-cream-dim p-4 text-ink transition-colors hover:bg-cream-dim/80">
+          <span className="material-symbols-outlined">photo_camera</span>
+          <span className="text-xs font-semibold">Capture</span>
           <input
             ref={cameraInputRef}
             type="file"
@@ -102,13 +102,13 @@ export function ReceiptImportActions({
       </div>
 
       {receiptFile && (
-        <div className="space-y-3 border-t border-surface-container-high pt-3">
-          <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+        <div className="space-y-3 border-t border-cream-dim pt-3">
+          <div className="flex items-center gap-2 text-xs text-ink2">
             {previewUrl ? (
               <button
                 type="button"
                 onClick={() => setIsFullscreen(true)}
-                className="h-8 w-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg ring-1 ring-outline-variant/30 transition-all hover:ring-2 hover:ring-primary"
+                className="h-8 w-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg ring-1 ring-cream-dim transition-all hover:ring-2 hover:ring-ink"
               >
                 <img
                   src={previewUrl}
@@ -123,7 +123,7 @@ export function ReceiptImportActions({
               type="button"
               onClick={() => setIsFullscreen(true)}
               aria-label={`Open fullscreen preview of ${receiptFile.name}`}
-              className="flex-1 cursor-pointer truncate text-left transition-colors hover:text-primary"
+              className="flex-1 cursor-pointer truncate text-left transition-colors hover:text-ink"
             >
               {receiptFile.name}
             </button>
@@ -143,25 +143,20 @@ export function ReceiptImportActions({
             <span
               className={cn(
                 'material-symbols-outlined text-sm',
-                hasApiKey ? 'text-secondary' : 'text-error',
+                hasApiKey ? 'text-accent-green' : 'text-error',
               )}
             >
               {hasApiKey ? 'key' : 'key_off'}
             </span>
-            <p
-              className={cn(
-                'text-xs font-medium',
-                hasApiKey ? 'text-on-surface-variant' : 'text-error',
-              )}
-            >
+            <p className={cn('text-xs font-medium', hasApiKey ? 'text-ink2' : 'text-error')}>
               {hasApiKey ? 'Gemini API key set' : 'Gemini API key required.'}
             </p>
             <button
               type="button"
               onClick={() => setShowApiKeyModal(true)}
               className={cn(
-                'cursor-pointer text-xs font-bold underline',
-                hasApiKey ? 'text-on-surface-variant hover:text-primary' : 'text-error',
+                'cursor-pointer text-xs font-semibold underline',
+                hasApiKey ? 'text-ink2 hover:text-ink' : 'text-error',
               )}
             >
               {hasApiKey ? 'Edit' : 'Add Key'}
@@ -173,10 +168,10 @@ export function ReceiptImportActions({
             onClick={onScanReceipt}
             disabled={scan.isScanning || !hasApiKey}
             className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all active:scale-95',
+              'flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-all active:scale-95',
               scan.isScanning || !hasApiKey
-                ? 'cursor-not-allowed bg-surface-container-high text-on-surface-variant opacity-50'
-                : 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/20',
+                ? 'cursor-not-allowed bg-cream-dim text-ink2 opacity-50'
+                : 'bg-ink text-white shadow-sm',
             )}
           >
             <span className="material-symbols-outlined text-sm">
@@ -185,21 +180,21 @@ export function ReceiptImportActions({
             {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan Receipt'}
           </button>
           {scan.scanStatus && !scan.isScanning && (
-            <p className="text-xs font-medium text-secondary">{scan.scanStatus}</p>
+            <p className="text-xs font-medium text-accent-green">{scan.scanStatus}</p>
           )}
           {scan.scanError && <p className="text-xs font-medium text-error">{scan.scanError}</p>}
         </div>
       )}
 
       {mockReceipts.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-surface-container-high pt-3">
+        <div className="flex flex-wrap items-center gap-2 border-t border-cream-dim pt-3">
           {mockReceipts.map(({ onLoad }, i) => (
             <button
               key={i}
               type="button"
               data-testid={`load-mock-receipt-btn-${i}`}
               onClick={onLoad}
-              className="rounded-lg bg-surface-container-low px-2.5 py-1 text-[10px] font-semibold tracking-wide text-on-surface-variant uppercase transition-colors hover:bg-surface-container hover:text-primary"
+              className="rounded-full bg-cream-dim px-3 py-1 text-[10px] font-semibold tracking-wide text-ink2 uppercase transition-colors hover:bg-ink hover:text-white"
             >
               Load Mock Receipt {i + 1}
             </button>

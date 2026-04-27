@@ -22,7 +22,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
             onClick={() => onChange({ ...value, enabled: !isEnabled })}
             className={cn(
               'relative h-6 w-10 flex-shrink-0 cursor-pointer rounded-full p-1 transition-colors',
-              isEnabled ? 'bg-primary' : 'bg-surface-container-highest',
+              isEnabled ? 'bg-ink' : 'bg-cream-dim',
             )}
           >
             <div
@@ -32,31 +32,21 @@ export function ChargeToggle({ label, value, onChange }: Props) {
               )}
             />
           </button>
-          <span
-            className={cn(
-              'text-sm font-bold',
-              isEnabled ? 'text-on-surface' : 'text-on-surface-variant',
-            )}
-          >
+          <span className={cn('text-sm font-semibold', isEnabled ? 'text-ink' : 'text-ink2')}>
             {label}
           </span>
         </div>
 
         {/* $/% mode toggle */}
         <div
-          className={cn(
-            'flex items-center rounded-lg bg-surface-container-low p-1',
-            !isEnabled && 'opacity-50',
-          )}
+          className={cn('flex items-center rounded-full bg-cream p-1', !isEnabled && 'opacity-50')}
         >
           <button
             type="button"
             onClick={() => isEnabled && onChange({ ...value, mode: 'amount' as ChargeMode })}
             className={cn(
-              'rounded-md px-2 py-0.5 text-[10px] font-extrabold transition-all',
-              value.mode === 'amount'
-                ? 'bg-surface-container-lowest text-primary shadow-sm'
-                : 'text-on-surface-variant',
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all',
+              value.mode === 'amount' ? 'bg-ink text-white shadow-sm' : 'text-ink2',
             )}
           >
             $
@@ -65,10 +55,8 @@ export function ChargeToggle({ label, value, onChange }: Props) {
             type="button"
             onClick={() => isEnabled && onChange({ ...value, mode: 'percent' as ChargeMode })}
             className={cn(
-              'rounded-md px-2 py-0.5 text-[10px] font-extrabold transition-all',
-              value.mode === 'percent'
-                ? 'bg-surface-container-lowest text-primary shadow-sm'
-                : 'text-on-surface-variant',
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all',
+              value.mode === 'percent' ? 'bg-ink text-white shadow-sm' : 'text-ink2',
             )}
           >
             %
@@ -78,7 +66,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
 
       {isEnabled && (
         <div className="relative">
-          <span className="absolute top-1/2 left-3 -translate-y-1/2 text-xs font-bold text-primary">
+          <span className="absolute top-1/2 left-3 -translate-y-1/2 text-xs font-semibold text-ink2">
             {value.mode === 'amount' ? '$' : '%'}
           </span>
           <input
@@ -93,13 +81,13 @@ export function ChargeToggle({ label, value, onChange }: Props) {
               )
             }
             placeholder={value.mode === 'amount' ? '0.00' : '0'}
-            className="w-full rounded-xl border-none bg-surface-container-low py-3 pr-3 pl-7 text-sm font-bold text-primary outline-none focus:ring-1 focus:ring-primary/20"
+            className="w-full rounded-xl border-none bg-cream py-3 pr-3 pl-7 text-sm font-semibold text-ink outline-none focus:ring-1 focus:ring-ink/15"
           />
         </div>
       )}
 
       {value.detectedSource && (
-        <p className="text-[10px] text-on-surface-variant/70">
+        <p className="text-[10px] text-ink2/70">
           Detected via {value.detectedSource}
           {value.detectedConfidence !== null
             ? ` (${Math.round(value.detectedConfidence * 100)}% confidence)`

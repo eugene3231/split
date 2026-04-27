@@ -34,7 +34,7 @@ export function LineItemCard({
   const discountVisible = showDiscount || !!item.discountPercentInput;
 
   return (
-    <div className="group relative rounded-xl border border-surface-container-highest bg-surface-container-lowest px-3 py-2.5 shadow-sm transition-all hover:border-primary/20">
+    <div className="group relative rounded-[16px] bg-cream px-3 py-2.5 transition-all hover:bg-cream-dim">
       {/* Name + Price row */}
       <div className="flex items-center justify-between gap-3">
         <input
@@ -42,18 +42,18 @@ export function LineItemCard({
           value={item.name}
           onChange={(e) => onUpdate((current) => ({ ...current, name: e.target.value }))}
           placeholder="Item name"
-          className="w-full border-none bg-transparent p-0 text-base font-medium text-on-surface outline-none placeholder:text-outline focus:ring-0"
+          className="w-full border-none bg-transparent p-0 text-base font-medium text-ink outline-none placeholder:text-ink2/40 focus:ring-0"
         />
         <div className="flex flex-shrink-0 items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg bg-surface-container px-2 py-1">
-            <span className="text-xs font-bold text-on-surface-variant">{currencySymbol}</span>
+          <div className="flex items-center gap-1 rounded-lg bg-cream-dim px-2 py-1">
+            <span className="text-xs font-bold text-ink2">{currencySymbol}</span>
             <input
               type="text"
               inputMode="decimal"
               value={item.amountInput}
               onChange={(e) => onUpdate((current) => ({ ...current, amountInput: e.target.value }))}
               placeholder="0.00"
-              className="w-16 border-none bg-transparent p-0 text-right text-base font-bold text-primary outline-none placeholder:text-outline focus:ring-0"
+              className="w-16 border-none bg-transparent p-0 text-right text-base font-bold text-ink outline-none placeholder:text-ink2/40 focus:ring-0"
             />
           </div>
           <button

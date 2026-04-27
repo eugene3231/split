@@ -1,7 +1,15 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="14" y="6" width="36" height="52" rx="5" stroke="#0F172A" stroke-width="4"/>
-  <path d="M24 20H40" stroke="#0F172A" stroke-width="4" stroke-linecap="round"/>
-  <path d="M24 30H40" stroke="#0F172A" stroke-width="4" stroke-linecap="round"/>
-  <path d="M24 40H34" stroke="#0F172A" stroke-width="4" stroke-linecap="round"/>
-  <path d="M14 50C17 48.2 20 48.2 23 50C26 51.8 29 51.8 32 50C35 48.2 38 48.2 41 50C44 51.8 47 51.8 50 50" stroke="#0F172A" stroke-width="4" stroke-linecap="round"/>
+  <title>split</title>
+  <text
+    x="6"
+    y="39"
+    fill="#11110F"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="27"
+    font-weight="700"
+    letter-spacing="-1.4"
+  >
+    split
+  </text>
+  <path d="M59 20L52 45" stroke="#FF716D" stroke-width="3" stroke-linecap="round" />
 </svg>

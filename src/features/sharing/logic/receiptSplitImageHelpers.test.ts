@@ -65,8 +65,8 @@ describe('getPersonCanvasColor', () => {
   });
 
   it('cycles through the palette for indices beyond its length', () => {
-    expect(getPersonCanvasColor(0)).toEqual(getPersonCanvasColor(6));
-    expect(getPersonCanvasColor(1)).toEqual(getPersonCanvasColor(7));
+    expect(getPersonCanvasColor(0)).toEqual(getPersonCanvasColor(8));
+    expect(getPersonCanvasColor(1)).toEqual(getPersonCanvasColor(9));
   });
 
   it('returns different colors for different indices within the palette', () => {

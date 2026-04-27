@@ -1,0 +1,15 @@
+<svg width="128" height="56" viewBox="0 0 128 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>split</title>
+  <text
+    x="0"
+    y="40"
+    fill="#11110F"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="43"
+    font-weight="700"
+    letter-spacing="-2.2"
+  >
+    split
+  </text>
+  <path d="M84 10L75 45" stroke="#FF716D" stroke-width="4.5" stroke-linecap="round" />
+</svg>

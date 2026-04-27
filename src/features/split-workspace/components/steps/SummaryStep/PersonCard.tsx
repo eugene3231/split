@@ -51,36 +51,36 @@ export function PersonCard({
   const gstAmt = split.gstByPersonCents[person.id] ?? 0;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl bg-surface-container-lowest p-6">
+    <div className="flex h-full flex-col rounded-[22px] bg-cream p-5">
       {/* Header */}
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <PersonAvatar name={person.name} colorIndex={colorIndex} />
-          <h3 className="text-2xl font-bold text-primary">{person.name}</h3>
-        </div>
-        <div className="text-right">
-          <span className="mb-1 block text-[10px] leading-none font-semibold tracking-widest text-on-surface-variant uppercase">
-            {receiptBreakdown ? 'Grand Total Due' : 'Total Due'}
-          </span>
-          <p className="font-headline text-3xl leading-none font-semibold text-on-surface">
-            {formatCurrencyFromCents(total, currency)}
-          </p>
+      <div className="flex items-center gap-3">
+        <PersonAvatar name={person.name} colorIndex={colorIndex} size="lg" />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display text-xl font-medium text-ink">{person.name}</h3>
           {conversionRate !== undefined && fromCurrency !== undefined && (
-            <>
-              <span className="mt-1 block text-xs text-on-surface-variant">
-                ≈ {formatCurrencyFromCents(Math.round(total * conversionRate), BASE_CURRENCY)}
-              </span>
-              <span className="block text-xs text-on-surface-variant">
-                1 {BASE_CURRENCY} = {parseFloat((1 / conversionRate).toFixed(5))} {fromCurrency}
-              </span>
-            </>
+            <span className="block text-xs text-ink2">
+              ≈ {formatCurrencyFromCents(Math.round(total * conversionRate), BASE_CURRENCY)}
+              {' · '}1 SGD = {parseFloat((1 / conversionRate).toFixed(5))} {fromCurrency}
+            </span>
           )}
         </div>
+        <div className="flex-shrink-0 text-right">
+          <p
+            className="font-display text-2xl font-medium text-ink"
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {formatCurrencyFromCents(total, currency)}
+          </p>
+          <span className="text-[10px] font-medium tracking-wide text-ink2 uppercase">
+            {receiptBreakdown ? 'Grand Total' : 'Total Due'}
+          </span>
+        </div>
+        <span className="material-symbols-outlined text-sm text-ink2/40">chevron_right</span>
       </div>
 
-      {/* PayNow QR — centered below header */}
+      {/* PayNow QR — below header */}
       {qrDataUrl && (
-        <div className="mb-4 flex flex-col items-center gap-1.5">
+        <div className="mt-4 flex flex-col items-center gap-1.5">
           <button
             type="button"
             onClick={() => {
@@ -94,11 +94,11 @@ export function PersonCard({
             <img
               src={qrDataUrl}
               alt={`PayNow QR for ${person.name}`}
-              className="h-auto w-40 rounded-xl border border-outline-variant/20"
+              className="h-auto w-36 rounded-xl"
             />
-            <span className="flex items-center gap-1 text-xs text-on-surface-variant">
+            <span className="flex items-center gap-1 text-xs text-ink2">
               <span className="material-symbols-outlined text-sm">download</span>
-              Click to download
+              Tap to download
             </span>
           </button>
         </div>
@@ -117,10 +117,7 @@ export function PersonCard({
             );
             if ((entry.split.lineItemsByPerson[person.id] ?? []).length === 0) return null;
             return (
-              <div
-                key={entry.name}
-                className="flex justify-between text-base text-on-surface-variant"
-              >
+              <div key={entry.name} className="flex justify-between text-sm text-ink2">
                 <span className="truncate pr-3">{entry.name}</span>
                 <span className="flex-shrink-0">
                   {formatCurrencyFromCents(entrySubtotalCents, entry.currency)}
@@ -137,7 +134,7 @@ export function PersonCard({
           {receiptBreakdown ? (
             // Multi-receipt: each receipt as its own card
             receiptBreakdown.length === 0 ? (
-              <p className="text-xs text-outline italic">No items assigned.</p>
+              <p className="text-xs text-ink2/60 italic">No items assigned.</p>
             ) : (
               <div className="space-y-3">
                 {receiptBreakdown.map((entry) => {
@@ -154,23 +151,23 @@ export function PersonCard({
                   if (entryLines.length === 0) return null;
 
                   return (
-                    <div key={entry.name} className="rounded-xl bg-surface-container-low p-5">
+                    <div key={entry.name} className="rounded-[18px] bg-cream-dim p-4">
                       <div className="mb-4 flex items-start justify-between">
-                        <span className="text-base font-bold text-on-surface">{entry.name}</span>
+                        <span className="text-base font-bold text-ink">{entry.name}</span>
                         <div className="text-right">
-                          <span className="block text-base font-bold text-on-surface">
+                          <span className="block text-base font-medium text-ink">
                             {formatCurrencyFromCents(entrySubtotalCents, entry.currency)}
                           </span>
                           {entry.effectiveRate !== undefined && (
                             <>
-                              <span className="mt-0.5 block text-xs text-on-surface-variant">
+                              <span className="mt-0.5 block text-xs text-ink2">
                                 ≈{' '}
                                 {formatCurrencyFromCents(
                                   Math.round(entrySubtotalCents * entry.effectiveRate),
                                   BASE_CURRENCY,
                                 )}
                               </span>
-                              <span className="block text-xs text-on-surface-variant">
+                              <span className="block text-xs text-ink2">
                                 1 {BASE_CURRENCY} ={' '}
                                 {parseFloat((1 / entry.effectiveRate).toFixed(5))} {entry.currency}
                               </span>
@@ -178,7 +175,7 @@ export function PersonCard({
                           )}
                         </div>
                       </div>
-                      <div className="space-y-3 border-t border-outline-variant/15 pt-3">
+                      <div className="space-y-3 border-t border-cream-dim pt-3">
                         {entryLines.map((line, i) => (
                           <div
                             key={`${line.itemId}-${i}`}
@@ -187,8 +184,8 @@ export function PersonCard({
                             <span
                               className={
                                 line.involved
-                                  ? 'truncate pr-4 text-on-surface-variant'
-                                  : 'truncate pr-4 text-on-surface-variant/40 italic'
+                                  ? 'truncate pr-4 text-ink2'
+                                  : 'truncate pr-4 text-ink2/40 italic'
                               }
                             >
                               {line.name}
@@ -196,8 +193,8 @@ export function PersonCard({
                             <span
                               className={
                                 line.involved
-                                  ? 'flex-shrink-0 text-on-surface-variant'
-                                  : 'flex-shrink-0 text-on-surface-variant/40 italic'
+                                  ? 'flex-shrink-0 text-ink2'
+                                  : 'flex-shrink-0 text-ink2/40 italic'
                               }
                             >
                               {line.involved
@@ -208,33 +205,33 @@ export function PersonCard({
                         ))}
                         {hasCharges && (
                           <>
-                            <div className="border-t border-outline-variant/40" />
+                            <div className="border-t border-cream" />
                             {entryDiscountAmt > 0 && (
                               <div className="flex justify-between pl-4 text-base">
-                                <span className="text-on-surface-variant italic">
+                                <span className="text-ink2 italic">
                                   {buildChargeLabel('Discount', entry.discount)}
                                 </span>
-                                <span className="text-on-surface-variant italic">
+                                <span className="text-ink2 italic">
                                   −{formatCurrencyFromCents(entryDiscountAmt, entry.currency)}
                                 </span>
                               </div>
                             )}
                             {entryServiceAmt > 0 && (
                               <div className="flex justify-between pl-4 text-base">
-                                <span className="text-on-surface-variant italic">
+                                <span className="text-ink2 italic">
                                   {buildChargeLabel('Service Charge', entry.serviceCharge)}
                                 </span>
-                                <span className="text-on-surface-variant italic">
+                                <span className="text-ink2 italic">
                                   +{formatCurrencyFromCents(entryServiceAmt, entry.currency)}
                                 </span>
                               </div>
                             )}
                             {entryGstAmt > 0 && (
                               <div className="flex justify-between pl-4 text-base">
-                                <span className="text-on-surface-variant italic">
+                                <span className="text-ink2 italic">
                                   {buildChargeLabel('GST / Tax', entry.gst)}
                                 </span>
-                                <span className="text-on-surface-variant italic">
+                                <span className="text-ink2 italic">
                                   +{formatCurrencyFromCents(entryGstAmt, entry.currency)}
                                 </span>
                               </div>
@@ -249,9 +246,9 @@ export function PersonCard({
             )
           ) : (
             // Single receipt: card with items + charges
-            <div className="rounded-xl bg-surface-container-low p-5">
+            <div className="rounded-[18px] bg-cream-dim p-4">
               {lines.length === 0 ? (
-                <p className="text-sm text-on-surface-variant italic">No items assigned.</p>
+                <p className="text-sm text-ink2 italic">No items assigned.</p>
               ) : (
                 <div className="space-y-3">
                   {lines.map((line, i) => (
@@ -262,8 +259,8 @@ export function PersonCard({
                       <span
                         className={
                           line.involved
-                            ? 'truncate pr-4 text-on-surface-variant'
-                            : 'truncate pr-4 text-on-surface-variant/40 italic'
+                            ? 'truncate pr-4 text-ink2'
+                            : 'truncate pr-4 text-ink2/40 italic'
                         }
                       >
                         {line.name}
@@ -271,8 +268,8 @@ export function PersonCard({
                       <span
                         className={
                           line.involved
-                            ? 'flex-shrink-0 text-on-surface-variant'
-                            : 'flex-shrink-0 text-on-surface-variant/40 italic'
+                            ? 'flex-shrink-0 text-ink2'
+                            : 'flex-shrink-0 text-ink2/40 italic'
                         }
                       >
                         {line.involved
@@ -282,33 +279,33 @@ export function PersonCard({
                     </div>
                   ))}
                   {(serviceAmt > 0 || gstAmt > 0 || discountAmt > 0) && (
-                    <div className="space-y-3 border-t border-outline-variant/15 pt-3">
+                    <div className="space-y-3 border-t border-cream-dim pt-3">
                       {discountAmt > 0 && (
                         <div className="flex justify-between pl-4 text-base">
-                          <span className="text-on-surface-variant italic">
+                          <span className="text-ink2 italic">
                             {buildChargeLabel('Discount', discount)}
                           </span>
-                          <span className="text-on-surface-variant italic">
+                          <span className="text-ink2 italic">
                             −{formatCurrencyFromCents(discountAmt, currency)}
                           </span>
                         </div>
                       )}
                       {serviceAmt > 0 && (
                         <div className="flex justify-between pl-4 text-base">
-                          <span className="text-on-surface-variant italic">
+                          <span className="text-ink2 italic">
                             {buildChargeLabel('Service', serviceCharge)}
                           </span>
-                          <span className="text-on-surface-variant italic">
+                          <span className="text-ink2 italic">
                             +{formatCurrencyFromCents(serviceAmt, currency)}
                           </span>
                         </div>
                       )}
                       {gstAmt > 0 && (
                         <div className="flex justify-between pl-4 text-base">
-                          <span className="text-on-surface-variant italic">
+                          <span className="text-ink2 italic">
                             {buildChargeLabel('GST / Tax', gst)}
                           </span>
-                          <span className="text-on-surface-variant italic">
+                          <span className="text-ink2 italic">
                             +{formatCurrencyFromCents(gstAmt, currency)}
                           </span>
                         </div>

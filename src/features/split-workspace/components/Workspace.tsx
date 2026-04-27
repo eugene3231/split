@@ -82,10 +82,7 @@ export function Workspace() {
   }
 
   return (
-    <div
-      className="font-body flex min-h-screen flex-col bg-surface text-on-surface"
-      data-testid="workspace"
-    >
+    <div className="flex min-h-screen flex-col bg-bg font-body text-ink" data-testid="workspace">
       <TopAppBar
         activeStep={activeStep}
         itemsSubPhase={itemsSubPhase}
@@ -93,6 +90,7 @@ export function Workspace() {
         detectedItemsCount={detectedItemsCount}
         stepReachability={stepReachability}
         onStepSelect={handleStepSelectWithScroll}
+        onBack={handleBackWithScroll}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-48 md:px-8 md:pt-10">

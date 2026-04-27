@@ -49,22 +49,11 @@ export function ReceiptStep({ onAddReceipt }: Props) {
 
   return (
     <div>
-      <div className="mb-6 hidden md:block">
-        <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-          Add Receipts
+      <div className="mb-6">
+        <h1 className="font-display text-4xl leading-tight font-medium tracking-tight text-ink sm:text-5xl">
+          The <span className="font-display italic">menu.</span>
         </h1>
-        <p className="text-lg text-on-surface-variant">
-          Verify scanned items and add missing charges.
-        </p>
-      </div>
-
-      <div className="mb-4 md:hidden">
-        <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
-          Add Receipts
-        </h1>
-        <p className="mt-0.5 text-xs text-on-surface-variant">
-          Verify scanned items and add missing charges.
-        </p>
+        <p className="mt-2 text-base text-ink2">Verify items and adjust charges.</p>
       </div>
 
       <ReceiptTabs
@@ -91,9 +80,9 @@ export function ReceiptStep({ onAddReceipt }: Props) {
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-8">
-          <div className="flex items-center gap-4 rounded-2xl bg-surface-container-lowest px-5 py-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-surface-container">
-              <span className="material-symbols-outlined text-2xl text-outline">receipt_long</span>
+          <div className="flex items-center gap-4 rounded-[20px] bg-cream px-5 py-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-cream-dim">
+              <span className="material-symbols-outlined text-2xl text-ink2">receipt_long</span>
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -116,20 +105,18 @@ export function ReceiptStep({ onAddReceipt }: Props) {
                   />
                 </div>
               ) : (
-                <p className="text-xs text-on-surface-variant">
-                  Upload or scan to extract line items
-                </p>
+                <p className="text-xs text-ink2">Upload or scan to extract line items</p>
               )}
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold tracking-widest text-on-surface-variant uppercase">
+              <h3 className="text-xs font-semibold tracking-widest text-ink2 uppercase">
                 Line Items
               </h3>
               {hasItems && (
-                <span className="text-sm font-medium text-outline">
+                <span className="text-xs font-medium text-ink2">
                   {items.length} item{items.length !== 1 ? 's' : ''}
                 </span>
               )}
@@ -152,7 +139,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
                   type="button"
                   data-testid="receipt-add-item-btn"
                   onClick={addItem}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant p-4 text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
+                  className="flex w-full items-center justify-center gap-2 rounded-[16px] border-2 border-dashed border-cream-dim p-4 text-ink2 transition-all hover:bg-cream hover:text-ink"
                 >
                   <span className="material-symbols-outlined">add_circle</span>
                   <span className="text-sm font-bold tracking-widest uppercase">Add New Item</span>
@@ -161,16 +148,16 @@ export function ReceiptStep({ onAddReceipt }: Props) {
             ) : (
               <div
                 data-testid="receipt-empty-state"
-                className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-outline-variant/30 bg-surface-bright py-12 text-center"
+                className="flex flex-col items-center justify-center gap-3 rounded-[20px] border-2 border-dashed border-cream-dim py-12 text-center"
               >
-                <span className="material-symbols-outlined text-3xl text-outline">receipt</span>
-                <p className="text-sm font-semibold text-on-surface-variant">No items yet</p>
-                <p className="text-sm text-outline">Scan a receipt or add items manually below.</p>
+                <span className="material-symbols-outlined text-3xl text-ink2/40">receipt</span>
+                <p className="text-sm font-medium text-ink2">No items yet</p>
+                <p className="text-xs text-ink2/60">Scan a receipt or add items manually.</p>
                 <button
                   type="button"
                   data-testid="receipt-add-item-btn"
                   onClick={addItem}
-                  className="mt-2 flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2 text-sm font-bold text-on-primary transition-transform active:scale-95"
+                  className="mt-2 flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition-transform active:scale-95"
                 >
                   <span className="material-symbols-outlined text-sm">add</span>
                   Add Item
