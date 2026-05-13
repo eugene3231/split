@@ -173,16 +173,21 @@ export function ReceiptImportActions({
             onClick={onScanReceipt}
             disabled={scan.isScanning || !hasApiKey}
             className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all active:scale-95',
+              'flex w-full items-center justify-center rounded-xl py-3 text-sm font-bold transition-all active:scale-95',
+              scan.isScanning ? 'flex-col gap-2 px-4 py-4' : 'gap-2',
               scan.isScanning || !hasApiKey
                 ? 'cursor-not-allowed bg-surface-container-high text-on-surface-variant opacity-50'
                 : 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/20',
             )}
           >
-            <span className="material-symbols-outlined text-sm">
-              {scan.isScanning ? 'sync' : 'document_scanner'}
+            <span
+              className={cn('material-symbols-outlined text-sm', scan.isScanning && 'animate-spin')}
+            >
+              {scan.isScanning ? 'progress_activity' : 'document_scanner'}
             </span>
-            {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan Receipt'}
+            <span className={cn(scan.isScanning && 'text-center text-xs')}>
+              {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan Receipt'}
+            </span>
           </button>
           {scan.scanStatus && !scan.isScanning && (
             <p className="text-xs font-medium text-secondary">{scan.scanStatus}</p>
