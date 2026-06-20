@@ -6,25 +6,17 @@ import {
   downloadImage,
   shareText,
 } from '@features/sharing/logic/shareSplit';
-import { buildSummaryExportPayload } from './buildSummaryExportPayload';
+import { buildSummaryExportPayload } from '@features/split-workspace/logic/buildSummaryExportPayload';
 import type { SummaryModel } from './useSummaryModel';
 
 type ExportBusy = 'downloading' | 'copying' | 'previewing' | null;
 
 type UseSummaryExportArgs = {
-  model: Pick<
-    SummaryModel,
-    'people' | 'receipts' | 'payerMobile' | 'reconciliation' | 'splitByReceipt' | 'view'
-  >;
+  model: Pick<SummaryModel, 'people' | 'reconciliation' | 'view' | 'summaryBreakdown'>;
   includeItemDetails: boolean;
-  showBaseCurrency: boolean;
 };
 
-export function useSummaryExport({
-  model,
-  includeItemDetails,
-  showBaseCurrency,
-}: UseSummaryExportArgs) {
+export function useSummaryExport({ model, includeItemDetails }: UseSummaryExportArgs) {
   const [busy, setBusy] = useState<ExportBusy>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -32,8 +24,8 @@ export function useSummaryExport({
   const copyTimeoutRef = useRef<number | null>(null);
 
   const payload = useMemo(
-    () => buildSummaryExportPayload({ model, includeItemDetails, showBaseCurrency }),
-    [model, includeItemDetails, showBaseCurrency],
+    () => buildSummaryExportPayload({ model, includeItemDetails }),
+    [model, includeItemDetails],
   );
 
   useEffect(() => {

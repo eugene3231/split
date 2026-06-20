@@ -3,6 +3,8 @@ import type { Person, Receipt, SplitResult } from '@shared/types';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { generatePaynowQrDataUrls } from '@features/payments';
+import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
+import type { SummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
 import { resolveSummaryView } from '@features/split-workspace/logic/summaryView';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 import {
@@ -60,6 +62,7 @@ export type SummaryModel = {
   };
   view: SummaryView;
   qrDataUrls: Record<string, string>;
+  summaryBreakdown: SummaryBreakdown;
 };
 
 export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModelProps) {
@@ -88,6 +91,7 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
   });
 
   const qrDataUrls = useQrDataUrls(people, view.sgdSplit, payerMobile);
+  const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls });
 
   return {
     people,
@@ -100,5 +104,6 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
     reconciliation,
     view,
     qrDataUrls,
+    summaryBreakdown,
   };
 }

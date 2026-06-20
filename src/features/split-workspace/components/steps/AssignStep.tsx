@@ -1,13 +1,16 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
-import { isItemAssigned } from '@features/split-workspace/logic/wizardValidation';
 import {
-  togglePersonInAssignment,
-  selectAllPeople,
-  selectNone,
-} from '@features/split-workspace/logic/assignmentActions';
-import type { EditableItem, Person } from '@shared/types';
+  applyAssignmentCommand,
+  resolveAssignmentInteraction,
+} from '@features/split-workspace/logic/assignmentInteraction';
+import type {
+  AssignmentActiveItem,
+  AssignmentCommand,
+  AssignmentAssignModel,
+  AssignmentPersonRow,
+  AssignmentReviewRow,
+} from '@features/split-workspace/logic/assignmentInteraction';
 import type { ItemsSubPhase } from '@features/split-workspace/types';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import { ReceiptTabs } from '@features/split-workspace/components/shared/ReceiptTabs';
@@ -55,9 +58,31 @@ export function AssignStep({
       };
     }),
   );
-  const validPeopleSet = useMemo(() => new Set(people.map((p) => p.id)), [people]);
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId);
   const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY;
+  const interaction = useMemo(
+    () =>
+      resolveAssignmentInteraction({
+        items,
+        people,
+        phase: itemsSubPhase,
+        activeItemIndex,
+        currency: activeCurrency,
+      }),
+    [activeCurrency, activeItemIndex, items, itemsSubPhase, people],
+  );
+
+  const applyCommand = (command: AssignmentCommand) => {
+    const result = applyAssignmentCommand({
+      command,
+      item: items[activeItemIndex] ?? null,
+      people,
+    });
+
+    if (result.type === 'item-updated') {
+      updateItem(result.itemId, () => result.item);
+    }
+  };
 
   return (
     <div>
@@ -110,20 +135,18 @@ export function AssignStep({
 
       {itemsSubPhase === 'assign' ? (
         <AssignPhase
-          items={items}
-          people={people}
-          validPeopleSet={validPeopleSet}
+          model={interaction.assign}
           activeItemIndex={activeItemIndex}
+          itemCount={items.length}
           onActiveItemIndexChange={onActiveItemIndexChange}
           onItemsSubPhaseChange={onItemsSubPhaseChange}
-          onUpdateItem={updateItem}
+          onCommand={applyCommand}
           onSplitUnassignedItemsEqually={splitUnassignedItemsEquallyForActiveReceipt}
-          currency={activeCurrency}
         />
       ) : (
         <ReviewPhase
-          items={items}
-          people={people}
+          rows={interaction.review.rows}
+          itemCount={interaction.review.itemCount}
           onEditItem={(index) => {
             onActiveItemIndexChange(index);
             onItemsSubPhaseChange('assign');
@@ -137,100 +160,30 @@ export function AssignStep({
 // ── Assign sub-phase ──────────────────────────────────────────────────────────
 
 type AssignPhaseProps = {
-  items: EditableItem[];
-  people: Person[];
-  validPeopleSet: Set<string>;
+  model: AssignmentAssignModel;
   activeItemIndex: number;
+  itemCount: number;
   onActiveItemIndexChange: (index: number) => void;
   onItemsSubPhaseChange: (phase: ItemsSubPhase) => void;
-  onUpdateItem: (id: string, updater: (current: EditableItem) => EditableItem) => void;
+  onCommand: (command: AssignmentCommand) => void;
   onSplitUnassignedItemsEqually: () => void;
-  currency: string;
 };
 
 function AssignPhase({
-  items,
-  people,
-  validPeopleSet,
+  model,
   activeItemIndex,
+  itemCount,
   onActiveItemIndexChange,
   onItemsSubPhaseChange,
-  onUpdateItem,
+  onCommand,
   onSplitUnassignedItemsEqually,
-  currency,
 }: AssignPhaseProps) {
-  const activeItem = items[activeItemIndex] ?? null;
-  const isAssigned = activeItem ? isItemAssigned(activeItem, validPeopleSet) : false;
-  const unassignedItemCount = items.filter((item) => !isItemAssigned(item, validPeopleSet)).length;
-  const canSplitRest = people.length > 0 && unassignedItemCount > 0;
-
-  const selectedIds = activeItem?.assignment.personIds ?? [];
-  const weights = activeItem?.assignment.weights;
-  const unequalMode = Boolean(weights);
-  const totalWeight = selectedIds.reduce((sum, id) => sum + (weights?.[id] ?? 1), 0);
-  const canToggleUnequal = selectedIds.length >= 2;
-
-  const handleTogglePerson = (personId: string, checked: boolean) => {
-    if (!activeItem) return;
-    const updated = togglePersonInAssignment(personId, checked, activeItem);
-    onUpdateItem(activeItem.id, () => updated);
-  };
-
-  const handleSelectAll = () => {
-    if (!activeItem) return;
-    onUpdateItem(activeItem.id, () => selectAllPeople(people, activeItem));
-  };
-
-  const handleSelectNone = () => {
-    if (!activeItem) return;
-    onUpdateItem(activeItem.id, () => selectNone(activeItem));
-  };
-
+  const { activeItem } = model;
   const handleSplitRest = () => {
-    if (!canSplitRest) return;
+    if (!model.canSplitUnassigned) return;
     onSplitUnassignedItemsEqually();
     onActiveItemIndexChange(0);
     onItemsSubPhaseChange('review');
-  };
-
-  const handleUnequalToggle = () => {
-    if (!activeItem || !canToggleUnequal) return;
-    onUpdateItem(activeItem.id, (current) => ({
-      ...current,
-      assignment: {
-        ...current.assignment,
-        weights: current.assignment.weights
-          ? undefined
-          : Object.fromEntries(current.assignment.personIds.map((id) => [id, 1])),
-      },
-    }));
-  };
-
-  const handleWeightChange = (personId: string, delta: number) => {
-    if (!activeItem) return;
-    const current = activeItem.assignment.weights?.[personId] ?? 1;
-    const next = Math.max(1, current + delta);
-    const updatedWeights: Record<string, number> = {};
-    for (const id of selectedIds) {
-      updatedWeights[id] = id === personId ? next : (weights?.[id] ?? 1);
-    }
-    onUpdateItem(activeItem.id, (item) => ({
-      ...item,
-      assignment: { ...item.assignment, weights: updatedWeights },
-    }));
-  };
-
-  const handleWeightSet = (personId: string, value: number) => {
-    if (!activeItem) return;
-    const clamped = Math.max(1, Math.round(value));
-    const updatedWeights: Record<string, number> = {};
-    for (const id of selectedIds) {
-      updatedWeights[id] = id === personId ? clamped : (weights?.[id] ?? 1);
-    }
-    onUpdateItem(activeItem.id, (item) => ({
-      ...item,
-      assignment: { ...item.assignment, weights: updatedWeights },
-    }));
   };
 
   if (!activeItem) {
@@ -238,8 +191,6 @@ function AssignPhase({
       <p className="py-12 text-center text-sm text-on-surface-variant">No items available yet.</p>
     );
   }
-
-  const priceCents = parseCurrencyToCents(activeItem.amountInput);
 
   return (
     <div className="space-y-5">
@@ -253,7 +204,7 @@ function AssignPhase({
             data-testid="assign-item-counter"
             className="font-headline text-2xl font-extrabold text-on-surface"
           >
-            Item {activeItemIndex + 1} of {items.length}
+            {model.activeItemPositionLabel}
           </p>
         </div>
         <div className="flex items-center gap-2 self-end md:self-auto">
@@ -261,7 +212,7 @@ function AssignPhase({
             type="button"
             data-testid="assign-split-rest-btn"
             onClick={handleSplitRest}
-            disabled={!canSplitRest}
+            disabled={!model.canSplitUnassigned}
             className="flex h-10 items-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-bold whitespace-nowrap text-on-primary transition-all hover:opacity-90 disabled:bg-surface-container-high disabled:text-on-surface-variant disabled:opacity-60"
           >
             <span className="material-symbols-outlined text-base">group</span>
@@ -279,8 +230,8 @@ function AssignPhase({
           <button
             type="button"
             data-testid="assign-next-item-btn"
-            onClick={() => onActiveItemIndexChange(Math.min(items.length - 1, activeItemIndex + 1))}
-            disabled={activeItemIndex >= items.length - 1}
+            onClick={() => onActiveItemIndexChange(Math.min(itemCount - 1, activeItemIndex + 1))}
+            disabled={activeItemIndex >= itemCount - 1}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
           >
             <span className="material-symbols-outlined text-on-surface">chevron_right</span>
@@ -292,9 +243,9 @@ function AssignPhase({
       <div className="rounded-2xl bg-surface-container-lowest p-5 shadow-[0_8px_24px_rgba(25,28,29,0.06)]">
         <div className="mb-1 flex items-start justify-between">
           <h2 className="font-headline text-2xl font-bold text-on-surface md:text-3xl">
-            {activeItem.name || 'Untitled item'}
+            {activeItem.title}
           </h2>
-          {isAssigned ? (
+          {activeItem.isAssigned ? (
             <div
               data-testid="assign-item-status"
               data-assigned="true"
@@ -325,7 +276,7 @@ function AssignPhase({
           )}
         </div>
         <div className="font-headline text-3xl font-extrabold text-primary md:text-4xl">
-          {priceCents !== null ? formatCurrencyFromCents(priceCents, currency) : '—'}
+          {activeItem.priceLabel}
         </div>
       </div>
 
@@ -336,8 +287,8 @@ function AssignPhase({
           <button
             type="button"
             data-testid="assign-select-all-btn"
-            onClick={handleSelectAll}
-            disabled={people.length === 0}
+            onClick={() => onCommand({ type: 'select-all' })}
+            disabled={model.people.length === 0}
             className="text-sm font-bold text-primary transition-opacity hover:opacity-70 disabled:opacity-40"
           >
             Select all
@@ -345,8 +296,8 @@ function AssignPhase({
           <button
             type="button"
             data-testid="assign-select-none-btn"
-            onClick={handleSelectNone}
-            disabled={people.length === 0}
+            onClick={() => onCommand({ type: 'select-none' })}
+            disabled={model.people.length === 0}
             className="text-sm font-semibold text-on-surface-variant transition-opacity hover:opacity-70 disabled:opacity-40"
           >
             None
@@ -356,46 +307,43 @@ function AssignPhase({
 
       {/* Person toggle buttons */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {people.map((person, index) => {
-          const isSelected = selectedIds.includes(person.id);
-          const personWeight = weights?.[person.id] ?? 1;
-          const shareAmount =
-            isSelected && priceCents !== null && totalWeight > 0
-              ? Math.round((priceCents * personWeight) / totalWeight)
-              : 0;
+        {model.people.map((person) => {
           return (
             <button
               key={person.id}
               type="button"
               data-testid={`assign-person-btn-${person.id}`}
-              aria-pressed={isSelected}
-              onClick={() => handleTogglePerson(person.id, !isSelected)}
+              aria-pressed={person.isSelected}
+              onClick={() =>
+                onCommand({
+                  type: 'toggle-person',
+                  personId: person.id,
+                  checked: !person.isSelected,
+                })
+              }
               onDoubleClick={() => {
-                onUpdateItem(activeItem.id, (current) => ({
-                  ...current,
-                  assignment: { mode: 'equal', personId: '', personIds: [person.id] },
-                }));
+                onCommand({ type: 'assign-only', personId: person.id });
               }}
               className={cn(
                 'flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all',
-                isSelected
+                person.isSelected
                   ? 'border-2 border-secondary bg-surface-container-lowest shadow-[0_4px_14px_rgba(27,109,36,0.2)]'
                   : 'border-2 border-transparent bg-surface-container-low hover:bg-surface-container',
               )}
             >
-              <PersonAvatar name={person.name} colorIndex={index} />
+              <PersonAvatar name={person.name} colorIndex={person.colorIndex} />
               <div className="min-w-0 flex-1">
                 <span className="block text-sm font-bold text-on-surface">{person.name}</span>
                 <span
                   className={cn(
                     'text-sm font-semibold',
-                    isSelected ? 'text-secondary' : 'text-on-surface-variant',
+                    person.isSelected ? 'text-secondary' : 'text-on-surface-variant',
                   )}
                 >
-                  {formatCurrencyFromCents(shareAmount, currency)}
+                  {person.shareLabel}
                 </span>
               </div>
-              {isSelected && (
+              {person.isSelected && (
                 <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
                   <span
                     className="material-symbols-outlined !text-xs leading-none text-on-secondary"
@@ -423,12 +371,14 @@ function AssignPhase({
           <button
             type="button"
             onClick={() => {
-              if (unequalMode) handleUnequalToggle();
+              if (activeItem.splitMode === 'shares') {
+                onCommand({ type: 'set-split-mode', mode: 'equal' });
+              }
             }}
-            disabled={!canToggleUnequal}
+            disabled={!activeItem.canUseShares}
             className={cn(
               'flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
-              !unequalMode
+              activeItem.splitMode === 'equal'
                 ? 'bg-primary text-on-primary shadow-sm'
                 : 'text-on-surface-variant hover:bg-surface-container',
             )}
@@ -441,12 +391,14 @@ function AssignPhase({
           <button
             type="button"
             onClick={() => {
-              if (!unequalMode) handleUnequalToggle();
+              if (activeItem.splitMode === 'equal') {
+                onCommand({ type: 'set-split-mode', mode: 'shares' });
+              }
             }}
-            disabled={!canToggleUnequal}
+            disabled={!activeItem.canUseShares}
             className={cn(
               'flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
-              unequalMode
+              activeItem.splitMode === 'shares'
                 ? 'bg-primary text-on-primary shadow-sm'
                 : 'text-on-surface-variant hover:bg-surface-container',
             )}
@@ -460,67 +412,7 @@ function AssignPhase({
       </div>
 
       {/* Weight steppers (shown in unequal mode) */}
-      {unequalMode && canToggleUnequal && (
-        <div
-          data-testid="assign-weight-controls"
-          className="space-y-3 rounded-xl bg-surface-container-low p-4"
-        >
-          <p className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
-            Share weights
-          </p>
-          {selectedIds.map((personId) => {
-            const person = people.find((p) => p.id === personId);
-            if (!person) return null;
-            const w = weights?.[personId] ?? 1;
-            return (
-              <div key={personId} className="flex items-center justify-between gap-3">
-                <span className="flex-1 truncate text-sm font-semibold text-on-surface">
-                  {person.name}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    data-testid={`assign-weight-decrement-${personId}`}
-                    onClick={() => handleWeightChange(personId, -1)}
-                    disabled={w <= 1}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
-                  >
-                    <span className="material-symbols-outlined text-sm text-on-surface">
-                      remove
-                    </span>
-                  </button>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    data-testid={`assign-weight-value-${personId}`}
-                    value={w}
-                    onChange={(e) => {
-                      const parsed = parseInt(e.target.value, 10);
-                      if (!isNaN(parsed)) handleWeightSet(personId, parsed);
-                    }}
-                    onBlur={(e) => {
-                      const parsed = parseInt(e.target.value, 10);
-                      handleWeightSet(personId, isNaN(parsed) ? 1 : parsed);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                    }}
-                    className="w-10 rounded-md border border-outline-variant/40 bg-surface text-center text-sm font-bold text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    data-testid={`assign-weight-increment-${personId}`}
-                    onClick={() => handleWeightChange(personId, 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high"
-                  >
-                    <span className="material-symbols-outlined text-sm text-on-surface">add</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <ShareWeightControls activeItem={activeItem} people={model.people} onCommand={onCommand} />
 
       {/* Double-tap hint */}
       <div className="flex items-center gap-1.5 text-xs text-on-surface-variant italic">
@@ -531,72 +423,131 @@ function AssignPhase({
   );
 }
 
+type ShareWeightControlsProps = {
+  activeItem: AssignmentActiveItem;
+  people: AssignmentPersonRow[];
+  onCommand: (command: AssignmentCommand) => void;
+};
+
+function ShareWeightControls({ activeItem, people, onCommand }: ShareWeightControlsProps) {
+  if (activeItem.splitMode !== 'shares' || !activeItem.canUseShares) {
+    return null;
+  }
+
+  const selectedPeople = activeItem.selectedPersonIds
+    .map((personId) => people.find((person) => person.id === personId))
+    .filter((person): person is AssignmentPersonRow => person !== undefined);
+
+  return (
+    <div
+      data-testid="assign-weight-controls"
+      className="space-y-3 rounded-xl bg-surface-container-low p-4"
+    >
+      <p className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
+        Share weights
+      </p>
+      {selectedPeople.map((person) => {
+        return (
+          <div key={person.id} className="flex items-center justify-between gap-3">
+            <span className="flex-1 truncate text-sm font-semibold text-on-surface">
+              {person.name}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                data-testid={`assign-weight-decrement-${person.id}`}
+                onClick={() => onCommand({ type: 'adjust-weight', personId: person.id, delta: -1 })}
+                disabled={!person.canDecrementWeight}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high disabled:opacity-30"
+              >
+                <span className="material-symbols-outlined text-sm text-on-surface">remove</span>
+              </button>
+              <input
+                type="text"
+                inputMode="numeric"
+                data-testid={`assign-weight-value-${person.id}`}
+                value={person.weight}
+                onChange={(event) => {
+                  const parsed = parseInt(event.target.value, 10);
+                  if (!isNaN(parsed)) {
+                    onCommand({ type: 'set-weight', personId: person.id, value: parsed });
+                  }
+                }}
+                onBlur={(event) => {
+                  const parsed = parseInt(event.target.value, 10);
+                  onCommand({
+                    type: 'set-weight',
+                    personId: person.id,
+                    value: isNaN(parsed) ? 1 : parsed,
+                  });
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
+                }}
+                className="w-10 rounded-md border border-outline-variant/40 bg-surface text-center text-sm font-bold text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                data-testid={`assign-weight-increment-${person.id}`}
+                onClick={() => onCommand({ type: 'adjust-weight', personId: person.id, delta: 1 })}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container transition-colors hover:bg-surface-container-high"
+              >
+                <span className="material-symbols-outlined text-sm text-on-surface">add</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Review sub-phase ──────────────────────────────────────────────────────────
 
 type ReviewPhaseProps = {
-  items: EditableItem[];
-  people: Person[];
+  rows: AssignmentReviewRow[];
+  itemCount: number;
   onEditItem: (index: number) => void;
 };
 
-function ReviewPhase({ items, people, onEditItem }: ReviewPhaseProps) {
+function ReviewPhase({ rows, itemCount, onEditItem }: ReviewPhaseProps) {
   return (
     <div className="space-y-4">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-headline text-2xl font-bold text-on-surface">Review Assignments</h2>
         <span className="text-sm text-on-surface-variant">
-          {items.length} item{items.length !== 1 ? 's' : ''}
+          {itemCount} item{itemCount !== 1 ? 's' : ''}
         </span>
       </div>
 
       <div className="space-y-3">
-        {items.map((item, index) => {
-          const selectedPeople = people.filter((person) =>
-            item.assignment.personIds.includes(person.id),
-          );
-          const isAssigned = selectedPeople.length > 0;
-          const priceCents = parseCurrencyToCents(item.amountInput);
-
-          const itemWeights = item.assignment.weights;
-          const hasUnequalWeights =
-            itemWeights !== undefined &&
-            item.assignment.personIds.length >= 2 &&
-            item.assignment.personIds.some((id) => (itemWeights[id] ?? 1) !== 1);
-          const splitLabel = hasUnequalWeights
-            ? `Split: ${selectedPeople
-                .map((person) => {
-                  const weight = itemWeights?.[person.id] ?? 1;
-                  return `${person.name} ×${weight}`;
-                })
-                .join(', ')}`
-            : `Split: ${selectedPeople.map((person) => person.name).join(', ')}`;
-
+        {rows.map((row, index) => {
           return (
             <article
-              key={item.id}
+              key={row.itemId}
               className={cn(
                 'flex items-center justify-between gap-3 rounded-xl border p-4 transition-all',
-                isAssigned
+                row.isAssigned
                   ? 'border-surface-container-highest bg-surface-container-lowest hover:border-outline-variant/30'
                   : 'border-error/50 bg-surface-container-lowest hover:border-error',
               )}
             >
               <div className="min-w-0 flex-1 space-y-1">
                 <p className="truncate font-bold text-on-surface">
-                  {item.name || `Item ${index + 1}`}
+                  {row.title || `Item ${index + 1}`}
                 </p>
-                {priceCents !== null && (
+                {row.priceLabel !== null && (
                   <span className="font-headline block text-sm font-bold text-primary">
-                    {formatCurrencyFromCents(priceCents)}
+                    {row.priceLabel}
                   </span>
                 )}
                 <span
                   className={cn(
                     'block text-sm',
-                    isAssigned ? 'text-on-surface-variant' : 'text-error',
+                    row.isAssigned ? 'text-on-surface-variant' : 'text-error',
                   )}
                 >
-                  {isAssigned ? splitLabel : 'No people selected'}
+                  {row.splitLabel}
                 </span>
               </div>
               <button

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
+import type { ChargeState, Receipt, SplitResult } from '@shared/types';
 import { buildSummaryExportPayload } from './buildSummaryExportPayload';
+import type { SummaryBreakdown } from './summaryBreakdown';
 
 const disabledChargeState: ChargeState = {
   enabled: false,
@@ -10,11 +11,6 @@ const disabledChargeState: ChargeState = {
   detectedConfidence: null,
   detectedSource: null,
 };
-
-const people: Person[] = [
-  { id: 'p1', name: 'Alice' },
-  { id: 'p2', name: 'Bob' },
-];
 
 const split: SplitResult = {
   lineItemsByPerson: { p1: [], p2: [] },
@@ -46,14 +42,16 @@ const receipts: Receipt[] = [
   },
 ];
 
+const summaryBreakdown: SummaryBreakdown = {
+  personBreakdowns: [],
+  unassignedItemCount: 0,
+};
+
 describe('buildSummaryExportPayload', () => {
   it('maps foreign receipt view fields into the renderer payload', () => {
     const payload = buildSummaryExportPayload({
       model: {
-        people,
-        receipts,
-        payerMobile: '91234567',
-        splitByReceipt: [split],
+        summaryBreakdown,
         reconciliation: {
           cents: -25,
           applyCorrectiveDiscount: () => {},
@@ -74,25 +72,20 @@ describe('buildSummaryExportPayload', () => {
         },
       },
       includeItemDetails: true,
-      showBaseCurrency: false,
     });
 
     expect(payload.receiptName).toBe('Tokyo Lunch');
     expect(payload.currency).toBe('JPY');
-    expect(payload.conversionRate).toBe(95);
-    expect(payload.fromCurrency).toBe('JPY');
-    expect(payload.payerMobile).toBe('+6591234567');
+    expect(payload.split).toBe(split);
     expect(payload.reconciliationCents).toBe(-25);
     expect(payload.includeItemDetails).toBe(true);
+    expect(payload.summaryBreakdown).toBe(summaryBreakdown);
   });
 
-  it('includes total-tab effective rates only for consolidated exports', () => {
+  it('maps total-tab payload fields without leaking renderer-derivable data', () => {
     const payload = buildSummaryExportPayload({
       model: {
-        people,
-        receipts,
-        payerMobile: '',
-        splitByReceipt: [split],
+        summaryBreakdown,
         reconciliation: {
           cents: null,
           applyCorrectiveDiscount: () => {},
@@ -122,13 +115,15 @@ describe('buildSummaryExportPayload', () => {
         },
       },
       includeItemDetails: false,
-      showBaseCurrency: true,
     });
 
     expect(payload.receiptName).toBeUndefined();
-    expect(payload.conversionRate).toBeUndefined();
-    expect(payload.fromCurrency).toBeUndefined();
-    expect(payload.effectiveRatesByReceipt).toEqual([95]);
-    expect(payload.payerMobile).toBeUndefined();
+    expect(payload.currency).toBe('SGD');
+    expect(payload.split).toBe(split);
+    expect(payload.includeItemDetails).toBe(false);
+    expect(payload.summaryBreakdown).toBe(summaryBreakdown);
+    expect(payload).not.toHaveProperty('receipts');
+    expect(payload).not.toHaveProperty('splitByReceipt');
+    expect(payload).not.toHaveProperty('payerMobile');
   });
 });
