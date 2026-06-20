@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { getShareSupport } from '@features/sharing/logic/shareSplit';
-import { PersonCard } from './PersonCard';
+import { PersonBreakdownCard } from './PersonBreakdownCard';
 import { BASE_CURRENCY } from '@shared/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { SummaryTabs } from './SummaryTabs';
@@ -35,14 +35,13 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
     activeSummaryReceipt,
     renameReceipt,
     view,
-    qrDataUrls,
+    summaryBreakdown,
   } = model;
   const reconciliationCents = model.reconciliation.cents;
   const { busy, copied, exportError, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
       model,
       includeItemDetails: showDetails,
-      showBaseCurrency,
     });
 
   if (receipts.length === 0) {
@@ -169,34 +168,16 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
           </div>
 
           <div className="flex flex-col gap-6">
-            {people.map((person, index) => (
-              <PersonCard
-                key={person.id}
-                person={person}
-                colorIndex={index}
-                split={view.displaySplit}
-                discount={view.discount}
-                serviceCharge={view.serviceCharge}
-                gst={view.gst}
+            {summaryBreakdown.personBreakdowns.map((breakdown) => (
+              <PersonBreakdownCard
+                key={breakdown.person.id}
+                breakdown={breakdown}
                 showDetails={showDetails}
-                currency={view.displayCurrency}
-                conversionRate={
-                  view.kind === 'receipt' && view.isForeign && !showBaseCurrency
-                    ? (view.effectiveRate ?? undefined)
-                    : undefined
-                }
-                fromCurrency={
-                  view.kind === 'receipt' && view.isForeign && !showBaseCurrency
-                    ? view.nativeCurrency
-                    : undefined
-                }
-                qrDataUrl={qrDataUrls[person.id]}
-                receiptBreakdown={view.kind === 'total' ? view.receiptBreakdowns : undefined}
               />
             ))}
-            {people.length === 0 && (
+            {summaryBreakdown.emptyPeopleMessage && (
               <p className="py-8 text-center text-sm text-on-surface-variant">
-                Add people to see the breakdown.
+                {summaryBreakdown.emptyPeopleMessage}
               </p>
             )}
           </div>

@@ -77,7 +77,7 @@ Within that repo structure, `features/split-workspace` uses the layering and ste
   Owns `ReceiptStep.tsx`, `useReceiptStepModel.ts`, `useReceiptImport.ts`, and step-private UI like `ReceiptImportActions.tsx`.
 
 - `components/steps/SummaryStep/`
-  Owns `SummaryStep.tsx`, `useSummaryModel.ts`, `useSummaryExport.ts`, and summary-private UI like `PersonCard.tsx`, `SummaryTabs.tsx`, and export controls.
+  Owns `SummaryStep.tsx`, `useSummaryModel.ts`, `useSummaryExport.ts`, and summary-private UI like `PersonBreakdownCard.tsx`, `SummaryTabs.tsx`, and export controls.
 
 - `components/shared/`
   Holds components genuinely reused across steps, such as receipt tabs, charge panels, selectors, and small field/avatar primitives.

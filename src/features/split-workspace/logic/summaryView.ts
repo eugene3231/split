@@ -24,7 +24,7 @@ export interface TotalTabView extends BaseView {
   kind: 'total';
   hasAnyForeign: boolean;
   foreignRates: ForeignCurrencyRate[];
-  /** Per-receipt breakdown shown inside each PersonCard on the consolidated tab. */
+  /** Per-receipt split data consumed by summaryBreakdown on the consolidated tab. */
   receiptBreakdowns: {
     name: string;
     split: SplitResult;
