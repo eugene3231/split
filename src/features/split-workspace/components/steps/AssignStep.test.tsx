@@ -243,6 +243,95 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('assign-split-rest-btn')).toBeDisabled();
   });
 
+  it('shows items from every receipt in Review All, not just the active one', () => {
+    storeMock = {
+      ...storeMock,
+      receipts: [
+        ...storeMock.receipts,
+        {
+          id: 'r2',
+          name: 'Receipt 2',
+          discount: { ...defaultDiscountState },
+          serviceCharge: { ...defaultServiceChargeState },
+          gst: { ...defaultGstState },
+          receiptTotalInput: '',
+          currency: 'SGD',
+          exchangeRateOverride: null,
+          items: [
+            {
+              id: 'other-receipt-item',
+              name: 'Other receipt item',
+              amountInput: '5.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+            },
+          ],
+        },
+      ],
+    };
+
+    render(
+      <AssignStep
+        itemsSubPhase="review"
+        activeItemIndex={0}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Equal item')).toBeInTheDocument();
+    expect(screen.getByText('Weighted item')).toBeInTheDocument();
+    expect(screen.getByText('Other receipt item')).toBeInTheDocument();
+    expect(screen.getAllByText('Receipt 1').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Receipt 2').length).toBeGreaterThan(0);
+  });
+
+  it('switches to the owning receipt when editing an item from Review All', () => {
+    storeMock = {
+      ...storeMock,
+      receipts: [
+        ...storeMock.receipts,
+        {
+          id: 'r2',
+          name: 'Receipt 2',
+          discount: { ...defaultDiscountState },
+          serviceCharge: { ...defaultServiceChargeState },
+          gst: { ...defaultGstState },
+          receiptTotalInput: '',
+          currency: 'SGD',
+          exchangeRateOverride: null,
+          items: [
+            {
+              id: 'other-receipt-item',
+              name: 'Other receipt item',
+              amountInput: '5.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+            },
+          ],
+        },
+      ],
+    };
+    const onActiveItemIndexChange = vi.fn();
+    const onItemsSubPhaseChange = vi.fn();
+
+    render(
+      <AssignStep
+        itemsSubPhase="review"
+        activeItemIndex={0}
+        onActiveItemIndexChange={onActiveItemIndexChange}
+        onItemsSubPhaseChange={onItemsSubPhaseChange}
+      />,
+    );
+
+    const editButtons = screen.getAllByTestId('wizard-edit-btn');
+    fireEvent.click(editButtons[editButtons.length - 1]);
+
+    expect(storeMock.setActiveReceiptId).toHaveBeenCalledWith('r2');
+    expect(onActiveItemIndexChange).toHaveBeenCalledWith(0);
+    expect(onItemsSubPhaseChange).toHaveBeenCalledWith('assign');
+  });
+
   it('disables Split unassigned when there are no people', () => {
     storeMock = {
       ...storeMock,

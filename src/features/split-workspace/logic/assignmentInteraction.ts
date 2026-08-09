@@ -1,5 +1,5 @@
 import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
-import type { EditableItem, Person } from '@shared/types';
+import type { EditableItem, Person, Receipt } from '@shared/types';
 import type { ItemsSubPhase } from '@features/split-workspace/types';
 import { isItemAssigned } from '@features/split-workspace/logic/wizardValidation';
 
@@ -37,6 +37,8 @@ export interface AssignmentAssignModel {
 
 export interface AssignmentReviewRow {
   itemId: string;
+  receiptId: string;
+  receiptName: string;
   title: string;
   priceCents: number | null;
   priceLabel: string | null;
@@ -70,12 +72,13 @@ export type AssignmentCommandResult =
 
 export function resolveAssignmentInteraction(args: {
   items: EditableItem[];
+  receipts: Receipt[];
   people: Person[];
   phase: ItemsSubPhase;
   activeItemIndex: number;
   currency: string;
 }): AssignmentInteraction {
-  const { items, people, phase, activeItemIndex, currency } = args;
+  const { items, receipts, people, phase, activeItemIndex, currency } = args;
   const validPeopleSet = new Set(people.map((person) => person.id));
   const activeItem = items[activeItemIndex] ?? null;
   const unassignedItemCount = items.filter((item) => !isItemAssigned(item, validPeopleSet)).length;
@@ -92,8 +95,10 @@ export function resolveAssignmentInteraction(args: {
       unassignedItemCount,
     },
     review: {
-      itemCount: items.length,
-      rows: items.map((item) => resolveReviewRow(item, people, currency)),
+      itemCount: receipts.reduce((sum, receipt) => sum + receipt.items.length, 0),
+      rows: receipts.flatMap((receipt) =>
+        receipt.items.map((item) => resolveReviewRow(item, people, receipt)),
+      ),
     },
   };
 }
@@ -258,7 +263,7 @@ function resolvePersonRows(
 function resolveReviewRow(
   item: EditableItem,
   people: Person[],
-  currency: string,
+  receipt: Receipt,
 ): AssignmentReviewRow {
   const selectedPeople = people.filter((person) => item.assignment.personIds.includes(person.id));
   const isAssigned = selectedPeople.length > 0;
@@ -266,9 +271,11 @@ function resolveReviewRow(
 
   return {
     itemId: item.id,
+    receiptId: receipt.id,
+    receiptName: receipt.name,
     title: item.name,
     priceCents,
-    priceLabel: priceCents !== null ? formatCurrencyFromCents(priceCents, currency) : null,
+    priceLabel: priceCents !== null ? formatCurrencyFromCents(priceCents, receipt.currency) : null,
     isAssigned,
     splitLabel: isAssigned ? resolveSplitLabel(item, selectedPeople) : 'No people selected',
   };

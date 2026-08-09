@@ -28,15 +28,7 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
     activeTab,
     showBaseCurrency,
   });
-  const {
-    people,
-    receipts,
-    isMultiReceipt,
-    activeSummaryReceipt,
-    renameReceipt,
-    view,
-    summaryBreakdown,
-  } = model;
+  const { people, receipts, isMultiReceipt, renameReceipt, view, summaryBreakdown } = model;
   const reconciliationCents = model.reconciliation.cents;
   const { busy, copied, exportError, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
@@ -48,8 +40,10 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
     return null;
   }
 
-  // Narrow per-tab fields to avoid repetitive view.kind checks in JSX
-  const receiptForExport = view.kind === 'receipt' ? view.receipt : activeSummaryReceipt;
+  // Narrow per-tab fields to avoid repetitive view.kind checks in JSX.
+  // Total tab has no single receipt to name — GrandTotalCard falls back to
+  // a static "Grand Total" label instead of an editable receipt name.
+  const receiptForExport = view.kind === 'receipt' ? view.receipt : null;
   const nativeCurrency = view.kind === 'receipt' ? view.nativeCurrency : BASE_CURRENCY;
   const showCurrencyControls =
     (view.kind === 'receipt' && view.isForeign) || (view.kind === 'total' && view.hasAnyForeign);
