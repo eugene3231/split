@@ -31,7 +31,7 @@ vi.mock('zustand/shallow', () => ({
   useShallow: (fn: (state: Record<string, unknown>) => unknown) => fn,
 }));
 
-function setStoreMock(withSavedWeights = true) {
+function setStoreMock(withSavedWeights = true, weights: Record<string, number> = { p1: 2, p2: 1 }) {
   const updateItem = vi.fn((itemId: string, updater: (item: EditableItem) => EditableItem) => {
     const receipt = storeMock.receipts[0];
     storeMock = {
@@ -85,7 +85,7 @@ function setStoreMock(withSavedWeights = true) {
               mode: 'equal',
               personId: '',
               personIds: ['p1', 'p2'],
-              weights: withSavedWeights ? { p1: 2, p2: 1 } : undefined,
+              weights: withSavedWeights ? weights : undefined,
             },
           },
         ],
@@ -137,12 +137,28 @@ describe('AssignStep', () => {
       />,
     );
 
-    // Weighted item: shares steppers visible, reflecting the saved weights (reduced 2/1 -> 2/3, 1/3 fraction display)
+    // Weighted item: shares steppers visible, reflecting the saved weights (unsimplified 2/3, 1/3 fraction display)
     expect(screen.getByTestId('assign-weight-p1-value')).toHaveTextContent('2/3');
     expect(screen.getByTestId('assign-weight-p2-value')).toHaveTextContent('1/3');
     // Decrement is never disabled at the floor — pressing it at weight 1 removes the person instead.
     expect(screen.getByTestId('assign-weight-p1-decrement')).not.toBeDisabled();
     expect(screen.getByTestId('assign-weight-p2-decrement')).not.toBeDisabled();
+  });
+
+  it('shows the unsimplified share fraction rather than reducing it', () => {
+    setStoreMock(true, { p1: 3, p2: 9 });
+    render(
+      <AssignStep
+        itemsSubPhase="assign"
+        activeItemIndex={1}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    // 3/12 and 9/12 would reduce to 1/4 and 3/4 — the display must keep the raw form.
+    expect(screen.getByTestId('assign-weight-p1-value')).toHaveTextContent('3/12');
+    expect(screen.getByTestId('assign-weight-p2-value')).toHaveTextContent('9/12');
   });
 
   it('removes a person instead of decrementing below the floor weight', () => {

@@ -23,18 +23,12 @@ type AssignPhaseProps = {
   onSplitUnassignedItemsEqually: () => void;
 };
 
-function gcd(a: number, b: number): number {
-  return b === 0 ? a : gcd(b, a % b);
-}
-
-// GCD-reduced fraction for the Shares-tab stepper display only — the stored
-// weights are never rewritten just by viewing this tab, so amount/percent
-// magnitudes (e.g. 2880/1920) still display as a clean 3/5.
+// Unsimplified fraction for the Shares-tab stepper display — shows the raw
+// weight/totalWeight ratio (e.g. 3/12, not 1/4) so the underlying shares stay visible.
 function formatShareFraction(weight: number, totalWeight: number): string {
   if (totalWeight === 0) return `${weight}`;
   if (weight === totalWeight) return 'Full';
-  const divisor = gcd(weight, totalWeight);
-  return `${weight / divisor}/${totalWeight / divisor}`;
+  return `${weight}/${totalWeight}`;
 }
 
 function parsePercentInput(raw: string): number | null {
