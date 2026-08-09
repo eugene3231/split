@@ -5,7 +5,7 @@ import {
   defaultGstState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
-import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentActions';
+import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import { AssignStep } from './AssignStep';
 

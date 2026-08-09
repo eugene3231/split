@@ -458,6 +458,25 @@ describe('applyAssignmentCommand', () => {
     expect(next.assignment.weightsInputMode).toBeUndefined();
   });
 
+  it('does not duplicate a person already in the assignment', () => {
+    const item = buildItem({
+      assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
+    });
+
+    const next = togglePersonInAssignment('p1', true, item);
+
+    expect(next.assignment.personIds).toEqual(['p1', 'p2']);
+  });
+
+  it('switches single-person mode to equal mode when toggling in a second person', () => {
+    const item = buildItem({ assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] } });
+
+    const next = togglePersonInAssignment('p2', true, item);
+
+    expect(next.assignment.mode).toBe('equal');
+    expect(next.assignment.personIds).toEqual(['p1', 'p2']);
+  });
+
   it('clamps share weights to at least one', () => {
     const item = buildItem({
       assignment: {
@@ -715,5 +734,16 @@ describe('splitUnassignedItemsEqually', () => {
     const result = splitUnassignedItemsEqually(items, []);
 
     expect(result).toBe(items);
+  });
+
+  it('treats items assigned only to stale people as unassigned', () => {
+    const staleItem = buildItem({
+      id: 'stale',
+      assignment: { mode: 'equal', personId: '', personIds: ['removed-person'] },
+    });
+
+    const result = splitUnassignedItemsEqually([staleItem], people);
+
+    expect(result[0].assignment.personIds).toEqual(['p1', 'p2', 'p3']);
   });
 });
