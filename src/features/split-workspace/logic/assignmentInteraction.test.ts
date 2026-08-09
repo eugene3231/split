@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import type { EditableItem, Person } from '@shared/types';
+import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 import {
   applyAssignmentCommand,
   resolveAssignmentInteraction,
   splitUnassignedItemsEqually,
 } from './assignmentInteraction';
+
+const disabledCharge: ChargeState = {
+  enabled: false,
+  mode: 'percent',
+  amountInput: '',
+  percentInput: '',
+  detectedConfidence: null,
+  detectedSource: null,
+};
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },
@@ -23,9 +32,24 @@ function buildItem(overrides: Partial<EditableItem> = {}): EditableItem {
   };
 }
 
+function buildReceipt(items: EditableItem[]): Receipt {
+  return {
+    id: 'r1',
+    name: 'Receipt 1',
+    items,
+    discount: disabledCharge,
+    serviceCharge: disabledCharge,
+    gst: disabledCharge,
+    receiptTotalInput: '',
+    currency: 'SGD',
+    exchangeRateOverride: null,
+  };
+}
+
 function resolve(items: EditableItem[], activeItemIndex = 0) {
   return resolveAssignmentInteraction({
     items,
+    receipts: [buildReceipt(items)],
     people,
     phase: 'assign',
     activeItemIndex,
@@ -109,6 +133,32 @@ describe('resolveAssignmentInteraction', () => {
       ['Toast', 'Split: Alice, Bob'],
       ['Coffee', 'Split: Alice ×2, Bob ×1'],
       ['Cake', 'No people selected'],
+    ]);
+  });
+
+  it('resolves review rows across every receipt, not just the active one', () => {
+    const receipt1 = buildReceipt([buildItem({ id: 'r1-item', name: 'Toast' })]);
+    const receipt2: Receipt = {
+      ...buildReceipt([buildItem({ id: 'r2-item', name: 'Coffee' })]),
+      id: 'r2',
+      name: 'Receipt 2',
+    };
+
+    const interaction = resolveAssignmentInteraction({
+      items: receipt1.items,
+      receipts: [receipt1, receipt2],
+      people,
+      phase: 'review',
+      activeItemIndex: 0,
+      currency: 'SGD',
+    });
+
+    expect(interaction.review.itemCount).toBe(2);
+    expect(
+      interaction.review.rows.map((row) => [row.receiptId, row.receiptName, row.title]),
+    ).toEqual([
+      ['r1', 'Receipt 1', 'Toast'],
+      ['r2', 'Receipt 2', 'Coffee'],
     ]);
   });
 
