@@ -9,9 +9,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      '@shared': path.resolve(__dirname, 'src/shared'),
-      '@features': path.resolve(__dirname, 'src/features'),
-      '@pages': path.resolve(__dirname, 'src/pages'),
+      '@shared': path.resolve(import.meta.dirname, 'src/shared'),
+      '@features': path.resolve(import.meta.dirname, 'src/features'),
+      '@pages': path.resolve(import.meta.dirname, 'src/pages'),
     },
   },
   test: {
