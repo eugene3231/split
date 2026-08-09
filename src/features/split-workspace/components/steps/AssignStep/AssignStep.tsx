@@ -58,12 +58,13 @@ export function AssignStep({
     () =>
       resolveAssignmentInteraction({
         items,
+        receipts,
         people,
         phase: itemsSubPhase,
         activeItemIndex,
         currency: activeCurrency,
       }),
-    [activeCurrency, activeItemIndex, items, itemsSubPhase, people],
+    [activeCurrency, activeItemIndex, items, itemsSubPhase, people, receipts],
   );
 
   const applyCommand = (command: AssignmentCommand) => {
@@ -141,8 +142,11 @@ export function AssignStep({
         <ReviewPhase
           rows={interaction.review.rows}
           itemCount={interaction.review.itemCount}
-          onEditItem={(index) => {
-            onActiveItemIndexChange(index);
+          onEditItem={(row) => {
+            const receipt = receipts.find((r) => r.id === row.receiptId);
+            const localIndex = receipt?.items.findIndex((item) => item.id === row.itemId) ?? -1;
+            if (receipt) setActiveReceiptId(receipt.id);
+            onActiveItemIndexChange(Math.max(0, localIndex));
             onItemsSubPhaseChange('assign');
           }}
         />
