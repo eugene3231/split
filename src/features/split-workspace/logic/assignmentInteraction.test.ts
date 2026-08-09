@@ -230,9 +230,165 @@ describe('resolveAssignmentInteraction', () => {
     expect(interaction.assign.canSplitUnassigned).toBe(true);
     expect(interaction.assign.unassignedItemCount).toBe(1);
   });
+
+  it('falls back to an untitled name and a dash price when name/amount are missing', () => {
+    const interaction = resolve([buildItem({ name: '', amountInput: '' })]);
+
+    expect(interaction.assign.activeItem).toMatchObject({
+      title: 'Untitled item',
+      priceCents: null,
+      priceLabel: '—',
+    });
+    // With no parsed price, every selected person's share falls back to $0,
+    // not just the unselected ones.
+    expect(
+      interaction.assign.people.map((row) => [row.name, row.isSelected, row.shareAmountCents]),
+    ).toEqual([
+      ['Alice', true, 0],
+      ['Bob', true, 0],
+      ['Cara', false, 0],
+    ]);
+    // Review rows use the raw item name (no "Untitled item" fallback) and a
+    // null price label rather than a dash.
+    expect(interaction.review.rows[0]).toMatchObject({
+      title: '',
+      priceCents: null,
+      priceLabel: null,
+    });
+  });
+
+  it('treats a missing weight entry as an implicit 1 when detecting and labeling unequal splits', () => {
+    const interaction = resolve([
+      buildItem({
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          // p3 listed first with no weights entry, so detecting "unequal"
+          // must fall back to 1 for it before reaching p1's real weight.
+          personIds: ['p3', 'p1', 'p2'],
+          weights: { p1: 2, p2: 1 },
+        },
+      }),
+    ]);
+
+    expect(interaction.review.rows[0].splitLabel).toBe('Split: Alice ×2, Bob ×1, Cara ×1');
+  });
+
+  it('labels a shares split correctly even when the item price cannot be parsed', () => {
+    const interaction = resolve([
+      buildItem({
+        amountInput: '',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['p1', 'p2'],
+          weights: { p1: 2, p2: 1 },
+        },
+      }),
+    ]);
+
+    expect(interaction.review.rows[0].splitLabel).toBe('Split: Alice ×2, Bob ×1');
+  });
 });
 
 describe('applyAssignmentCommand', () => {
+  it('ignores every command when there is no active item', () => {
+    const result = applyAssignmentCommand({
+      command: { type: 'select-all' },
+      item: null,
+      people,
+    });
+
+    expect(result).toEqual({ type: 'ignored' });
+  });
+
+  it('selects everyone and clears weights on select-all', () => {
+    const item = buildItem({
+      assignment: { mode: 'equal', personId: '', personIds: ['p1'], weights: { p1: 2 } },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'select-all' },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: { assignment: { personIds: ['p1', 'p2', 'p3'], weights: undefined } },
+    });
+  });
+
+  it('clears everyone and weights on select-none', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'select-none' },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: { assignment: { personIds: [], weights: undefined } },
+    });
+  });
+
+  it('adjusts the share weight relative to an implicit weight of 1 when none is saved yet', () => {
+    const item = buildItem({
+      assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'adjust-weight', personId: 'p1', delta: 2 },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: { assignment: { weights: { p1: 3, p2: 1 } } },
+    });
+  });
+
+  it('seeds a default weight of 1 for untouched people the first time a share weight is set', () => {
+    const item = buildItem({
+      assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-weight', personId: 'p1', value: 3 },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: { assignment: { weights: { p1: 3, p2: 1 }, weightsInputMode: 'shares' } },
+    });
+  });
+
+  it('ignores a share-weight update for a person who is not part of the assignment', () => {
+    const item = buildItem({
+      assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-weight', personId: 'p3', value: 5 },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({ type: 'item-updated', item: { assignment: item.assignment } });
+  });
+
   it('toggles people while preserving share weights when possible', () => {
     const item = buildItem({
       assignment: {
@@ -442,6 +598,42 @@ describe('applyAssignmentCommand', () => {
     });
   });
 
+  it('no-ops a percent commit when fewer than two people are selected', () => {
+    const item = buildItem({
+      amountInput: '10.00',
+      assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-percent', personId: 'p1', value: 50 },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({ type: 'item-updated', item: { assignment: item.assignment } });
+  });
+
+  it('drops only the person driven to 0% and renormalizes the remaining survivors', () => {
+    const item = buildItem({
+      amountInput: '10.00',
+      assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2', 'p3'] },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-percent', personId: 'p1', value: 0 },
+      item,
+      people,
+    });
+
+    expect(result.type).toBe('item-updated');
+    const updatedItem = (result as { type: 'item-updated'; item: EditableItem }).item;
+    expect(updatedItem.assignment.personIds).toEqual(['p2', 'p3']);
+    expect(updatedItem.assignment.weightsInputMode).toBe('percent');
+    const weights = updatedItem.assignment.weights!;
+    expect(Object.keys(weights).sort()).toEqual(['p2', 'p3']);
+    expect(weights.p2 + weights.p3).toBe(100);
+  });
+
   it('commits an amount redistribution and tags the assignment as amount-mode', () => {
     const item = buildItem({
       amountInput: '10.00',
@@ -515,5 +707,13 @@ describe('splitUnassignedItemsEqually', () => {
       personIds: ['p1', 'p2', 'p3'],
       weights: undefined,
     });
+  });
+
+  it('returns items unchanged when there are no people to split with', () => {
+    const items = [buildItem({ assignment: { mode: 'equal', personId: '', personIds: [] } })];
+
+    const result = splitUnassignedItemsEqually(items, []);
+
+    expect(result).toBe(items);
   });
 });
