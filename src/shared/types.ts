@@ -1,5 +1,6 @@
 export type AssignmentMode = 'single' | 'equal';
 export type ChargeMode = 'amount' | 'percent';
+export type WeightsInputMode = 'shares' | 'percent' | 'amount';
 
 export type Person = {
   id: string;
@@ -11,6 +12,10 @@ export type ItemAssignment = {
   personId: string;
   personIds: string[];
   weights?: Record<string, number>;
+  /** Only meaningful when `weights` is present. Which tab last wrote `weights`,
+   * for display on reopen — not which ratio is "true" (all three tabs express
+   * the same ratio). Absent + weights present ⇒ 'shares' (pre-existing data). */
+  weightsInputMode?: WeightsInputMode;
 };
 
 export type EditableItem = {

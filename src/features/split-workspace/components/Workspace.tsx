@@ -12,7 +12,7 @@ import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { BottomNav } from '@features/split-workspace/components/BottomNav';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
-import { AssignStep } from '@features/split-workspace/components/steps/AssignStep';
+import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
 import { SummaryStep } from '@features/split-workspace/components/steps/SummaryStep/SummaryStep';
 
 function formatCents(cents: number): string {

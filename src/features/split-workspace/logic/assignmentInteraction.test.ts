@@ -4,6 +4,7 @@ import {
   applyAssignmentCommand,
   resolveAssignmentInteraction,
   splitUnassignedItemsEqually,
+  togglePersonInAssignment,
 } from './assignmentInteraction';
 
 const people: Person[] = [
@@ -43,8 +44,8 @@ describe('resolveAssignmentInteraction', () => {
       priceCents: 1200,
       priceLabel: '$12.00',
       isAssigned: true,
-      splitMode: 'equal',
-      canUseShares: true,
+      weightsInputMode: 'shares',
+      canUseSplitControls: true,
     });
     expect(interaction.assign.activeItemPositionLabel).toBe('Item 1 of 1');
     expect(
@@ -56,7 +57,7 @@ describe('resolveAssignmentInteraction', () => {
     ]);
   });
 
-  it('resolves weighted share previews', () => {
+  it('defaults weightsInputMode to shares when the stored assignment has none', () => {
     const interaction = resolve([
       buildItem({
         assignment: {
@@ -68,7 +69,7 @@ describe('resolveAssignmentInteraction', () => {
       }),
     ]);
 
-    expect(interaction.assign.activeItem?.splitMode).toBe('shares');
+    expect(interaction.assign.activeItem?.weightsInputMode).toBe('shares');
     expect(interaction.assign.people.map((row) => [row.id, row.weight, row.shareLabel])).toEqual([
       ['p1', 2, '$8.00'],
       ['p2', 1, '$4.00'],
@@ -85,11 +86,29 @@ describe('resolveAssignmentInteraction', () => {
     expect(interaction.review.rows).toEqual([]);
   });
 
-  it('resolves review rows for equal and weighted assignments', () => {
+  it('sums shareAmountCents exactly to the item price for an odd-thirds split', () => {
+    const interaction = resolve([
+      buildItem({
+        amountInput: '10.00',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['p1', 'p2', 'p3'],
+        },
+      }),
+    ]);
+
+    const total = interaction.assign.people
+      .filter((row) => row.isSelected)
+      .reduce((sum, row) => sum + row.shareAmountCents, 0);
+    expect(total).toBe(1000);
+  });
+
+  it('resolves review rows for equal, shares, percent, and amount assignments', () => {
     const interaction = resolve([
       buildItem({ id: 'equal', name: 'Toast' }),
       buildItem({
-        id: 'weighted',
+        id: 'shares',
         name: 'Coffee',
         assignment: {
           mode: 'equal',
@@ -99,8 +118,43 @@ describe('resolveAssignmentInteraction', () => {
         },
       }),
       buildItem({
-        id: 'empty',
+        id: 'legacy',
+        name: 'Tea',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['p1', 'p2'],
+          weights: { p1: 3, p2: 1 },
+          weightsInputMode: undefined,
+        },
+      }),
+      buildItem({
+        id: 'percent',
         name: 'Cake',
+        amountInput: '10.00',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['p1', 'p2'],
+          weights: { p1: 60, p2: 40 },
+          weightsInputMode: 'percent',
+        },
+      }),
+      buildItem({
+        id: 'amount',
+        name: 'Wine',
+        amountInput: '10.00',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['p1', 'p2'],
+          weights: { p1: 700, p2: 300 },
+          weightsInputMode: 'amount',
+        },
+      }),
+      buildItem({
+        id: 'empty',
+        name: 'Napkins',
         assignment: { mode: 'equal', personId: '', personIds: [] },
       }),
     ]);
@@ -108,7 +162,10 @@ describe('resolveAssignmentInteraction', () => {
     expect(interaction.review.rows.map((row) => [row.title, row.splitLabel])).toEqual([
       ['Toast', 'Split: Alice, Bob'],
       ['Coffee', 'Split: Alice ×2, Bob ×1'],
-      ['Cake', 'No people selected'],
+      ['Tea', 'Split: Alice ×3, Bob ×1'],
+      ['Cake', 'Split: Alice 60%, Bob 40%'],
+      ['Wine', 'Split: Alice $7.00, Bob $3.00'],
+      ['Napkins', 'No people selected'],
     ]);
   });
 
@@ -153,29 +210,46 @@ describe('applyAssignmentCommand', () => {
     });
   });
 
-  it('switches between equal and shares mode', () => {
-    const item = buildItem();
-    const shares = applyAssignmentCommand({
-      command: { type: 'set-split-mode', mode: 'shares' },
-      item,
-      people,
+  it('renormalizes a newcomer into an amount-mode assignment as a fair share, not weight ?? 1', () => {
+    const item = buildItem({
+      amountInput: '48.00',
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2880, p2: 1920 },
+        weightsInputMode: 'amount',
+      },
     });
 
-    expect(shares).toMatchObject({
-      type: 'item-updated',
-      item: { assignment: { weights: { p1: 1, p2: 1 } } },
+    const next = togglePersonInAssignment('p3', true, item);
+
+    expect(next.assignment.personIds).toEqual(['p1', 'p2', 'p3']);
+    expect(next.assignment.weightsInputMode).toBe('amount');
+
+    // Rendered as dollars, Chris lands close to an equal three-way share of
+    // the $48 item — not the old `weight ?? 1` default (~1 cent).
+    const interaction = resolve([next]);
+    const chris = interaction.assign.people.find((row) => row.id === 'p3');
+    expect(chris?.shareAmountCents).toBe(1600);
+  });
+
+  it('clears weightsInputMode when toggling drops weights entirely', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 60, p2: 40 },
+        weightsInputMode: 'percent',
+      },
     });
 
-    const equal = applyAssignmentCommand({
-      command: { type: 'set-split-mode', mode: 'equal' },
-      item: shares.type === 'item-updated' ? shares.item : item,
-      people,
-    });
+    const next = togglePersonInAssignment('p2', false, item);
 
-    expect(equal).toMatchObject({
-      type: 'item-updated',
-      item: { assignment: { weights: undefined } },
-    });
+    expect(next.assignment.personIds).toEqual(['p1']);
+    expect(next.assignment.weights).toBeUndefined();
+    expect(next.assignment.weightsInputMode).toBeUndefined();
   });
 
   it('clamps share weights to at least one', () => {
@@ -196,7 +270,7 @@ describe('applyAssignmentCommand', () => {
 
     expect(result).toMatchObject({
       type: 'item-updated',
-      item: { assignment: { weights: { p1: 1, p2: 1 } } },
+      item: { assignment: { weights: { p1: 1, p2: 1 }, weightsInputMode: 'shares' } },
     });
   });
 
@@ -220,6 +294,149 @@ describe('applyAssignmentCommand', () => {
       type: 'item-updated',
       item: { assignment: { personIds: ['p2'], weights: undefined } },
     });
+  });
+
+  it('relabels the active tab without touching weights', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+        weightsInputMode: 'shares',
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-weights-input-mode', mode: 'percent' },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: { assignment: { weights: { p1: 2, p2: 1 }, weightsInputMode: 'percent' } },
+    });
+  });
+
+  it('resets a split to equal while leaving weightsInputMode untouched', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 60, p2: 40 },
+        weightsInputMode: 'percent',
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'reset-split-to-equal' },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: { assignment: { weights: undefined, weightsInputMode: 'percent' } },
+    });
+  });
+
+  it('commits a percent redistribution and tags the assignment as percent-mode', () => {
+    const item = buildItem({
+      amountInput: '10.00',
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-percent', personId: 'p1', value: 70 },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: {
+        assignment: {
+          personIds: ['p1', 'p2'],
+          weights: { p1: 70, p2: 30 },
+          weightsInputMode: 'percent',
+        },
+      },
+    });
+  });
+
+  it('deselects a person driven to exactly 0% by a percent commit', () => {
+    const item = buildItem({
+      amountInput: '10.00',
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-percent', personId: 'p1', value: 100 },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: { assignment: { personIds: ['p1'], weights: undefined } },
+    });
+  });
+
+  it('commits an amount redistribution and tags the assignment as amount-mode', () => {
+    const item = buildItem({
+      amountInput: '10.00',
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-amount', personId: 'p1', valueCents: 700 },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: {
+        assignment: {
+          personIds: ['p1', 'p2'],
+          weights: { p1: 700, p2: 300 },
+          weightsInputMode: 'amount',
+        },
+      },
+    });
+  });
+
+  it('no-ops an amount commit when the item has no parsed price', () => {
+    const item = buildItem({
+      amountInput: '',
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-amount', personId: 'p1', valueCents: 700 },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({ type: 'item-updated', item: { assignment: item.assignment } });
   });
 });
 

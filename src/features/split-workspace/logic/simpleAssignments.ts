@@ -49,6 +49,7 @@ export function normalizeItemAssignments(items: EditableItem[], people: Person[]
         personId: '',
         personIds: nextPersonIds,
         weights: finalWeights,
+        weightsInputMode: finalWeights ? item.assignment.weightsInputMode : undefined,
       },
     };
   });

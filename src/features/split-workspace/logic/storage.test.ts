@@ -520,6 +520,125 @@ describe('importDraftFromJson', () => {
     expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 2, p2: 1 });
   });
 
+  it('round-trips weightsInputMode alongside weights', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [
+        { id: 'p1', name: 'Alice' },
+        { id: 'p2', name: 'Bob' },
+      ],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Wine',
+              amountInput: '30.00',
+              discountPercentInput: '',
+              assignment: {
+                mode: 'equal',
+                personId: '',
+                personIds: ['p1', 'p2'],
+                weights: { p1: 60, p2: 40 },
+                weightsInputMode: 'percent',
+              },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].items[0].assignment.weightsInputMode).toBe('percent');
+  });
+
+  it('resolves a legacy draft with weights but no weightsInputMode to the Shares tab', () => {
+    // Backward compatibility: drafts saved before this feature existed only ever
+    // had `weights`, never `weightsInputMode`. The field must stay undefined
+    // (not defaulted here) so `resolveActiveItem` applies the 'shares' default
+    // for display, with the same numbers as before this change.
+    const json = JSON.stringify({
+      version: 2,
+      people: [
+        { id: 'p1', name: 'Alice' },
+        { id: 'p2', name: 'Bob' },
+      ],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Wine',
+              amountInput: '30.00',
+              discountPercentInput: '',
+              assignment: {
+                mode: 'equal',
+                personId: '',
+                personIds: ['p1', 'p2'],
+                weights: { p1: 2, p2: 1 },
+              },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    const assignment = imported?.receipts[0].items[0].assignment;
+    expect(assignment?.weights).toEqual({ p1: 2, p2: 1 });
+    expect(assignment?.weightsInputMode).toBeUndefined();
+  });
+
+  it('ignores an invalid weightsInputMode value', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [{ id: 'p1', name: 'Alice' }],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'i1',
+              name: 'Item',
+              amountInput: '10.00',
+              discountPercentInput: '',
+              assignment: {
+                mode: 'equal',
+                personId: '',
+                personIds: ['p1'],
+                weights: { p1: 2 },
+                weightsInputMode: 'nonsense',
+              },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+    const imported = importDraftFromJson(json);
+    expect(imported?.receipts[0].items[0].assignment.weightsInputMode).toBeUndefined();
+  });
+
   it('drops invalid weight entries (zero, negative, non-number, Infinity)', () => {
     const json = JSON.stringify({
       version: 2,
