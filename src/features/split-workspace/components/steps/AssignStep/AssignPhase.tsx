@@ -188,7 +188,7 @@ export function AssignPhase({
       </div>
 
       {/* Person cards */}
-      <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {model.people.map((person) => {
           const isSolo = person.isSelected && selectedCount === 1;
           const isFractional = person.isSelected && !isSolo;
