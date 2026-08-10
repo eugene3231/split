@@ -1,22 +1,27 @@
 # Testing Guide
 
-## Rule
-
-Every new feature or bug fix must ship with tests. No exceptions.
-
----
+Every feature and bug fix ships with tests.
 
 ## Unit vs integration
 
-**Unit tests** test one function, store action, or hook in isolation. Fast, pinpoint failures.
+**Unit tests** cover one function, store action, or hook in isolation — fast, with pinpoint failures.
 
-**Integration tests** test cross-step workflow behaviour and end-to-end state flow across multiple stores, hooks, and features — they catch bugs unit tests miss (e.g. persistence drift, export regressions, or a hook returning stale data after a store mutation).
+**Integration tests** cover cross-step workflow behaviour and end-to-end state flow across multiple stores, hooks, and features. They catch what unit tests miss: persistence drift, export regressions, a hook returning stale data after a store mutation.
 
----
+## Where tests live
+
+| Type                      | Location                                                    |
+| ------------------------- | ----------------------------------------------------------- |
+| Unit / component          | Co-located with the file under test                         |
+| Step-private hooks and UI | Inside the step folder                                      |
+| Page-level integration    | Co-located with the page when that is the clearest boundary |
+| Cross-feature integration | `src/tests/integration/`                                    |
+
+`src/tests/setup.ts` is the shared setup entrypoint.
 
 ## What to test
 
-**Always test:**
+**Always:**
 
 - Pure functions in `logic/` — one `it` per distinct behaviour
 - Store actions
@@ -25,65 +30,37 @@ Every new feature or bug fix must ship with tests. No exceptions.
 **Write an integration test when:**
 
 - A new hook reads from more than one store
-- A new flow spans multiple store actions (e.g. scan → assign → split)
-- A workflow crosses feature boundaries (e.g. persistence, export/share, currency, or receipt scanning)
-- A bug was caused by store/hook wiring — add a regression test
+- A flow spans multiple store actions (scan → assign → split)
+- A workflow crosses feature boundaries (persistence, export/share, currency, receipt scanning)
+- A bug came from store/hook wiring — put the regression test at that same boundary
 
 **Don't default to testing:**
 
-- Pure rendering with no meaningful behaviour — prefer testing the underlying logic instead
+- Pure rendering with no meaningful behaviour — test the logic underneath instead
 - Implementation details — assert on outputs and observable state only
-- The real Gemini API — mock `analyzeReceiptWithGemini` at the module boundary in `@features/receipt-scanner/api/geminiApi`
-
----
-
-## Where tests live
-
-| Type                      | Location                                                    |
-| ------------------------- | ----------------------------------------------------------- |
-| Unit / component          | Co-located with the file under test                         |
-| Page-level integration    | Co-located with the page when that is the clearest boundary |
-| Cross-feature integration | `src/tests/integration/`                                    |
-
-`src/test/setup.ts` is the shared test setup entrypoint.
-
-Step-private hooks and components should keep their tests colocated inside the step folder.
-
----
+- The real model API — mock it at the module boundary
 
 ## Patterns
-
-### Naming
 
 Name tests after the scenario, not the function:
 
 ```ts
-// ✅
-it('allocates equal split remainders deterministically', () => { ... });
-// ❌
-it('computeSplit works', () => { ... });
+it('allocates equal split remainders deterministically', () => { ... });  // ✅
+it('computeSplit works', () => { ... });                                  // ❌
 ```
 
-### Expected values
-
-Use concrete values so failures are immediately readable:
+Assert concrete values, so a failure is readable without chasing a variable:
 
 ```ts
 expect(split.subtotalCents).toBe(1000); // ✅
-expect(split.subtotalCents).toBe(total); // ❌ — requires chasing `total`
+expect(split.subtotalCents).toBe(total); // ❌
 ```
 
-### Avoid brittle assertions
+Assert on actions, visible states, aria/state attributes, and meaningful outputs. Exact copy is only worth asserting when that wording is the contract; broad snapshots of interactive screens break on harmless tweaks.
 
-Prefer testing behaviour, state, and stable UI contracts over copy or incidental markup.
+## Mocking
 
-- Assert on actions, visible states, aria/state attributes, and meaningful outputs.
-- Avoid asserting exact text copy unless that wording is the contract being tested.
-- Avoid broad content snapshots for interactive screens; they tend to break on harmless copy tweaks.
-
-### Store tests
-
-Reset stores in `beforeEach` via `useXxxStore.setState(...)`. Mock external calls with `vi.hoisted` + `vi.mock`:
+Reset stores in `beforeEach` via `useXxxStore.setState(...)`. Mock external APIs at the module boundary, and browser APIs like `URL.createObjectURL` or `navigator.clipboard` as needed. In isolated component tests, mock the step-private hook rather than recreating full store wiring.
 
 ```ts
 const { analyzeReceiptWithGemini: mockOcr } = vi.hoisted(() => ({
@@ -96,24 +73,8 @@ vi.mock('@features/receipt-scanner/api/geminiApi', async (importActual) => {
 });
 ```
 
-### Integration tests
+Integration tests use the helpers in `src/tests/integration/testHelpers.ts` — `makePerson`, `makeItem`, `makeReceipt`, `seedStore`, `resetAllStores`, `sumValues` — with `resetAllStores` in `beforeEach`.
 
-Use the helpers in `src/tests/integration/testHelpers.ts` — `makePerson`, `makeItem`, `makeReceipt`, `seedStore`, `resetAllStores`, `sumValues`. Call `resetAllStores` in `beforeEach`.
+## Coverage
 
-Use hook tests for step-model/import/export logic. Use page or integration tests for wizard progression and cross-step regressions.
-
-## Mocking boundaries
-
-- Mock external APIs at the module boundary.
-- Mock browser APIs like `URL.createObjectURL` or `navigator.clipboard` when needed.
-- In isolated component tests, mocking a step-private hook is preferred over recreating full store wiring.
-
-## Regression tests
-
-If a bug came from store wiring, hook composition, or cross-step state flow, add a regression test at that same boundary.
-
----
-
-## Coverage target
-
-80% lines, functions, branches, statements. Run `npm run test:coverage` to check.
+80% lines, functions, branches, statements. `pnpm test:coverage`.

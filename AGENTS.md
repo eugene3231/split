@@ -1,320 +1,37 @@
-# Project Overview
+# Split
 
-## What Is This?
+Browser-only bill-splitting app: scan a receipt with a vision model, assign items to people, show each person's total, export as PNG or text. No backend, no auth — state lives in Zustand stores and persists to `localStorage`. Run commands with `pnpm`.
 
-**Split** is a browser-only, no backend, no auth bill-splitting app that uses Google Gemini's vision AI to scan receipts and automatically divide costs between people.
+## Where code goes
 
-**User workflow:**
+- `pages/` — route shells only. No workflow logic, step logic, or feature-owned hooks.
+- `features/<name>/` — one capability, whole: components, hooks, logic, stores, persistence, UI.
+- `shared/` — only primitives already reused by two or more features. Holds true cross-feature types, logic, constants, and utilities.
 
-1. **Add people** — Enter names for everyone splitting the bill
-2. **Scan receipt** — Upload a receipt image; Gemini extracts line items, tax, and service charges
-3. **Assign items** — Assign each item to one or more people (equal split, or unequal split by share weights)
-4. **View summary** — See each person's itemized total including their share of tax/service/discounts
-5. **Export/share** — Download as a PNG image or copy a text summary
+Layering, step structure, and summary data flow: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-**Key features:**
+## Derive, don't store
 
-- Gemini-powered OCR (no backend — calls Gemini directly from the browser)
-- Equal or weighted (unequal) splits per item — assign share ratios so costs divide proportionally
-- Per-item discounts and global charges (tax, service charge, global discount)
-- Multi-currency receipts with exchange rate conversion (base currency: SGD)
-- PayNow QR code generation per person so they can pay directly from the summary screen
-- Auto-save to localStorage — progress persists across page refreshes
-- Export as PNG or share/copy text summary for group chats
+Recompute splits, summaries, and export payloads from canonical store state instead of keeping a second copy in a store or in `useState`.
 
-## Tech Stack
+Same rule in components: derive during render. `react-hooks/set-state-in-effect` and `react-hooks/refs` are errors here, so a value needing a side effect comes from `useMemo` with cleanup-only `useEffect`. Add `useMemo`/`useCallback` for a measured problem, not on reflex.
 
-- **React 19 + TypeScript + Vite** — UI framework and build tooling
-- **Tailwind CSS 4** — Utility-first styling
-- **Zustand** — State management (split into `receiptStore`, `scanStore`, `geminiStore`, `currencyStore`)
-- **Zod** — Schema validation for Gemini API responses
-- **Vitest + Testing Library** — Unit testing
+## Summary / export parity
 
-## Best Practices
+`PersonBreakdownCard.tsx` and `receiptSplitImageLight.ts` render the same breakdown through different technologies, so they drift silently. Read [docs/EXPORT-PARITY.md](docs/EXPORT-PARITY.md) before changing either.
 
-- Prefer recomputing derived data (e.g. in `shared/logic/split/split.ts`) over storing it
-- Keep route shells thin. Feature components may own feature-local store selection when that reduces prop-drilling and keeps ownership local.
-- Detailed project architecture: @docs/ARCHITECTURE.md
-- Testing guidance: @docs/TESTING.md
+## Styling
 
-## UI / Export Parity Rules
+Merge classes with `cn()`. Design tokens go in the `@theme` block in `src/index.css`; reach for `style={{}}` only where Tailwind cannot. Extract a component once a class list repeats or hides a real UI concept.
 
-- `src/features/split-workspace/logic/summaryBreakdown.ts` resolves the shared breakdown rendered by both `src/features/split-workspace/components/steps/SummaryStep/PersonBreakdownCard.tsx` and `src/features/sharing/logic/receiptSplitImageLight.ts`.
-- Any user-visible change to `PersonBreakdownCard` must be reviewed against the shared breakdown logic, the export renderer in `receiptSplitImageLight.ts`, and its helpers in `receiptSplitImageLightHelpers.ts` / `receiptSplitImageHelpers.ts`.
-- Keep these in sync for layout/content changes including header structure, avatar treatment, labels, totals, receipt sub-cards, charge rows, currency-conversion copy, QR placement, and empty states.
-- If a change only makes sense in one renderer, document that explicitly in the code change so the asymmetry is intentional rather than drift.
-- When touching either side, update or add tests that cover the shared expectation where practical.
-- Prefer summary/export parity naming around the user-facing concept of a **breakdown**, not generic card/view-model terminology. If extracting shared summary rendering logic, use names like `logic/summaryBreakdown.ts`, `resolveSummaryBreakdown()`, `resolvePersonBreakdowns()`, `SummaryBreakdown`, `PersonBreakdown`, `ReceiptBreakdownSection`, `BreakdownItemRow`, and `BreakdownChargeRow`. Avoid vague names like `buildPersonSummaryCardModels`, `getPersonCards`, or `makeRows`.
-- Keep renderers dumb: React and canvas adapters should compose and format a resolved breakdown, while shared breakdown logic owns row selection, labels, totals, receipt sections, currency-conversion metadata, QR references, and empty states.
+## Tests
 
-## Architecture Rules
+Every feature and bug fix ships with tests: [docs/TESTING.md](docs/TESTING.md).
 
-- **`pages/`** contains route entrypoints only. No workflow logic, step logic, or feature-owned hooks.
-- **`features/<name>/`** owns the full implementation of a capability: components, hooks, logic, stores, state access, persistence, and feature-scoped UI.
-- **`shared/`** contains only primitives reused across **multiple features**. "Used by multiple pages in one workflow" does not qualify.
-- Default rule: start local to a feature, then promote to `shared/` only after real cross-feature reuse.
-- Stores live under their owning feature, not in a top-level `src/stores`.
-- Once a workflow step grows private collaborators, colocate them under `components/steps/<StepName>/`. Hooks in those folders are still hook-layer responsibilities; the folder is a locality boundary, not a separate architecture layer.
+## Receipt scanning
 
-## Repository Structure
+The scan prompt, response schema, model provider, or charge detection: [docs/RECEIPT-SCANNING.md](docs/RECEIPT-SCANNING.md).
 
-- `src/pages/` contains route shells only.
-- `src/features/split-workspace/` owns the bill-splitting workflow: wizard state, step components, step-private helpers, stores, and persistence.
-- `src/features/receipt-scanner/` owns Gemini OCR parsing and scan orchestration.
-- `src/features/payments/` owns QR and PayNow helpers.
-- `src/features/sharing/` owns PNG/text export logic.
-- `src/shared/` holds true cross-feature types, logic, constants, and utilities.
+## Domain language
 
-Use `docs/ARCHITECTURE.md` for the detailed feature layout, layering, and step data flow.
-
-## Gemini Integration
-
-Models are defined in `src/features/receipt-scanner/constants.ts`
-
-The prompt is intentionally minimal — the response schema does the heavy lifting. Gemini's controlled generation (`responseSchema` in `generationConfig`) constrains the model to return exactly the right JSON shape.
-
-The Zod schema in `gemini-schema.ts` serves dual purpose: converted to JSON Schema for the API request, and used again to validate the parsed response. Most fields are nullable so the model returns `null` rather than hallucinate. `stripUnsupportedSchemaFields` removes keys (`$schema`, `additionalProperties`) that Zod emits but Gemini's API rejects.
-
-Charge detection (`enabled`, `amount`, `percent`, `confidence`, `source`) is normalized after parsing — `enabled` is inferred true if `amount` or `percent` is non-zero, regardless of what the model returned.
-
----
-
-# React + Tailwind Best Practices
-
-## Core Philosophy
-
-Prefer simple, readable, and predictable code. Favour data-down, actions-up. Keep components small and focused.
-
----
-
-## State Management
-
-### Prefer derived state over stored state
-
-```tsx
-// ❌ Avoid — redundant state that must be kept in sync
-const [items, setItems] = useState([...]);
-const [count, setCount] = useState(0);
-
-// ✅ Prefer — derive count from items
-const [items, setItems] = useState([...]);
-const count = items.length;
-```
-
-### Collocate state as low as possible
-
-Don't lift state higher than necessary. If only one component needs it, keep it there.
-
----
-
-## Avoiding useEffect
-
-Treat `useEffect` as a tool with a high misuse rate. Before reaching for it, ask: _can this be derived, event-driven, or handled in the render cycle?_
-
-### ❌ Common useEffect anti-patterns to avoid
-
-**Syncing state to state** — derive it instead:
-
-```tsx
-// ❌
-const [firstName, setFirstName] = useState('');
-const [fullName, setFullName] = useState('');
-useEffect(() => {
-  setFullName(`${firstName} ${lastName}`);
-}, [firstName]);
-
-// ✅
-const fullName = `${firstName} ${lastName}`;
-```
-
-**Responding to events** — use event handlers:
-
-```tsx
-// ❌
-useEffect(() => {
-  if (submitted) {
-    processForm();
-  }
-}, [submitted]);
-
-// ✅
-function handleSubmit() {
-  processForm();
-}
-```
-
-**Initializing state from props** — set it in the initial value:
-
-```tsx
-// ❌
-const [value, setValue] = useState('');
-useEffect(() => {
-  setValue(props.initialValue);
-}, [props.initialValue]);
-
-// ✅
-const [value, setValue] = useState(props.initialValue);
-```
-
-### ✅ When useEffect IS appropriate
-
-- Subscribing to external systems (WebSockets, browser APIs, third-party libraries)
-- Running imperative DOM manipulations that can't be expressed declaratively
-- Synchronizing with non-React systems (analytics, logging on mount)
-- **Cleanup only** — the effect body does nothing; only the returned cleanup function runs
-
-### Deriving side-effectful values (e.g. object URLs)
-
-When a value requires a side effect to produce (e.g. `URL.createObjectURL`) but logically derives from a prop/state, use `useMemo` to compute it and a paired `useEffect` for cleanup. Do **not** call `setState` inside an effect body, and do **not** read/write `ref.current` during render — both are lint errors in this codebase.
-
-```tsx
-// ✅ useMemo derives the value; useEffect handles cleanup only
-const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
-
-useEffect(() => {
-  return () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-  };
-}, [previewUrl]);
-```
-
-```tsx
-// ❌ setState inside effect body — lint error (react-hooks/set-state-in-effect)
-useEffect(() => {
-  setPreviewUrl(file ? URL.createObjectURL(file) : null);
-}, [file]);
-
-// ❌ Refs during render — lint error (react-hooks/refs)
-const urlRef = useRef<string | null>(null);
-urlRef.current = file ? URL.createObjectURL(file) : null; // in render body
-```
-
----
-
-## Components
-
-### Keep components small and single-purpose
-
-If a component needs a long comment explaining what it does, it should probably be split.
-
-### Prefer composition over configuration
-
-Heuristic, not a rule: prefer composition when it keeps the API smaller and clearer. Small focused prop APIs are still fine.
-
-```tsx
-// ❌ Prop-drilling configuration
-<Card title="Hello" footer="Bye" hasImage showBorder />
-
-// ✅ Composable slots
-<Card>
-  <Card.Header>Hello</Card.Header>
-  <Card.Body><img /></Card.Body>
-  <Card.Footer>Bye</Card.Footer>
-</Card>
-```
-
-### Use early returns for guard clauses
-
-```tsx
-// ✅
-if (!user) return <LoginPrompt />;
-if (isLoading) return <Spinner />;
-return <Dashboard user={user} />;
-```
-
-### Avoid prop drilling beyond 2 levels
-
-Heuristic, not a hard limit: if data/actions are crossing multiple layers and obscuring ownership, use composition, context, or a feature store instead.
-
----
-
-## Tailwind Usage
-
-### Use `cn()` for conditional classes
-
-Always merge classes with a utility like `clsx` + `tailwind-merge`:
-
-```tsx
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
-
-// Usage
-<div className={cn('px-4 py-2', isActive && 'bg-blue-500', className)} />;
-```
-
-### Avoid inline style for things Tailwind can handle
-
-```tsx
-// ❌
-<div style={{ marginTop: '16px' }} />
-
-// ✅
-<div className="mt-4" />
-```
-
-### Define design tokens in `@theme`
-
-Tailwind v4 uses CSS `@theme` blocks — don't scatter magic values, define colors, spacing, and fonts there.
-
-### Keep class lists readable — extract components early
-
-Heuristic, not a threshold: if a class list is hard to scan, repeated, or hiding a meaningful UI concept, extract a component or shared style primitive.
-
----
-
-## Performance
-
-### Prefer stable references
-
-Heuristic: define functions and objects outside components when they are truly static. Don't contort code for stable references unless it improves clarity or addresses a measured problem.
-
----
-
-## TypeScript
-
-- Prefer `interface` for object shapes, `type` for unions/intersections
-- Avoid `any` — use `unknown` with type narrowing if the type is truly dynamic
-- Type component props explicitly; don't rely on inference from defaultProps
-- Use `ComponentProps<typeof X>` to extend or wrap existing component types
-
----
-
-## File & Folder Structure
-
-- `features/` — domain features, each with `components/`, `hooks/`, `logic/`, `index.ts`
-- `pages/` — route entrypoints and thin shells only
-- `shared/` — primitives reused across multiple features; default to feature-local first, then promote after real cross-feature reuse
-
-Co-locate tests with the file they test. Use `logic/` for pure functions, `hooks/` for stateful abstractions.
-
----
-
-## Custom Hooks
-
-Extract logic into a custom hook when:
-
-- The same stateful logic is needed in 2+ components
-- A component's logic is complex enough to warrant its own test file
-- You're encapsulating a browser API or side effect
-
-Name hooks `use[Noun]` (e.g. `useMediaQuery`, `useLocalStorage`).
-
----
-
-## General
-
-- Delete dead code — don't comment it out
-- Prefer named exports for components (easier to refactor/search)
-- Keep `index.ts` barrel files shallow — deep barrels slow down builds
-
----
-
-# Testing
-
-See [TESTING.md](./TESTING.md) for the full testing guide, patterns, and examples.
-
-**Short version:** test logic first (pure functions, store actions, hooks), and add component/page tests when they protect important user flows, rendering contracts, or regressions. Use integration tests for cross-step workflow behaviour and end-to-end state flow across the bill-splitting experience. Every meaningful feature or bug fix should ship with tests at the right level.
+Assignment, share weight, unassigned item — terms to use and to avoid: [CONTEXT.md](CONTEXT.md).
