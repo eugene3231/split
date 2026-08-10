@@ -181,6 +181,12 @@ export function togglePersonInAssignment(
     }
   }
 
+  // weightsInputMode reflects which tab the user is on, independent of
+  // whether custom weights have been entered yet — only clear it when the
+  // assignment drops below 2 people, where split controls stop applying.
+  const nextWeightsInputMode =
+    nextIds.length >= 2 ? currentItem.assignment.weightsInputMode : undefined;
+
   return {
     ...currentItem,
     assignment: {
@@ -188,19 +194,21 @@ export function togglePersonInAssignment(
       personId: '',
       personIds: nextIds,
       weights: nextWeights,
-      weightsInputMode: nextWeights ? currentItem.assignment.weightsInputMode : undefined,
+      weightsInputMode: nextWeightsInputMode,
     },
   };
 }
 
 export function selectAllPeople(people: Person[], currentItem: EditableItem): EditableItem {
+  const nextIds = people.map((person) => person.id);
   return {
     ...currentItem,
     assignment: {
       mode: 'equal',
       personId: '',
-      personIds: people.map((person) => person.id),
+      personIds: nextIds,
       weights: undefined,
+      weightsInputMode: nextIds.length >= 2 ? currentItem.assignment.weightsInputMode : undefined,
     },
   };
 }

@@ -477,6 +477,44 @@ describe('applyAssignmentCommand', () => {
     expect(next.assignment.personIds).toEqual(['p1', 'p2']);
   });
 
+  it('preserves weightsInputMode when toggling a person while unweighted, staying at 2+ selected', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2', 'p3'],
+        weightsInputMode: 'percent',
+      },
+    });
+
+    const next = togglePersonInAssignment('p3', false, item);
+
+    expect(next.assignment.personIds).toEqual(['p1', 'p2']);
+    expect(next.assignment.weightsInputMode).toBe('percent');
+  });
+
+  it('preserves weightsInputMode on select-all when 2+ people result', () => {
+    const item = buildItem({
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1'],
+        weightsInputMode: 'percent',
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'select-all' },
+      item,
+      people,
+    });
+
+    expect(result).toMatchObject({
+      type: 'item-updated',
+      item: { assignment: { personIds: ['p1', 'p2', 'p3'], weightsInputMode: 'percent' } },
+    });
+  });
+
   it('clamps share weights to at least one', () => {
     const item = buildItem({
       assignment: {
