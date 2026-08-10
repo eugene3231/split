@@ -1,3 +1,5 @@
+import { allocateCents } from '@shared/logic/split/split';
+
 /**
  * Tricount-style smart fill: typing a new value for one person pulls the
  * difference out of (or gives back to) everyone else, proportional to their
@@ -19,14 +21,8 @@ export function redistributeOnChange(
 
   const currentOthersSum = others.reduce((sum, id) => sum + (prev[id] ?? 0), 0);
   const remainingForOthers = Math.max(0, currentOthersSum - actualDelta);
-  const next = { ...prev, [personId]: newSelf };
-  let allocated = 0;
-  others.forEach((id, idx) => {
-    const isLast = idx === others.length - 1;
-    const share = currentOthersSum > 0 ? (prev[id] ?? 0) / currentOthersSum : 1 / others.length;
-    const value = isLast ? remainingForOthers - allocated : Math.round(remainingForOthers * share);
-    next[id] = Math.max(0, value);
-    allocated += next[id];
-  });
-  return next;
+  const othersWeights = Object.fromEntries(others.map((id) => [id, prev[id] ?? 0]));
+  const allocated = allocateCents(remainingForOthers, others, othersWeights);
+
+  return { ...prev, [personId]: newSelf, ...allocated };
 }

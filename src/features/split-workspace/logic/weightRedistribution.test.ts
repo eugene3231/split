@@ -8,9 +8,9 @@ describe('redistributeOnChange', () => {
     expect(next.a + next.b + next.c).toBe(100);
   });
 
-  it('hands the rounding remainder to the last person so the total stays exact', () => {
+  it('uses largest-remainder allocation so the total stays exact even when rounding would overflow', () => {
     const next = redistributeOnChange({ a: 0, b: 4, c: 3, d: 3 }, 'a', 1, 10, ['a', 'b', 'c', 'd']);
-    expect(next).toEqual({ a: 1, b: 4, c: 3, d: 2 });
+    expect(next).toEqual({ a: 1, b: 3, c: 3, d: 3 });
     expect(next.a + next.b + next.c + next.d).toBe(10);
   });
 
@@ -32,5 +32,15 @@ describe('redistributeOnChange', () => {
     const next = redistributeOnChange({ a: 90, b: 0, c: 0 }, 'a', 60, 90, ['a', 'b', 'c']);
     expect(next).toEqual({ a: 60, b: 15, c: 15 });
     expect(next.a + next.b + next.c).toBe(90);
+  });
+
+  it('keeps the exact total when six people are involved and rounding could overflow', () => {
+    const prev = { p0: 5, p1: 14, p2: 24, p3: 41, p4: 13, p5: 3 };
+    const ids = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'];
+
+    const next = redistributeOnChange(prev, 'p3', 93, 100, ids);
+
+    expect(next.p3).toBe(93);
+    expect(Object.values(next).reduce((sum, value) => sum + value, 0)).toBe(100);
   });
 });

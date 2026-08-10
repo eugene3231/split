@@ -653,6 +653,34 @@ describe('applyAssignmentCommand', () => {
     expect(weights.p2 + weights.p3).toBe(100);
   });
 
+  it('does not let re-normalization after a zero-weight drop alter the value just typed', () => {
+    const item = buildItem({
+      amountInput: '10.00',
+      assignment: {
+        mode: 'equal',
+        personId: '',
+        personIds: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'],
+        weights: { p0: 5, p1: 14, p2: 24, p3: 41, p4: 13, p5: 3 },
+        weightsInputMode: 'percent',
+      },
+    });
+
+    const result = applyAssignmentCommand({
+      command: { type: 'set-percent', personId: 'p3', value: 93 },
+      item,
+      people,
+    });
+
+    expect(result.type).toBe('item-updated');
+    if (result.type !== 'item-updated') throw new Error('expected item-updated');
+    expect(result.item.assignment.weights?.p3).toBe(93);
+    const total = Object.values(result.item.assignment.weights ?? {}).reduce(
+      (sum, value) => sum + value,
+      0,
+    );
+    expect(total).toBe(100);
+  });
+
   it('commits an amount redistribution and tags the assignment as amount-mode', () => {
     const item = buildItem({
       amountInput: '10.00',
