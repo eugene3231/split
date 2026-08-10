@@ -20,6 +20,18 @@ Same rule in components: derive during render. `react-hooks/set-state-in-effect`
 
 `PersonBreakdownCard.tsx` and `receiptSplitImageLight.ts` render the same breakdown through different technologies, so they drift silently. Read [docs/EXPORT-PARITY.md](docs/EXPORT-PARITY.md) before changing either.
 
+## Components
+
+Prefer composable slots over a wide prop API — `<Card.Header>` rather than `hasImage`, `showBorder`, `footer`. Keep components small enough to need no explanatory comment, guard with early returns, and collocate state as low as it will go. Once data and actions cross more than about two layers, reach for composition, context, or a feature store rather than threading props further.
+
+Extract a hook when the same stateful logic appears in two components, when the logic warrants its own test file, or when you're wrapping a browser API. Name them `use[Noun]`.
+
+## TypeScript
+
+`interface` for object shapes, `type` for unions and intersections. `unknown` with narrowing rather than `any`. `ComponentProps<typeof X>` to extend or wrap an existing component. Named exports for components, and delete dead code rather than commenting it out.
+
+Examples, and the `useEffect` anti-patterns in full: [docs/REACT-TYPESCRIPT.md](docs/REACT-TYPESCRIPT.md).
+
 ## Styling
 
 Merge classes with `cn()`. Design tokens go in the `@theme` block in `src/index.css`; reach for `style={{}}` only where Tailwind cannot. Extract a component once a class list repeats or hides a real UI concept.
