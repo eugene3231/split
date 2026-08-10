@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { EditableItem, Person } from '@shared/types';
 import {
   createEmptyItem,
-  isItemAssigned,
   pickDefaultPersonId,
   sanitizeItemAssignment,
 } from '@features/split-workspace/logic/assignmentItems';
@@ -95,36 +94,5 @@ describe('pickDefaultPersonId', () => {
     expect(pickDefaultPersonId(people, 'p2')).toBe('p2');
     expect(pickDefaultPersonId(people, 'missing')).toBe('p1');
     expect(pickDefaultPersonId([], 'missing')).toBe('');
-  });
-});
-
-describe('isItemAssigned', () => {
-  it('supports single and equal assignment checks', () => {
-    const peopleSet = new Set(['p1', 'p2']);
-    expect(
-      isItemAssigned(
-        buildItem({
-          assignment: {
-            mode: 'single',
-            personId: 'p1',
-            personIds: [],
-          },
-        }),
-        peopleSet,
-      ),
-    ).toBe(true);
-
-    expect(
-      isItemAssigned(
-        buildItem({
-          assignment: {
-            mode: 'equal',
-            personId: '',
-            personIds: ['missing', 'p2'],
-          },
-        }),
-        peopleSet,
-      ),
-    ).toBe(true);
   });
 });

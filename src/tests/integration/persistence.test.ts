@@ -224,6 +224,40 @@ describe('Persistence integration', () => {
     });
   });
 
+  it('weightsInputMode survives import when no custom weights were entered yet', () => {
+    // Regression test: a user who switched to the Percent tab without
+    // entering custom weights has weightsInputMode set but no `weights`.
+    // The store's initialize()/importFromJson() paths run every item
+    // through buildInitialItems -> syncItemsWithPeople ->
+    // normalizeItemAssignments, which used to drop weightsInputMode
+    // whenever `weights` was absent, undoing it on every reload.
+    const alice = makePerson('Alice');
+    const bob = makePerson('Bob');
+    const r1 = makeReceipt({
+      items: [
+        makeItem({
+          amountInput: '30.00',
+          assignment: {
+            mode: 'equal',
+            personId: '',
+            personIds: [alice.id, bob.id],
+            weightsInputMode: 'percent',
+          },
+        }),
+      ],
+    });
+
+    seedStore([alice, bob], [r1]);
+    const json = useReceiptStore.getState().getExportJson();
+
+    resetAllStores();
+    useReceiptStore.getState().importFromJson(json);
+
+    const restored = useReceiptStore.getState();
+    expect(restored.receipts[0].items[0].assignment.weights).toBeUndefined();
+    expect(restored.receipts[0].items[0].assignment.weightsInputMode).toBe('percent');
+  });
+
   it('wizard state persists and restores via localStorage', () => {
     const wizardState = {
       version: 1 as const,

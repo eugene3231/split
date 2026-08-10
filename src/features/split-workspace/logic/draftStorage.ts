@@ -13,6 +13,7 @@ import type {
   Person,
   Receipt,
   SessionDraft,
+  WeightsInputMode,
 } from '@shared/types';
 import { createEmptyItem } from '@features/split-workspace/logic/assignmentItems';
 import { toNullableNumber } from '@shared/logic/core/money';
@@ -258,12 +259,21 @@ function normalizeDraftAssignment(value: unknown): ItemAssignment | null {
     }
   }
 
+  const weightsInputMode: WeightsInputMode | undefined = isWeightsInputMode(value.weightsInputMode)
+    ? value.weightsInputMode
+    : undefined;
+
   return {
     mode,
     personId,
     personIds: uniquePersonIds,
     weights,
+    weightsInputMode,
   };
+}
+
+function isWeightsInputMode(value: unknown): value is WeightsInputMode {
+  return value === 'shares' || value === 'percent' || value === 'amount';
 }
 
 function normalizeDraftChargeState(value: unknown, fallback: ChargeState): ChargeState {

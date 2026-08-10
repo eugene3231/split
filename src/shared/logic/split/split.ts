@@ -291,7 +291,7 @@ function weightsFromBase(
   return weights;
 }
 
-function allocateCents(
+export function allocateCents(
   totalCents: number,
   personIds: string[],
   rawWeights: Record<string, number>,

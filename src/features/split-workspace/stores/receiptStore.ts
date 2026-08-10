@@ -18,7 +18,7 @@ import {
   normalizeItemAssignments,
   syncItemsWithPeople,
 } from '@features/split-workspace/logic/simpleAssignments';
-import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentActions';
+import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
 
 // ---------------------------------------------------------------------------
 // Module-level helpers

@@ -57,11 +57,3 @@ export function pickDefaultPersonId(people: Person[], candidate: string): string
   const validIds = new Set(people.map((person) => person.id));
   return validIds.has(candidate) ? candidate : (people[0]?.id ?? '');
 }
-
-export function isItemAssigned(item: EditableItem, peopleSet: Set<string>): boolean {
-  if (item.assignment.mode === 'single') {
-    return peopleSet.has(item.assignment.personId);
-  }
-
-  return item.assignment.personIds.some((personId) => peopleSet.has(personId));
-}

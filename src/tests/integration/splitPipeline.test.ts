@@ -723,6 +723,50 @@ describe('Split pipeline integration', () => {
       expect(sumValues(active.split.totalByPersonCents)).toBe(active.split.grandTotalCents);
     });
 
+    it('27: percent-commit weights produce identical computeSplit output to equivalent shares weights', () => {
+      const alice = makePerson('Alice');
+      const bob = makePerson('Bob');
+
+      const percentReceipt = makeReceipt({
+        items: [
+          makeItem({
+            amountInput: '30.00',
+            assignment: {
+              mode: 'equal',
+              personId: '',
+              personIds: [alice.id, bob.id],
+              weights: { [alice.id]: 60, [bob.id]: 40 },
+              weightsInputMode: 'percent',
+            },
+          }),
+        ],
+      });
+      seedStore([alice, bob], [percentReceipt]);
+      const percentSplit = useSplitFromStore().result.current.active.split;
+
+      resetAllStores();
+
+      const sharesReceipt = makeReceipt({
+        items: [
+          makeItem({
+            amountInput: '30.00',
+            assignment: {
+              mode: 'equal',
+              personId: '',
+              personIds: [alice.id, bob.id],
+              weights: { [alice.id]: 3, [bob.id]: 2 },
+            },
+          }),
+        ],
+      });
+      seedStore([alice, bob], [sharesReceipt]);
+      const sharesSplit = useSplitFromStore().result.current.active.split;
+
+      expect(percentSplit.totalByPersonCents).toEqual(sharesSplit.totalByPersonCents);
+      expect(percentSplit.grandTotalCents).toBe(sharesSplit.grandTotalCents);
+      expect(sumValues(percentSplit.totalByPersonCents)).toBe(percentSplit.grandTotalCents);
+    });
+
     it('24: discount larger than subtotal — totals stay non-negative', () => {
       const alice = makePerson('Alice');
       const bob = makePerson('Bob');

@@ -5,7 +5,7 @@ import {
   defaultGstState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
-import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentActions';
+import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import { AssignStep } from './AssignStep';
 
@@ -31,7 +31,7 @@ vi.mock('zustand/shallow', () => ({
   useShallow: (fn: (state: Record<string, unknown>) => unknown) => fn,
 }));
 
-function setStoreMock(withSavedWeights = true) {
+function setStoreMock(withSavedWeights = true, weights: Record<string, number> = { p1: 2, p2: 1 }) {
   const updateItem = vi.fn((itemId: string, updater: (item: EditableItem) => EditableItem) => {
     const receipt = storeMock.receipts[0];
     storeMock = {
@@ -85,7 +85,7 @@ function setStoreMock(withSavedWeights = true) {
               mode: 'equal',
               personId: '',
               personIds: ['p1', 'p2'],
-              weights: withSavedWeights ? { p1: 2, p2: 1 } : undefined,
+              weights: withSavedWeights ? weights : undefined,
             },
           },
         ],
@@ -119,11 +119,14 @@ describe('AssignStep', () => {
       />,
     );
 
-    // Equal item: both split buttons shown, weight controls hidden
-    expect(screen.getByTestId('assign-split-mode-toggle')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Equally' })).not.toBeDisabled();
-    expect(screen.getByRole('button', { name: 'By shares' })).not.toBeDisabled();
-    expect(screen.queryByText('Share weights')).not.toBeInTheDocument();
+    // Equal item: all three tabs enabled; Shares is the resting tab, so both
+    // people show an even 1/2 stepper even though no explicit weights are saved.
+    expect(screen.getByTestId('assign-split-card')).toBeInTheDocument();
+    expect(screen.getByTestId('assign-mode-tab-shares')).not.toBeDisabled();
+    expect(screen.getByTestId('assign-mode-tab-percent')).not.toBeDisabled();
+    expect(screen.getByTestId('assign-mode-tab-amount')).not.toBeDisabled();
+    expect(screen.getByTestId('assign-weight-p1-value')).toHaveTextContent('1/2');
+    expect(screen.getByTestId('assign-weight-p2-value')).toHaveTextContent('1/2');
 
     rerender(
       <AssignStep
@@ -134,15 +137,16 @@ describe('AssignStep', () => {
       />,
     );
 
-    // Weighted item: both toggle buttons shown, weight controls visible
-    expect(screen.getByTestId('assign-weight-controls')).toBeInTheDocument();
-    expect(screen.getByTestId('assign-weight-value-p1')).toHaveValue('2');
-    expect(screen.getByTestId('assign-weight-value-p2')).toHaveValue('1');
-    expect(screen.getByTestId('assign-weight-decrement-p1')).not.toBeDisabled();
-    expect(screen.getByTestId('assign-weight-decrement-p2')).toBeDisabled();
+    // Weighted item: shares steppers visible, reflecting the saved weights (unsimplified 2/3, 1/3 fraction display)
+    expect(screen.getByTestId('assign-weight-p1-value')).toHaveTextContent('2/3');
+    expect(screen.getByTestId('assign-weight-p2-value')).toHaveTextContent('1/3');
+    // Decrement is never disabled at the floor — pressing it at weight 1 removes the person instead.
+    expect(screen.getByTestId('assign-weight-p1-decrement')).not.toBeDisabled();
+    expect(screen.getByTestId('assign-weight-p2-decrement')).not.toBeDisabled();
   });
 
-  it('clears saved weights when clicking Equally in shares mode', () => {
+  it('shows the unsimplified share fraction rather than reducing it', () => {
+    setStoreMock(true, { p1: 3, p2: 9 });
     render(
       <AssignStep
         itemsSubPhase="assign"
@@ -152,14 +156,89 @@ describe('AssignStep', () => {
       />,
     );
 
-    // In shares mode, click "Equally" to switch back (By shares button does nothing)
-    fireEvent.click(screen.getByRole('button', { name: 'Equally' }));
+    // 3/12 and 9/12 would reduce to 1/4 and 3/4 — the display must keep the raw form.
+    expect(screen.getByTestId('assign-weight-p1-value')).toHaveTextContent('3/12');
+    expect(screen.getByTestId('assign-weight-p2-value')).toHaveTextContent('9/12');
+  });
+
+  it('removes a person instead of decrementing below the floor weight', () => {
+    render(
+      <AssignStep
+        itemsSubPhase="assign"
+        activeItemIndex={1}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('assign-weight-p2-decrement'));
+
+    const weightedItem = storeMock.receipts[0].items[1];
+    expect(weightedItem.assignment.personIds).toEqual(['p1']);
+  });
+
+  it('clears saved weights when clicking Split equally, leaving the active tab untouched', () => {
+    const { rerender } = render(
+      <AssignStep
+        itemsSubPhase="assign"
+        activeItemIndex={1}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('assign-mode-tab-percent'));
+
+    // The store mock has no real reactivity, so force a re-render to pick up
+    // the tab switch before dispatching the next command.
+    rerender(
+      <AssignStep
+        itemsSubPhase="assign"
+        activeItemIndex={1}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('assign-split-equally-btn'));
 
     const weightedItem = storeMock.receipts[0].items[1];
     expect(weightedItem.assignment.weights).toBeUndefined();
+    expect(weightedItem.assignment.weightsInputMode).toBe('percent');
   });
 
-  it('shows the Split control disabled when fewer than two people are selected', () => {
+  it('shows the receipt currency symbol on the Amount tab, not a hardcoded $', () => {
+    storeMock = {
+      ...storeMock,
+      receipts: [{ ...storeMock.receipts[0], currency: 'EUR' }],
+    };
+
+    const { rerender } = render(
+      <AssignStep
+        itemsSubPhase="assign"
+        activeItemIndex={1}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('assign-mode-tab-amount'));
+    rerender(
+      <AssignStep
+        itemsSubPhase="assign"
+        activeItemIndex={1}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    // Both p1 and p2 are fractional (selectedCount === 2, neither solo), so each
+    // renders its own amount-input prefix — assert on all matches, not a single one.
+    expect(screen.getAllByText('€').length).toBeGreaterThan(0);
+    expect(screen.queryByText('$')).not.toBeInTheDocument();
+  });
+
+  it('shows all three split tabs disabled when fewer than two people are selected', () => {
     storeMock = {
       ...storeMock,
       receipts: [
@@ -184,9 +263,10 @@ describe('AssignStep', () => {
       />,
     );
 
-    expect(screen.getByTestId('assign-split-mode-toggle')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Equally' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'By shares' })).toBeDisabled();
+    expect(screen.getByTestId('assign-split-card')).toBeInTheDocument();
+    expect(screen.getByTestId('assign-mode-tab-shares')).toBeDisabled();
+    expect(screen.getByTestId('assign-mode-tab-percent')).toBeDisabled();
+    expect(screen.getByTestId('assign-mode-tab-amount')).toBeDisabled();
   });
 
   it('splits unassigned items equally and jumps to review when clicking Split unassigned', () => {
