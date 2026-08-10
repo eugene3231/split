@@ -259,8 +259,9 @@ function normalizeDraftAssignment(value: unknown): ItemAssignment | null {
     }
   }
 
-  const weightsInputMode: WeightsInputMode | undefined =
-    weights && isWeightsInputMode(value.weightsInputMode) ? value.weightsInputMode : undefined;
+  const weightsInputMode: WeightsInputMode | undefined = isWeightsInputMode(value.weightsInputMode)
+    ? value.weightsInputMode
+    : undefined;
 
   return {
     mode,

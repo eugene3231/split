@@ -12,9 +12,11 @@ export type ItemAssignment = {
   personId: string;
   personIds: string[];
   weights?: Record<string, number>;
-  /** Only meaningful when `weights` is present. Which tab last wrote `weights`,
-   * for display on reopen — not which ratio is "true" (all three tabs express
-   * the same ratio). Absent + weights present ⇒ 'shares' (pre-existing data). */
+  /** Which tab last wrote or is currently active for `weights` — used for
+   * display on reopen, not which ratio is "true" (all three tabs express the
+   * same ratio). Can be set even when `weights` is absent (e.g. the user is
+   * on the Percent tab but hasn't entered a custom split yet). Absent +
+   * weights present ⇒ 'shares' (pre-existing data). */
   weightsInputMode?: WeightsInputMode;
 };
 
