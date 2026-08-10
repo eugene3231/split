@@ -133,6 +133,7 @@ export function AssignStep({
           model={interaction.assign}
           activeItemIndex={activeItemIndex}
           itemCount={items.length}
+          currency={activeCurrency}
           onActiveItemIndexChange={onActiveItemIndexChange}
           onItemsSubPhaseChange={onItemsSubPhaseChange}
           onCommand={applyCommand}

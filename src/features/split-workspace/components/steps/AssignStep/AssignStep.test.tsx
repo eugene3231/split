@@ -207,6 +207,37 @@ describe('AssignStep', () => {
     expect(weightedItem.assignment.weightsInputMode).toBe('percent');
   });
 
+  it('shows the receipt currency symbol on the Amount tab, not a hardcoded $', () => {
+    storeMock = {
+      ...storeMock,
+      receipts: [{ ...storeMock.receipts[0], currency: 'EUR' }],
+    };
+
+    const { rerender } = render(
+      <AssignStep
+        itemsSubPhase="assign"
+        activeItemIndex={1}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('assign-mode-tab-amount'));
+    rerender(
+      <AssignStep
+        itemsSubPhase="assign"
+        activeItemIndex={1}
+        onActiveItemIndexChange={vi.fn()}
+        onItemsSubPhaseChange={vi.fn()}
+      />,
+    );
+
+    // Both p1 and p2 are fractional (selectedCount === 2, neither solo), so each
+    // renders its own amount-input prefix — assert on all matches, not a single one.
+    expect(screen.getAllByText('€').length).toBeGreaterThan(0);
+    expect(screen.queryByText('$')).not.toBeInTheDocument();
+  });
+
   it('shows all three split tabs disabled when fewer than two people are selected', () => {
     storeMock = {
       ...storeMock,

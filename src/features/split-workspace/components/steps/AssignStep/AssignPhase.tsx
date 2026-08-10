@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { parseCurrencyToCents } from '@shared/logic/core/money';
+import { getCurrencySymbol, parseCurrencyToCents } from '@shared/logic/core/money';
 import type {
   AssignmentActiveItem,
   AssignmentAssignModel,
@@ -17,6 +17,7 @@ type AssignPhaseProps = {
   model: AssignmentAssignModel;
   activeItemIndex: number;
   itemCount: number;
+  currency: string;
   onActiveItemIndexChange: (index: number) => void;
   onItemsSubPhaseChange: (phase: ItemsSubPhase) => void;
   onCommand: (command: AssignmentCommand) => void;
@@ -40,6 +41,7 @@ export function AssignPhase({
   model,
   activeItemIndex,
   itemCount,
+  currency,
   onActiveItemIndexChange,
   onItemsSubPhaseChange,
   onCommand,
@@ -199,6 +201,7 @@ export function AssignPhase({
             isFractional,
             activeItem,
             totalRawWeight,
+            currency,
             onCommand,
           });
 
@@ -241,9 +244,10 @@ function resolvePersonStatusAndControl(args: {
   isFractional: boolean;
   activeItem: AssignmentActiveItem;
   totalRawWeight: number;
+  currency: string;
   onCommand: (command: AssignmentCommand) => void;
 }): { status: ReactNode; control: ReactNode } {
-  const { person, isSolo, isFractional, activeItem, totalRawWeight, onCommand } = args;
+  const { person, isSolo, isFractional, activeItem, totalRawWeight, currency, onCommand } = args;
 
   if (!person.isSelected) {
     return { status: 'Not involved', control: null };
@@ -284,7 +288,7 @@ function resolvePersonStatusAndControl(args: {
           }
           format={(cents) => (cents / 100).toFixed(2)}
           parse={parseCurrencyToCents}
-          prefix="$"
+          prefix={getCurrencySymbol(currency)}
           placeholder="0.00"
           inputMode="decimal"
           widthClassName="w-16"
