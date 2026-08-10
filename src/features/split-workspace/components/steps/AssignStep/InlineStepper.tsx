@@ -24,6 +24,7 @@ export function InlineStepper({
       className="flex items-center gap-1"
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
     >
       <button
         type="button"

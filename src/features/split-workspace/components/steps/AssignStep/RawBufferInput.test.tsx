@@ -88,6 +88,24 @@ describe('RawBufferInput', () => {
     expect(rowOnDoubleClick).not.toHaveBeenCalled();
   });
 
+  it('stops Enter keydown from bubbling to the row (does not deselect the person being edited)', () => {
+    const rowOnKeyDown = vi.fn();
+    render(
+      <div onKeyDown={rowOnKeyDown}>
+        <RawBufferInput
+          value={0}
+          onCommit={() => {}}
+          format={(v) => String(v)}
+          parse={parseIntOrNull}
+          testId="pct-input"
+        />
+      </div>,
+    );
+    const input = screen.getByTestId('pct-input');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(rowOnKeyDown).not.toHaveBeenCalled();
+  });
+
   it('displays the formatted committed value when not being edited', () => {
     render(
       <RawBufferInput

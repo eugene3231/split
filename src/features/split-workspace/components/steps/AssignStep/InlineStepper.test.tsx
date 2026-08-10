@@ -38,4 +38,17 @@ describe('InlineStepper', () => {
     expect(rowOnClick).not.toHaveBeenCalled();
     expect(rowOnDoubleClick).not.toHaveBeenCalled();
   });
+
+  it('stops keydown from bubbling to the row (does not trigger row keyboard handlers)', () => {
+    const rowOnKeyDown = vi.fn();
+
+    render(
+      <div onKeyDown={rowOnKeyDown}>
+        <InlineStepper weight={2} onDelta={() => {}} testId="stepper" />
+      </div>,
+    );
+
+    fireEvent.keyDown(screen.getByTestId('stepper-increment'), { key: 'Enter' });
+    expect(rowOnKeyDown).not.toHaveBeenCalled();
+  });
 });

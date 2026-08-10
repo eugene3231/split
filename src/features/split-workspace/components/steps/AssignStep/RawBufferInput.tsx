@@ -48,6 +48,7 @@ export function RawBufferInput({
       className="flex items-center gap-1"
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
     >
       {prefix && <span className="text-sm font-bold text-on-surface-variant">{prefix}</span>}
       <input

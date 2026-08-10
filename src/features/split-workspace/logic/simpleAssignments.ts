@@ -49,7 +49,11 @@ export function normalizeItemAssignments(items: EditableItem[], people: Person[]
         personId: '',
         personIds: nextPersonIds,
         weights: finalWeights,
-        weightsInputMode: finalWeights ? item.assignment.weightsInputMode : undefined,
+        // weightsInputMode reflects which tab the user is on, independent of
+        // whether custom weights have been entered yet — only clear it when
+        // the assignment drops below 2 people, mirroring the invariant in
+        // assignmentInteraction.ts.
+        weightsInputMode: nextPersonIds.length >= 2 ? item.assignment.weightsInputMode : undefined,
       },
     };
   });
