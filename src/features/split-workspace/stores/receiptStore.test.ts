@@ -154,11 +154,11 @@ describe('scanStore + geminiStore', () => {
   });
 
   it('persists gemini model changes through the store action', () => {
-    useGeminiStore.getState().setGeminiModel('gemini-2.5-flash');
+    useGeminiStore.getState().setGeminiModel('gemini-3.7-flash');
 
-    expect(useGeminiStore.getState().geminiModel).toBe('gemini-2.5-flash');
+    expect(useGeminiStore.getState().geminiModel).toBe('gemini-3.7-flash');
     expect(window.localStorage.getItem(LOCAL_STORAGE_OCR_SETTINGS_KEY)).toContain(
-      '"geminiModel":"gemini-2.5-flash"',
+      '"geminiModel":"gemini-3.7-flash"',
     );
   });
 
