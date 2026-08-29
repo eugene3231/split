@@ -46,6 +46,34 @@ describe('analyzeReceiptWithGemini', () => {
     );
   });
 
+  it('sends the API key via the x-goog-api-key header, never the URL', async () => {
+    stubFetch(
+      JSON.stringify({
+        items: [{ description: 'Chicken Rice', amount: 8.5 }],
+        subtotal: 8.5,
+        total: 8.5,
+        detected: {
+          gst: { enabled: null, amount: null, percent: null, confidence: null, source: null },
+          serviceCharge: {
+            enabled: null,
+            amount: null,
+            percent: null,
+            confidence: null,
+            source: null,
+          },
+        },
+        warnings: [],
+      }),
+    );
+
+    await analyzeReceiptWithGemini(createFile(), 'secret-key', 'gemini-2.5-flash', vi.fn());
+
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).not.toContain('key=');
+    expect((init.headers as Record<string, string>)['x-goog-api-key']).toBe('secret-key');
+  });
+
   it('throws when Gemini response is empty or not parseable', async () => {
     stubFetch(null);
     await expect(

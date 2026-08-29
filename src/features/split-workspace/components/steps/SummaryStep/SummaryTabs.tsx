@@ -70,6 +70,7 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
               onChange={(e) => setEditingTabName(e.target.value)}
               onBlur={commitTabRename}
               onKeyDown={(e) => {
+                e.stopPropagation();
                 if (e.key === 'Enter') commitTabRename();
                 if (e.key === 'Escape') setEditingTabId(null);
               }}
