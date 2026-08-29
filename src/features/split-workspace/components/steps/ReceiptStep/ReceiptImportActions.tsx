@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useScanStore, getScanState } from '@features/receipt-scanner/stores/scanStore';
@@ -16,8 +16,6 @@ export function ReceiptImportActions({
   onScanReceipt,
   mockReceipts,
 }: Props) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const hasApiKey = useGeminiStore((s) => s.geminiApiKeyInput.trim().length > 0);
@@ -50,8 +48,11 @@ export function ReceiptImportActions({
   }, [previewUrl]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
     setIsFullscreen(false);
-    onReceiptFileSelected(e.target.files?.[0] ?? null);
+    onReceiptFileSelected(file);
   };
 
   useEffect(() => {
@@ -79,7 +80,6 @@ export function ReceiptImportActions({
           <span className="material-symbols-outlined mb-2 text-primary">upload_file</span>
           <span className="text-[10px] font-bold text-primary">UPLOAD</span>
           <input
-            ref={fileInputRef}
             type="file"
             accept="image/*,application/pdf"
             data-testid="receipt-file-input"
@@ -91,7 +91,6 @@ export function ReceiptImportActions({
           <span className="material-symbols-outlined mb-2 text-primary">photo_camera</span>
           <span className="text-[10px] font-bold text-primary">CAPTURE</span>
           <input
-            ref={cameraInputRef}
             type="file"
             accept="image/*"
             capture="environment"

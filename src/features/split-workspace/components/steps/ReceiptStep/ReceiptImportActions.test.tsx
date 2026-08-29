@@ -88,6 +88,23 @@ beforeEach(() => {
   });
 });
 
+describe('ReceiptImportActions – File input reset', () => {
+  it('clears the input value after selection so the same file can be re-selected', () => {
+    setStoreReceiptFile(null);
+    const onReceiptFileSelected = vi.fn();
+    render(<ReceiptImportActions {...makeProps({ onReceiptFileSelected })} />);
+
+    const input = screen.getByTestId('receipt-file-input') as HTMLInputElement;
+    const valueSetter = vi.spyOn(input, 'value', 'set');
+
+    const file = new File(['img'], 'same.jpg', { type: 'image/jpeg' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(onReceiptFileSelected).toHaveBeenCalledWith(file);
+    expect(valueSetter).toHaveBeenCalledWith('');
+  });
+});
+
 describe('ReceiptImportActions – Object URL lifecycle (F003)', () => {
   it('creates an object URL when receiptFile is set in the store', () => {
     const file = new File(['image'], 'test.jpg', { type: 'image/jpeg' });
