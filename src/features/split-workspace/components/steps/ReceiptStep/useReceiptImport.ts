@@ -29,9 +29,11 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
       .getState()
       .receipts.find((candidate) => candidate.id === activeReceiptId);
 
+    const scannedFile = receipt?.receiptFile ?? null;
+
     const payload = await scanReceipt({
       receiptId: activeReceiptId,
-      receiptFile: receipt?.receiptFile ?? null,
+      receiptFile: scannedFile,
       apiKeyInput: geminiApiKeyInput,
       model: geminiModel,
     });
@@ -46,7 +48,8 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
       patchReceipt,
     } = useReceiptStore.getState();
     const currentReceipt = currentReceipts.find((candidate) => candidate.id === activeReceiptId);
-    if (!currentReceipt) {
+    if (!currentReceipt || currentReceipt.receiptFile !== scannedFile) {
+      useScanStore.getState().clearScanFeedback(activeReceiptId);
       return;
     }
 
