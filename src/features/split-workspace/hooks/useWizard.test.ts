@@ -128,6 +128,40 @@ describe('useWizard', () => {
     expect(result.current.activeStep).toBe('items');
   });
 
+  it('keeps the single-receipt review->final flow unchanged', () => {
+    saveWizardState({ step: 'items', itemsSubPhase: 'assign', activeItemIndex: 0 });
+
+    const receipts = [makeReceipt('r1', ['i1'])];
+    receipts[0].items[0].assignment.personIds = [];
+    let items = receipts[0].items;
+
+    const { result, rerender } = renderHook(() =>
+      useWizard(items, people, vi.fn(), receipts, 'r1', vi.fn()),
+    );
+
+    act(() => {
+      result.current.setItemsSubPhase('review');
+    });
+
+    expect(result.current.canContinue).toBe(false);
+    expect(result.current.stepReachability.final).toBe(false);
+
+    act(() => {
+      result.current.handleNext();
+    });
+    expect(result.current.activeStep).toBe('items');
+
+    receipts[0].items[0].assignment.personIds = ['p1', 'p2'];
+    items = receipts[0].items;
+    rerender();
+
+    expect(result.current.canContinue).toBe(true);
+    act(() => {
+      result.current.handleNext();
+    });
+    expect(result.current.activeStep).toBe('final');
+  });
+
   it('allows review continuation once every receipt is assigned', () => {
     saveWizardState({ step: 'items', itemsSubPhase: 'assign', activeItemIndex: 0 });
 

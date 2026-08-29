@@ -26,7 +26,7 @@ function makeOcrPayload(): OcrResponse {
     subtotal: 12.5,
     total: 12.5,
     detected: {
-      gst: { enabled: false, amount: null, percent: null, confidence: null, source: 'none' },
+      gst: { enabled: true, amount: null, percent: 9, confidence: 1, source: 'gemini' },
       serviceCharge: {
         enabled: false,
         amount: null,
@@ -84,6 +84,8 @@ describe('useReceiptImport', () => {
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === 'r1');
     expect(receipt?.items[0].name).toBe('Nasi Lemak');
     expect(receipt?.receiptTotalInput).toBe('12.50');
+    expect(receipt?.gst.enabled).toBe(true);
+    expect(receipt?.gst.percentInput).toBe('9');
   });
 
   it('discards scan results when the receipt file was replaced mid-scan', async () => {
@@ -116,6 +118,10 @@ describe('useReceiptImport', () => {
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === 'r1');
     expect(receipt?.items[0].name).toBe('');
     expect(receipt?.receiptTotalInput).toBe('');
+    // A stale patch would have applied the payload's disabled serviceCharge
+    // detection; the file-change reset leaves the default (enabled, 10%).
+    expect(receipt?.serviceCharge.enabled).toBe(true);
+    expect(receipt?.serviceCharge.percentInput).toBe('10');
     expect(useScanStore.getState().scanStateByReceipt['r1'].scanWarnings).toEqual([]);
   });
 
@@ -147,5 +153,6 @@ describe('useReceiptImport', () => {
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === 'r1');
     expect(receipt?.items[0].name).toBe('Old item');
     expect(receipt?.receiptTotalInput).toBe('');
+    expect(receipt?.gst.enabled).toBe(false);
   });
 });
