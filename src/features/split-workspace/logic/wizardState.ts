@@ -11,9 +11,10 @@ export function resolveWizardState(
   activeStep: WizardStep,
   itemsSubPhase: ItemsSubPhase,
   items: EditableItem[],
+  allItems: EditableItem[],
   people: Person[],
 ): { activeStep: WizardStep; itemsSubPhase: ItemsSubPhase } {
-  if (activeStep === 'final' && !isStepValid('items', { items, people })) {
+  if (activeStep === 'final' && !isStepValid('items', { items: allItems, people })) {
     return { activeStep: 'items', itemsSubPhase: 'assign' };
   }
 

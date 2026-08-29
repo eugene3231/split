@@ -31,10 +31,14 @@ export function useWizard(
   );
   const [activeItemIndex, setActiveItemIndex] = useState(initialWizardState?.activeItemIndex ?? 0);
 
+  const allReceiptItems = receipts.flatMap((receipt) => receipt.items);
+  const allItemsAssigned = isStepValid('items', { items: allReceiptItems, people });
+
   const { activeStep, itemsSubPhase } = resolveWizardState(
     activeStepState,
     itemsSubPhaseState,
     items,
+    allReceiptItems,
     people,
   );
   const safeActiveItemIndex = clampActiveItemIndex(activeItemIndex, items.length);
@@ -49,13 +53,12 @@ export function useWizard(
 
   const canContinue =
     activeStep === 'items'
-      ? itemsSubPhase === 'review' && isStepValid('items', { items, people })
+      ? itemsSubPhase === 'review' && allItemsAssigned
       : isStepValid(activeStep, { items, people });
 
-  const allReceiptItems = receipts.flatMap((receipt) => receipt.items);
   const canReachReceipt = isStepValid('people', { items, people });
   const canReachItems = canReachReceipt && isStepValid('receipt', { items, people });
-  const canReachFinal = canReachItems && isStepValid('items', { items: allReceiptItems, people });
+  const canReachFinal = canReachItems && allItemsAssigned;
 
   const stepReachability: Record<WizardStep, boolean> = {
     people: true,
@@ -124,7 +127,7 @@ export function useWizard(
         }
         return;
       }
-      if (!isStepValid('items', { items, people })) return;
+      if (!allItemsAssigned) return;
       setActiveStep('final');
     }
   };
