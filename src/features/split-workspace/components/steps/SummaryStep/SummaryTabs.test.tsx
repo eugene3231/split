@@ -116,4 +116,50 @@ describe('SummaryTabs', () => {
     const receiptTab = screen.getByTestId('summary-tab-receipt-0');
     expect(receiptTab).toHaveAttribute('data-active', 'true');
   });
+
+  describe('rename', () => {
+    function startRenaming() {
+      const onTabChange = vi.fn();
+      const onRenameReceipt = vi.fn();
+      const receipts = [makeReceipt('r1', 'Dinner'), makeReceipt('r2', 'Lunch')];
+      render(
+        <SummaryTabs
+          receipts={receipts}
+          activeTab="r1"
+          onTabChange={onTabChange}
+          onRenameReceipt={onRenameReceipt}
+        />,
+      );
+      fireEvent.doubleClick(screen.getByTestId('summary-tab-receipt-0'));
+      return { onTabChange, onRenameReceipt, input: screen.getByDisplayValue('Dinner') };
+    }
+
+    it('commits the rename on Enter without switching tabs', () => {
+      const { onTabChange, onRenameReceipt, input } = startRenaming();
+
+      fireEvent.change(input, { target: { value: 'Team Dinner' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      expect(onRenameReceipt).toHaveBeenCalledWith('r1', 'Team Dinner');
+      expect(onTabChange).not.toHaveBeenCalled();
+      expect(screen.queryByDisplayValue('Team Dinner')).not.toBeInTheDocument();
+    });
+
+    it('keeps Space keydowns inside the rename input', () => {
+      const { onTabChange, input } = startRenaming();
+
+      fireEvent.keyDown(input, { key: ' ' });
+
+      expect(onTabChange).not.toHaveBeenCalled();
+    });
+
+    it('cancels the rename on Escape without renaming', () => {
+      const { onRenameReceipt, input } = startRenaming();
+
+      fireEvent.keyDown(input, { key: 'Escape' });
+
+      expect(onRenameReceipt).not.toHaveBeenCalled();
+      expect(screen.queryByDisplayValue('Dinner')).not.toBeInTheDocument();
+    });
+  });
 });

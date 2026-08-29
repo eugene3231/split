@@ -81,6 +81,7 @@ export function ReceiptTabs({
                   onChange={(e) => setEditingTabName(e.target.value)}
                   onBlur={commitRename}
                   onKeyDown={(e) => {
+                    e.stopPropagation();
                     if (e.key === 'Enter') commitRename();
                     if (e.key === 'Escape') setEditingTabId(null);
                   }}
