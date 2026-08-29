@@ -72,7 +72,7 @@ describe('useReceiptImport', () => {
 
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
 
-    let scanPromise: Promise<OcrResponse | null> = Promise.resolve(null);
+    let scanPromise: Promise<void> = Promise.resolve();
     act(() => {
       scanPromise = result.current.handleScanReceipt();
     });
@@ -97,7 +97,7 @@ describe('useReceiptImport', () => {
 
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
 
-    let scanPromise: Promise<OcrResponse | null> = Promise.resolve(null);
+    let scanPromise: Promise<void> = Promise.resolve();
     act(() => {
       scanPromise = result.current.handleScanReceipt();
     });
@@ -130,7 +130,7 @@ describe('useReceiptImport', () => {
 
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
 
-    let scanPromise: Promise<OcrResponse | null> = Promise.resolve(null);
+    let scanPromise: Promise<void> = Promise.resolve();
     act(() => {
       scanPromise = result.current.handleScanReceipt();
     });
