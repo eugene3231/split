@@ -412,7 +412,7 @@ function drawReceiptSection(ctx: CanvasRenderingContext2D, args: DrawReceiptSect
     y: rowY + RECEIPT_LABEL_H - 14,
     width: args.innerWidth,
     label: args.section.title,
-    value: formatCurrencyFromCents(args.section.subtotalCents, args.section.currency),
+    value: formatCurrencyFromCents(args.section.totalCents, args.section.currency),
     emphasized: true,
     size: 20,
   });
@@ -423,7 +423,7 @@ function drawReceiptSection(ctx: CanvasRenderingContext2D, args: DrawReceiptSect
       args.innerX + args.innerWidth,
       rowY + RECEIPT_LABEL_H + 18,
       CURRENCY_LINE_H,
-      args.section.subtotalCents,
+      args.section.totalCents,
       args.section.conversion.rate,
       args.section.conversion.fromCurrency,
     );
@@ -487,7 +487,7 @@ function drawCollapsedReceiptTotals(
       y: rowY + 22,
       width,
       label: total.label,
-      value: formatCurrencyFromCents(total.subtotalCents, total.currency),
+      value: formatCurrencyFromCents(total.totalCents, total.currency),
       size: 19,
     });
     rowY += LINE_ROW_H;

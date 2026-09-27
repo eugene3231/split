@@ -29,14 +29,14 @@ export interface BreakdownChargeRow {
 export interface ReceiptBreakdownTotal {
   id: string;
   label: string;
-  subtotalCents: number;
+  totalCents: number;
   currency: string;
 }
 
 export interface ReceiptBreakdownSection {
   id: string;
   title: string;
-  subtotalCents: number;
+  totalCents: number;
   currency: string;
   conversion?: BreakdownConversion;
   itemRows: BreakdownItemRow[];
@@ -144,20 +144,12 @@ export function resolvePersonBreakdowns({
       qrDataUrl: qrDataUrls[person.id],
       collapsedReceiptTotals:
         view.kind === 'total'
-          ? view.receiptBreakdowns
-              .map((entry, index) => {
-                const rows = entry.split.lineItemsByPerson[person.id] ?? [];
-                if (rows.length === 0) {
-                  return null;
-                }
-                return {
-                  id: `${index}:${entry.name}`,
-                  label: entry.name,
-                  subtotalCents: sumInvolvedLineAmounts(rows),
-                  currency: entry.currency,
-                };
-              })
-              .filter((total): total is ReceiptBreakdownTotal => total !== null)
+          ? sections.map((section) => ({
+              id: section.id,
+              label: section.title,
+              totalCents: section.totalCents,
+              currency: section.currency,
+            }))
           : [],
       sections,
       emptyMessage: sections.length === 0 ? 'No items assigned.' : undefined,
@@ -190,15 +182,15 @@ function buildReceiptSection({
   conversionRate,
   itemRows,
 }: BuildReceiptSectionInput): ReceiptBreakdownSection {
-  const subtotalCents = sumInvolvedLineAmounts(split.lineItemsByPerson[personId] ?? []);
+  const totalCents = split.totalByPersonCents[personId] ?? 0;
   return {
     id,
     title,
-    subtotalCents,
+    totalCents,
     currency,
     conversion:
       conversionRate !== undefined
-        ? buildConversion(subtotalCents, conversionRate, currency)
+        ? buildConversion(totalCents, conversionRate, currency)
         : undefined,
     itemRows,
     chargeRows: buildChargeRows({
@@ -287,8 +279,4 @@ function buildConversion(
     fromCurrency,
     toCurrency: BASE_CURRENCY,
   };
-}
-
-function sumInvolvedLineAmounts(lines: PersonReceiptLineItem[]): number {
-  return lines.reduce((sum, line) => (line.involved ? sum + line.assignedAmountCents : sum), 0);
 }

@@ -90,7 +90,7 @@ function CollapsedReceiptTotal({ total }: { total: ReceiptBreakdownTotal }) {
     <div className="flex justify-between text-base text-on-surface-variant">
       <span className="truncate pr-3">{total.label}</span>
       <span className="flex-shrink-0">
-        {formatCurrencyFromCents(total.subtotalCents, total.currency)}
+        {formatCurrencyFromCents(total.totalCents, total.currency)}
       </span>
     </div>
   );
@@ -103,7 +103,7 @@ function ReceiptSection({ section }: { section: ReceiptBreakdownSection }) {
         <span className="text-base font-bold text-on-surface">{section.title}</span>
         <div className="text-right">
           <span className="block text-base font-bold text-on-surface">
-            {formatCurrencyFromCents(section.subtotalCents, section.currency)}
+            {formatCurrencyFromCents(section.totalCents, section.currency)}
           </span>
           {section.conversion && <ConversionLines conversion={section.conversion} compact />}
         </div>

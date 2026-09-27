@@ -102,6 +102,7 @@ describe('resolveSummaryBreakdown', () => {
     const person = breakdown.personBreakdowns[0];
     expect(person.headerLabel).toBe('Total Due');
     expect(person.totalCents).toBe(1368);
+    expect(person.sections[0].totalCents).toBe(1368);
     expect(person.qrDataUrl).toBe('data:image/png;base64,qr');
     expect(person.sections[0].itemRows).toMatchObject([
       { label: 'Noodles', amountCents: 1200, involved: true, currency: 'SGD' },
@@ -131,10 +132,49 @@ describe('resolveSummaryBreakdown', () => {
     ]);
   });
 
+  it('includes receipt charges in expanded and collapsed totals', () => {
+    const chargedSplit = split({
+      discountByPersonCents: { alice: 100 },
+      serviceByPersonCents: { alice: 200 },
+      gstByPersonCents: { alice: 90 },
+      totalByPersonCents: { alice: 1390 },
+    });
+    const view: SummaryView = {
+      kind: 'total',
+      displaySplit: chargedSplit,
+      displayCurrency: 'SGD',
+      grandTotal: 1390,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+      sgdSplit: chargedSplit,
+      hasAnyForeign: false,
+      foreignRates: [],
+      receiptBreakdowns: [
+        {
+          name: 'Dinner',
+          split: chargedSplit,
+          currency: 'SGD',
+          discount: percentCharge('8.33'),
+          serviceCharge: percentCharge('16.67'),
+          gst: percentCharge('7.5'),
+        },
+      ],
+    };
+
+    const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+
+    expect(person.totalCents).toBe(1390);
+    expect(person.sections[0].totalCents).toBe(1390);
+    expect(person.collapsedReceiptTotals[0].totalCents).toBe(1390);
+    expect(person.sections[0].itemRows[0].amountCents).toBe(1200);
+    expect(person.sections[0].chargeRows.map((row) => row.amountCents)).toEqual([100, 200, 90]);
+  });
+
   it('resolves total-tab receipt sections and collapsed totals per person', () => {
     const ramenSplit = split({
       lineItemsByPerson: { alice: [line({ itemId: 'ramen', name: 'Ramen' })] },
-      totalByPersonCents: { alice: 1500 },
+      totalByPersonCents: { alice: 1200 },
     });
     const teaSplit = split({
       lineItemsByPerson: {
@@ -179,8 +219,8 @@ describe('resolveSummaryBreakdown', () => {
 
     expect(person.headerLabel).toBe('Grand Total Due');
     expect(person.collapsedReceiptTotals).toEqual([
-      { id: '0:Ramen Shop', label: 'Ramen Shop', subtotalCents: 1200, currency: 'JPY' },
-      { id: '1:Tea Stall', label: 'Tea Stall', subtotalCents: 300, currency: 'SGD' },
+      { id: '0:Ramen Shop', label: 'Ramen Shop', totalCents: 1200, currency: 'JPY' },
+      { id: '1:Tea Stall', label: 'Tea Stall', totalCents: 300, currency: 'SGD' },
     ]);
     expect(person.sections.map((section) => section.title)).toEqual(['Ramen Shop', 'Tea Stall']);
     expect(person.sections[0].conversion).toEqual({
