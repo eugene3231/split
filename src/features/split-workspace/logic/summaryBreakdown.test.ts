@@ -132,6 +132,28 @@ describe('resolveSummaryBreakdown', () => {
     ]);
   });
 
+  it('omits a second SGD conversion when a foreign receipt is displayed in SGD', () => {
+    const view: SummaryView = {
+      kind: 'receipt',
+      receipt: null,
+      displaySplit: split({ totalByPersonCents: { alice: 1620 }, grandTotalCents: 1620 }),
+      displayCurrency: 'SGD',
+      grandTotal: 1620,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+      sgdSplit: split({ totalByPersonCents: { alice: 1620 }, grandTotalCents: 1620 }),
+      nativeCurrency: 'USD',
+      isForeign: true,
+      effectiveRate: 1.35,
+    };
+
+    const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+
+    expect(person.currency).toBe('SGD');
+    expect(person.conversion).toBeUndefined();
+  });
+
   it('includes receipt charges in expanded and collapsed totals', () => {
     const chargedSplit = split({
       discountByPersonCents: { alice: 100 },

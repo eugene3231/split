@@ -1,5 +1,6 @@
 import type { Receipt, SplitResult } from '@shared/types';
 import { BASE_CURRENCY } from '@shared/constants';
+import { allocateCents } from '@shared/logic/split/allocation';
 
 // Approximate rates: 1 unit of foreign currency = X SGD
 // Used as offline fallback when the exchange rate API is unavailable.
@@ -81,10 +82,6 @@ export function getForeignReceiptRates(
   return Array.from(seen.values());
 }
 
-/**
- * Deep-converts all cent fields in a SplitResult from one currency to another.
- * Line item amounts are also converted for display purposes in consolidated views.
- */
 export function convertSplitResult(
   split: SplitResult,
   fromCurrency: string,
@@ -95,33 +92,85 @@ export function convertSplitResult(
   if (fromCurrency === toCurrency) return split;
 
   const convert = (cents: number) => convertCents(cents, fromCurrency, toCurrency, rates, override);
-  const convertRecord = (record: Record<string, number>) =>
-    Object.fromEntries(Object.entries(record).map(([k, v]) => [k, convert(v)]));
+
+  // Rounding signed category prefixes keeps the converted receipt total exact.
+  const subtotalCents = convert(split.subtotalCents);
+  const afterDiscountCents = convert(split.subtotalCents - split.discountCents);
+  const afterServiceCents = convert(
+    split.subtotalCents - split.discountCents + split.serviceChargeCents,
+  );
+  const grandTotalCents = convert(split.grandTotalCents);
+  const discountCents = subtotalCents - afterDiscountCents;
+  const serviceChargeCents = afterServiceCents - afterDiscountCents;
+  const gstCents = grandTotalCents - afterServiceCents;
+
+  const personIds = Object.keys(split.subtotalByPersonCents);
+  const targetByPersonCents = allocateCents(grandTotalCents, personIds, split.totalByPersonCents);
+  const totalByPersonCents = Object.fromEntries(personIds.map((id) => [id, 0]));
+  const allocateCategory = (
+    totalCents: number,
+    nativeByPersonCents: Record<string, number>,
+    sign: 1 | -1,
+  ) => {
+    const tiePriority = Object.fromEntries(
+      personIds.map((id) => [id, sign * (targetByPersonCents[id] - totalByPersonCents[id])]),
+    );
+    const amounts = allocateCents(totalCents, personIds, nativeByPersonCents, tiePriority);
+    for (const id of personIds) {
+      totalByPersonCents[id] += sign * amounts[id];
+    }
+    return amounts;
+  };
+
+  const subtotalByPersonCents = allocateCategory(subtotalCents, split.subtotalByPersonCents, 1);
+  const discountByPersonCents = allocateCategory(discountCents, split.discountByPersonCents, -1);
+  const serviceByPersonCents = allocateCategory(serviceChargeCents, split.serviceByPersonCents, 1);
+  const gstByPersonCents = allocateCategory(gstCents, split.gstByPersonCents, 1);
+
+  const lineItemsByPerson = Object.fromEntries(
+    Object.entries(split.lineItemsByPerson).map(([personId, lines]) => {
+      const involvedIds = lines
+        .map((line, index) => (line.involved ? index.toString().padStart(8, '0') : null))
+        .filter((id): id is string => id !== null);
+      const weights = Object.fromEntries(
+        involvedIds.map((id) => [id, lines[Number(id)].assignedAmountCents]),
+      );
+      const assigned = allocateCents(subtotalByPersonCents[personId] ?? 0, involvedIds, weights);
+
+      return [
+        personId,
+        lines.map((line, index) => {
+          const assignedAmountCents = line.involved
+            ? assigned[index.toString().padStart(8, '0')]
+            : 0;
+          const grossAmountCents = Math.max(convert(line.grossAmountCents), assignedAmountCents);
+          return {
+            ...line,
+            grossAmountCents,
+            discountAmountCents: line.involved
+              ? grossAmountCents - assignedAmountCents
+              : convert(line.discountAmountCents),
+            netAmountCents: assignedAmountCents,
+            assignedAmountCents,
+          };
+        }),
+      ];
+    }),
+  );
 
   return {
-    lineItemsByPerson: Object.fromEntries(
-      Object.entries(split.lineItemsByPerson).map(([personId, lines]) => [
-        personId,
-        lines.map((line) => ({
-          ...line,
-          grossAmountCents: convert(line.grossAmountCents),
-          discountAmountCents: convert(line.discountAmountCents),
-          netAmountCents: convert(line.netAmountCents),
-          assignedAmountCents: convert(line.assignedAmountCents),
-        })),
-      ]),
-    ),
+    lineItemsByPerson,
     involvedCountByPerson: { ...split.involvedCountByPerson },
-    subtotalByPersonCents: convertRecord(split.subtotalByPersonCents),
-    discountByPersonCents: convertRecord(split.discountByPersonCents),
-    serviceByPersonCents: convertRecord(split.serviceByPersonCents),
-    gstByPersonCents: convertRecord(split.gstByPersonCents),
-    totalByPersonCents: convertRecord(split.totalByPersonCents),
-    subtotalCents: convert(split.subtotalCents),
-    discountCents: convert(split.discountCents),
-    serviceChargeCents: convert(split.serviceChargeCents),
-    gstCents: convert(split.gstCents),
-    grandTotalCents: convert(split.grandTotalCents),
+    subtotalByPersonCents,
+    discountByPersonCents,
+    serviceByPersonCents,
+    gstByPersonCents,
+    totalByPersonCents,
+    subtotalCents,
+    discountCents,
+    serviceChargeCents,
+    gstCents,
+    grandTotalCents,
     unassignedItemCount: split.unassignedItemCount,
   };
 }
