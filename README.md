@@ -8,7 +8,7 @@ Snap a photo of your bill and Split reads every line item — including tax, cha
 
 Scan a receipt, assign items, and share the result via image or text — no accounts or invites needed.
 
-<img width="100%" alt="Screenshot 2026-03-22 at 11-43-58 split" src="https://github.com/user-attachments/assets/d7e76e8e-f8ba-4faf-8a06-3893b5d18096" />
+<img width="100%" alt="Split final breakdown with per-receipt totals including charges" src="docs/images/final-breakdown.png" />
 
 ## Key Features
 
