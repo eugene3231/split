@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChargeState, EditableItem, Person } from '@shared/types';
 import { computeSplit } from '@shared/logic/split/split';
+import { convertSplitResult } from '@shared/logic/core/exchangeRates';
 
 const disabledCharge: ChargeState = {
   enabled: false,
@@ -12,6 +13,40 @@ const disabledCharge: ChargeState = {
 };
 
 describe('computeSplit', () => {
+  it('caps a receipt discount at its subtotal before currency conversion', () => {
+    const people: Person[] = [{ id: 'alice', name: 'Alice' }];
+    const items: EditableItem[] = [
+      {
+        id: 'meal',
+        name: 'Meal',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+      },
+    ];
+    const discount: ChargeState = {
+      ...disabledCharge,
+      enabled: true,
+      mode: 'amount',
+      amountInput: '20.00',
+    };
+
+    const split = computeSplit({
+      people,
+      items,
+      discount,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+    const converted = convertSplitResult(split, 'USD', 'SGD', { USD: 1.35, SGD: 1 });
+
+    expect(split.discountCents).toBe(1000);
+    expect(split.grandTotalCents).toBe(0);
+    expect(converted.discountCents).toBe(1350);
+    expect(converted.gstCents).toBe(0);
+    expect(converted.grandTotalCents).toBe(0);
+  });
+
   it('allocates equal split remainders deterministically', () => {
     const people: Person[] = [
       { id: 'p1', name: 'Alice' },

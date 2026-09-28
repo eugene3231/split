@@ -131,7 +131,10 @@ export function computeSplit({
   }
 
   const subtotalCents = sumMapValues(subtotalByPersonCents);
-  const discountCents = resolveChargeCents(discount, subtotalCents, subtotalCents);
+  const discountCents = Math.min(
+    subtotalCents,
+    Math.max(0, resolveChargeCents(discount, subtotalCents, subtotalCents)),
+  );
   const discountWeights = weightsFromBase(subtotalByPersonCents, personIds);
   const discountByPersonCents = allocateCents(discountCents, personIds, discountWeights);
 
