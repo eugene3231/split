@@ -10,12 +10,31 @@ import {
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
-import type { Person, Receipt } from '@shared/types';
+import type { OcrResponse, Person, Receipt } from '@shared/types';
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...';
 const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...';
 
 const TEST_RECEIPT_ID = 'test-receipt-1';
+
+function makeScanPayload(): OcrResponse {
+  return {
+    items: [{ description: 'Scanned meal', amount: 12 }],
+    subtotal: 12,
+    total: 12,
+    detected: {
+      serviceCharge: {
+        enabled: false,
+        amount: null,
+        percent: null,
+        confidence: null,
+        source: 'none',
+      },
+      gst: { enabled: false, amount: null, percent: null, confidence: null, source: 'none' },
+    },
+    warnings: [],
+  };
+}
 
 function resetStore() {
   useReceiptStore.setState({
@@ -177,6 +196,26 @@ describe('scanStore + geminiStore', () => {
 });
 
 describe('receipt management', () => {
+  it('creates a fresh initialized workspace with a new receipt ID', () => {
+    useReceiptStore.getState().initialize();
+    useReceiptStore.getState().addPeopleFromInput('Alice');
+    useReceiptStore.getState().setPeopleInput('Pending person');
+    useReceiptStore.getState().setPayerMobile('91234567');
+    const oldReceiptId = useReceiptStore.getState().activeReceiptId;
+
+    useReceiptStore.getState().startNewSplit();
+
+    const state = useReceiptStore.getState();
+    expect(state.initialized).toBe(true);
+    expect(state.people).toEqual([]);
+    expect(state.peopleInput).toBe('');
+    expect(state.payerMobile).toBe('');
+    expect(state.receipts).toHaveLength(1);
+    expect(state.receipts[0].id).not.toBe(oldReceiptId);
+    expect(state.activeReceiptId).toBe(state.receipts[0].id);
+    expect(state.receipts[0].items[0].amountInput).toBe('');
+  });
+
   it('addReceipt creates a new receipt and activates it', () => {
     useReceiptStore.getState().initialize();
     expect(useReceiptStore.getState().receipts).toHaveLength(1);
@@ -252,6 +291,70 @@ describe('receipt management', () => {
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId);
 
     expect(receipt?.name).toBe(originalName);
+  });
+});
+
+describe('receipt scan commits', () => {
+  it('commits extraction once and rejects another result captured from the same receipt', () => {
+    useReceiptStore.getState().initialize();
+    const captured = useReceiptStore.getState();
+    const args = {
+      receipt: captured.receipts[0],
+      people: captured.people,
+      payload: makeScanPayload(),
+    };
+
+    expect(useReceiptStore.getState().applyReceiptScan(args)).toEqual({ kind: 'applied' });
+    const applied = useReceiptStore.getState().receipts[0];
+    expect(applied.items[0].name).toBe('Scanned meal');
+    expect(useReceiptStore.getState().applyReceiptScan(args)).toEqual({ kind: 'changed' });
+    expect(useReceiptStore.getState().receipts[0]).toBe(applied);
+  });
+
+  it('leaves every receipt field unchanged for empty extraction', () => {
+    useReceiptStore.getState().initialize();
+    const captured = useReceiptStore.getState();
+
+    const result = captured.applyReceiptScan({
+      receipt: captured.receipts[0],
+      people: captured.people,
+      payload: { ...makeScanPayload(), items: [] },
+    });
+
+    expect(result).toEqual({ kind: 'empty' });
+    expect(useReceiptStore.getState().receipts[0]).toBe(captured.receipts[0]);
+  });
+
+  it('rejects a changed people snapshot even if the receipt is unchanged', () => {
+    useReceiptStore.getState().initialize();
+    const captured = useReceiptStore.getState();
+    useReceiptStore.setState({ people: [...captured.people] });
+
+    const result = captured.applyReceiptScan({
+      receipt: captured.receipts[0],
+      people: captured.people,
+      payload: makeScanPayload(),
+    });
+
+    expect(result).toEqual({ kind: 'changed' });
+    expect(useReceiptStore.getState().receipts[0]).toBe(captured.receipts[0]);
+  });
+
+  it('rejects a scan for a receipt removed from the workspace', () => {
+    useReceiptStore.getState().initialize();
+    const captured = useReceiptStore.getState();
+    useReceiptStore.getState().addReceipt();
+    useReceiptStore.getState().removeReceipt(captured.receipts[0].id);
+
+    const result = captured.applyReceiptScan({
+      receipt: captured.receipts[0],
+      people: captured.people,
+      payload: makeScanPayload(),
+    });
+
+    expect(result).toEqual({ kind: 'removed' });
+    expect(useReceiptStore.getState().receipts).toHaveLength(1);
+    expect(useReceiptStore.getState().receipts[0].items[0].amountInput).toBe('');
   });
 });
 
@@ -354,21 +457,22 @@ describe('receiptStore additional coverage', () => {
     expect(useReceiptStore.getState().receipts[0].receiptTotalInput).toBe('99.50');
   });
 
-  it('handleReceiptFileSelected resets receipt draft fields', () => {
+  it('keeps receipt draft fields when selecting a file', () => {
     useReceiptStore.getState().initialize();
     const receiptId = useReceiptStore.getState().activeReceiptId;
-
-    useScanStore.getState().setScanError(receiptId, 'old error');
+    useReceiptStore.getState().setReceiptTotalInput('15.00');
+    const before = useReceiptStore.getState().receipts[0];
 
     const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
     useReceiptStore.getState().handleReceiptFileSelected(file);
 
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
     expect(receipt.receiptFile).toBe(file);
-    expect(receipt.items).toHaveLength(1);
-    expect(receipt.serviceCharge.enabled).toBe(true);
-    expect(receipt.gst.enabled).toBe(true);
-    expect(receipt.receiptTotalInput).toBe('');
+    expect(receipt.items).toBe(before.items);
+    expect(receipt.discount).toBe(before.discount);
+    expect(receipt.serviceCharge).toBe(before.serviceCharge);
+    expect(receipt.gst).toBe(before.gst);
+    expect(receipt.receiptTotalInput).toBe('15.00');
   });
 
   it('handleReceiptFileSelected clears receiptFile when null is passed', () => {

@@ -116,12 +116,9 @@ describe('useReceiptImport', () => {
     });
 
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === 'r1');
-    expect(receipt?.items[0].name).toBe('');
+    expect(receipt?.items[0].name).toBe('Old item');
     expect(receipt?.receiptTotalInput).toBe('');
-    // A stale patch would have applied the payload's disabled serviceCharge
-    // detection; the file-change reset leaves the default (enabled, 10%).
-    expect(receipt?.serviceCharge.enabled).toBe(true);
-    expect(receipt?.serviceCharge.percentInput).toBe('10');
+    expect(receipt?.serviceCharge.enabled).toBe(false);
     expect(useScanStore.getState().scanStateByReceipt['r1'].scanWarnings).toEqual([]);
   });
 
@@ -154,5 +151,141 @@ describe('useReceiptImport', () => {
     expect(receipt?.items[0].name).toBe('Old item');
     expect(receipt?.receiptTotalInput).toBe('');
     expect(receipt?.gst.enabled).toBe(false);
+  });
+
+  it('keeps existing receipt data when a new file is selected and then removed', () => {
+    seedReceiptWithFile(new File(['old'], 'old.jpg', { type: 'image/jpeg' }));
+    const before = useReceiptStore.getState().receipts[0];
+    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+
+    act(() => result.current.handleReceiptFileChange(new File(['new'], 'new.jpg')));
+    expect(useReceiptStore.getState().receipts[0].items).toBe(before.items);
+    expect(useReceiptStore.getState().receipts[0].discount).toBe(before.discount);
+    expect(useReceiptStore.getState().receipts[0].serviceCharge).toBe(before.serviceCharge);
+    expect(useReceiptStore.getState().receipts[0].gst).toBe(before.gst);
+    act(() => result.current.handleReceiptFileChange(null));
+    expect(useReceiptStore.getState().receipts[0].items[0].amountInput).toBe('5.00');
+  });
+
+  it.each([
+    [
+      'item amount',
+      () =>
+        useReceiptStore.getState().updateItem('i1', (item) => ({ ...item, amountInput: '15.00' })),
+    ],
+    [
+      'discount',
+      () =>
+        useReceiptStore.getState().setDiscount({
+          ...useReceiptStore.getState().receipts[0].discount,
+          enabled: true,
+          amountInput: '2.00',
+          mode: 'amount',
+        }),
+    ],
+    ['receipt total', () => useReceiptStore.getState().setReceiptTotalInput('15.00')],
+    ['receipt name', () => useReceiptStore.getState().renameReceipt('r1', 'Corrected dinner')],
+    ['currency', () => useReceiptStore.getState().setReceiptCurrency('r1', 'USD')],
+    ['people', () => useReceiptStore.getState().addPeopleFromInput('Bob')],
+    ['assignments', () => useReceiptStore.getState().normalizeItems()],
+  ])('keeps %s edits made while scanning and exposes a retry', async (_name, edit) => {
+    seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
+    const deferred = Promise.withResolvers<OcrResponse | null>();
+    scanReceiptMock.mockReturnValue(deferred.promise);
+    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+    let scanPromise: Promise<void> = Promise.resolve();
+    act(() => {
+      scanPromise = result.current.handleScanReceipt();
+    });
+    act(() => edit());
+    const edited = useReceiptStore.getState().receipts[0];
+
+    await act(async () => {
+      deferred.resolve(makeOcrPayload());
+      await scanPromise;
+    });
+
+    expect(useReceiptStore.getState().receipts[0]).toBe(edited);
+    expect(useScanStore.getState().scanStateByReceipt.r1.scanError).toMatch(/scan again/i);
+  });
+
+  it('applies the result to its original receipt after adding another receipt and changing payer details', async () => {
+    seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
+    const deferred = Promise.withResolvers<OcrResponse | null>();
+    scanReceiptMock.mockReturnValue(deferred.promise);
+    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+    let scanPromise: Promise<void> = Promise.resolve();
+    act(() => {
+      scanPromise = result.current.handleScanReceipt();
+    });
+    act(() => {
+      useReceiptStore.getState().addReceipt();
+      useReceiptStore.getState().setPayerMobile('91234567');
+    });
+    const newReceiptId = useReceiptStore.getState().activeReceiptId;
+
+    await act(async () => {
+      deferred.resolve(makeOcrPayload());
+      await scanPromise;
+    });
+
+    expect(useReceiptStore.getState().receipts[0].items[0].name).toBe('Nasi Lemak');
+    expect(useReceiptStore.getState().activeReceiptId).toBe(newReceiptId);
+    expect(useReceiptStore.getState().payerMobile).toBe('91234567');
+  });
+
+  it('keeps the complete receipt and feedback when a scan finds no items', async () => {
+    seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
+    const before = useReceiptStore.getState().receipts[0];
+    useScanStore.getState().setScanWarnings('r1', ['No confident line items']);
+    scanReceiptMock.mockResolvedValue({ ...makeOcrPayload(), items: [] });
+    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+
+    await act(async () => result.current.handleScanReceipt());
+
+    expect(useReceiptStore.getState().receipts[0]).toBe(before);
+    expect(useScanStore.getState().scanStateByReceipt.r1.scanWarnings).toEqual([
+      'No confident line items',
+    ]);
+    expect(useScanStore.getState().scanStateByReceipt.r1.scanError).toMatch(/no items/i);
+  });
+
+  it('replaces successful extraction from fresh defaults while retaining receipt settings', async () => {
+    seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
+    const state = useReceiptStore.getState();
+    state.patchReceipt('r1', {
+      name: 'Dinner in Bangkok',
+      currency: 'THB',
+      exchangeRateOverride: 0.04,
+      receiptTotalInput: '99.00',
+      discount: {
+        ...state.receipts[0].discount,
+        enabled: true,
+        mode: 'amount',
+        amountInput: '3.00',
+      },
+      serviceCharge: {
+        ...state.receipts[0].serviceCharge,
+        enabled: true,
+        mode: 'amount',
+        amountInput: '9.00',
+      },
+    });
+    scanReceiptMock.mockResolvedValue({ ...makeOcrPayload(), total: null });
+    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+
+    await act(async () => result.current.handleScanReceipt());
+
+    const receipt = useReceiptStore.getState().receipts[0];
+    expect(receipt.items[0].name).toBe('Nasi Lemak');
+    expect(receipt.discount.enabled).toBe(false);
+    expect(receipt.discount.amountInput).toBe('');
+    expect(receipt.serviceCharge.amountInput).toBe('');
+    expect(receipt.serviceCharge.enabled).toBe(false);
+    expect(receipt.receiptTotalInput).toBe('');
+    expect(receipt.name).toBe('Dinner in Bangkok');
+    expect(receipt.currency).toBe('THB');
+    expect(receipt.exchangeRateOverride).toBe(0.04);
+    expect(receipt.receiptFile?.name).toBe('a.jpg');
   });
 });
