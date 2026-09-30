@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SummaryStep } from './SummaryStep';
 import {
   makeItem,
@@ -10,8 +10,54 @@ import {
 } from '../../../../../tests/integration/testHelpers';
 
 beforeEach(resetAllStores);
+afterEach(() => vi.unstubAllGlobals());
+
+function seedDinner() {
+  const alice = makePerson('Alice');
+  seedStore(
+    [alice],
+    [
+      makeReceipt({
+        name: 'Dinner',
+        items: [
+          makeItem({
+            amountInput: '10.00',
+            assignment: { mode: 'equal', personId: '', personIds: [alice.id] },
+          }),
+        ],
+      }),
+    ],
+  );
+}
 
 describe('SummaryStep', () => {
+  it('reports the successful native share as shared', async () => {
+    seedDinner();
+    vi.stubGlobal('navigator', { share: vi.fn().mockResolvedValue(undefined) });
+    render(<SummaryStep onAddReceipt={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('export-copy-text-btn'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('export-copy-text-btn')).toHaveTextContent('Shared!'),
+    );
+    expect(screen.queryByText('Copied!')).toBeNull();
+  });
+
+  it('shows selectable current split text when browser copy is unavailable', async () => {
+    seedDinner();
+    vi.stubGlobal('navigator', {});
+    render(<SummaryStep onAddReceipt={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('export-copy-text-btn'));
+
+    const field = await screen.findByRole<HTMLTextAreaElement>('textbox', { name: 'Split text' });
+    expect(field).toHaveValue('Dinner total: $10.00\n\nAlice: $10.00');
+    fireEvent.click(screen.getByRole('button', { name: 'Select text' }));
+    expect(field).toHaveFocus();
+    expect(field.selectionEnd).toBe(field.value.length);
+  });
+
   it('shows a static Grand Total label on the Total tab instead of an editable receipt name', () => {
     const alice = makePerson('Alice');
     const receipt1 = makeReceipt({
