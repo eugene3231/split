@@ -188,6 +188,9 @@ export function ReceiptImportActions({
               {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan Receipt'}
             </span>
           </button>
+          <p className="text-xs text-on-surface-variant">
+            Existing items and charges are replaced only after a successful scan.
+          </p>
           {scan.scanStatus && !scan.isScanning && (
             <p className="text-xs font-medium text-secondary">{scan.scanStatus}</p>
           )}

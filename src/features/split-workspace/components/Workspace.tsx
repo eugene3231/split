@@ -10,6 +10,7 @@ import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { BottomNav } from '@features/split-workspace/components/BottomNav';
+import { NewSplitAction } from '@features/split-workspace/components/NewSplitAction';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
@@ -48,6 +49,7 @@ export function Workspace() {
     handleBack,
     handleStepSelect,
     handleAddReceipt,
+    handleNewSplit,
   } = useWizard(items, people, normalizeItems, receipts, activeReceiptId, setActiveReceiptId);
 
   const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items]);
@@ -77,6 +79,11 @@ export function Workspace() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const handleNewSplitWithScroll = () => {
+    handleNewSplit();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   if (!activeReceipt) {
     return null;
   }
@@ -94,6 +101,10 @@ export function Workspace() {
         stepReachability={stepReachability}
         onStepSelect={handleStepSelectWithScroll}
       />
+
+      <div className="mx-auto flex w-full max-w-7xl justify-end px-6 pt-3 md:px-8">
+        <NewSplitAction onConfirm={handleNewSplitWithScroll} />
+      </div>
 
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-48 md:px-8 md:pt-10">
         {activeStep === 'people' && <PeopleStep />}

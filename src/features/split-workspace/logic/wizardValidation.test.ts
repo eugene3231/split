@@ -45,6 +45,48 @@ describe('wizardValidation', () => {
     expect(getAssignedItemsCount(items, people)).toBe(1);
   });
 
+  it('does not count assigned blank or invalid rows toward priced assignments', () => {
+    const items = [
+      buildItem(),
+      buildItem({ id: 'blank', amountInput: '' }),
+      buildItem({ id: 'invalid', amountInput: 'bad' }),
+    ];
+
+    expect(getAssignedItemsCount(items, people)).toBe(1);
+    expect(isStepValid('items', { items, people })).toBe(true);
+  });
+
+  it('requires assignment for the priced row when a blank row is already assigned', () => {
+    const items = [
+      buildItem({ assignment: { mode: 'equal', personId: '', personIds: [] } }),
+      buildItem({ id: 'blank', amountInput: '' }),
+    ];
+
+    expect(getDetectedItemsCount(items)).toBe(1);
+    expect(getAssignedItemsCount(items, people)).toBe(0);
+    expect(isStepValid('items', { items, people })).toBe(false);
+  });
+
+  it('requires a current person even when an amount is valid', () => {
+    const items = [
+      buildItem({ assignment: { mode: 'equal', personId: '', personIds: ['removed'] } }),
+    ];
+
+    expect(getAssignedItemsCount(items, people)).toBe(0);
+    expect(isStepValid('items', { items, people })).toBe(false);
+  });
+
+  it('includes assigned zero-price and fully discounted rows in the same item count', () => {
+    const items = [
+      buildItem({ id: 'zero', amountInput: '0.00' }),
+      buildItem({ id: 'discounted', discountPercentInput: '100' }),
+    ];
+
+    expect(getDetectedItemsCount(items)).toBe(2);
+    expect(getAssignedItemsCount(items, people)).toBe(2);
+    expect(isStepValid('items', { items, people })).toBe(true);
+  });
+
   it('validates grouped wizard steps', () => {
     const validItems = [buildItem()];
     const invalidItems = [buildItem({ amountInput: '' })];

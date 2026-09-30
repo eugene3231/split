@@ -4,7 +4,8 @@ import type { EditableItem, Person, Receipt } from '@shared/types';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import { saveWizardState } from '@features/split-workspace/logic/persistence';
+import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
+import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import {
   defaultDiscountState,
   defaultGstState,
@@ -63,6 +64,7 @@ describe('useWizard', () => {
       activeReceiptId: '',
       payerMobile: '',
     });
+    useScanStore.setState({ scanStateByReceipt: {} });
   });
 
   it('advances to the next receipt before entering review, then enters review on the last receipt', () => {
@@ -128,6 +130,36 @@ describe('useWizard', () => {
     expect(result.current.activeStep).toBe('items');
   });
 
+  it('keeps a blank row on another receipt from completing an unassigned purchase', () => {
+    saveWizardState({ step: 'items', itemsSubPhase: 'review', activeItemIndex: 0 });
+    const receipts = [makeReceipt('r1', ['meal']), makeReceipt('r2', ['blank'])];
+    receipts[0].items[0].assignment.personIds = [];
+    receipts[1].items[0].amountInput = '';
+
+    const { result } = renderHook(() =>
+      useWizard(receipts[0].items, people, vi.fn(), receipts, 'r1', vi.fn()),
+    );
+
+    expect(result.current.canContinue).toBe(false);
+    expect(result.current.stepReachability.final).toBe(false);
+    act(() => result.current.handleNext());
+    expect(result.current.activeStep).toBe('items');
+  });
+
+  it('evicts a restored summary with an unassigned purchase and an assigned blank row', () => {
+    saveWizardState({ step: 'final', itemsSubPhase: 'review', activeItemIndex: 0 });
+    const receipts = [makeReceipt('r1', ['meal', 'blank'])];
+    receipts[0].items[0].assignment.personIds = [];
+    receipts[0].items[1].amountInput = '';
+
+    const { result } = renderHook(() =>
+      useWizard(receipts[0].items, people, vi.fn(), receipts, 'r1', vi.fn()),
+    );
+
+    expect(result.current.activeStep).toBe('items');
+    expect(result.current.stepReachability.final).toBe(false);
+  });
+
   it('keeps the single-receipt review->final flow unchanged', () => {
     saveWizardState({ step: 'items', itemsSubPhase: 'assign', activeItemIndex: 0 });
 
@@ -184,6 +216,55 @@ describe('useWizard', () => {
     });
 
     expect(result.current.activeStep).toBe('final');
+  });
+
+  it('starts an initialized blank split and resets navigation without changing Gemini settings', () => {
+    saveWizardState({ step: 'final', itemsSubPhase: 'review', activeItemIndex: 0 });
+    useReceiptStore.setState({
+      initialized: true,
+      people,
+      receipts: [makeReceipt('r1', ['meal'])],
+      activeReceiptId: 'r1',
+      peopleInput: 'Unsubmitted person',
+      payerMobile: '91234567',
+    });
+    useScanStore.getState().startScan('r1');
+    useGeminiStore.setState({ showApiKeyModal: true });
+    const { result } = renderHook(() => {
+      const state = useReceiptStore();
+      return useWizard(
+        state.receipts.find((receipt) => receipt.id === state.activeReceiptId)?.items ?? [],
+        state.people,
+        state.normalizeItems,
+        state.receipts,
+        state.activeReceiptId,
+        state.setActiveReceiptId,
+      );
+    });
+
+    act(() => result.current.handleNewSplit());
+
+    const state = useReceiptStore.getState();
+    expect(state.initialized).toBe(true);
+    expect(state.people).toEqual([]);
+    expect(state.peopleInput).toBe('');
+    expect(state.payerMobile).toBe('');
+    expect(state.receipts).toHaveLength(1);
+    expect(state.receipts[0].id).not.toBe('r1');
+    expect(state.activeReceiptId).toBe(state.receipts[0].id);
+    expect(state.receipts[0].items[0].amountInput).toBe('');
+    expect(state.receipts[0].currency).toBe('SGD');
+    expect(result.current.activeStep).toBe('people');
+    expect(result.current.itemsSubPhase).toBe('assign');
+    expect(loadWizardState()).toMatchObject({
+      step: 'people',
+      itemsSubPhase: 'assign',
+      activeItemIndex: 0,
+    });
+    expect(useScanStore.getState().scanStateByReceipt).toEqual({});
+    expect(useGeminiStore.getState().geminiApiKeyInput).toBe('test-key');
+    expect(useGeminiStore.getState().geminiModel).toBe(DEFAULT_GEMINI_MODEL);
+    expect(useGeminiStore.getState().showApiKeyModal).toBe(false);
   });
 });
 

@@ -11,7 +11,7 @@ import {
 } from '@features/split-workspace/logic/draftStorage';
 import { BASE_CURRENCY } from '@shared/constants';
 import { createId } from '@shared/logic/core/id';
-import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
+import type { ChargeState, EditableItem, OcrResponse, Person, Receipt } from '@shared/types';
 import {
   buildInitialItems,
   createDefaultItem,
@@ -19,6 +19,16 @@ import {
   syncItemsWithPeople,
 } from '@features/split-workspace/logic/simpleAssignments';
 import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
+import { buildReceiptOcrReplacement } from '@features/split-workspace/logic/applyOcrResultToReceipt';
+
+type ReceiptScanCommit =
+  { kind: 'applied' } | { kind: 'empty' } | { kind: 'changed' } | { kind: 'removed' };
+
+interface ApplyReceiptScanArgs {
+  receipt: Receipt;
+  people: Person[];
+  payload: OcrResponse;
+}
 
 // ---------------------------------------------------------------------------
 // Module-level helpers
@@ -68,6 +78,7 @@ type ReceiptStoreActions = {
 
   // Workspace actions
   initialize: () => void;
+  startNewSplit: () => void;
   reset: () => void;
   addPeopleFromInput: (rawInput: string) => void;
   removePerson: (personId: string) => void;
@@ -81,6 +92,7 @@ type ReceiptStoreActions = {
   setReceiptTotalInput: (value: string) => void;
   normalizeItems: () => void;
   handleReceiptFileSelected: (file: File | null) => void;
+  applyReceiptScan: (args: ApplyReceiptScanArgs) => ReceiptScanCommit;
   patchReceipt: (receiptId: string, patch: Partial<Receipt>) => void;
   getExportJson: () => string;
   importFromJson: (raw: string) => void;
@@ -156,6 +168,17 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           activeReceiptId: blankReceipt.id,
         });
       }
+    },
+    startNewSplit: () => {
+      const receipt = createBlankReceipt([], 'Receipt 1');
+      set({
+        initialized: true,
+        peopleInput: '',
+        people: [],
+        receipts: [receipt],
+        activeReceiptId: receipt.id,
+        payerMobile: '',
+      });
     },
     reset: () => {
       set({
@@ -299,19 +322,36 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
             ? {
                 ...r,
                 receiptFile: file,
-                ...(file
-                  ? {
-                      items: [createDefaultItem(state.people)],
-                      discount: { ...defaultDiscountState },
-                      serviceCharge: { ...defaultServiceChargeState },
-                      gst: { ...defaultGstState },
-                      receiptTotalInput: '',
-                    }
-                  : {}),
               }
             : r,
         ),
       }));
+    },
+    applyReceiptScan: ({ receipt, people, payload }) => {
+      let result: ReceiptScanCommit = { kind: 'changed' };
+      set((state) => {
+        const currentReceipt = state.receipts.find((candidate) => candidate.id === receipt.id);
+        if (!currentReceipt) {
+          result = { kind: 'removed' };
+          return state;
+        }
+        if (currentReceipt !== receipt || state.people !== people) {
+          return state;
+        }
+        if (payload.items.length === 0) {
+          result = { kind: 'empty' };
+          return state;
+        }
+
+        result = { kind: 'applied' };
+        const replacement = buildReceiptOcrReplacement(payload, state.people);
+        return {
+          receipts: state.receipts.map((candidate) =>
+            candidate.id === receipt.id ? { ...candidate, ...replacement } : candidate,
+          ),
+        };
+      });
+      return result;
     },
     patchReceipt: (receiptId, patch) => {
       set((state) => ({

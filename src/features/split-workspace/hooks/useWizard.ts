@@ -9,6 +9,7 @@ import {
   resolveWizardState,
 } from '@features/split-workspace/logic/wizardState';
 import { isStepValid } from '@features/split-workspace/logic/wizardValidation';
+import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 
 export function useWizard(
   items: EditableItem[],
@@ -21,6 +22,7 @@ export function useWizard(
   const geminiApiKeyInput = useGeminiStore((state) => state.geminiApiKeyInput);
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
+  const startNewSplit = useReceiptStore((state) => state.startNewSplit);
 
   const [initialWizardState] = useState(() => loadWizardState());
   const [activeStepState, setActiveStep] = useState<WizardStep>(
@@ -161,6 +163,15 @@ export function useWizard(
     if (!geminiApiKeyInput.trim()) setShowApiKeyModal(true);
   };
 
+  const handleNewSplit = () => {
+    startNewSplit();
+    useScanStore.getState().resetScanStates();
+    setShowApiKeyModal(false);
+    setItemsSubPhase('assign');
+    setActiveItemIndex(0);
+    setActiveStep('people');
+  };
+
   return {
     activeStep,
     itemsSubPhase,
@@ -173,5 +184,6 @@ export function useWizard(
     handleBack,
     handleStepSelect,
     handleAddReceipt,
+    handleNewSplit,
   };
 }

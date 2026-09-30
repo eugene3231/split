@@ -30,7 +30,7 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
   });
   const { people, receipts, isMultiReceipt, renameReceipt, view, summaryBreakdown } = model;
   const reconciliationCents = model.reconciliation.cents;
-  const { busy, copied, exportError, previewUrl, download, preview, share, closePreview } =
+  const { exportState, text, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
       model,
       includeItemDetails: showDetails,
@@ -187,9 +187,8 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
             onRenameReceipt={renameReceipt}
           />
           <ExportActions
-            busy={busy}
-            copied={copied}
-            exportError={exportError}
+            exportState={exportState}
+            text={text}
             nativeShareSupported={nativeShareSupported}
             onDownload={download}
             onShare={share}
