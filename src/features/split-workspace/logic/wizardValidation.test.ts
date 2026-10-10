@@ -45,6 +45,26 @@ describe('wizardValidation', () => {
     expect(getAssignedItemsCount(items, people)).toBe(1);
   });
 
+  it.each(['', 'bad'])('ignores assigned rows with invalid amount %j', (amountInput) => {
+    const items = [buildItem(), buildItem({ id: 'i2', amountInput })];
+
+    expect(getAssignedItemsCount(items, people)).toBe(1);
+    expect(isStepValid('items', { items, people })).toBe(true);
+  });
+
+  it.each(['', 'bad'])(
+    'does not let an assigned invalid row %j hide an unassigned item',
+    (amountInput) => {
+      const items = [
+        buildItem({ assignment: { mode: 'equal', personId: '', personIds: [] } }),
+        buildItem({ id: 'i2', amountInput }),
+      ];
+
+      expect(isStepValid('items', { items, people })).toBe(false);
+      expect(getAssignedItemsCount(items, people)).toBe(0);
+    },
+  );
+
   it('validates grouped wizard steps', () => {
     const validItems = [buildItem()];
     const invalidItems = [buildItem({ amountInput: '' })];

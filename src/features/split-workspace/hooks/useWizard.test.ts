@@ -162,6 +162,37 @@ describe('useWizard', () => {
     expect(result.current.activeStep).toBe('final');
   });
 
+  it('allows summary after assigning the priced item while a blank assigned row remains', () => {
+    saveWizardState({ step: 'items', itemsSubPhase: 'review', activeItemIndex: 0 });
+    const receipt = makeReceipt('r1', ['i1', 'i2']);
+    receipt.items[1].amountInput = '';
+
+    const { result } = renderHook(() =>
+      useWizard(receipt.items, people, vi.fn(), [receipt], 'r1', vi.fn()),
+    );
+
+    expect(result.current.canContinue).toBe(true);
+    expect(result.current.stepReachability.final).toBe(true);
+    act(() => result.current.handleNext());
+    expect(result.current.activeStep).toBe('final');
+  });
+
+  it('blocks summary when only the blank row is assigned', () => {
+    saveWizardState({ step: 'items', itemsSubPhase: 'review', activeItemIndex: 0 });
+    const receipt = makeReceipt('r1', ['i1', 'i2']);
+    receipt.items[0].assignment.personIds = [];
+    receipt.items[1].amountInput = '';
+
+    const { result } = renderHook(() =>
+      useWizard(receipt.items, people, vi.fn(), [receipt], 'r1', vi.fn()),
+    );
+
+    expect(result.current.canContinue).toBe(false);
+    expect(result.current.stepReachability.final).toBe(false);
+    act(() => result.current.handleNext());
+    expect(result.current.activeStep).toBe('items');
+  });
+
   it('allows review continuation once every receipt is assigned', () => {
     saveWizardState({ step: 'items', itemsSubPhase: 'assign', activeItemIndex: 0 });
 

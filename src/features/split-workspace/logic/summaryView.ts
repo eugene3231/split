@@ -4,8 +4,8 @@ import {
   convertSplitResult,
   getEffectiveRate,
   getForeignReceiptRates,
-} from '@shared/logic/core/exchangeRates';
-import type { ForeignCurrencyRate } from '@shared/logic/core/exchangeRates';
+} from '@features/split-workspace/logic/exchangeRates';
+import type { ForeignCurrencyRate } from '@features/split-workspace/logic/exchangeRates';
 
 export type { ForeignCurrencyRate };
 
@@ -28,6 +28,7 @@ export interface TotalTabView extends BaseView {
   receiptBreakdowns: {
     name: string;
     split: SplitResult;
+    sgdSplit: SplitResult;
     currency: string;
     discount: ChargeState;
     serviceCharge: ChargeState;
@@ -93,6 +94,7 @@ function resolveTotalTab({
     return {
       name: r.name || `Receipt ${i + 1}`,
       split: (showBaseCurrency ? sgdSplitByReceipt[i] : splitByReceipt[i]) ?? splitByReceipt[i],
+      sgdSplit: sgdSplitByReceipt[i],
       currency,
       discount: r.discount,
       serviceCharge: r.serviceCharge,

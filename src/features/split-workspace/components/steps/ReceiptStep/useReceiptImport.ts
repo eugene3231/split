@@ -6,9 +6,9 @@ import { buildReceiptOcrPatch } from '@features/split-workspace/logic/applyOcrRe
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 
-type UseReceiptImportArgs = {
+interface UseReceiptImportArgs {
   activeReceiptId: string;
-};
+}
 
 export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
   const handleReceiptFileSelected = useReceiptStore((state) => state.handleReceiptFileSelected);
@@ -36,6 +36,9 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
       receiptFile: scannedFile,
       apiKeyInput: geminiApiKeyInput,
       model: geminiModel,
+      isCurrent: () =>
+        useReceiptStore.getState().receipts.find((candidate) => candidate.id === activeReceiptId)
+          ?.receiptFile === scannedFile,
     });
 
     if (!payload) {
@@ -49,7 +52,6 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
     } = useReceiptStore.getState();
     const currentReceipt = currentReceipts.find((candidate) => candidate.id === activeReceiptId);
     if (!currentReceipt || currentReceipt.receiptFile !== scannedFile) {
-      useScanStore.getState().clearScanFeedback(activeReceiptId);
       return;
     }
 
@@ -75,7 +77,10 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
           const payload = fixture.buildResponse();
           useScanStore.getState().clearScanFeedback(targetReceiptId);
           useScanStore.getState().setScanWarnings(targetReceiptId, payload.warnings);
-          patchReceipt(targetReceiptId, buildReceiptOcrPatch(receipt, payload, currentPeople));
+          patchReceipt(targetReceiptId, {
+            ...buildReceiptOcrPatch(receipt, payload, currentPeople),
+            receiptFile: null,
+          });
         },
       })),
     [],

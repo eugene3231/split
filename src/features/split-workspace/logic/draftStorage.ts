@@ -1,3 +1,4 @@
+import type { SessionDraft } from '@features/split-workspace/types';
 import { BASE_CURRENCY } from '@shared/constants';
 import {
   LOCAL_STORAGE_DRAFT_KEY,
@@ -12,12 +13,11 @@ import type {
   ItemAssignment,
   Person,
   Receipt,
-  SessionDraft,
   WeightsInputMode,
 } from '@shared/types';
 import { createEmptyItem } from '@features/split-workspace/logic/assignmentItems';
 import { toNullableNumber } from '@shared/logic/core/money';
-import { isRecord } from '@shared/logic/core/guards';
+import { isRecord } from '@features/split-workspace/logic/guards';
 import { createId } from '@shared/logic/core/id';
 function getBrowserStorage(): Storage | null {
   if (typeof window === 'undefined') return null;

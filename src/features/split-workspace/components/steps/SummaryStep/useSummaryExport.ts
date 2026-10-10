@@ -71,6 +71,7 @@ export function useSummaryExport({ model, includeItemDetails }: UseSummaryExport
 
   const share = async () => {
     setBusy('copying');
+    setExportError(null);
     const text = buildSplitShareText({
       people: model.people,
       receiptName: payload.receiptName ?? '',
@@ -86,6 +87,7 @@ export function useSummaryExport({ model, includeItemDetails }: UseSummaryExport
       if (error instanceof DOMException && error.name === 'AbortError') {
         return;
       }
+      setExportError('Unable to share or copy the summary. Please try again.');
     } finally {
       setBusy(null);
     }

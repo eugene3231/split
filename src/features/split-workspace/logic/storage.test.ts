@@ -932,13 +932,13 @@ describe('loadExchangeRates', () => {
     expect(loadExchangeRates()).toBeNull();
   });
 
-  it('filters out non-finite values', () => {
+  it('filters out non-finite and nonpositive cached rates', () => {
     window.localStorage.setItem(
       LOCAL_STORAGE_EXCHANGE_RATES_KEY,
-      JSON.stringify({ rates: { USD: 1.35, BAD: Infinity, WORSE: NaN, ZERO: 0 } }),
+      JSON.stringify({ rates: { USD: 1.35, BAD: Infinity, WORSE: NaN, ZERO: 0, EUR: -1 } }),
     );
     const rates = loadExchangeRates();
-    expect(rates).toEqual({ USD: 1.35, ZERO: 0 });
+    expect(rates).toEqual({ USD: 1.35 });
   });
 });
 

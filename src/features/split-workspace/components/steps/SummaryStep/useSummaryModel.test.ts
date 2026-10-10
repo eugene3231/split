@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { useSummaryModel } from './useSummaryModel';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import {
+  percentCharge,
   makeItem,
   makePerson,
   makeReceipt,
@@ -122,6 +123,42 @@ describe('useSummaryModel', () => {
       amountInput: '1.00',
     });
     expect(result.current.reconciliation.cents).toBe(0);
+  });
+
+  it('uses selected receipt taxes for correction while another receipt is active', () => {
+    const alice = makePerson('Alice');
+    const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+    const editor = makeReceipt({
+      id: 'editor',
+      items: [makeItem({ amountInput: '20.00', assignment })],
+    });
+    const selected = makeReceipt({
+      id: 'selected',
+      currency: 'USD',
+      items: [makeItem({ amountInput: '100.00', assignment })],
+      discount: percentCharge('5'),
+      serviceCharge: percentCharge('10'),
+      gst: percentCharge('9'),
+      receiptTotalInput: '107.91',
+    });
+    seedStore([alice], [editor, selected], {
+      activeReceiptId: 'editor',
+      exchangeRates: { SGD: 1, USD: 1.35 },
+    });
+    const { result } = renderHook(() =>
+      useSummaryModel({ activeTab: 'selected', showBaseCurrency: true }),
+    );
+    act(() => result.current.reconciliation.applyCorrectiveDiscount());
+    expect(useReceiptStore.getState().receipts[0]).toEqual(editor);
+    expect(useReceiptStore.getState().receipts[1].discount).toMatchObject({
+      mode: 'amount',
+      amountInput: '10.00',
+    });
+    expect(result.current.splitByReceipt[1].grandTotalCents).toBe(10791);
+    expect(result.current.reconciliation.cents).toBe(0);
+    const after = useReceiptStore.getState().receipts;
+    act(() => result.current.reconciliation.applyCorrectiveDiscount());
+    expect(useReceiptStore.getState().receipts).toBe(after);
   });
 
   it('has no receipt reconciliation on the Total tab', () => {

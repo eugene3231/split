@@ -7,7 +7,7 @@ import type {
   PersonBreakdown,
   ReceiptBreakdownSection,
   ReceiptBreakdownTotal,
-} from '@features/split-workspace/logic/summaryBreakdown';
+} from '@shared/types/summaryBreakdown';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import { buildDownloadFilename } from '@features/sharing/logic/shareSplit';
 

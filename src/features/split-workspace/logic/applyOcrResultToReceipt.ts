@@ -1,4 +1,4 @@
-import { applyChargeDetection } from '@shared/logic/split/charges';
+import { applyChargeDetection } from '@features/split-workspace/logic/split/charges';
 import { normalizeItemAssignments } from '@features/split-workspace/logic/simpleAssignments';
 import type { OcrResponse, Person, Receipt } from '@shared/types';
 import { createItemFromOcr } from '@features/receipt-scanner/logic/itemMapper';

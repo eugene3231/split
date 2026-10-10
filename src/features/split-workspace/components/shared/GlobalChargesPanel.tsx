@@ -58,7 +58,6 @@ export function GlobalChargesPanel({
         currency={currency}
       />
 
-      {/* Receipt Total input */}
       <div className="space-y-4">
         <div>
           <label
@@ -87,6 +86,7 @@ export function GlobalChargesPanel({
         <ReconciliationNotice
           reconciliationCents={reconciliationCents}
           onApplyDiscount={onApplyDiscount}
+          currency={currency}
         />
       </div>
     </div>
