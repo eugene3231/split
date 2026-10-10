@@ -23,11 +23,11 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
       role="img"
       aria-label={leftLabel ? `${names}, ${leftLabel}` : names}
       data-testid={testId}
-      className="mt-1 flex items-center gap-2"
+      className="flex items-center gap-2"
     >
       <span className="flex -space-x-1">
         {shown.map((person) => (
-          <HoverLabel key={person.id} label={person.name}>
+          <HoverLabel key={person.id} label={person.name} showOnTap>
             <PersonAvatar
               name={person.name}
               colorIndex={person.colorIndex}
@@ -36,7 +36,7 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
           </HoverLabel>
         ))}
         {hidden.length > 0 && (
-          <HoverLabel label={hidden.map((person) => person.name).join(', ')}>
+          <HoverLabel label={hidden.map((person) => person.name).join(', ')} showOnTap>
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-container-high px-1 text-[10px] font-bold text-on-surface-variant ring-2 ring-surface">
               +{hidden.length}
             </span>

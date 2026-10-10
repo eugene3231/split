@@ -20,8 +20,16 @@ export function useLongPress() {
     if (longPressed.current) timer.current = window.setTimeout(() => setPressed(false), LINGER_MS);
   };
 
+  /** Shows the label for a moment, for a tap on something that does nothing else. */
+  const flash = () => {
+    window.clearTimeout(timer.current);
+    setPressed(true);
+    timer.current = window.setTimeout(() => setPressed(false), LINGER_MS);
+  };
+
   return {
     pressed,
+    flash,
     handlers: {
       onPointerDown: (event: PointerEvent) => {
         longPressed.current = false;

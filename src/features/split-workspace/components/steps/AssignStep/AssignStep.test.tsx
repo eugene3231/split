@@ -138,6 +138,17 @@ describe('AssignStep', () => {
     expect(screen.queryByTestId('claim-item-share-open')).not.toBeInTheDocument();
   });
 
+  it('names a person on tapping their avatar without ticking the item', () => {
+    renderStep('p2');
+
+    fireEvent.click(within(screen.getByTestId('claim-item-claimants-shared')).getByText('Bob'));
+
+    expect(storeMock.updateReceiptItem).not.toHaveBeenCalled();
+    expect(within(screen.getByTestId('claim-item-claimants-shared')).getByText('Bob')).toHaveClass(
+      'opacity-100',
+    );
+  });
+
   it('switches the person from the people rail', () => {
     const { onActivePersonChange } = renderStep();
 

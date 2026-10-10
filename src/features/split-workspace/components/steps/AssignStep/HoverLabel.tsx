@@ -5,16 +5,22 @@ import { useLongPress } from './useLongPress';
 interface Props {
   label: string;
   testId?: string;
+  /** Also show the label on a plain tap, for children that have no click of their own. */
+  showOnTap?: boolean;
   children: ReactNode;
 }
 
 /** Shows a label above its children on hover, or on a long press on touch screens. */
-export function HoverLabel({ label, testId, children }: Props) {
-  const { pressed, handlers } = useLongPress();
+export function HoverLabel({ label, testId, showOnTap = false, children }: Props) {
+  const { pressed, flash, handlers } = useLongPress();
 
   return (
     // The wrapper takes the hover and press, so a disabled button inside still shows its label.
-    <span className="group relative flex select-none [-webkit-touch-callout:none]" {...handlers}>
+    <span
+      className="group relative flex select-none [-webkit-touch-callout:none]"
+      {...handlers}
+      onClick={showOnTap ? flash : undefined}
+    >
       {children}
       <span
         aria-hidden

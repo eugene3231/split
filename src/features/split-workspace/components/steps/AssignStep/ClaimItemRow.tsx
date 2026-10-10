@@ -30,33 +30,36 @@ export function ClaimItemRow({
   return (
     <li data-testid={`claim-item-${item.id}`} className="py-3">
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          aria-pressed={item.claimedByActive}
-          data-testid={`claim-item-toggle-${item.id}`}
-          onClick={onToggle}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
-        >
-          <span
-            aria-hidden
-            className={cn(
-              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-              item.claimedByActive ? 'border-primary bg-primary' : 'border-outline-variant',
-            )}
+        <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            aria-pressed={item.claimedByActive}
+            data-testid={`claim-item-toggle-${item.id}`}
+            onClick={onToggle}
+            className="flex w-full items-center gap-3 text-left"
           >
-            {item.claimedByActive && (
-              <span className="material-symbols-outlined text-base text-on-primary">check</span>
-            )}
-          </span>
-          <span className="min-w-0">
-            <span className="block font-semibold break-words">{item.name}</span>
+            <span
+              aria-hidden
+              className={cn(
+                'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                item.claimedByActive ? 'border-primary bg-primary' : 'border-outline-variant',
+              )}
+            >
+              {item.claimedByActive && (
+                <span className="material-symbols-outlined text-base text-on-primary">check</span>
+              )}
+            </span>
+            <span className="min-w-0 font-semibold break-words">{item.name}</span>
+          </button>
+          {/* Outside the toggle, so tapping an avatar names the person instead of ticking the item. */}
+          <div className="mt-1 pl-9 empty:hidden">
             <ClaimantAvatars
               claimants={item.claimants}
               leftLabel={item.leftLabel}
               testId={`claim-item-claimants-${item.id}`}
             />
-          </span>
-        </button>
+          </div>
+        </div>
 
         {share ? (
           <ShareAmountField
