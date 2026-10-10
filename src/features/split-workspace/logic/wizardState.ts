@@ -1,30 +1,24 @@
 import type { EditableItem, Person } from '@shared/types';
-import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
+import type { WizardStep } from '@features/split-workspace/types';
 import { isStepValid } from './wizardValidation';
 
-export function clampActiveItemIndex(index: number, itemCount: number): number {
-  if (itemCount <= 0) return 0;
-  return Math.min(Math.max(0, index), itemCount - 1);
-}
-
-export function resolveWizardState(
+export function resolveWizardStep(
   activeStep: WizardStep,
-  itemsSubPhase: ItemsSubPhase,
   items: EditableItem[],
   allItems: EditableItem[],
   people: Person[],
-): { activeStep: WizardStep; itemsSubPhase: ItemsSubPhase } {
+): WizardStep {
   if (activeStep === 'final' && !isStepValid('items', { items: allItems, people })) {
-    return { activeStep: 'items', itemsSubPhase: 'assign' };
+    return 'items';
   }
 
   if (activeStep === 'items' && !isStepValid('receipt', { items, people })) {
-    return { activeStep: 'receipt', itemsSubPhase };
+    return 'receipt';
   }
 
   if (activeStep === 'receipt' && !isStepValid('people', { items, people })) {
-    return { activeStep: 'people', itemsSubPhase };
+    return 'people';
   }
 
-  return { activeStep, itemsSubPhase };
+  return activeStep;
 }

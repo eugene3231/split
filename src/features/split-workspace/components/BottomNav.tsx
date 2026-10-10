@@ -1,16 +1,14 @@
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { cn } from '@shared/utils/cn';
-import { getContinueLabel } from '@features/split-workspace/logic/wizardSteps';
-import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
+import type { WizardStep } from '@features/split-workspace/types';
 
 interface Props {
   activeStep: WizardStep;
-  itemsSubPhase: ItemsSubPhase;
-  isLastAssignableItem: boolean;
+  continueLabel: string;
   canContinue: boolean;
   onBack: () => void;
   onNext: () => void;
-  grandTotalFormatted?: string;
+  status?: ReactNode;
 }
 
 function getVisualViewportBottomInset() {
@@ -62,17 +60,14 @@ function useVisualViewportBottomInset() {
 
 export function BottomNav({
   activeStep,
-  itemsSubPhase,
-  isLastAssignableItem,
+  continueLabel,
   canContinue,
   onBack,
   onNext,
-  grandTotalFormatted,
+  status,
 }: Props) {
   const isFirstStep = activeStep === 'people';
   const isFinalStep = activeStep === 'final';
-  const continueLabel = getContinueLabel(activeStep, itemsSubPhase, isLastAssignableItem);
-  const continueDisabled = !canContinue && !(activeStep === 'items' && itemsSubPhase === 'assign');
   const bottomInset = useVisualViewportBottomInset();
 
   return (
@@ -82,7 +77,7 @@ export function BottomNav({
     >
       <div
         className={cn(
-          'mx-auto flex max-w-3xl items-center gap-3 rounded-3xl bg-primary p-2 text-on-primary shadow-2xl shadow-black/20',
+          'mx-auto flex max-w-3xl items-center gap-2 rounded-3xl bg-primary p-2 text-on-primary shadow-2xl shadow-black/20 md:gap-3',
           isFinalStep && 'ml-0 w-fit md:mx-auto',
         )}
       >
@@ -90,48 +85,51 @@ export function BottomNav({
           <button
             type="button"
             data-testid="wizard-back-btn"
+            aria-label="Back"
             onClick={onBack}
-            className="flex items-center gap-1.5 rounded-2xl px-3 py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className="flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
             <span className="material-symbols-outlined text-xl">arrow_back</span>
-            Back
+            <span className={cn(!isFinalStep && 'hidden md:inline')}>Back</span>
           </button>
         )}
 
         {!isFinalStep && (
           <>
-            <div className="flex min-w-0 flex-1 flex-col justify-center pl-3">
-              {grandTotalFormatted && (activeStep === 'receipt' || activeStep === 'items') ? (
-                <div className="hidden min-w-0 md:block">
-                  <p className="truncate text-xs text-white/60">Grand total</p>
-                  <p className="truncate text-xl leading-tight font-extrabold tabular-nums">
-                    {grandTotalFormatted}
-                  </p>
-                </div>
-              ) : isFirstStep ? (
-                <p className="hidden truncate text-sm text-white/60 md:block">
-                  Add at least one person to continue
-                </p>
-              ) : null}
-            </div>
+            <div className="flex min-w-0 flex-1 flex-col justify-center pl-1 md:pl-3">{status}</div>
             <button
               type="button"
               data-testid="wizard-continue-btn"
               onClick={onNext}
-              disabled={continueDisabled}
+              disabled={!canContinue}
               className={cn(
-                'flex shrink-0 items-center justify-center gap-1 rounded-2xl px-5 py-3 text-sm font-bold transition-all active:scale-95',
-                continueDisabled
-                  ? 'cursor-not-allowed bg-white/15 text-white/50'
-                  : 'bg-white text-primary',
+                'flex max-w-[60%] shrink-0 items-center justify-center gap-1 rounded-2xl px-5 py-3 text-sm font-bold transition-all active:scale-95',
+                canContinue
+                  ? 'bg-white text-primary'
+                  : 'cursor-not-allowed bg-white/15 text-white/50',
               )}
             >
-              {continueLabel}
+              <span className="truncate">{continueLabel}</span>
               <span className="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
           </>
         )}
       </div>
     </footer>
+  );
+}
+
+interface BottomNavStatusProps {
+  label: string;
+  value: string;
+  className?: string;
+}
+
+export function BottomNavStatus({ label, value, className }: BottomNavStatusProps) {
+  return (
+    <div data-testid="wizard-status" className={cn('min-w-0', className)}>
+      <p className="truncate text-xs text-white/60">{label}</p>
+      <p className="truncate text-xl leading-tight font-extrabold tabular-nums">{value}</p>
+    </div>
   );
 }

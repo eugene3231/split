@@ -21,6 +21,7 @@ interface Props {
   onRemove?: (id: string) => void;
   onRename?: (id: string, name: string) => void;
   appendTab?: AppendTab;
+  className?: string;
 }
 
 export function ReceiptTabs({
@@ -31,6 +32,7 @@ export function ReceiptTabs({
   onRemove,
   onRename,
   appendTab,
+  className,
 }: Props) {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingTabName, setEditingTabName] = useState('');
@@ -49,7 +51,7 @@ export function ReceiptTabs({
   };
 
   return (
-    <div className="mb-8 flex items-center gap-3">
+    <div className={cn('mb-8 flex items-center gap-3', className)}>
       {/* Segmented pill */}
       <div className="flex items-center gap-0.5 overflow-x-auto rounded-xl bg-surface-container-low p-1">
         {receipts.map((receipt) => {

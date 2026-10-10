@@ -15,28 +15,29 @@ describe('loadWizardState', () => {
   it('returns null for non-v1 version', () => {
     window.localStorage.setItem(
       LOCAL_STORAGE_WIZARD_STATE_KEY,
-      JSON.stringify({ version: 2, step: 'people', itemsSubPhase: 'assign', activeItemIndex: 0 }),
+      JSON.stringify({ version: 2, step: 'people', activePersonId: 'p1' }),
     );
     expect(loadWizardState()).toBeNull();
   });
 
-  it('loads a valid v1 state', () => {
-    saveWizardState({ step: 'items', itemsSubPhase: 'review', activeItemIndex: 2 });
-    const state = loadWizardState();
-    expect(state).toEqual({
-      version: 1,
-      step: 'items',
-      itemsSubPhase: 'review',
-      activeItemIndex: 2,
-    });
+  it('loads a saved step and active person', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    expect(loadWizardState()).toEqual({ version: 1, step: 'items', activePersonId: 'p2' });
+  });
+
+  it('keeps the step from an item-by-item save and starts on no particular person', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_WIZARD_STATE_KEY,
+      JSON.stringify({ version: 1, step: 'items', itemsSubPhase: 'review', activeItemIndex: 3 }),
+    );
+    expect(loadWizardState()).toEqual({ version: 1, step: 'items', activePersonId: '' });
   });
 
   it('defaults unknown step to "people"', () => {
     window.localStorage.setItem(
       LOCAL_STORAGE_WIZARD_STATE_KEY,
-      JSON.stringify({ version: 1, step: 'unknown', itemsSubPhase: 'assign', activeItemIndex: 0 }),
+      JSON.stringify({ version: 1, step: 'unknown', activePersonId: 7 }),
     );
-    const state = loadWizardState();
-    expect(state?.step).toBe('people');
+    expect(loadWizardState()).toEqual({ version: 1, step: 'people', activePersonId: '' });
   });
 });

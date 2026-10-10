@@ -43,7 +43,7 @@ function seedSavedBill() {
   );
   useReceiptStore.getState().setPayerMobile('91234567');
   useGeminiStore.setState({ geminiApiKeyInput: 'saved-key', rememberGeminiApiKey: true });
-  saveWizardState({ step: 'final', itemsSubPhase: 'review', activeItemIndex: 0 });
+  saveWizardState({ step: 'final', activePersonId: '' });
 }
 
 function renderWorkspaceHooks() {
@@ -55,8 +55,6 @@ function renderWorkspaceHooks() {
       state.people,
       state.normalizeItems,
       state.receipts,
-      state.activeReceiptId,
-      state.setActiveReceiptId,
     );
     const receiptImport = useReceiptImport({ activeReceiptId: state.activeReceiptId });
     const split = useReceiptSplit();
@@ -144,11 +142,7 @@ describe('workspace recovery', () => {
     expect(loadPersistedDraft()?.receipts).toHaveLength(1);
     expect(loadPersistedDraft()?.receipts[0].id).toBe(freshReceiptId);
     expect(loadPersistedDraft()?.payerMobile).toBe('');
-    expect(loadWizardState()).toMatchObject({
-      step: 'people',
-      itemsSubPhase: 'assign',
-      activeItemIndex: 0,
-    });
+    expect(loadWizardState()).toEqual({ version: 1, step: 'people', activePersonId: '' });
     expect(useScanStore.getState().scanStateByReceipt).toEqual({});
     expect(useGeminiStore.getState().geminiApiKeyInput).toBe('saved-key');
     expect(useGeminiStore.getState().rememberGeminiApiKey).toBe(true);

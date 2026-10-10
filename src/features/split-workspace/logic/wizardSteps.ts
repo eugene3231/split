@@ -1,4 +1,4 @@
-import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
+import type { WizardStep } from '@features/split-workspace/types';
 
 export const STEP_ORDER: WizardStep[] = ['people', 'receipt', 'items', 'final'];
 
@@ -10,21 +10,17 @@ export function isStepCompleted(step: WizardStep, activeStep: WizardStep): boole
   return STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf(activeStep);
 }
 
-export function getContinueLabel(
-  activeStep: WizardStep,
-  itemsSubPhase: ItemsSubPhase,
-  isLastAssignableItem: boolean,
-): string {
-  if (activeStep === 'people') return 'Add Receipts';
-  if (activeStep === 'receipt') return 'Assign Items';
-  if (activeStep === 'items' && itemsSubPhase === 'assign')
-    return isLastAssignableItem ? 'Review Items' : 'Next Item';
+/** The claim step's label depends on who is claiming, so the caller passes it in. */
+export function getContinueLabel(activeStep: WizardStep, claimLabel: string): string {
+  if (activeStep === 'people') return 'Add receipts';
+  if (activeStep === 'receipt') return 'Claim items';
+  if (activeStep === 'items') return claimLabel;
   return 'Summary';
 }
 
 export const STEP_LABELS: Record<WizardStep, string> = {
   people: 'People',
   receipt: 'Receipt',
-  items: 'Assign',
+  items: 'Claim',
   final: 'Summary',
 };

@@ -1,67 +1,31 @@
 import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
 import { allocateCents } from '@shared/logic/split/split';
-import type { EditableItem, Person, Receipt, WeightsInputMode } from '@shared/types';
-import type { ItemsSubPhase } from '@features/split-workspace/types';
+import type { EditableItem, Person, WeightsInputMode } from '@shared/types';
 import { isItemAssigned } from '@features/split-workspace/logic/wizardValidation';
 import { redistributeOnChange } from '@features/split-workspace/logic/weightRedistribution';
 
-export interface AssignmentPersonRow {
+export interface SplitAdjustmentRow {
   id: string;
   name: string;
   colorIndex: number;
-  isSelected: boolean;
   shareAmountCents: number;
   shareLabel: string;
   weight: number;
   percentValue: number;
 }
 
-export interface AssignmentActiveItem {
-  id: string;
-  title: string;
-  priceCents: number | null;
-  priceLabel: string;
-  isAssigned: boolean;
-  selectedPersonIds: string[];
-  weightsInputMode: WeightsInputMode;
-  canUseSplitControls: boolean;
-}
-
-export interface AssignmentAssignModel {
-  activeItem: AssignmentActiveItem | null;
-  activeItemPositionLabel: string;
-  people: AssignmentPersonRow[];
-  canSplitUnassigned: boolean;
-  unassignedItemCount: number;
-}
-
-export interface AssignmentReviewRow {
+export interface SplitAdjustment {
   itemId: string;
-  receiptId: string;
-  receiptName: string;
   title: string;
-  priceCents: number | null;
-  priceLabel: string | null;
-  isAssigned: boolean;
-  splitLabel: string;
-}
-
-export interface AssignmentReviewModel {
-  itemCount: number;
-  rows: AssignmentReviewRow[];
-}
-
-export interface AssignmentInteraction {
-  phase: ItemsSubPhase;
-  assign: AssignmentAssignModel;
-  review: AssignmentReviewModel;
+  priceLabel: string;
+  weightsInputMode: WeightsInputMode;
+  totalWeight: number;
+  claimants: SplitAdjustmentRow[];
 }
 
 export type AssignmentCommand =
   | { type: 'toggle-person'; personId: string; checked: boolean }
   | { type: 'select-all' }
-  | { type: 'select-none' }
-  | { type: 'assign-only'; personId: string }
   | { type: 'adjust-weight'; personId: string; delta: number }
   | { type: 'set-weight'; personId: string; value: number }
   | { type: 'set-weights-input-mode'; mode: WeightsInputMode }
@@ -72,36 +36,22 @@ export type AssignmentCommand =
 export type AssignmentCommandResult =
   { type: 'item-updated'; itemId: string; item: EditableItem } | { type: 'ignored' };
 
-export function resolveAssignmentInteraction(args: {
-  items: EditableItem[];
-  receipts: Receipt[];
+export function resolveSplitAdjustment(args: {
+  item: EditableItem;
   people: Person[];
-  phase: ItemsSubPhase;
-  activeItemIndex: number;
   currency: string;
-}): AssignmentInteraction {
-  const { items, receipts, people, phase, activeItemIndex, currency } = args;
-  const validPeopleSet = new Set(people.map((person) => person.id));
-  const activeItem = items[activeItemIndex] ?? null;
-  const unassignedItemCount = items.filter((item) => !isItemAssigned(item, validPeopleSet)).length;
+}): SplitAdjustment {
+  const { item, people, currency } = args;
+  const priceCents = parseCurrencyToCents(item.amountInput);
+  const claimants = resolveClaimantRows(item, people, currency);
 
   return {
-    phase,
-    assign: {
-      activeItem: activeItem
-        ? resolveActiveItem(activeItem, people, validPeopleSet, currency)
-        : null,
-      activeItemPositionLabel: activeItem ? `Item ${activeItemIndex + 1} of ${items.length}` : '',
-      people: activeItem ? resolvePersonRows(activeItem, people, currency) : [],
-      canSplitUnassigned: people.length > 0 && unassignedItemCount > 0,
-      unassignedItemCount,
-    },
-    review: {
-      itemCount: receipts.reduce((sum, receipt) => sum + receipt.items.length, 0),
-      rows: receipts.flatMap((receipt) =>
-        receipt.items.map((item) => resolveReviewRow(item, people, receipt)),
-      ),
-    },
+    itemId: item.id,
+    title: item.name || 'Untitled item',
+    priceLabel: priceCents !== null ? formatCurrencyFromCents(priceCents, currency) : '—',
+    weightsInputMode: item.assignment.weightsInputMode ?? 'shares',
+    totalWeight: claimants.reduce((sum, person) => sum + person.weight, 0),
+    claimants,
   };
 }
 
@@ -119,14 +69,6 @@ export function applyAssignmentCommand(args: {
 
   if (command.type === 'select-all') {
     return updated(item, selectAllPeople(people, item));
-  }
-
-  if (command.type === 'select-none') {
-    return updated(item, selectNone(item));
-  }
-
-  if (command.type === 'assign-only') {
-    return updated(item, assignOnlyPerson(command.personId, item));
   }
 
   if (command.type === 'adjust-weight') {
@@ -213,13 +155,6 @@ export function selectAllPeople(people: Person[], currentItem: EditableItem): Ed
   };
 }
 
-export function selectNone(currentItem: EditableItem): EditableItem {
-  return {
-    ...currentItem,
-    assignment: { mode: 'equal', personId: '', personIds: [], weights: undefined },
-  };
-}
-
 export function splitUnassignedItemsEqually(
   items: EditableItem[],
   people: Person[],
@@ -253,32 +188,12 @@ function rawWeightsOf(item: EditableItem, selectedIds: string[]): Record<string,
   return Object.fromEntries(selectedIds.map((id) => [id, weights?.[id] ?? 1]));
 }
 
-function resolveActiveItem(
-  item: EditableItem,
-  people: Person[],
-  validPeopleSet: Set<string>,
-  currency: string,
-): AssignmentActiveItem {
-  const priceCents = parseCurrencyToCents(item.amountInput);
-  return {
-    id: item.id,
-    title: item.name || 'Untitled item',
-    priceCents,
-    priceLabel: priceCents !== null ? formatCurrencyFromCents(priceCents, currency) : '—',
-    isAssigned: isItemAssigned(item, validPeopleSet),
-    selectedPersonIds: item.assignment.personIds,
-    weightsInputMode: item.assignment.weightsInputMode ?? 'shares',
-    canUseSplitControls: item.assignment.personIds.length >= 2 && people.length >= 2,
-  };
-}
-
-function resolvePersonRows(
+function resolveClaimantRows(
   item: EditableItem,
   people: Person[],
   currency: string,
-): AssignmentPersonRow[] {
+): SplitAdjustmentRow[] {
   const selectedIds = item.assignment.personIds;
-  const selectedSet = new Set(selectedIds);
   const rawWeights = rawWeightsOf(item, selectedIds);
   const priceCents = parseCurrencyToCents(item.amountInput);
 
@@ -286,86 +201,21 @@ function resolvePersonRows(
     priceCents !== null ? allocateCents(priceCents, selectedIds, rawWeights) : {};
   const normalizedPercent = allocateCents(100, selectedIds, rawWeights);
 
-  return people.map((person, index) => {
-    const isSelected = selectedSet.has(person.id);
-    const weight = item.assignment.weights?.[person.id] ?? 1;
-    const shareAmountCents = isSelected ? (normalizedCents[person.id] ?? 0) : 0;
-    const percentValue = isSelected ? (normalizedPercent[person.id] ?? 0) : 0;
-
-    return {
-      id: person.id,
-      name: person.name,
-      colorIndex: index,
-      isSelected,
-      shareAmountCents,
-      shareLabel: formatCurrencyFromCents(shareAmountCents, currency),
-      weight,
-      percentValue,
-    };
+  return people.flatMap((person, index) => {
+    if (!selectedIds.includes(person.id)) return [];
+    const shareAmountCents = normalizedCents[person.id] ?? 0;
+    return [
+      {
+        id: person.id,
+        name: person.name,
+        colorIndex: index,
+        shareAmountCents,
+        shareLabel: formatCurrencyFromCents(shareAmountCents, currency),
+        weight: rawWeights[person.id],
+        percentValue: normalizedPercent[person.id] ?? 0,
+      },
+    ];
   });
-}
-
-function resolveReviewRow(
-  item: EditableItem,
-  people: Person[],
-  receipt: Receipt,
-): AssignmentReviewRow {
-  const selectedPeople = people.filter((person) => item.assignment.personIds.includes(person.id));
-  const isAssigned = selectedPeople.length > 0;
-  const priceCents = parseCurrencyToCents(item.amountInput);
-
-  return {
-    itemId: item.id,
-    receiptId: receipt.id,
-    receiptName: receipt.name,
-    title: item.name,
-    priceCents,
-    priceLabel: priceCents !== null ? formatCurrencyFromCents(priceCents, receipt.currency) : null,
-    isAssigned,
-    splitLabel: isAssigned
-      ? resolveSplitLabel(item, selectedPeople, receipt.currency)
-      : 'No people selected',
-  };
-}
-
-function resolveSplitLabel(item: EditableItem, selectedPeople: Person[], currency: string): string {
-  const weights = item.assignment.weights;
-  const hasUnequalWeights =
-    weights !== undefined &&
-    item.assignment.personIds.length >= 2 &&
-    item.assignment.personIds.some((id) => (weights[id] ?? 1) !== 1);
-
-  if (!hasUnequalWeights) {
-    return `Split: ${selectedPeople.map((person) => person.name).join(', ')}`;
-  }
-
-  const mode = item.assignment.weightsInputMode ?? 'shares';
-  const selectedIds = item.assignment.personIds;
-  const rawWeights = rawWeightsOf(item, selectedIds);
-  const priceCents = parseCurrencyToCents(item.amountInput);
-  const normalizedCents =
-    priceCents !== null ? allocateCents(priceCents, selectedIds, rawWeights) : {};
-  const normalizedPercent = allocateCents(100, selectedIds, rawWeights);
-
-  return `Split: ${selectedPeople
-    .map((person) => {
-      if (mode === 'percent') {
-        return `${person.name} ${normalizedPercent[person.id] ?? 0}%`;
-      }
-      if (mode === 'amount') {
-        return `${person.name} ${formatCurrencyFromCents(normalizedCents[person.id] ?? 0, currency)}`;
-      }
-      const weight = weights?.[person.id] ?? 1;
-      return `${person.name} ×${weight}`;
-    })
-    .join(', ')}`;
-}
-
-function assignOnlyPerson(personId: string, item: EditableItem): EditableItem {
-  return {
-    ...item,
-    assignment: { mode: 'equal', personId: '', personIds: [personId], weights: undefined },
-  };
 }
 
 function setShareWeight(personId: string, value: number, item: EditableItem): EditableItem {

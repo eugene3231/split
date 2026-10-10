@@ -1,11 +1,10 @@
 import { cn } from '@shared/utils/cn';
-import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
+import type { WizardStep } from '@features/split-workspace/types';
 import { STEP_LABELS, STEP_ORDER } from '@features/split-workspace/logic/wizardSteps';
 
 interface Props {
   activeStep: WizardStep;
-  itemsSubPhase: ItemsSubPhase;
-  assignedItemCount: number;
+  claimedItemCount: number;
   detectedItemsCount: number;
   stepReachability: Record<WizardStep, boolean>;
   onStepSelect: (step: WizardStep) => void;
@@ -13,8 +12,7 @@ interface Props {
 
 export function TopAppBar({
   activeStep,
-  itemsSubPhase,
-  assignedItemCount,
+  claimedItemCount,
   detectedItemsCount,
   stepReachability,
   onStepSelect,
@@ -22,13 +20,8 @@ export function TopAppBar({
   const stepIndex = STEP_ORDER.indexOf(activeStep);
   const stepNumber = stepIndex + 1;
 
-  let contextText = '';
-  if (activeStep === 'items') {
-    contextText =
-      itemsSubPhase === 'assign'
-        ? `${assignedItemCount} of ${detectedItemsCount} items assigned`
-        : 'Reviewing';
-  }
+  const contextText =
+    activeStep === 'items' ? `${claimedItemCount} of ${detectedItemsCount} items claimed` : '';
 
   return (
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">
