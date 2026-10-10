@@ -1,6 +1,7 @@
+import { WIZARD_STEPS } from '@features/split-workspace/types';
 import { cn } from '@shared/utils/cn';
 import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
-import { STEP_LABELS, STEP_ORDER } from '@features/split-workspace/logic/wizardSteps';
+import { STEP_LABELS } from '@features/split-workspace/logic/wizardSteps';
 
 interface Props {
   activeStep: WizardStep;
@@ -19,7 +20,7 @@ export function TopAppBar({
   stepReachability,
   onStepSelect,
 }: Props) {
-  const stepIndex = STEP_ORDER.indexOf(activeStep);
+  const stepIndex = WIZARD_STEPS.indexOf(activeStep);
   const stepNumber = stepIndex + 1;
 
   let contextText = '';
@@ -44,7 +45,7 @@ export function TopAppBar({
           aria-label="Wizard steps"
           className="hidden flex-1 items-center justify-center md:flex"
         >
-          {STEP_ORDER.map((step, i) => {
+          {WIZARD_STEPS.map((step, i) => {
             const completed = i < stepIndex;
             const isCurrent = step === activeStep;
             const disabled = !stepReachability[step];
@@ -101,7 +102,7 @@ export function TopAppBar({
                     {STEP_LABELS[step]}
                   </span>
                 </button>
-                {i < STEP_ORDER.length - 1 && (
+                {i < WIZARD_STEPS.length - 1 && (
                   <div
                     className={cn(
                       'mx-2 mb-4 h-0.5 w-12',
@@ -117,7 +118,7 @@ export function TopAppBar({
         {/* Mobile: compact interactive step buttons */}
         <nav aria-label="Wizard steps" className="ml-auto flex flex-1 justify-end md:hidden">
           <div className="grid grid-cols-4 gap-1">
-            {STEP_ORDER.map((step, i) => {
+            {WIZARD_STEPS.map((step, i) => {
               const completed = i < stepIndex;
               const isCurrent = step === activeStep;
               const disabled = !stepReachability[step];
@@ -171,7 +172,7 @@ export function TopAppBar({
         {/* Right: step count on desktop */}
         <div data-testid="wizard-step-context" className="hidden w-44 shrink-0 text-right md:block">
           <p className="truncate text-xs font-bold tracking-widest text-primary uppercase">
-            Step {stepNumber} of {STEP_ORDER.length}
+            Step {stepNumber} of {WIZARD_STEPS.length}
           </p>
           {contextText && (
             <p className="truncate text-[10px] text-on-surface-variant">{contextText}</p>

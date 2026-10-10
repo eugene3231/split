@@ -18,7 +18,7 @@ export function saveExchangeRates(rates: Record<string, number>): void {
       JSON.stringify({ rates, savedAt: Date.now() }),
     );
   } catch {
-    // Ignore storage write failures.
+    return;
   }
 }
 
@@ -30,11 +30,11 @@ export function loadExchangeRates(): Record<string, number> | null {
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null || !('rates' in parsed)) return null;
-    const { rates } = parsed as { rates: unknown };
+    const { rates } = parsed;
     if (typeof rates !== 'object' || rates === null) return null;
     const result: Record<string, number> = {};
     for (const [k, v] of Object.entries(rates)) {
-      if (typeof v === 'number' && Number.isFinite(v)) result[k] = v;
+      if (typeof v === 'number' && Number.isFinite(v) && v > 0) result[k] = v;
     }
     return Object.keys(result).length > 0 ? result : null;
   } catch {

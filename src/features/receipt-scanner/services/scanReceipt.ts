@@ -2,18 +2,20 @@ import type { OcrResponse } from '@shared/types';
 import { analyzeReceiptWithGemini } from '@features/receipt-scanner/api/geminiApi';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 
-type ScanReceiptArgs = {
+interface ScanReceiptArgs {
   receiptId: string;
   receiptFile: File | null;
   apiKeyInput: string;
   model: string;
-};
+  isCurrent?: () => boolean;
+}
 
 export async function scanReceipt({
   receiptId,
   receiptFile,
   apiKeyInput,
   model,
+  isCurrent = () => true,
 }: ScanReceiptArgs): Promise<OcrResponse | null> {
   if (!receiptFile) {
     return null;
@@ -26,8 +28,9 @@ export async function scanReceipt({
 
   useScanStore.getState().startScan(receiptId);
 
-  const setScanStatusForReceipt = (status: string) =>
-    useScanStore.getState().setScanStatus(receiptId, status);
+  const setScanStatusForReceipt = (status: string) => {
+    if (isCurrent()) useScanStore.getState().setScanStatus(receiptId, status);
+  };
 
   try {
     const payload = await analyzeReceiptWithGemini(
@@ -36,11 +39,12 @@ export async function scanReceipt({
       model,
       setScanStatusForReceipt,
     );
+    if (!isCurrent()) return null;
     useScanStore.getState().setScanWarnings(receiptId, payload.warnings);
     return payload;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to scan receipt';
-    useScanStore.getState().setScanError(receiptId, message);
+    if (isCurrent()) useScanStore.getState().setScanError(receiptId, message);
     return null;
   } finally {
     useScanStore.getState().finishScan(receiptId);

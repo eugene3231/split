@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { computeSplit, computeConsolidatedSplit } from '@shared/logic/split/split';
+import {
+  computeSplit,
+  computeConsolidatedSplit,
+} from '@features/split-workspace/logic/split/split';
 import { useReconciliation } from './useReconciliation';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
@@ -63,12 +66,14 @@ export function useReceiptSplit() {
     );
   }, [splitByReceipt, people, receipts, exchangeRates]);
 
-  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation(
-    activeSplit,
-    activeReceipt?.discount ?? defaultDiscountState,
+  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation({
+    split: activeSplit,
+    discount: activeReceipt?.discount ?? defaultDiscountState,
+    serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
+    gst: activeReceipt?.gst ?? defaultGstState,
     setDiscount,
-    activeReceipt?.receiptTotalInput ?? '',
-  );
+    receiptTotalInput: activeReceipt?.receiptTotalInput ?? '',
+  });
 
   return {
     active: {

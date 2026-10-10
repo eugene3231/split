@@ -1,13 +1,22 @@
+import type { Person, Receipt } from '@shared/types';
+
 export const WIZARD_STEPS = ['people', 'receipt', 'items', 'final'] as const;
 
 export type WizardStep = (typeof WIZARD_STEPS)[number];
 
 export type ItemsSubPhase = 'assign' | 'review';
 
-export type WizardProgressContext = {
-  detectedItemsCount: number;
-  activeItemIndex: number;
-  assignedItemCount: number;
-  receiptNumber: number;
-  totalReceipts: number;
-};
+export interface SessionDraft {
+  version: 2;
+  people: Person[];
+  receipts: Receipt[];
+  activeReceiptId: string;
+  payerMobile: string;
+  savedAt: string;
+}
+
+export interface PersistedOcrSettings {
+  version: 1;
+  geminiModel: string;
+  savedAt: string;
+}

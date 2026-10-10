@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChargeState, Receipt, SplitResult } from '@shared/types';
 import { buildSummaryExportPayload } from './buildSummaryExportPayload';
-import type { SummaryBreakdown } from './summaryBreakdown';
+import type { SummaryBreakdown } from '@shared/types/summaryBreakdown';
 
 const disabledChargeState: ChargeState = {
   enabled: false,
@@ -54,7 +54,6 @@ describe('buildSummaryExportPayload', () => {
         summaryBreakdown,
         reconciliation: {
           cents: -25,
-          applyCorrectiveDiscount: () => {},
         },
         view: {
           kind: 'receipt',
@@ -88,7 +87,6 @@ describe('buildSummaryExportPayload', () => {
         summaryBreakdown,
         reconciliation: {
           cents: null,
-          applyCorrectiveDiscount: () => {},
         },
         view: {
           kind: 'total',
@@ -105,6 +103,7 @@ describe('buildSummaryExportPayload', () => {
             {
               name: 'Tokyo Lunch',
               split,
+              sgdSplit: split,
               currency: 'JPY',
               discount: disabledChargeState,
               serviceCharge: disabledChargeState,

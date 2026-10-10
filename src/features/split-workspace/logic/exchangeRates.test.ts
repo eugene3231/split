@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { computeSplit } from '@features/split-workspace/logic/split/split';
+import { amountCharge, disabledCharge, makeItem } from '../../../tests/integration/testHelpers';
 import type { PersonReceiptLineItem, Receipt, SplitResult } from '@shared/types';
 import {
   convertCents,
   convertSplitResult,
   getEffectiveRate,
   getForeignReceiptRates,
-} from '@shared/logic/core/exchangeRates';
+} from '@features/split-workspace/logic/exchangeRates';
 
 const rates: Record<string, number> = {
   SGD: 1,
@@ -151,6 +153,121 @@ describe('convertCents', () => {
 // ─── convertSplitResult ───────────────────────────────────────────────────────
 
 describe('convertSplitResult', () => {
+  it.each([
+    ['0.01', '0.01', 3, 2],
+    ['10.01', '20.01', 2703, 2702],
+  ])(
+    'keeps a fully discounted person nonnegative at %s per item',
+    (amount, discount, subtotal, discountCents) => {
+      const native = computeSplit({
+        people: [
+          { id: 'a', name: 'A' },
+          { id: 'b', name: 'B' },
+        ],
+        items: ['a', 'b'].map((id) =>
+          makeItem({
+            id,
+            amountInput: amount,
+            assignment: { mode: 'single', personId: id, personIds: [id] },
+          }),
+        ),
+        discount: amountCharge(discount),
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      });
+      const converted = convertSplitResult(native, 'USD', 'SGD', rates);
+      expect(converted.totalByPersonCents).toEqual({ a: 0, b: 1 });
+      expect(converted.subtotalCents).toBe(subtotal);
+      expect(converted.discountCents).toBe(discountCents);
+      expect(sum(converted.subtotalByPersonCents)).toBe(subtotal);
+      expect(sum(converted.discountByPersonCents)).toBe(discountCents);
+      expect(sum(converted.totalByPersonCents)).toBe(1);
+      for (const id of ['a', 'b']) {
+        expect(converted.subtotalByPersonCents[id]).toBeGreaterThanOrEqual(
+          converted.discountByPersonCents[id],
+        );
+        expect(converted.totalByPersonCents[id]).toBe(
+          converted.subtotalByPersonCents[id] - converted.discountByPersonCents[id],
+        );
+        expect(
+          converted.lineItemsByPerson[id].reduce(
+            (total, item) => total + item.assignedAmountCents,
+            0,
+          ),
+        ).toBe(converted.subtotalByPersonCents[id]);
+      }
+      if (amount === '0.01') {
+        expect(converted.subtotalByPersonCents).toEqual({ a: 2, b: 1 });
+        expect(converted.discountByPersonCents).toEqual({ a: 2, b: 0 });
+      }
+    },
+  );
+
+  it('repairs multiple deficits from multiple donors without changing discount recipients', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
+    const native = computeSplit({
+      people: ids.map((id) => ({ id, name: id })),
+      items: ids.map((id) =>
+        makeItem({
+          id,
+          amountInput: '0.01',
+          assignment: { mode: 'single', personId: id, personIds: [id] },
+        }),
+      ),
+      discount: amountCharge('0.05'),
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+    const converted = convertSplitResult(native, 'USD', 'SGD', rates);
+    expect(converted.subtotalByPersonCents).toEqual({
+      a: 2,
+      b: 2,
+      c: 1,
+      d: 1,
+      e: 1,
+      f: 2,
+      g: 2,
+      h: 1,
+      i: 1,
+      j: 1,
+    });
+    expect(converted.discountByPersonCents).toEqual({
+      a: 2,
+      b: 2,
+      c: 1,
+      d: 1,
+      e: 1,
+      f: 0,
+      g: 0,
+      h: 0,
+      i: 0,
+      j: 0,
+    });
+    expect(converted.totalByPersonCents).toEqual({
+      a: 0,
+      b: 0,
+      c: 0,
+      d: 0,
+      e: 0,
+      f: 2,
+      g: 2,
+      h: 1,
+      i: 1,
+      j: 1,
+    });
+    expect(sum(converted.subtotalByPersonCents)).toBe(14);
+    expect(sum(converted.discountByPersonCents)).toBe(7);
+    expect(sum(converted.totalByPersonCents)).toBe(7);
+    for (const id of ids) {
+      expect(
+        converted.lineItemsByPerson[id].reduce(
+          (total, item) => total + item.assignedAmountCents,
+          0,
+        ),
+      ).toBe(converted.subtotalByPersonCents[id]);
+    }
+  });
+
   it('returns the same result unchanged when currencies are identical', () => {
     const split = makeSplitResult();
     const result = convertSplitResult(split, 'SGD', 'SGD', rates);

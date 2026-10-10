@@ -1,9 +1,7 @@
-// Light-theme canvas drawing utilities for receipt split image generators.
-// Reuses shared constants and utilities from the base helpers file.
-
 import { ellipsizeText } from '@features/sharing/logic/receiptSplitImageHelpers';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { BASE_CURRENCY } from '@shared/constants';
+import type { BreakdownConversion } from '@shared/types/summaryBreakdown';
 
 export {
   CANVAS_WIDTH,
@@ -13,19 +11,6 @@ export {
   formatPercent,
   ellipsizeText,
 } from '@features/sharing/logic/receiptSplitImageHelpers';
-
-// 5-color palette matching personColors.ts
-const PERSON_LIGHT_COLORS = [
-  { avatarBg: '#86d97a', avatarText: '#003d46', accent: '#16a34a' }, // emerald
-  { avatarBg: '#89c8ef', avatarText: '#003d46', accent: '#0284c7' }, // sky
-  { avatarBg: '#5ecfbe', avatarText: '#003d46', accent: '#0d9488' }, // teal
-  { avatarBg: '#b4a8e8', avatarText: '#003d46', accent: '#7c3aed' }, // violet
-  { avatarBg: '#f5d87a', avatarText: '#003d46', accent: '#d97706' }, // amber
-];
-
-export function getPersonLightColor(index: number) {
-  return PERSON_LIGHT_COLORS[index % PERSON_LIGHT_COLORS.length];
-}
 
 export function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
@@ -48,7 +33,6 @@ export function drawRoundedRect(
   ctx.closePath();
 }
 
-/** White card with subtle shadow — like bg-surface-container-lowest rounded-2xl */
 export function drawLightCardShell(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -67,7 +51,6 @@ export function drawLightCardShell(
   return y + h;
 }
 
-/** Light gray inner card — like bg-surface-container-low rounded-xl */
 export function drawNestedCard(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -80,7 +63,6 @@ export function drawNestedCard(
   ctx.fill();
 }
 
-/** Circle avatar with centered initial letter */
 export function drawAvatar(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -117,24 +99,25 @@ export function drawCurrencyConversionLines(
   rightEdge: number,
   y: number,
   lineH: number,
-  totalCents: number,
-  conversionRate: number,
-  fromCurrency: string,
+  conversion: BreakdownConversion,
 ): void {
-  const sgdAmount = Math.round(totalCents * conversionRate);
-  const rate = parseFloat((1 / conversionRate).toFixed(5));
+  const rate = parseFloat((1 / conversion.rate).toFixed(5));
 
   ctx.save();
   ctx.font = '400 18px system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#49454f';
   ctx.textAlign = 'right';
-  ctx.fillText(`≈ ${formatCurrencyFromCents(sgdAmount, BASE_CURRENCY)}`, rightEdge, y);
-  ctx.fillText(`1 ${BASE_CURRENCY} = ${rate} ${fromCurrency}`, rightEdge, y + lineH);
+  ctx.fillText(
+    `≈ ${formatCurrencyFromCents(conversion.amountCents, conversion.toCurrency)}`,
+    rightEdge,
+    y,
+  );
+  ctx.fillText(`1 ${BASE_CURRENCY} = ${rate} ${conversion.fromCurrency}`, rightEdge, y + lineH);
   ctx.textAlign = 'left';
   ctx.restore();
 }
 
-export type LightTwoColumnRowArgs = {
+export interface LightTwoColumnRowArgs {
   x: number;
   y: number;
   width: number;
@@ -147,7 +130,7 @@ export type LightTwoColumnRowArgs = {
   labelColor?: string;
   size: number;
   italic?: boolean;
-};
+}
 
 export function drawLightTwoColumnRow(
   ctx: CanvasRenderingContext2D,

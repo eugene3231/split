@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { ChargeState, EditableItem, Person } from '@shared/types';
-import { computeSplit, computeConsolidatedSplit } from '@shared/logic/split/split';
+import {
+  computeSplit,
+  computeConsolidatedSplit,
+} from '@features/split-workspace/logic/split/split';
 import { BASE_CURRENCY } from '@shared/constants';
 
 const disabled: ChargeState = {

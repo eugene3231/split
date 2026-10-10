@@ -1,9 +1,14 @@
-import type { SummaryModel } from '@features/split-workspace/components/steps/SummaryStep/useSummaryModel';
+import type { SummaryBreakdown } from '@shared/types/summaryBreakdown';
+import type { SummaryView } from './summaryView';
 
-type BuildSummaryExportPayloadArgs = {
-  model: Pick<SummaryModel, 'reconciliation' | 'view' | 'summaryBreakdown'>;
+interface BuildSummaryExportPayloadArgs {
+  model: {
+    reconciliation: { cents: number | null };
+    view: SummaryView;
+    summaryBreakdown: SummaryBreakdown;
+  };
   includeItemDetails: boolean;
-};
+}
 
 export function buildSummaryExportPayload({
   model,

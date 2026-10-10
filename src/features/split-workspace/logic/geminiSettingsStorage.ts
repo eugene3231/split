@@ -2,8 +2,8 @@ import {
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
 } from '@features/split-workspace/constants';
-import type { PersistedOcrSettings } from '@shared/types';
-import { isRecord } from '@shared/logic/core/guards';
+import type { PersistedOcrSettings } from '@features/split-workspace/types';
+import { isRecord } from '@features/split-workspace/logic/guards';
 function getBrowserStorage(): Storage | null {
   if (typeof window === 'undefined') return null;
   try {
