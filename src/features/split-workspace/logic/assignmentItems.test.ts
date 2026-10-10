@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EditableItem, Person } from '@shared/types';
 import {
-  createEmptyItem,
   pickDefaultPersonId,
   sanitizeItemAssignment,
 } from '@features/split-workspace/logic/assignmentItems';
@@ -25,15 +24,6 @@ function buildItem(overrides: Partial<EditableItem> = {}): EditableItem {
     ...overrides,
   };
 }
-
-describe('createEmptyItem', () => {
-  it('defaults to first person for single mode and all person ids for equal mode selection state', () => {
-    const item = createEmptyItem(people);
-    expect(item.assignment.mode).toBe('single');
-    expect(item.assignment.personId).toBe('p1');
-    expect(item.assignment.personIds).toEqual(['p1', 'p2']);
-  });
-});
 
 describe('sanitizeItemAssignment', () => {
   it('replaces invalid single assignment with first available person', () => {

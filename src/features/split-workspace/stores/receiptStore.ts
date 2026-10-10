@@ -30,11 +30,11 @@ interface ApplyReceiptScanArgs {
   payload: OcrResponse;
 }
 
-function createBlankReceipt(people: Person[], name: string): Receipt {
+function createBlankReceipt(name: string): Receipt {
   return {
     id: createId(),
     name,
-    items: [createDefaultItem(people)],
+    items: [createDefaultItem()],
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
@@ -73,7 +73,7 @@ type ReceiptStoreActions = {
   addItem: () => void;
   removeItem: (itemId: string) => void;
   updateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void;
-  splitUnassignedItemsEquallyForActiveReceipt: () => void;
+  splitUnassignedItemsEqually: () => void;
   setDiscount: (next: ChargeState) => void;
   setServiceCharge: (next: ChargeState) => void;
   setGst: (next: ChargeState) => void;
@@ -133,7 +133,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           payerMobile: draft.payerMobile,
         });
       } else {
-        const blankReceipt = createBlankReceipt([], 'Receipt 1');
+        const blankReceipt = createBlankReceipt('Receipt 1');
         set({
           initialized: true,
           people: [],
@@ -143,7 +143,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       }
     },
     resetSplit: () => {
-      const receipt = createBlankReceipt([], 'Receipt 1');
+      const receipt = createBlankReceipt('Receipt 1');
       set({
         initialized: true,
         peopleInput: '',
@@ -216,9 +216,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     addItem: () => {
       set((state) => ({
         receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId
-            ? { ...r, items: [...r.items, createDefaultItem(state.people)] }
-            : r,
+          r.id === state.activeReceiptId ? { ...r, items: [...r.items, createDefaultItem()] } : r,
         ),
       }));
     },
@@ -244,13 +242,12 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         ),
       }));
     },
-    splitUnassignedItemsEquallyForActiveReceipt: () => {
+    splitUnassignedItemsEqually: () => {
       set((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId
-            ? { ...r, items: splitUnassignedItemsEqually(r.items, state.people) }
-            : r,
-        ),
+        receipts: state.receipts.map((r) => ({
+          ...r,
+          items: splitUnassignedItemsEqually(r.items, state.people),
+        })),
       }));
     },
     setDiscount: (next) => {
@@ -317,7 +314,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         }
 
         result = { kind: 'applied' };
-        const replacement = buildReceiptOcrReplacement(payload, state.people);
+        const replacement = buildReceiptOcrReplacement(payload);
         return {
           receipts: state.receipts.map((candidate) =>
             candidate.id === receipt.id ? { ...candidate, ...replacement } : candidate,
@@ -354,10 +351,9 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     setPayerMobile: (mobile) => set({ payerMobile: mobile }),
 
     addReceipt: () => {
-      const { people } = get();
       set((state) => {
         const nextNumber = state.receipts.length + 1;
-        const newReceipt = createBlankReceipt(people, `Receipt ${nextNumber}`);
+        const newReceipt = createBlankReceipt(`Receipt ${nextNumber}`);
         return {
           receipts: [...state.receipts, newReceipt],
           activeReceiptId: newReceipt.id,

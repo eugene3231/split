@@ -7,11 +7,12 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import {
+  LOCAL_STORAGE_WIZARD_STATE_KEY,
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
-import { resolveWizardState } from '../logic/wizardState';
+import { resolveWizardStep } from '../logic/wizardState';
 import { useWizard } from './useWizard';
 
 const people: Person[] = [
@@ -67,141 +68,127 @@ describe('useWizard', () => {
     useScanStore.setState({ scanStateByReceipt: {} });
   });
 
-  it('advances to the next receipt before entering review, then enters review on the last receipt', () => {
-    saveWizardState({ step: 'items', itemsSubPhase: 'assign', activeItemIndex: 0 });
-
-    const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2'])];
-    let activeReceiptId = 'r1';
-    const setActiveReceiptId = vi.fn((nextId: string) => {
-      activeReceiptId = nextId;
-    });
-
-    const { result, rerender } = renderHook(() =>
+  function renderWizard(receipts: Receipt[], activeReceiptId = receipts[0].id) {
+    return renderHook(() =>
       useWizard(
         receipts.find((receipt) => receipt.id === activeReceiptId)?.items ?? [],
         people,
         vi.fn(),
         receipts,
-        activeReceiptId,
-        setActiveReceiptId,
       ),
     );
+  }
 
-    act(() => {
-      result.current.handleNext();
-    });
+  it('starts claiming with the first person when entering from the receipt step', () => {
+    saveWizardState({ step: 'receipt', activePersonId: 'p2' });
+    const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
 
-    expect(setActiveReceiptId).toHaveBeenCalledWith('r2');
-    expect(result.current.itemsSubPhase).toBe('assign');
-    expect(result.current.safeActiveItemIndex).toBe(0);
-
-    rerender();
-
-    act(() => {
-      result.current.handleNext();
-    });
-
-    expect(result.current.itemsSubPhase).toBe('review');
-  });
-
-  it('blocks review continuation while any receipt has an unassigned item', () => {
-    saveWizardState({ step: 'items', itemsSubPhase: 'assign', activeItemIndex: 0 });
-
-    const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2'])];
-    receipts[1].items[0].assignment.personIds = [];
-    const activeReceiptId = 'r1';
-
-    const { result } = renderHook(() =>
-      useWizard(receipts[0].items, people, vi.fn(), receipts, activeReceiptId, vi.fn()),
-    );
-
-    act(() => {
-      result.current.setItemsSubPhase('review');
-    });
-
-    expect(result.current.canContinue).toBe(false);
-    expect(result.current.stepReachability.final).toBe(false);
-    expect(result.current.canContinue).toBe(result.current.stepReachability.final);
-
-    act(() => {
-      result.current.handleNext();
-    });
+    act(() => result.current.handleNext());
 
     expect(result.current.activeStep).toBe('items');
+    expect(result.current.activePersonId).toBe('p1');
+    expect(result.current.continueLabel).toBe('Next: Bob');
+  });
+
+  it('moves to the next person, then the summary once everything is claimed', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p1' });
+    const { result } = renderWizard([makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2'])]);
+
+    act(() => result.current.handleNext());
+    expect(result.current.activePersonId).toBe('p2');
+    expect(result.current.activeStep).toBe('items');
+    expect(result.current.continueLabel).toBe('See summary');
+
+    act(() => result.current.handleNext());
+    expect(result.current.activeStep).toBe('final');
+  });
+
+  it('splits leftovers on every receipt evenly from the last person, then shows the summary', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2', 'i3'])];
+    receipts[0].items[0].assignment.personIds = [];
+    receipts[1].items[1].assignment.personIds = [];
+    useReceiptStore.setState({ people, receipts, activeReceiptId: 'r1' });
+
+    const { result } = renderHook(() => {
+      const state = useReceiptStore();
+      return useWizard(state.receipts[0].items, state.people, vi.fn(), state.receipts);
+    });
+
+    expect(result.current.canContinue).toBe(true);
+    expect(result.current.stepReachability.final).toBe(false);
+    expect(result.current.continueLabel).toBe('Split 2 left evenly');
+
+    act(() => result.current.handleNext());
+
+    const state = useReceiptStore.getState();
+    expect(state.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2']);
+    expect(state.receipts[1].items[1].assignment.personIds).toEqual(['p1', 'p2']);
+    expect(result.current.activeStep).toBe('final');
+  });
+
+  it('falls back to the first person when the saved person was removed', () => {
+    saveWizardState({ step: 'items', activePersonId: 'gone' });
+    const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
+
+    expect(result.current.activePersonId).toBe('p1');
+  });
+
+  it('loads an item-by-item save on the claim step without crashing', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_WIZARD_STATE_KEY,
+      JSON.stringify({ version: 1, step: 'items', itemsSubPhase: 'review', activeItemIndex: 4 }),
+    );
+    const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
+
+    expect(result.current.activeStep).toBe('items');
+    expect(result.current.activePersonId).toBe('p1');
+    expect(loadWizardState()).toEqual({ version: 1, step: 'items', activePersonId: 'p1' });
+  });
+
+  it('goes back from claiming to the receipt, and from the summary to claiming', () => {
+    saveWizardState({ step: 'final', activePersonId: 'p2' });
+    const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
+
+    act(() => result.current.handleBack());
+    expect(result.current.activeStep).toBe('items');
+    expect(result.current.activePersonId).toBe('p2');
+
+    act(() => result.current.handleBack());
+    expect(result.current.activeStep).toBe('receipt');
   });
 
   it('keeps a blank row on another receipt from completing an unassigned purchase', () => {
-    saveWizardState({ step: 'items', itemsSubPhase: 'review', activeItemIndex: 0 });
+    saveWizardState({ step: 'items', activePersonId: 'p1' });
     const receipts = [makeReceipt('r1', ['meal']), makeReceipt('r2', ['blank'])];
     receipts[0].items[0].assignment.personIds = [];
     receipts[1].items[0].amountInput = '';
 
-    const { result } = renderHook(() =>
-      useWizard(receipts[0].items, people, vi.fn(), receipts, 'r1', vi.fn()),
-    );
+    const { result } = renderWizard(receipts);
 
-    expect(result.current.canContinue).toBe(false);
     expect(result.current.stepReachability.final).toBe(false);
-    act(() => result.current.handleNext());
+    act(() => result.current.handleStepSelect('final'));
     expect(result.current.activeStep).toBe('items');
   });
 
   it('evicts a restored summary with an unassigned purchase and an assigned blank row', () => {
-    saveWizardState({ step: 'final', itemsSubPhase: 'review', activeItemIndex: 0 });
+    saveWizardState({ step: 'final', activePersonId: 'p1' });
     const receipts = [makeReceipt('r1', ['meal', 'blank'])];
     receipts[0].items[0].assignment.personIds = [];
     receipts[0].items[1].amountInput = '';
 
-    const { result } = renderHook(() =>
-      useWizard(receipts[0].items, people, vi.fn(), receipts, 'r1', vi.fn()),
-    );
+    const { result } = renderWizard(receipts);
 
     expect(result.current.activeStep).toBe('items');
     expect(result.current.stepReachability.final).toBe(false);
   });
 
-  it('keeps the single-receipt review->final flow unchanged', () => {
-    saveWizardState({ step: 'items', itemsSubPhase: 'assign', activeItemIndex: 0 });
-
-    const receipts = [makeReceipt('r1', ['i1'])];
-    receipts[0].items[0].assignment.personIds = [];
-    let items = receipts[0].items;
-
-    const { result, rerender } = renderHook(() =>
-      useWizard(items, people, vi.fn(), receipts, 'r1', vi.fn()),
-    );
-
-    act(() => {
-      result.current.setItemsSubPhase('review');
-    });
-
-    expect(result.current.canContinue).toBe(false);
-    expect(result.current.stepReachability.final).toBe(false);
-
-    act(() => {
-      result.current.handleNext();
-    });
-    expect(result.current.activeStep).toBe('items');
-
-    receipts[0].items[0].assignment.personIds = ['p1', 'p2'];
-    items = receipts[0].items;
-    rerender();
-
-    expect(result.current.canContinue).toBe(true);
-    act(() => {
-      result.current.handleNext();
-    });
-    expect(result.current.activeStep).toBe('final');
-  });
-
-  it('allows summary after assigning the priced item while a blank assigned row remains', () => {
-    saveWizardState({ step: 'items', itemsSubPhase: 'review', activeItemIndex: 0 });
+  it('allows summary after claiming the priced item while a blank claimed row remains', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2' });
     const receipt = makeReceipt('r1', ['i1', 'i2']);
     receipt.items[1].amountInput = '';
 
-    const { result } = renderHook(() =>
-      useWizard(receipt.items, people, vi.fn(), [receipt], 'r1', vi.fn()),
-    );
+    const { result } = renderWizard([receipt]);
 
     expect(result.current.canContinue).toBe(true);
     expect(result.current.stepReachability.final).toBe(true);
@@ -209,48 +196,21 @@ describe('useWizard', () => {
     expect(result.current.activeStep).toBe('final');
   });
 
-  it('blocks summary when only the blank row is assigned', () => {
-    saveWizardState({ step: 'items', itemsSubPhase: 'review', activeItemIndex: 0 });
+  it('blocks summary when only the blank row is claimed', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2' });
     const receipt = makeReceipt('r1', ['i1', 'i2']);
     receipt.items[0].assignment.personIds = [];
     receipt.items[1].amountInput = '';
 
-    const { result } = renderHook(() =>
-      useWizard(receipt.items, people, vi.fn(), [receipt], 'r1', vi.fn()),
-    );
+    const { result } = renderWizard([receipt]);
 
-    expect(result.current.canContinue).toBe(false);
     expect(result.current.stepReachability.final).toBe(false);
-    act(() => result.current.handleNext());
+    act(() => result.current.handleStepSelect('final'));
     expect(result.current.activeStep).toBe('items');
   });
 
-  it('allows review continuation once every receipt is assigned', () => {
-    saveWizardState({ step: 'items', itemsSubPhase: 'assign', activeItemIndex: 0 });
-
-    const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2'])];
-    const activeReceiptId = 'r1';
-
-    const { result } = renderHook(() =>
-      useWizard(receipts[0].items, people, vi.fn(), receipts, activeReceiptId, vi.fn()),
-    );
-
-    act(() => {
-      result.current.setItemsSubPhase('review');
-    });
-
-    expect(result.current.canContinue).toBe(true);
-    expect(result.current.stepReachability.final).toBe(true);
-
-    act(() => {
-      result.current.handleNext();
-    });
-
-    expect(result.current.activeStep).toBe('final');
-  });
-
   it('starts an initialized blank split and resets navigation without changing Gemini settings', () => {
-    saveWizardState({ step: 'final', itemsSubPhase: 'review', activeItemIndex: 0 });
+    saveWizardState({ step: 'final', activePersonId: 'p2' });
     useReceiptStore.setState({
       initialized: true,
       people,
@@ -268,8 +228,6 @@ describe('useWizard', () => {
         state.people,
         state.normalizeItems,
         state.receipts,
-        state.activeReceiptId,
-        state.setActiveReceiptId,
       );
     });
 
@@ -286,12 +244,7 @@ describe('useWizard', () => {
     expect(state.receipts[0].items[0].amountInput).toBe('');
     expect(state.receipts[0].currency).toBe('SGD');
     expect(result.current.activeStep).toBe('people');
-    expect(result.current.itemsSubPhase).toBe('assign');
-    expect(loadWizardState()).toMatchObject({
-      step: 'people',
-      itemsSubPhase: 'assign',
-      activeItemIndex: 0,
-    });
+    expect(loadWizardState()).toEqual({ version: 1, step: 'people', activePersonId: '' });
     expect(useScanStore.getState().scanStateByReceipt).toEqual({});
     expect(useGeminiStore.getState().geminiApiKeyInput).toBe('test-key');
     expect(useGeminiStore.getState().geminiModel).toBe(DEFAULT_GEMINI_MODEL);
@@ -299,33 +252,31 @@ describe('useWizard', () => {
   });
 });
 
-describe('resolveWizardState', () => {
+describe('resolveWizardStep', () => {
   it('evicts final when any receipt has an unassigned item, even if the active receipt is valid', () => {
     const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2'])];
     receipts[1].items[0].assignment.personIds = [];
 
-    const resolved = resolveWizardState(
-      'final',
-      'review',
-      receipts[0].items,
-      receipts.flatMap((receipt) => receipt.items),
-      people,
-    );
-
-    expect(resolved).toEqual({ activeStep: 'items', itemsSubPhase: 'assign' });
+    expect(
+      resolveWizardStep(
+        'final',
+        receipts[0].items,
+        receipts.flatMap((receipt) => receipt.items),
+        people,
+      ),
+    ).toBe('items');
   });
 
   it('keeps final when every receipt is assigned', () => {
     const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2'])];
 
-    const resolved = resolveWizardState(
-      'final',
-      'review',
-      receipts[0].items,
-      receipts.flatMap((receipt) => receipt.items),
-      people,
-    );
-
-    expect(resolved).toEqual({ activeStep: 'final', itemsSubPhase: 'review' });
+    expect(
+      resolveWizardStep(
+        'final',
+        receipts[0].items,
+        receipts.flatMap((receipt) => receipt.items),
+        people,
+      ),
+    ).toBe('final');
   });
 });

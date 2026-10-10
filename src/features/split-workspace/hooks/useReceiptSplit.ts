@@ -5,6 +5,7 @@ import {
   computeConsolidatedSplit,
 } from '@features/split-workspace/logic/split/split';
 import { useReconciliation } from './useReconciliation';
+import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -32,6 +33,20 @@ export function useReceiptSplit() {
       computeSplit({
         people,
         items: activeReceipt?.items ?? [],
+        discount: activeReceipt?.discount ?? defaultDiscountState,
+        serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
+        gst: activeReceipt?.gst ?? defaultGstState,
+      }),
+    [people, activeReceipt],
+  );
+
+  // Receipt-level totals and reconciliation must not change as people claim items, so
+  // anything still unclaimed counts as shared here.
+  const receiptTotals = useMemo(
+    () =>
+      computeSplit({
+        people,
+        items: splitUnassignedItemsEqually(activeReceipt?.items ?? [], people),
         discount: activeReceipt?.discount ?? defaultDiscountState,
         serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
         gst: activeReceipt?.gst ?? defaultGstState,
@@ -67,7 +82,7 @@ export function useReceiptSplit() {
   }, [splitByReceipt, people, receipts, exchangeRates]);
 
   const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation({
-    split: activeSplit,
+    split: receiptTotals,
     discount: activeReceipt?.discount ?? defaultDiscountState,
     serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
     gst: activeReceipt?.gst ?? defaultGstState,
@@ -79,6 +94,7 @@ export function useReceiptSplit() {
     active: {
       receipt: activeReceipt ?? null,
       split: activeSplit,
+      receiptTotals,
     },
     consolidated: {
       split: consolidatedSplit,

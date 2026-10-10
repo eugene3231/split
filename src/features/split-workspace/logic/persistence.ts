@@ -1,13 +1,15 @@
 import { isRecord } from './guards';
 import { LOCAL_STORAGE_WIZARD_STATE_KEY } from '@features/split-workspace/constants';
-import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
+import type { WizardStep } from '@features/split-workspace/types';
 
-type PersistedWizardState = {
-  version: 1;
+interface WizardState {
   step: WizardStep;
-  itemsSubPhase: ItemsSubPhase;
-  activeItemIndex: number;
-};
+  activePersonId: string;
+}
+
+interface PersistedWizardState extends WizardState {
+  version: 1;
+}
 
 export function loadWizardState(): PersistedWizardState | null {
   if (typeof window === 'undefined') {
@@ -25,29 +27,19 @@ export function loadWizardState(): PersistedWizardState | null {
       return null;
     }
 
-    const step = normalizeStep(parsed.step);
-    const itemsSubPhase = normalizeItemsSubPhase(parsed.itemsSubPhase);
-    const activeItemIndex =
-      typeof parsed.activeItemIndex === 'number' && Number.isFinite(parsed.activeItemIndex)
-        ? Math.max(0, Math.floor(parsed.activeItemIndex))
-        : 0;
-
+    // Saves from the item-by-item assign step carry extra fields; they are ignored and the
+    // person falls back to the first one.
     return {
       version: 1,
-      step,
-      itemsSubPhase,
-      activeItemIndex,
+      step: normalizeStep(parsed.step),
+      activePersonId: typeof parsed.activePersonId === 'string' ? parsed.activePersonId : '',
     };
   } catch {
     return null;
   }
 }
 
-export function saveWizardState(state: {
-  step: WizardStep;
-  itemsSubPhase: ItemsSubPhase;
-  activeItemIndex: number;
-}): void {
+export function saveWizardState(state: WizardState): void {
   if (typeof window === 'undefined') {
     return;
   }
@@ -55,8 +47,7 @@ export function saveWizardState(state: {
   const payload: PersistedWizardState = {
     version: 1,
     step: state.step,
-    itemsSubPhase: state.itemsSubPhase,
-    activeItemIndex: Math.max(0, Math.floor(state.activeItemIndex)),
+    activePersonId: state.activePersonId,
   };
 
   try {
@@ -70,8 +61,4 @@ function normalizeStep(value: unknown): WizardStep {
   return value === 'people' || value === 'receipt' || value === 'items' || value === 'final'
     ? value
     : 'people';
-}
-
-function normalizeItemsSubPhase(value: unknown): ItemsSubPhase {
-  return value === 'review' ? 'review' : 'assign';
 }

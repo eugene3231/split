@@ -20,7 +20,7 @@ Two conventions that follow from it: a feature component may select from its fea
 Steps live in `components/steps/`. A step stays a flat file until it grows private collaborators, then becomes a folder holding its entry component, its step-private hooks, and its step-private UI. Hooks in those folders are still hook-layer; the folder is a locality boundary, not a new layer.
 
 - `PeopleStep.tsx` — reads a small store slice directly; no step hook needed.
-- `AssignStep.tsx` — reads a focused store slice; assignment rules live in the feature's `logic/`.
+- `AssignStep/` — the Claim screen: pick a person, tap what they had. Renders from `resolveClaimView` (`logic/claim.ts`), a person-first view over the canonical `EditableItem.assignment`; the step itself holds only which item's sheet is open. Every change goes through `applyAssignmentCommand`, including the Adjust split sheet's Shares / Percent / Amount controls (`resolveSplitAdjustment`). The wizard owns `activePersonId`; `resolveClaimContinue` decides whether the bottom bar moves to the next person, splits what is left evenly, or opens the summary.
 - `ReceiptStep/` — renders from `useReceiptStepModel`, delegates scan, mock-receipt, and OCR-patching workflows to `useReceiptImport`.
 - `SummaryStep/` — renders from `useSummaryModel`, delegates export and share to `useSummaryExport`. The component owns only `activeTab`, `showDetails`, and `showBaseCurrency`.
 - `components/shared/` — reused across steps: receipt tabs, charge panels, selectors, field and avatar primitives.

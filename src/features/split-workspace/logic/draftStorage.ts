@@ -15,7 +15,7 @@ import type {
   Receipt,
   WeightsInputMode,
 } from '@shared/types';
-import { createEmptyItem } from '@features/split-workspace/logic/assignmentItems';
+import { createDefaultItem } from '@features/split-workspace/logic/simpleAssignments';
 import { toNullableNumber } from '@shared/logic/core/money';
 import { isRecord } from '@features/split-workspace/logic/guards';
 import { createId } from '@shared/logic/core/id';
@@ -203,14 +203,14 @@ function normalizeDraftPeople(value: unknown): Person[] {
 
 function normalizeDraftItems(value: unknown, people: Person[]): EditableItem[] {
   if (!Array.isArray(value)) {
-    return [createEmptyItem(people)];
+    return [createDefaultItem()];
   }
 
   const nextItems = value
     .map((item) => normalizeDraftItem(item, people))
     .filter((item): item is EditableItem => item !== null);
 
-  return nextItems.length > 0 ? nextItems : [createEmptyItem(people)];
+  return nextItems.length > 0 ? nextItems : [createDefaultItem()];
 }
 
 function normalizeDraftItem(value: unknown, people: Person[]): EditableItem | null {

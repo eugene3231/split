@@ -5,20 +5,10 @@ type InlineStepperProps = {
    * a separate label next to it. */
   display?: string;
   onDelta: (delta: number) => void;
-  /** Defaults to weight<=1 (floor). Pass false when the caller wants minus at
-   * the floor to mean something else (e.g. remove the person) instead of a
-   * dead button. */
-  decrementDisabled?: boolean;
   testId?: string;
 };
 
-export function InlineStepper({
-  weight,
-  display,
-  onDelta,
-  decrementDisabled,
-  testId,
-}: InlineStepperProps) {
+export function InlineStepper({ weight, display, onDelta, testId }: InlineStepperProps) {
   return (
     <div
       className="flex items-center gap-1"
@@ -30,7 +20,7 @@ export function InlineStepper({
         type="button"
         data-testid={testId ? `${testId}-decrement` : undefined}
         onClick={() => onDelta(-1)}
-        disabled={decrementDisabled ?? weight <= 1}
+        disabled={weight <= 1}
         className="flex h-6 w-6 items-center justify-center rounded-md bg-surface-container text-on-surface transition-colors hover:bg-surface-container-high disabled:opacity-30"
       >
         <span className="material-symbols-outlined !text-sm leading-none">remove</span>

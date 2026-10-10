@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from '@features/receipt-scanner/constants';
@@ -205,8 +205,8 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
       clickContinue();
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 3/i);
-      clickContinue(); // assign → review
-      clickContinue(); // review → final
+      clickContinue(); // Alice → Bob
+      clickContinue(); // Bob → final
       expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4/i);
     });
@@ -217,17 +217,14 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
       clickContinue(); // → receipt
-      clickContinue(); // → items/assign
-      clickContinue(); // → items/review
+      clickContinue(); // → claim, Alice
+      clickContinue(); // → Bob
       clickContinue(); // → final
 
-      clickBack(); // final → items/review
-      expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument();
+      clickBack(); // final → claim, still on Bob
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
 
-      clickBack(); // items/review → items/assign
-      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument();
-
-      clickBack(); // items/assign → receipt
+      clickBack(); // claim → receipt
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
 
       clickBack(); // receipt → people
@@ -280,7 +277,7 @@ describe('ReceiptSplitterPage integration', () => {
       clickStepNav('items');
 
       expectActiveStepNav('items');
-      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Alice have?');
     });
 
     it('jumps from receipt directly to summary when assignments are complete', async () => {
@@ -331,16 +328,18 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled();
     });
 
-    it('blocks continue on review sub-phase when items are unassigned', async () => {
+    it('keeps the summary out of reach while an item is unclaimed', async () => {
       seedV2Draft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
       clickContinue(); // → receipt
-      clickContinue(); // → items/assign
-      fireEvent.click(screen.getByTestId('assign-select-none-btn'));
-      clickContinue(); // → items/review
-      expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled();
+      clickContinue(); // → claim, Alice
+      expect(screen.getByTestId('wizard-step-nav-final')).not.toBeDisabled();
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1')); // Alice
+      fireEvent.click(screen.getAllByTestId('claim-person-p2')[0]);
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1')); // Bob
+      expect(screen.getByTestId('wizard-step-nav-final')).toBeDisabled();
     });
   });
 
@@ -401,109 +400,117 @@ describe('ReceiptSplitterPage integration', () => {
     });
   });
 
-  describe('Assign step', () => {
-    it('shows item counter and person toggle buttons with aria-pressed', async () => {
-      seedV2Draft({});
+  describe('Claim step', () => {
+    async function navigateToClaim(receipts?: object[]) {
+      seedV2Draft(receipts ? { receipts } : {});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      clickContinue(); // → receipt
+      clickContinue(); // → claim
+    }
+
+    const unclaimedItem = {
+      id: 'r1-i2',
+      name: 'Teh Peng',
+      amountInput: '2.00',
+      discountPercentInput: '',
+      assignment: { mode: 'equal', personId: '', personIds: [] },
+    };
+
+    it('starts with the first person and shows who owes what in the bottom bar', async () => {
+      await navigateToClaim();
+
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Alice have?');
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$5.00');
+      expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Next: Bob');
+      expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('toggles the active person off an item and updates their total', async () => {
+      await navigateToClaim();
+
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
+
+      expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
+      expect(screen.getByTestId('claim-item-share-r1-i1')).toHaveTextContent('Just Bob');
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$0.00');
+    });
+
+    it('moves to the next person and shows See summary on the last one when all is claimed', async () => {
+      await navigateToClaim();
+
+      clickContinue();
+
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
+      expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('See summary');
+      clickContinue();
+      expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
+    });
+
+    it('splits what is left evenly from the last person, then shows the summary', async () => {
+      await navigateToClaim([
+        makeReceipt({
+          id: 'r1',
+          items: [
+            {
+              id: 'r1-i1',
+              name: 'Chicken Rice',
+              amountInput: '10.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+            },
+            unclaimedItem,
+          ],
+        }),
+      ]);
+
+      clickContinue(); // → Bob
+      expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Split 1 left evenly');
+      clickContinue();
+
+      expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
+      const items = useReceiptStore.getState().receipts[0].items;
+      expect(items[1].assignment.personIds).toEqual(['p1', 'p2']);
+      expect(items[0].assignment.personIds).toEqual(['p1']);
+    });
+
+    it('shows the full receipt total on the receipt step before anything is claimed', async () => {
+      seedV2Draft({ receipts: [makeReceipt({ id: 'r1', items: [unclaimedItem] })] });
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
       clickContinue(); // → receipt
-      clickContinue(); // → items/assign
-      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument();
-      expect(screen.getByTestId('assign-person-btn-p1')).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'true');
+
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Receipt total$2.00');
     });
 
-    it('toggles a person assignment on/off', async () => {
-      seedV2Draft({});
-      render(<ReceiptSplitterPage />);
-      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+    it('shares an unclaimed item with everyone', async () => {
+      await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
 
-      clickContinue();
-      clickContinue();
+      fireEvent.click(screen.getByTestId('claim-item-everyone-r1-i2'));
 
-      const bobBtn = screen.getByTestId('assign-person-btn-p2');
-      expect(bobBtn).toHaveAttribute('aria-pressed', 'true');
-      fireEvent.click(bobBtn);
-      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('claim-item-share-r1-i2')).toHaveTextContent(
+        'Shared 2 ways · $1.00 each',
+      );
+      expect(screen.getByTestId('claim-progress')).toHaveTextContent('1 of 1 claimed');
     });
 
-    it('select none deselects all, select all reselects all', async () => {
-      seedV2Draft({});
-      render(<ReceiptSplitterPage />);
-      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+    it('counts progress across receipts and switches items with the receipt tabs', async () => {
+      await navigateToClaim([
+        makeReceipt({ id: 'r1' }),
+        makeReceipt({ id: 'r2', items: [{ ...unclaimedItem, id: 'r2-i1' }] }),
+      ]);
 
-      clickContinue();
-      clickContinue();
+      expect(screen.getByTestId('claim-progress')).toHaveTextContent('1 of 2 claimed');
+      expect(screen.getByTestId('claim-item-r1-i1')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByTestId('assign-select-none-btn'));
-      expect(screen.getByTestId('assign-person-btn-p1')).toHaveAttribute('aria-pressed', 'false');
-      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'false');
+      fireEvent.click(screen.getByText('Receipt r2'));
 
-      fireEvent.click(screen.getByTestId('assign-select-all-btn'));
-      expect(screen.getByTestId('assign-person-btn-p1')).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'true');
-    });
-
-    it('navigates between items with prev/next arrow buttons', async () => {
-      seedV2Draft({
-        receipts: [
-          makeReceipt({
-            id: 'r1',
-            items: [
-              {
-                id: 'i1',
-                name: 'Item A',
-                amountInput: '5.00',
-                discountPercentInput: '',
-                assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
-              },
-              {
-                id: 'i2',
-                name: 'Item B',
-                amountInput: '8.00',
-                discountPercentInput: '',
-                assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
-              },
-            ],
-          }),
-        ],
-      });
-      render(<ReceiptSplitterPage />);
-      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
-
-      clickContinue();
-      clickContinue();
-
-      expect(screen.getByTestId('assign-item-counter')).toHaveTextContent(/Item 1 of 2/i);
-      fireEvent.click(screen.getByTestId('assign-next-item-btn'));
-      expect(screen.getByTestId('assign-item-counter')).toHaveTextContent(/Item 2 of 2/i);
-      fireEvent.click(screen.getByTestId('assign-prev-item-btn'));
-      expect(screen.getByTestId('assign-item-counter')).toHaveTextContent(/Item 1 of 2/i);
-    });
-
-    it('transitions to review sub-phase on continue from assign', async () => {
-      seedV2Draft({});
-      render(<ReceiptSplitterPage />);
-      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
-
-      clickContinue();
-      clickContinue();
-      clickContinue(); // assign → review
-      expect(screen.getByTestId('wizard-edit-btn')).toBeInTheDocument();
-    });
-
-    it('clicking edit in review returns to assign phase', async () => {
-      seedV2Draft({});
-      render(<ReceiptSplitterPage />);
-      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
-
-      clickContinue();
-      clickContinue();
-      clickContinue(); // → review
-      fireEvent.click(screen.getByTestId('wizard-edit-btn'));
-      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument();
-      expect(screen.queryByTestId('wizard-edit-btn')).not.toBeInTheDocument();
+      expect(screen.getByTestId('claim-item-r2-i1')).toBeInTheDocument();
+      expect(screen.queryByTestId('claim-item-r1-i1')).not.toBeInTheDocument();
     });
   });
 
@@ -513,8 +520,8 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue(); // → receipt
-      clickContinue(); // → items/assign
-      clickContinue(); // → items/review
+      clickContinue(); // → claim, Alice
+      clickContinue(); // → Bob
       clickContinue(); // → final
     }
 
@@ -552,7 +559,6 @@ describe('ReceiptSplitterPage integration', () => {
       });
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
-      clickContinue();
       clickContinue();
       clickContinue();
       clickContinue();
@@ -738,12 +744,11 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
       clickContinue(); // → receipt
-      clickContinue(); // → items/assign
-      clickContinue(); // → items/review
+      clickContinue(); // → claim, Alice
+      clickContinue(); // → Bob
       clickContinue(); // → final
 
-      clickBack(); // → items/review
-      clickBack(); // → items/assign
+      clickBack(); // → claim
       clickBack(); // → receipt
       clickBack(); // → people
 
@@ -754,7 +759,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled();
     });
 
-    it('falls back from final to assign step when assignments become incomplete', async () => {
+    it('falls back from final to the claim step when assignments become incomplete', async () => {
       seedV2Draft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
@@ -765,14 +770,17 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue();
       expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
 
-      clickBack(); // → items/review
-      fireEvent.click(screen.getByTestId('wizard-edit-btn'));
-      fireEvent.click(screen.getByTestId('assign-select-none-btn'));
+      act(() =>
+        useReceiptStore.getState().updateItem('r1-i1', (item) => ({
+          ...item,
+          assignment: { ...item.assignment, personIds: [] },
+        })),
+      );
 
       await waitFor(() => {
         expect(screen.queryByTestId('export-save-image-btn')).not.toBeInTheDocument();
       });
-      expect(screen.getByTestId('assign-item-counter')).toBeInTheDocument();
+      expect(screen.getByTestId('claim-progress')).toHaveTextContent('0 of 1 claimed');
     });
   });
 
@@ -822,9 +830,13 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
       clickContinue(); // → receipt
-      clickContinue(); // → items/assign
-      fireEvent.click(screen.getByTestId('assign-person-btn-p2'));
-      expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'false');
+      clickContinue(); // → claim, Alice
+      clickContinue(); // → Bob
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
+      expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
 
       // Wait for both draft and wizard state to persist before unmounting
       await waitFor(() => {
@@ -837,10 +849,10 @@ describe('ReceiptSplitterPage integration', () => {
       unmount();
       render(<ReceiptSplitterPage />);
 
-      // Wizard restores to items/assign from localStorage — no navigation needed
+      // Restores to Bob on the claim step from localStorage — no navigation needed
       await waitFor(() => {
-        expect(screen.getByTestId('assign-person-btn-p1')).toHaveAttribute('aria-pressed', 'true');
-        expect(screen.getByTestId('assign-person-btn-p2')).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
+        expect(screen.getByTestId('claim-item-share-r1-i1')).toHaveTextContent('Just Alice');
       });
     });
   });

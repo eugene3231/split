@@ -1,20 +1,5 @@
 import type { EditableItem, Person } from '@shared/types';
-import { createId } from '@shared/logic/core/id';
 import { isEqual } from 'lodash-es';
-
-export function createEmptyItem(people: Person[]): EditableItem {
-  return {
-    id: createId(),
-    name: '',
-    amountInput: '',
-    discountPercentInput: '',
-    assignment: {
-      mode: 'single',
-      personId: people[0]?.id ?? '',
-      personIds: people.map((person) => person.id),
-    },
-  };
-}
 
 export function sanitizeItemAssignment(item: EditableItem, people: Person[]): EditableItem {
   const validIds = new Set(people.map((person) => person.id));

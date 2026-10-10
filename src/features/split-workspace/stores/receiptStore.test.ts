@@ -575,7 +575,7 @@ describe('receiptStore additional coverage', () => {
     expect(receipt.currency).toBe('USD');
   });
 
-  it('splitUnassignedItemsEquallyForActiveReceipt updates only the active receipt', () => {
+  it('splitUnassignedItemsEqually shares leftovers on every receipt with everyone', () => {
     const people: Person[] = [
       { id: 'p1', name: 'Alice' },
       { id: 'p2', name: 'Bob' },
@@ -627,11 +627,10 @@ describe('receiptStore additional coverage', () => {
       activeReceiptId: 'r1',
     });
 
-    useReceiptStore.getState().splitUnassignedItemsEquallyForActiveReceipt();
+    useReceiptStore.getState().splitUnassignedItemsEqually();
 
     const state = useReceiptStore.getState();
     expect(state.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2']);
-    expect(state.receipts[1]).toBe(receipts[1]);
-    expect(state.receipts[1].items[0].assignment.personIds).toEqual([]);
+    expect(state.receipts[1].items[0].assignment.personIds).toEqual(['p1', 'p2']);
   });
 });

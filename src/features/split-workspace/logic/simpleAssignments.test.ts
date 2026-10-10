@@ -12,17 +12,11 @@ const people: Person[] = [
 ];
 
 describe('buildInitialItems', () => {
-  it('returns a single empty item when items is empty', () => {
+  it('returns a single unclaimed blank item when items is empty', () => {
     const result = buildInitialItems([], people);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('');
     expect(result[0].amountInput).toBe('');
-    expect(result[0].assignment.personIds).toEqual(['p1', 'p2']);
-  });
-
-  it('returns a single empty item with empty personIds when no people exist', () => {
-    const result = buildInitialItems([], []);
-    expect(result).toHaveLength(1);
     expect(result[0].assignment.personIds).toEqual([]);
   });
 
@@ -217,16 +211,10 @@ describe('normalizeItemAssignments', () => {
 });
 
 describe('createDefaultItem', () => {
-  it('creates an item assigned to all people in equal mode', () => {
-    const item = createDefaultItem(people);
-    expect(item.assignment.mode).toBe('equal');
-    expect(item.assignment.personIds).toEqual(['p1', 'p2']);
+  it('creates a blank item that nobody has claimed yet', () => {
+    const item = createDefaultItem();
+    expect(item.assignment).toEqual({ mode: 'equal', personId: '', personIds: [] });
     expect(item.name).toBe('');
     expect(item.amountInput).toBe('');
-  });
-
-  it('creates an item with empty personIds when no people exist', () => {
-    const item = createDefaultItem([]);
-    expect(item.assignment.personIds).toEqual([]);
   });
 });

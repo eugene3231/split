@@ -10,7 +10,6 @@ import {
   seedStore,
 } from './testHelpers';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
-import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
 
 beforeEach(() => {
   resetAllStores();
@@ -259,20 +258,10 @@ describe('Persistence integration', () => {
   });
 
   it('wizard state persists and restores via localStorage', () => {
-    const wizardState = {
-      version: 1 as const,
-      step: 'items' as WizardStep,
-      itemsSubPhase: 'review' as ItemsSubPhase,
-      activeItemIndex: 2,
-    };
-
-    saveWizardState(wizardState);
+    saveWizardState({ step: 'items', activePersonId: 'p2' });
     const loaded = loadWizardState();
 
-    expect(loaded).not.toBeNull();
-    expect(loaded!.step).toBe('items');
-    expect(loaded!.itemsSubPhase).toBe('review');
-    expect(loaded!.activeItemIndex).toBe(2);
+    expect(loaded).toEqual({ version: 1, step: 'items', activePersonId: 'p2' });
   });
 
   it('wizard state handles invalid data gracefully', () => {
