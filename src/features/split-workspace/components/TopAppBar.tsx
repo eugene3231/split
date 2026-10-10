@@ -31,8 +31,8 @@ export function TopAppBar({
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-surface-container-highest bg-surface/80 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3 md:gap-6 md:px-8 md:py-4">
+    <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-7xl items-center gap-3 border-b border-surface-container-highest px-6 py-3 md:gap-6 md:px-8 md:py-4">
         {/* Logo */}
         <div className="font-headline shrink-0 text-2xl font-bold tracking-tight text-primary">
           Split
