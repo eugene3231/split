@@ -10,14 +10,13 @@ import type {
 import {
   CANVAS_WIDTH,
   canvasToBlob,
-  drawAvatar,
   drawCurrencyConversionLines,
   drawLightCardShell,
   drawLightTwoColumnRow,
   drawNestedCard,
+  drawPersonAvatar,
   drawRoundedRect,
   formatGeneratedAt,
-  getPersonLightColor,
 } from '@features/sharing/logic/receiptSplitImageLightHelpers';
 
 type GenerateReceiptSplitImageLightOptions = {
@@ -308,17 +307,19 @@ function drawPersonBreakdownCard(
   ctx: CanvasRenderingContext2D,
   args: PersonBreakdownCardArgs,
 ): void {
-  const color = getPersonLightColor(args.breakdown.colorIndex);
   drawLightCardShell(ctx, args.x, args.y, args.width, args.height);
 
   const innerX = args.x + CARD_PAD;
   const innerWidth = args.width - CARD_PAD * 2;
   const effectiveHeaderH = HEADER_H + (args.breakdown.conversion ? CURRENCY_LINE_H * 2 : 0);
 
-  const avatarCX = innerX + AVATAR_RADIUS;
-  const avatarCY = args.y + CARD_PAD + AVATAR_RADIUS;
-  const initial = args.breakdown.person.name.trim().charAt(0).toUpperCase() || '?';
-  drawAvatar(ctx, avatarCX, avatarCY, AVATAR_RADIUS, initial, color.avatarBg, color.avatarText);
+  drawPersonAvatar(ctx, {
+    cx: innerX + AVATAR_RADIUS,
+    cy: args.y + CARD_PAD + AVATAR_RADIUS,
+    radius: AVATAR_RADIUS,
+    name: args.breakdown.person.name,
+    colorIndex: args.breakdown.colorIndex,
+  });
 
   ctx.fillStyle = '#1c1b1f';
   ctx.font = '700 28px system-ui, -apple-system, sans-serif';

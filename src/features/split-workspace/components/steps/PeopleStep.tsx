@@ -1,7 +1,6 @@
-import { getPersonColor } from '@shared/utils/personColors';
-import { cn } from '@shared/utils/cn';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 
 export function PeopleStep() {
   const { people, peopleInput, setPeopleInput, addPeopleFromInput, removePerson } = useReceiptStore(
@@ -77,30 +76,21 @@ export function PeopleStep() {
         </div>
       ) : (
         <div data-testid="people-list" className="flex flex-wrap gap-2">
-          {people.map((person, index) => {
-            const color = getPersonColor(index);
-            return (
-              <button
-                key={person.id}
-                type="button"
-                data-testid={`person-chip-${person.id}`}
-                onClick={() => removePerson(person.id)}
-                className={cn(
-                  'flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition hover:opacity-75 active:scale-95',
-                  color.lightBg,
-                  color.border,
-                  color.accent,
-                )}
-              >
-                <span
-                  className="h-2 w-2 flex-shrink-0 rounded-full"
-                  style={{ backgroundColor: color.avatarBg }}
-                />
-                {person.name}
-                <span className="material-symbols-outlined !text-sm leading-none">close</span>
-              </button>
-            );
-          })}
+          {people.map((person, index) => (
+            <button
+              key={person.id}
+              type="button"
+              data-testid={`person-chip-${person.id}`}
+              onClick={() => removePerson(person.id)}
+              className="flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95"
+            >
+              <PersonAvatar name={person.name} colorIndex={index} size="sm" />
+              {person.name}
+              <span className="material-symbols-outlined !text-sm leading-none text-on-surface-variant">
+                close
+              </span>
+            </button>
+          ))}
         </div>
       )}
 

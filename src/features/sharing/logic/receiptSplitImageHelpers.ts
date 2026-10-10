@@ -3,44 +3,6 @@
 export const CANVAS_WIDTH = 1800;
 export const SCRATCH_HEIGHT = 24000;
 
-// Raw canvas equivalents of PERSON_COLORS from personColors.ts
-const PERSON_CANVAS_COLORS = [
-  {
-    headerBg: 'rgba(6, 182, 212, 0.15)',
-    headerBorder: 'rgba(6, 182, 212, 0.5)',
-    accent: '#67e8f9',
-  }, // cyan
-  {
-    headerBg: 'rgba(139, 92, 246, 0.15)',
-    headerBorder: 'rgba(139, 92, 246, 0.5)',
-    accent: '#c4b5fd',
-  }, // violet
-  {
-    headerBg: 'rgba(251, 191, 36, 0.15)',
-    headerBorder: 'rgba(251, 191, 36, 0.5)',
-    accent: '#fcd34d',
-  }, // amber
-  {
-    headerBg: 'rgba(16, 185, 129, 0.15)',
-    headerBorder: 'rgba(16, 185, 129, 0.5)',
-    accent: '#6ee7b7',
-  }, // emerald
-  {
-    headerBg: 'rgba(244, 63, 94, 0.15)',
-    headerBorder: 'rgba(244, 63, 94, 0.5)',
-    accent: '#fda4af',
-  }, // rose
-  {
-    headerBg: 'rgba(249, 115, 22, 0.15)',
-    headerBorder: 'rgba(249, 115, 22, 0.5)',
-    accent: '#fdba74',
-  }, // orange
-];
-
-export function getPersonCanvasColor(index: number) {
-  return PERSON_CANVAS_COLORS[index % PERSON_CANVAS_COLORS.length];
-}
-
 export function drawCardShell(
   context: CanvasRenderingContext2D,
   x: number,

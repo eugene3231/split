@@ -4,6 +4,7 @@
 import { ellipsizeText } from '@features/sharing/logic/receiptSplitImageHelpers';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { BASE_CURRENCY } from '@shared/constants';
+import { personColor } from '@shared/utils/personColors';
 
 export {
   CANVAS_WIDTH,
@@ -13,19 +14,6 @@ export {
   formatPercent,
   ellipsizeText,
 } from '@features/sharing/logic/receiptSplitImageHelpers';
-
-// 5-color palette matching personColors.ts
-const PERSON_LIGHT_COLORS = [
-  { avatarBg: '#86d97a', avatarText: '#003d46', accent: '#16a34a' }, // emerald
-  { avatarBg: '#89c8ef', avatarText: '#003d46', accent: '#0284c7' }, // sky
-  { avatarBg: '#5ecfbe', avatarText: '#003d46', accent: '#0d9488' }, // teal
-  { avatarBg: '#b4a8e8', avatarText: '#003d46', accent: '#7c3aed' }, // violet
-  { avatarBg: '#f5d87a', avatarText: '#003d46', accent: '#d97706' }, // amber
-];
-
-export function getPersonLightColor(index: number) {
-  return PERSON_LIGHT_COLORS[index % PERSON_LIGHT_COLORS.length];
-}
 
 export function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
@@ -80,26 +68,26 @@ export function drawNestedCard(
   ctx.fill();
 }
 
-/** Circle avatar with centered initial letter */
-export function drawAvatar(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  radius: number,
-  initial: string,
-  bgColor: string,
-  textColor: string,
-): void {
-  ctx.fillStyle = bgColor;
+export interface PersonAvatarArgs {
+  cx: number;
+  cy: number;
+  radius: number;
+  name: string;
+  colorIndex: number;
+}
+
+/** Mirrors `PersonAvatar`: person colour fill, white initial. */
+export function drawPersonAvatar(ctx: CanvasRenderingContext2D, args: PersonAvatarArgs): void {
+  ctx.fillStyle = personColor(args.colorIndex);
   ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.arc(args.cx, args.cy, args.radius, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = textColor;
-  ctx.font = `700 ${Math.round(radius * 0.9)}px system-ui, -apple-system, sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `700 ${Math.round(args.radius * 0.9)}px system-ui, -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(initial, cx, cy);
+  ctx.fillText(args.name.trim().charAt(0).toUpperCase() || '?', args.cx, args.cy);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }
