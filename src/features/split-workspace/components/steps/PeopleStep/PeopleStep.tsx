@@ -2,6 +2,8 @@ import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { SavedGroupChips } from './SavedGroupChips';
+import { SaveGroupForm } from './SaveGroupForm';
 
 export function PeopleStep() {
   const { people, peopleInput, setPeopleInput, addPeopleFromInput, removePerson } = useReceiptStore(
@@ -53,6 +55,8 @@ export function PeopleStep() {
         </p>
       </div>
 
+      <SavedGroupChips />
+
       {/* People list or empty state */}
       {people.length === 0 ? (
         <div
@@ -85,9 +89,12 @@ export function PeopleStep() {
 
       {/* Status */}
       {people.length > 0 && (
-        <div className="flex items-center gap-2 text-sm font-medium text-on-surface-variant">
-          <span className="h-2 w-2 flex-shrink-0 rounded-full bg-secondary" />
-          {people.length} {people.length === 1 ? 'person' : 'people'} added
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-on-surface-variant">
+            <span className="h-2 w-2 flex-shrink-0 rounded-full bg-secondary" />
+            {people.length} {people.length === 1 ? 'person' : 'people'} added
+          </div>
+          <SaveGroupForm />
         </div>
       )}
     </div>
