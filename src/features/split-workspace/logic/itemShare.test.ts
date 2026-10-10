@@ -142,10 +142,19 @@ describe('stepPersonShare', () => {
     expect(sharesOf(next)).toEqual({ a: 1200 });
   });
 
-  it('does nothing past the smallest step', () => {
+  it('keeps stepping down past 1/10', () => {
     const tenth = buildItem({ personIds: ['a'], weights: { a: 1 }, unassignedWeight: 9 });
 
-    expect(stepPersonShare(tenth, 'a', 'decrease')).toBe(tenth);
+    expect(resolvePersonShare(stepPersonShare(tenth, 'a', 'decrease'), 'a', 1200)?.label).toBe(
+      '1/11',
+    );
+  });
+
+  it('stops before a slice worth less than a cent', () => {
+    const fifth = buildItem({ personIds: ['a'], weights: { a: 1 }, unassignedWeight: 4 });
+
+    expect(resolvePersonShare(fifth, 'a', 5)?.canDecrease).toBe(false);
+    expect(resolvePersonShare(fifth, 'a', 6)?.canDecrease).toBe(true);
   });
 });
 
@@ -238,6 +247,7 @@ describe('formatShareFraction', () => {
     expect(formatShareFraction(3, 3)).toBe('1');
     expect(formatShareFraction(3, 12)).toBe('1/4');
     expect(formatShareFraction(4, 6)).toBe('2/3');
-    expect(formatShareFraction(1, 11)).toBe('9%');
+    expect(formatShareFraction(1, 11)).toBe('1/11');
+    expect(formatShareFraction(2, 11)).toBe('18%');
   });
 });
