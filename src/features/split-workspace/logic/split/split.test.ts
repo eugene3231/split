@@ -47,6 +47,38 @@ describe('computeSplit', () => {
     expect(converted.grandTotalCents).toBe(0);
   });
 
+  it('charges a half-claimed item to its claimant at half price', () => {
+    const people: Person[] = [
+      { id: 'alice', name: 'Alice' },
+      { id: 'bob', name: 'Bob' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'bread',
+        name: 'Garlic bread',
+        amountInput: '6.00',
+        discountPercentInput: '',
+        assignment: {
+          mode: 'equal',
+          personId: '',
+          personIds: ['alice'],
+          weights: { alice: 1 },
+          unassignedWeight: 1,
+        },
+      },
+    ];
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+    });
+
+    expect(split.totalByPersonCents).toEqual({ alice: 300, bob: 0 });
+  });
+
   it('allocates equal split remainders deterministically', () => {
     const people: Person[] = [
       { id: 'p1', name: 'Alice' },

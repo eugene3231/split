@@ -2,27 +2,25 @@ import { WIZARD_STEPS } from '@features/split-workspace/types';
 import { cn } from '@shared/utils/cn';
 import type { WizardStep } from '@features/split-workspace/types';
 import { STEP_LABELS } from '@features/split-workspace/logic/wizardSteps';
+import { formatItemCount } from '@features/split-workspace/logic/claim';
 
 interface Props {
   activeStep: WizardStep;
-  claimedItemCount: number;
-  detectedItemsCount: number;
+  itemsLeftCount: number;
   stepReachability: Record<WizardStep, boolean>;
   onStepSelect: (step: WizardStep) => void;
 }
 
-export function TopAppBar({
-  activeStep,
-  claimedItemCount,
-  detectedItemsCount,
-  stepReachability,
-  onStepSelect,
-}: Props) {
+export function TopAppBar({ activeStep, itemsLeftCount, stepReachability, onStepSelect }: Props) {
   const stepIndex = WIZARD_STEPS.indexOf(activeStep);
   const stepNumber = stepIndex + 1;
 
   const contextText =
-    activeStep === 'items' ? `${claimedItemCount} of ${detectedItemsCount} items claimed` : '';
+    activeStep !== 'items'
+      ? ''
+      : itemsLeftCount > 0
+        ? `${formatItemCount(itemsLeftCount)} left`
+        : 'Every item assigned';
 
   return (
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">

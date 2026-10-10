@@ -24,7 +24,7 @@ export function isItemAssigned(item: EditableItem, validPeople: Set<string>): bo
   }
 
   const selected = item.assignment.personIds.filter((personId) => validPeople.has(personId));
-  return selected.length > 0;
+  return selected.length > 0 && !item.assignment.unassignedWeight;
 }
 
 export function isStepValid(

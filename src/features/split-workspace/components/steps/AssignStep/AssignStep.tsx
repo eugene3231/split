@@ -1,71 +1,52 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useShallow } from 'zustand/shallow';
-import {
-  applyAssignmentCommand,
-  resolveSplitAdjustment,
-} from '@features/split-workspace/logic/assignmentInteraction';
+import { applyAssignmentCommand } from '@features/split-workspace/logic/assignmentInteraction';
 import type { AssignmentCommand } from '@features/split-workspace/logic/assignmentInteraction';
-import { resolveClaimView } from '@features/split-workspace/logic/claim';
-import { ReceiptTabs } from '@features/split-workspace/components/shared/ReceiptTabs';
+import { formatItemCount, resolveClaimView } from '@features/split-workspace/logic/claim';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import { BASE_CURRENCY } from '@shared/constants';
-import { ClaimItemTile } from './ClaimItemTile';
+import { cn } from '@shared/utils/cn';
+import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
-import { ClaimProgress } from './ClaimProgress';
-import { SplitAdjustSheet } from './SplitAdjustSheet';
 
 interface Props {
   activePersonId: string;
   onActivePersonChange: (personId: string) => void;
 }
 
-export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
-  const { receipts, activeReceiptId, people, setActiveReceiptId, renameReceipt, updateItem } =
-    useReceiptStore(
-      useShallow((state) => ({
-        receipts: state.receipts,
-        activeReceiptId: state.activeReceiptId,
-        people: state.people,
-        setActiveReceiptId: state.setActiveReceiptId,
-        renameReceipt: state.renameReceipt,
-        updateItem: state.updateItem,
-      })),
-    );
-  const { consolidated } = useReceiptSplit();
-  const [adjustingItemId, setAdjustingItemId] = useState<string | null>(null);
+const sectionId = (receiptId: string) => `items-receipt-${receiptId}`;
 
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
-  const items = activeReceipt?.items ?? [];
-  const currency = activeReceipt?.currency ?? BASE_CURRENCY;
+export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
+  const { receipts, people, updateReceiptItem } = useReceiptStore(
+    useShallow((state) => ({
+      receipts: state.receipts,
+      people: state.people,
+      updateReceiptItem: state.updateReceiptItem,
+    })),
+  );
+  const { consolidated } = useReceiptSplit();
+  const [showLeftOnly, setShowLeftOnly] = useState(false);
+
   const view = resolveClaimView({
     receipts,
-    activeReceiptId,
     people,
     activePersonId,
     totalByPersonCents: consolidated.split.totalByPersonCents,
     totalsCurrency: BASE_CURRENCY,
   });
+  const filtering = showLeftOnly && view.leftCount > 0;
+  const sections = view.sections
+    .map((section) => ({
+      ...section,
+      items: filtering ? section.items.filter((item) => item.isLeft) : section.items,
+    }))
+    .filter((section) => section.items.length > 0);
+  const hasSeveralReceipts = view.sections.length > 1;
 
-  const adjustingItem = items.find((item) => item.id === adjustingItemId);
-  const adjustment = adjustingItem
-    ? resolveSplitAdjustment({ item: adjustingItem, people, currency })
-    : null;
-
-  const applyCommand = (itemId: string, command: AssignmentCommand) => {
-    const result = applyAssignmentCommand({
-      command,
-      item: items.find((item) => item.id === itemId) ?? null,
-      people,
-    });
-    if (result.type === 'ignored') return;
-    updateItem(result.itemId, () => result.item);
-    // A percent or amount commit can drop someone to zero; with one claimant left there is
-    // nothing to adjust, and the sheet must not reopen when a second person claims it later.
-    if (itemId === adjustingItemId && result.item.assignment.personIds.length < 2) {
-      setAdjustingItemId(null);
-    }
-  };
+  const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
+    updateReceiptItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
 
   const { activePerson } = view;
   if (!activePerson) {
@@ -76,12 +57,15 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
       <div className="min-w-0">
         <header className="-mx-6 -mt-4 bg-surface-container-low px-6 pt-5 pb-6 md:mx-0 md:mt-0 md:rounded-3xl md:px-8 md:pt-6 md:pb-7">
-          <ClaimProgress {...view.progress} />
+          <p data-testid="claim-person-summary" className="text-sm font-semibold">
+            {activePerson.firstName} · {formatItemCount(view.activeItemCount)} ·{' '}
+            {activePerson.totalLabel}
+          </p>
           <ClaimPeopleRail
             people={view.people}
             onSelect={onActivePersonChange}
             layout="row"
-            className="-mx-6 mt-5 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
+            className="-mx-6 mt-4 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
           />
           <h1 className="mt-6 font-headline text-3xl leading-tight font-extrabold tracking-tight break-words md:text-4xl">
             What did {activePerson.firstName} have?
@@ -89,40 +73,91 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
           <p className="mt-1 text-sm text-on-surface-variant">
             Tap everything they had. Shared items split automatically.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {hasSeveralReceipts &&
+              view.sections.map((section) => (
+                <Chip
+                  key={section.receiptId}
+                  testId={`claim-jump-${section.receiptId}`}
+                  onClick={() =>
+                    document
+                      .getElementById(sectionId(section.receiptId))
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                >
+                  <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                  {section.name}
+                </Chip>
+              ))}
+            {view.leftCount > 0 && (
+              <Chip
+                testId="claim-left-filter"
+                pressed={filtering}
+                onClick={() => setShowLeftOnly(!filtering)}
+              >
+                {formatItemCount(view.leftCount)} left
+              </Chip>
+            )}
+          </div>
         </header>
 
-        {receipts.length > 1 && (
-          <ReceiptTabs
-            receipts={receipts}
-            activeReceiptId={activeReceipt.id}
-            onSelect={setActiveReceiptId}
-            onRename={renameReceipt}
-            className="mt-5 mb-0"
-          />
-        )}
-
-        <ul className="mt-4 space-y-2.5">
-          {view.items.map((item) => (
-            <ClaimItemTile
-              key={item.id}
-              item={item}
-              onToggle={() =>
-                applyCommand(item.id, {
-                  type: 'toggle-person',
-                  personId: activePerson.id,
-                  checked: !item.claimedByActive,
-                })
-              }
-              onShareWithEveryone={() => applyCommand(item.id, { type: 'select-all' })}
-              onAdjustSplit={() => setAdjustingItemId(item.id)}
-            />
-          ))}
-        </ul>
+        {sections.map((section) => (
+          <section
+            key={section.receiptId}
+            id={sectionId(section.receiptId)}
+            aria-label={section.name}
+            data-testid={`claim-section-${section.receiptId}`}
+            className="scroll-mt-16 md:scroll-mt-24"
+          >
+            {hasSeveralReceipts && (
+              <h2 className="sticky top-15 z-10 -mx-6 flex items-baseline justify-between gap-3 border-b border-surface-container-high bg-surface px-6 pt-5 pb-2 text-sm font-bold md:top-22 md:mx-0 md:px-1">
+                <span className="min-w-0 truncate">{section.name}</span>
+                <span
+                  className={cn(
+                    'shrink-0 text-xs',
+                    section.leftCount > 0 ? 'text-warning' : 'text-on-surface-variant',
+                  )}
+                >
+                  {section.leftCount > 0 ? `${section.leftCount} left` : 'Done'}
+                </span>
+              </h2>
+            )}
+            <ul className="divide-y divide-surface-container-high">
+              {section.items.map((item) => (
+                <ClaimItemRow
+                  key={item.id}
+                  item={item}
+                  onToggle={() =>
+                    applyCommand(section.receiptId, item.id, {
+                      type: 'toggle-person',
+                      personId: activePerson.id,
+                      checked: !item.claimedByActive,
+                    })
+                  }
+                  onStepShare={(step) =>
+                    applyCommand(section.receiptId, item.id, {
+                      type: 'step-share',
+                      personId: activePerson.id,
+                      step,
+                    })
+                  }
+                  onSetShare={(input) =>
+                    applyCommand(section.receiptId, item.id, {
+                      type: 'set-share',
+                      personId: activePerson.id,
+                      input,
+                    })
+                  }
+                />
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
 
       <aside className="hidden lg:sticky lg:top-24 lg:block lg:self-start">
         <h2 className="mb-3 text-xs font-bold tracking-widest text-on-surface-variant uppercase">
-          Who's claiming
+          Who had what
         </h2>
         <ClaimPeopleRail
           people={view.people}
@@ -131,15 +166,32 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
           className="max-h-[calc(100vh-17rem)] overflow-y-auto p-1"
         />
       </aside>
-
-      {adjustment && (
-        <SplitAdjustSheet
-          adjustment={adjustment}
-          currency={currency}
-          onCommand={(command) => applyCommand(adjustment.itemId, command)}
-          onClose={() => setAdjustingItemId(null)}
-        />
-      )}
     </div>
+  );
+}
+
+interface ChipProps {
+  testId: string;
+  pressed?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}
+
+function Chip({ testId, pressed, onClick, children }: ChipProps) {
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+        pressed
+          ? 'border-primary bg-primary text-on-primary'
+          : 'border-outline-variant bg-surface-container-lowest hover:bg-surface-container',
+      )}
+    >
+      {children}
+    </button>
   );
 }

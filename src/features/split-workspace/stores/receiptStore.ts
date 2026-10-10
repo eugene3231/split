@@ -73,6 +73,11 @@ type ReceiptStoreActions = {
   addItem: () => void;
   removeItem: (itemId: string) => void;
   updateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void;
+  updateReceiptItem: (
+    receiptId: string,
+    itemId: string,
+    updater: (item: EditableItem) => EditableItem,
+  ) => void;
   splitUnassignedItemsEqually: () => void;
   setDiscount: (next: ChargeState) => void;
   setServiceCharge: (next: ChargeState) => void;
@@ -237,6 +242,15 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       set((state) => ({
         receipts: state.receipts.map((r) =>
           r.id === state.activeReceiptId
+            ? { ...r, items: r.items.map((item) => (item.id === itemId ? updater(item) : item)) }
+            : r,
+        ),
+      }));
+    },
+    updateReceiptItem: (receiptId, itemId, updater) => {
+      set((state) => ({
+        receipts: state.receipts.map((r) =>
+          r.id === receiptId
             ? { ...r, items: r.items.map((item) => (item.id === itemId ? updater(item) : item)) }
             : r,
         ),

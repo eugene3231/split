@@ -736,7 +736,6 @@ describe('Split pipeline integration', () => {
               personId: '',
               personIds: [alice.id, bob.id],
               weights: { [alice.id]: 60, [bob.id]: 40 },
-              weightsInputMode: 'percent',
             },
           }),
         ],

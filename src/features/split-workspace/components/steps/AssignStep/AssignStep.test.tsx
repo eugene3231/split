@@ -10,11 +10,8 @@ import { AssignStep } from './AssignStep';
 
 interface AssignStepStoreMock {
   receipts: Receipt[];
-  activeReceiptId: string;
   people: Person[];
-  setActiveReceiptId: ReturnType<typeof vi.fn>;
-  renameReceipt: ReturnType<typeof vi.fn>;
-  updateItem: ReturnType<typeof vi.fn>;
+  updateReceiptItem: ReturnType<typeof vi.fn>;
 }
 
 let storeMock: AssignStepStoreMock;
@@ -62,26 +59,25 @@ function makeReceipt(id: string, items: EditableItem[], currency = 'SGD'): Recei
 function setStoreMock(receipts: Receipt[]) {
   storeMock = {
     receipts,
-    activeReceiptId: receipts[0].id,
     people: [
       { id: 'p1', name: 'Alice Tan' },
       { id: 'p2', name: 'Bob' },
     ],
-    setActiveReceiptId: vi.fn(),
-    renameReceipt: vi.fn(),
-    updateItem: vi.fn((itemId: string, updater: (item: EditableItem) => EditableItem) => {
-      storeMock = {
-        ...storeMock,
-        receipts: storeMock.receipts.map((receipt) =>
-          receipt.id === storeMock.activeReceiptId
-            ? {
-                ...receipt,
-                items: receipt.items.map((item) => (item.id === itemId ? updater(item) : item)),
-              }
-            : receipt,
-        ),
-      };
-    }),
+    updateReceiptItem: vi.fn(
+      (receiptId: string, itemId: string, updater: (item: EditableItem) => EditableItem) => {
+        storeMock = {
+          ...storeMock,
+          receipts: storeMock.receipts.map((receipt) =>
+            receipt.id === receiptId
+              ? {
+                  ...receipt,
+                  items: receipt.items.map((item) => (item.id === itemId ? updater(item) : item)),
+                }
+              : receipt,
+          ),
+        };
+      },
+    ),
   };
 }
 
@@ -114,16 +110,16 @@ describe('AssignStep', () => {
     ]);
   });
 
-  it('asks what the active person had by first name and shows running totals', () => {
+  it("asks what the active person had and sums up that person's items and total", () => {
     renderStep('p2');
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
-    expect(screen.getAllByTestId('claim-person-p1')[0]).toHaveTextContent('$12.00');
+    expect(screen.getByTestId('claim-person-summary')).toHaveTextContent('Bob · 2 items · $4.50');
     expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('claim-progress')).toHaveTextContent('2 of 3 claimed');
+    expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
 
-  it('toggles the active person on and off an item when the tile is tapped', () => {
+  it('ticks the active person on and off an item', () => {
     const { refresh } = renderStep('p2');
     const toggle = () => screen.getByTestId('claim-item-toggle-open');
 
@@ -131,28 +127,16 @@ describe('AssignStep', () => {
     refresh();
     expect(assignmentOf('open').personIds).toEqual(['p2']);
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent('Just you');
+    expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent('Whole');
+    expect(screen.getByTestId('claim-item-amount-open')).toHaveTextContent('$12.00');
 
     fireEvent.click(toggle());
     refresh();
     expect(assignmentOf('open').personIds).toEqual([]);
-    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByTestId('claim-item-share-open')).not.toBeInTheDocument();
   });
 
-  it('shares an unclaimed item with everyone', () => {
-    const { refresh } = renderStep();
-
-    fireEvent.click(screen.getByTestId('claim-item-everyone-open'));
-    refresh();
-
-    expect(assignmentOf('open').personIds).toEqual(['p1', 'p2']);
-    expect(screen.queryByTestId('claim-item-everyone-open')).not.toBeInTheDocument();
-    expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent(
-      'Shared 2 ways · $6.00 each',
-    );
-  });
-
-  it('switches the claiming person from the people rail', () => {
+  it('switches the person from the people rail', () => {
     const { onActivePersonChange } = renderStep();
 
     fireEvent.click(screen.getAllByTestId('claim-person-p2')[0]);
@@ -160,133 +144,115 @@ describe('AssignStep', () => {
     expect(onActivePersonChange).toHaveBeenCalledWith('p2');
   });
 
-  it('only offers Adjust split on items with two or more claimants', () => {
-    renderStep();
-
-    expect(screen.queryByTestId('claim-item-adjust-open')).not.toBeInTheDocument();
-    expect(screen.getByTestId('claim-item-adjust-shared')).toBeInTheDocument();
-  });
-
-  it('changes the share label when shares are adjusted in the sheet', () => {
+  it('steps a shared item up to half and down to a third in the row', () => {
+    setStoreMock([makeReceipt('r1', [makeItem('w', { personIds: ['p1', 'p2'] })])]);
+    storeMock.people.push({ id: 'p3', name: 'Cara' });
+    storeMock.receipts[0].items[0].assignment.personIds.push('p3');
     const { refresh } = renderStep();
-    expect(screen.getByTestId('claim-item-share-shared')).toHaveTextContent(
-      'Shared 2 ways · $6.00 each',
-    );
+    expect(screen.getByTestId('claim-item-share-w')).toHaveTextContent('1/3');
 
-    fireEvent.click(screen.getByTestId('claim-item-adjust-shared'));
+    fireEvent.click(screen.getByTestId('claim-item-share-w-increase'));
     refresh();
-    const sheet = screen.getByRole('dialog');
-    expect(within(sheet).getByTestId('assign-weight-p1-value')).toHaveTextContent('1/2');
+    expect(assignmentOf('w').weights).toEqual({ p1: 2, p2: 1, p3: 1 });
+    expect(screen.getByTestId('claim-item-share-w')).toHaveTextContent('1/2');
+    expect(screen.getByTestId('claim-item-amount-w')).toHaveTextContent('$6.00');
+    expect(screen.getByTestId('claim-item-share-w-increase')).toBeDisabled();
 
-    fireEvent.click(within(sheet).getByTestId('assign-weight-p1-increment'));
+    fireEvent.click(screen.getByTestId('claim-item-share-w-decrease'));
     refresh();
-
-    expect(assignmentOf('shared').weights).toEqual({ p1: 2, p2: 1 });
-    expect(screen.getByTestId('assign-weight-p1-value')).toHaveTextContent('2/3');
-    expect(screen.getByTestId('split-adjust-share-p1')).toHaveTextContent('$8.00');
-    expect(screen.getByTestId('claim-item-share-shared')).toHaveTextContent(
-      'Custom split · you pay $8.00',
-    );
+    expect(screen.getByTestId('claim-item-share-w')).toHaveTextContent('1/3');
   });
 
-  it('shows the unsimplified share fraction for saved weights', () => {
-    setStoreMock([
-      makeReceipt('r1', [makeItem('w', { personIds: ['p1', 'p2'], weights: { p1: 3, p2: 9 } })]),
-    ]);
+  it('halves a solo item and shows the other half as left', () => {
+    setStoreMock([makeReceipt('r1', [makeItem('bread', { personIds: ['p1'] })])]);
     const { refresh } = renderStep();
 
-    fireEvent.click(screen.getByTestId('claim-item-adjust-w'));
+    fireEvent.click(screen.getByTestId('claim-item-share-bread-decrease'));
     refresh();
 
-    expect(screen.getByTestId('assign-weight-p1-value')).toHaveTextContent('3/12');
-    expect(screen.getByTestId('assign-weight-p2-value')).toHaveTextContent('9/12');
-    expect(screen.getByTestId('assign-weight-p1-decrement')).not.toBeDisabled();
-    expect(screen.getByTestId('assign-weight-p2-decrement')).not.toBeDisabled();
+    expect(assignmentOf('bread').unassignedWeight).toBe(1);
+    expect(screen.getByTestId('claim-item-claimants-bread')).toHaveTextContent('Alice · 1/2 left');
+    expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
 
-  it('clears custom weights with Split equally and keeps the chosen tab', () => {
+  it('takes a typed amount or percent from the price and splits the rest', () => {
     const { refresh } = renderStep();
-    fireEvent.click(screen.getByTestId('claim-item-adjust-weighted'));
-    refresh();
 
-    fireEvent.click(screen.getByTestId('assign-mode-tab-percent'));
+    fireEvent.click(screen.getByTestId('claim-item-amount-shared'));
+    const input = screen.getByTestId('claim-item-amount-shared-input');
+    fireEvent.change(input, { target: { value: '9' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.blur(input);
     refresh();
-    fireEvent.click(screen.getByTestId('assign-split-equally-btn'));
-    refresh();
+    expect(screen.getByTestId('claim-item-amount-shared')).toHaveTextContent('$9.00');
 
-    expect(assignmentOf('weighted').weights).toBeUndefined();
-    expect(assignmentOf('weighted').weightsInputMode).toBe('percent');
+    fireEvent.click(screen.getByTestId('claim-item-amount-shared'));
+    const percent = screen.getByTestId('claim-item-amount-shared-input');
+    fireEvent.change(percent, { target: { value: '25%' } });
+    fireEvent.blur(percent);
+    refresh();
+    expect(screen.getByTestId('claim-item-amount-shared')).toHaveTextContent('$3.00');
+    expect(screen.getByTestId('claim-item-share-shared')).toHaveTextContent('1/4');
   });
 
-  it('prefixes amounts with the receipt currency symbol', () => {
-    setStoreMock([makeReceipt('r1', [makeItem('w', { personIds: ['p1', 'p2'] })], 'EUR')]);
+  it('keeps the share when a typed value is unreadable or Escape is pressed', () => {
     const { refresh } = renderStep();
-    fireEvent.click(screen.getByTestId('claim-item-adjust-w'));
-    refresh();
 
-    fireEvent.click(screen.getByTestId('assign-mode-tab-amount'));
-    refresh();
-
-    const sheet = screen.getByRole('dialog');
-    expect(within(sheet).getAllByText('€')).toHaveLength(2);
-    expect(within(sheet).queryByText('$')).not.toBeInTheDocument();
-  });
-
-  it('closes the sheet for good when a percent commit leaves one claimant', () => {
-    setStoreMock([
-      makeReceipt('r1', [makeItem('w', { personIds: ['p1', 'p2'], weightsInputMode: 'percent' })]),
-    ]);
-    const { refresh } = renderStep('p2');
-    fireEvent.click(screen.getByTestId('claim-item-adjust-w'));
-    refresh();
-
-    const input = screen.getByTestId('assign-percent-p1');
-    fireEvent.change(input, { target: { value: '100' } });
+    fireEvent.click(screen.getByTestId('claim-item-amount-shared'));
+    const input = screen.getByTestId('claim-item-amount-shared-input');
+    fireEvent.change(input, { target: { value: 'lots' } });
     fireEvent.blur(input);
     refresh();
 
-    expect(assignmentOf('w').personIds).toEqual(['p1']);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('claim-item-toggle-w'));
+    fireEvent.click(screen.getByTestId('claim-item-amount-shared'));
+    fireEvent.keyDown(screen.getByTestId('claim-item-amount-shared-input'), { key: 'Escape' });
     refresh();
-    expect(assignmentOf('w').personIds).toEqual(['p1', 'p2']);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    expect(storeMock.updateReceiptItem).not.toHaveBeenCalled();
+    expect(screen.getByTestId('claim-item-amount-shared')).toHaveTextContent('$6.00');
   });
 
-  it('closes the sheet with Done or Escape', () => {
-    const { refresh } = renderStep();
-    fireEvent.click(screen.getByTestId('claim-item-adjust-shared'));
-    refresh();
-    fireEvent.click(screen.getByTestId('split-adjust-done-btn'));
-    refresh();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('claim-item-adjust-shared'));
-    refresh();
-    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
-    refresh();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
-  it('shows receipt tabs only with several receipts and switches the active receipt', () => {
+  it('lists every receipt on one page with a jump chip and a left count per receipt', () => {
     setStoreMock([
       makeReceipt('r1', [makeItem('a')]),
       makeReceipt('r2', [makeItem('b', { personIds: ['p2'] })]),
     ]);
-    renderStep();
+    const { refresh } = renderStep();
 
+    const second = screen.getByTestId('claim-section-r2');
     expect(screen.getByTestId('claim-item-a')).toBeInTheDocument();
-    expect(screen.queryByTestId('claim-item-b')).not.toBeInTheDocument();
-    expect(screen.getByTestId('claim-progress')).toHaveTextContent('1 of 2 claimed');
+    expect(within(second).getByTestId('claim-item-b')).toBeInTheDocument();
+    expect(within(second).getByRole('heading', { level: 2 })).toHaveTextContent('Receipt r2Done');
+    expect(screen.getByTestId('claim-jump-r2')).toHaveTextContent('Receipt r2');
 
-    fireEvent.click(screen.getByText('Receipt r2'));
-    expect(storeMock.setActiveReceiptId).toHaveBeenCalledWith('r2');
+    fireEvent.click(within(second).getByTestId('claim-item-toggle-b'));
+    refresh();
+    expect(assignmentOf('b').personIds).toEqual(['p2', 'p1']);
   });
 
-  it('hides receipt tabs for a single receipt', () => {
+  it('filters down to the items left across receipts and back', () => {
+    setStoreMock([
+      makeReceipt('r1', [makeItem('a'), makeItem('done', { personIds: ['p1'] })]),
+      makeReceipt('r2', [makeItem('b', { personIds: ['p2'] })]),
+    ]);
     renderStep();
 
-    expect(screen.queryByText('Receipt r1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('claim-left-filter'));
+
+    expect(screen.getByTestId('claim-left-filter')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('claim-item-a')).toBeInTheDocument();
+    expect(screen.queryByTestId('claim-item-done')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('claim-section-r2')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('claim-left-filter'));
+    expect(screen.getByTestId('claim-item-done')).toBeInTheDocument();
+  });
+
+  it('hides receipt headings and the left chip when there is nothing to show', () => {
+    setStoreMock([makeReceipt('r1', [makeItem('a', { personIds: ['p1'] })])]);
+    renderStep();
+
+    expect(screen.queryByRole('heading', { level: 2, name: /Receipt r1/ })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
   });
 });

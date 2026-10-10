@@ -1,9 +1,9 @@
 import type { WizardStep } from '@features/split-workspace/types';
 
-/** The claim step's label depends on who is claiming, so the caller passes it in. */
+/** The items step's label depends on whose turn it is, so the caller passes it in. */
 export function getContinueLabel(activeStep: WizardStep, claimLabel: string): string {
   if (activeStep === 'people') return 'Add receipts';
-  if (activeStep === 'receipt') return 'Claim items';
+  if (activeStep === 'receipt') return 'Who had what';
   if (activeStep === 'items') return claimLabel;
   return 'Summary';
 }
@@ -11,6 +11,6 @@ export function getContinueLabel(activeStep: WizardStep, claimLabel: string): st
 export const STEP_LABELS: Record<WizardStep, string> = {
   people: 'People',
   receipt: 'Receipt',
-  items: 'Claim',
+  items: 'Items',
   final: 'Summary',
 };

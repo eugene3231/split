@@ -30,8 +30,10 @@ export function normalizeItemAssignments(items: EditableItem[], people: Person[]
         )
       : undefined;
 
+    const unassignedWeight =
+      nextPersonIds.length > 0 ? item.assignment.unassignedWeight : undefined;
     const finalWeights =
-      nextPersonIds.length < 2
+      nextPersonIds.length < (unassignedWeight ? 1 : 2)
         ? undefined
         : nextWeights && Object.keys(nextWeights).length > 0
           ? nextWeights
@@ -44,11 +46,7 @@ export function normalizeItemAssignments(items: EditableItem[], people: Person[]
         personId: '',
         personIds: nextPersonIds,
         weights: finalWeights,
-        // weightsInputMode reflects which tab the user is on, independent of
-        // whether custom weights have been entered yet — only clear it when
-        // the assignment drops below 2 people, mirroring the invariant in
-        // assignmentInteraction.ts.
-        weightsInputMode: nextPersonIds.length >= 2 ? item.assignment.weightsInputMode : undefined,
+        unassignedWeight,
       },
     };
   });

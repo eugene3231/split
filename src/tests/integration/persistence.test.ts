@@ -223,38 +223,32 @@ describe('Persistence integration', () => {
     });
   });
 
-  it('weightsInputMode survives import when no custom weights were entered yet', () => {
-    // Regression test: a user who switched to the Percent tab without
-    // entering custom weights has weightsInputMode set but no `weights`.
-    // The store's initialize()/importFromJson() paths run every item
-    // through buildInitialItems -> syncItemsWithPeople ->
-    // normalizeItemAssignments, which used to drop weightsInputMode
-    // whenever `weights` was absent, undoing it on every reload.
+  it('a half-claimed item keeps its unassigned share through export and import', () => {
     const alice = makePerson('Alice');
-    const bob = makePerson('Bob');
     const r1 = makeReceipt({
       items: [
         makeItem({
-          amountInput: '30.00',
+          amountInput: '6.00',
           assignment: {
             mode: 'equal',
             personId: '',
-            personIds: [alice.id, bob.id],
-            weightsInputMode: 'percent',
+            personIds: [alice.id],
+            weights: { [alice.id]: 1 },
+            unassignedWeight: 1,
           },
         }),
       ],
     });
 
-    seedStore([alice, bob], [r1]);
+    seedStore([alice], [r1]);
     const json = useReceiptStore.getState().getExportJson();
 
     resetAllStores();
     useReceiptStore.getState().importFromJson(json);
 
-    const restored = useReceiptStore.getState();
-    expect(restored.receipts[0].items[0].assignment.weights).toBeUndefined();
-    expect(restored.receipts[0].items[0].assignment.weightsInputMode).toBe('percent');
+    const restored = useReceiptStore.getState().receipts[0].items[0].assignment;
+    expect(restored.weights).toEqual({ [alice.id]: 1 });
+    expect(restored.unassignedWeight).toBe(1);
   });
 
   it('wizard state persists and restores via localStorage', () => {

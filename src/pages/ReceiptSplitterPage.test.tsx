@@ -435,7 +435,7 @@ describe('ReceiptSplitterPage integration', () => {
         'aria-pressed',
         'false',
       );
-      expect(screen.getByTestId('claim-item-share-r1-i1')).toHaveTextContent('Just Bob');
+      expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveTextContent('Bob');
       expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$0.00');
     });
 
@@ -487,30 +487,54 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('wizard-status')).toHaveTextContent('Receipt total$2.00');
     });
 
-    it('shares an unclaimed item with everyone', async () => {
-      await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
+    it('leaves the other half of an item for the next person and splits it from the last', async () => {
+      await navigateToClaim([
+        makeReceipt({
+          id: 'r1',
+          items: [
+            {
+              id: 'r1-i1',
+              name: 'Garlic bread',
+              amountInput: '6.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+            },
+          ],
+        }),
+      ]);
 
-      fireEvent.click(screen.getByTestId('claim-item-everyone-r1-i2'));
+      fireEvent.click(screen.getByTestId('claim-item-share-r1-i1-decrease'));
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$3.00');
+      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
 
-      expect(screen.getByTestId('claim-item-share-r1-i2')).toHaveTextContent(
-        'Shared 2 ways · $1.00 each',
+      clickContinue(); // → Bob
+      expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveTextContent(
+        'Alice · 1/2 left',
       );
-      expect(screen.getByTestId('claim-progress')).toHaveTextContent('1 of 1 claimed');
+      expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Split 1 left evenly');
+      clickContinue();
+
+      expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
+      const [item] = useReceiptStore.getState().receipts[0].items;
+      expect(item.assignment.unassignedWeight).toBeUndefined();
+      expect(item.assignment.weights).toEqual({ p1: 3, p2: 1 });
     });
 
-    it('counts progress across receipts and switches items with the receipt tabs', async () => {
+    it('shows every receipt on one page and counts what is left across them', async () => {
       await navigateToClaim([
         makeReceipt({ id: 'r1' }),
         makeReceipt({ id: 'r2', items: [{ ...unclaimedItem, id: 'r2-i1' }] }),
       ]);
 
-      expect(screen.getByTestId('claim-progress')).toHaveTextContent('1 of 2 claimed');
+      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
       expect(screen.getByTestId('claim-item-r1-i1')).toBeInTheDocument();
-
-      fireEvent.click(screen.getByText('Receipt r2'));
-
       expect(screen.getByTestId('claim-item-r2-i1')).toBeInTheDocument();
-      expect(screen.queryByTestId('claim-item-r1-i1')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r2-i1'));
+
+      const [, r2] = useReceiptStore.getState().receipts;
+      expect(r2.items[0].assignment.personIds).toEqual(['p1']);
+      expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
     });
   });
 
@@ -780,7 +804,7 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('export-save-image-btn')).not.toBeInTheDocument();
       });
-      expect(screen.getByTestId('claim-progress')).toHaveTextContent('0 of 1 claimed');
+      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
     });
   });
 
@@ -852,7 +876,7 @@ describe('ReceiptSplitterPage integration', () => {
       // Restores to Bob on the claim step from localStorage — no navigation needed
       await waitFor(() => {
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
-        expect(screen.getByTestId('claim-item-share-r1-i1')).toHaveTextContent('Just Alice');
+        expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveTextContent('Alice');
       });
     });
   });

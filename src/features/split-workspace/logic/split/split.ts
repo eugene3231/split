@@ -14,6 +14,7 @@ import {
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
 import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 import { BASE_CURRENCY } from '@shared/constants';
+import { allocateItemShares } from '@features/split-workspace/logic/itemShare';
 
 interface ResolvedItem {
   itemId: string;
@@ -76,12 +77,9 @@ export function computeSplit({
         unassignedItemCount += 1;
         continue;
       }
-      const equalWeights = Object.fromEntries(selectedIds.map((id) => [id, 1]));
-      const rawWeights = item.assignment.weights
-        ? Object.fromEntries(selectedIds.map((id) => [id, item.assignment.weights![id] ?? 1]))
-        : equalWeights;
-      netByPerson = allocateCents(netAmountCents, selectedIds, rawWeights);
-      grossByPerson = allocateCents(grossAmountCents, selectedIds, rawWeights);
+      const { weights, unassignedWeight } = item.assignment;
+      netByPerson = allocateItemShares(netAmountCents, selectedIds, weights, unassignedWeight);
+      grossByPerson = allocateItemShares(grossAmountCents, selectedIds, weights, unassignedWeight);
       assignedPersonIds = new Set(selectedIds);
     }
 

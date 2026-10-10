@@ -1,45 +1,53 @@
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
-import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
+import { formatShareFraction, resolvePersonShare } from '@features/split-workspace/logic/itemShare';
+import type { PersonShare } from '@features/split-workspace/logic/itemShare';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import {
   getAssignedItemsCount,
   getDetectedItemsCount,
+  isItemAssigned,
 } from '@features/split-workspace/logic/wizardValidation';
 
-export interface ClaimPersonRef {
+export interface ClaimPerson {
   id: string;
   name: string;
   colorIndex: number;
-}
-
-export interface ClaimPerson extends ClaimPersonRef {
   firstName: string;
   totalLabel: string;
   isActive: boolean;
 }
 
+export interface ClaimItemShare extends PersonShare {
+  amountLabel: string;
+}
+
 export interface ClaimItem {
   id: string;
+  receiptId: string;
   name: string;
   priceLabel: string;
   claimedByActive: boolean;
-  claimants: ClaimPersonRef[];
-  shareLabel: string;
-  canAdjustSplit: boolean;
+  isLeft: boolean;
+  claimantsLabel: string;
+  /** The active person's slice; null when they are not on the item. */
+  share: ClaimItemShare | null;
 }
 
-export interface ClaimProgress {
-  claimed: number;
-  total: number;
-  remaining: number;
+export interface ClaimSection {
+  receiptId: string;
+  name: string;
+  currency: string;
+  leftCount: number;
+  items: ClaimItem[];
 }
 
 export interface ClaimView {
   activePerson: ClaimPerson | null;
+  activeItemCount: number;
   people: ClaimPerson[];
-  items: ClaimItem[];
-  progress: ClaimProgress;
+  sections: ClaimSection[];
+  leftCount: number;
 }
 
 export type ClaimContinue =
@@ -55,24 +63,24 @@ export function resolveActivePersonId(personId: string, people: Person[]): strin
   return people.some((person) => person.id === personId) ? personId : (people[0]?.id ?? '');
 }
 
-export function resolveClaimProgress(receipts: Receipt[], people: Person[]): ClaimProgress {
+export function countItemsLeft(receipts: Receipt[], people: Person[]): number {
   const items = receipts.flatMap((receipt) => receipt.items);
-  const total = getDetectedItemsCount(items);
-  const claimed = getAssignedItemsCount(items, people);
-  return { claimed, total, remaining: total - claimed };
+  return getDetectedItemsCount(items) - getAssignedItemsCount(items, people);
+}
+
+export function formatItemCount(count: number): string {
+  return `${count} ${count === 1 ? 'item' : 'items'}`;
 }
 
 export function resolveClaimView(args: {
   receipts: Receipt[];
-  activeReceiptId: string;
   people: Person[];
   activePersonId: string;
   totalByPersonCents: Record<string, number>;
   totalsCurrency: string;
 }): ClaimView {
-  const { receipts, activeReceiptId, people, totalByPersonCents, totalsCurrency } = args;
+  const { receipts, people, totalByPersonCents, totalsCurrency } = args;
   const activePersonId = resolveActivePersonId(args.activePersonId, people);
-  const receipt = receipts.find((candidate) => candidate.id === activeReceiptId) ?? receipts[0];
 
   const claimPeople = people.map((person, index): ClaimPerson => ({
     id: person.id,
@@ -83,21 +91,34 @@ export function resolveClaimView(args: {
     isActive: person.id === activePersonId,
   }));
 
+  const sections = receipts.map((receipt): ClaimSection => {
+    const items = receipt.items.flatMap((item) => {
+      const row = resolveClaimItem(item, receipt, claimPeople, activePersonId);
+      return row ? [row] : [];
+    });
+    return {
+      receiptId: receipt.id,
+      name: receipt.name,
+      currency: receipt.currency,
+      leftCount: items.filter((item) => item.isLeft).length,
+      items,
+    };
+  });
+  const items = sections.flatMap((section) => section.items);
+
   return {
     activePerson: claimPeople.find((person) => person.isActive) ?? null,
+    activeItemCount: items.filter((item) => item.claimedByActive).length,
     people: claimPeople,
-    items: (receipt?.items ?? []).flatMap((item) => {
-      const row = resolveClaimItem(item, claimPeople, activePersonId, receipt.currency);
-      return row ? [row] : [];
-    }),
-    progress: resolveClaimProgress(receipts, people),
+    sections,
+    leftCount: items.filter((item) => item.isLeft).length,
   };
 }
 
 export function resolveClaimContinue(
   people: Person[],
   activePersonId: string,
-  unclaimedCount: number,
+  leftCount: number,
 ): ClaimContinue {
   const index = people.findIndex((person) => person.id === activePersonId);
   const nextPerson = people[index + 1];
@@ -108,64 +129,60 @@ export function resolveClaimContinue(
       label: `Next: ${firstName(nextPerson.name)}`,
     };
   }
-  if (unclaimedCount > 0) {
-    return { kind: 'split-leftovers', label: `Split ${unclaimedCount} left evenly` };
+  if (leftCount > 0) {
+    return { kind: 'split-leftovers', label: `Split ${leftCount} left evenly` };
   }
   return { kind: 'see-summary', label: 'See summary' };
 }
 
 function resolveClaimItem(
   item: EditableItem,
+  receipt: Receipt,
   people: ClaimPerson[],
   activePersonId: string,
-  currency: string,
 ): ClaimItem | null {
   const priceCents = resolveDiscountedAmountCents(item);
   if (priceCents === null) return null;
 
-  const claimedIds = new Set(item.assignment.personIds);
+  const validIds = new Set(people.map((person) => person.id));
+  const claimedIds = new Set(item.assignment.personIds.filter((id) => validIds.has(id)));
   const claimants = people.filter((person) => claimedIds.has(person.id));
-  const claimedByActive = claimedIds.has(activePersonId);
+  const share = claimedIds.has(activePersonId)
+    ? resolvePersonShare(item, activePersonId, priceCents)
+    : null;
 
   return {
     id: item.id,
+    receiptId: receipt.id,
     name: item.name.trim() || 'Untitled item',
-    priceLabel: formatCurrencyFromCents(priceCents, currency),
-    claimedByActive,
-    claimants: claimants.map(({ id, name, colorIndex }) => ({ id, name, colorIndex })),
-    shareLabel: describeShare(item, claimants, activePersonId, priceCents, currency),
-    canAdjustSplit: claimants.length >= 2,
+    priceLabel: formatCurrencyFromCents(priceCents, receipt.currency),
+    claimedByActive: share !== null,
+    isLeft: !isItemAssigned(item, validIds),
+    claimantsLabel: describeClaimants(item, claimants),
+    share: share && {
+      ...share,
+      amountLabel: formatCurrencyFromCents(share.amountCents, receipt.currency),
+    },
   };
 }
 
-function describeShare(
-  item: EditableItem,
-  claimants: ClaimPerson[],
-  activePersonId: string,
-  priceCents: number,
-  currency: string,
-): string {
-  if (claimants.length === 0) return 'Nobody yet';
-  if (claimants.length === 1) {
-    const [only] = claimants;
-    return only.id === activePersonId ? 'Just you' : `Just ${only.firstName}`;
-  }
+function describeClaimants(item: EditableItem, claimants: ClaimPerson[]): string {
+  if (claimants.length === 0) return '';
 
-  // Same order and weights as computeSplit so "you pay" matches the summary to the cent.
-  const claimantIds = item.assignment.personIds.filter((id) =>
-    claimants.some((person) => person.id === id),
+  const names = claimants.map((person) => person.firstName);
+  const label =
+    names.length > 3 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ');
+  const unassigned = describeUnassignedShare(item, claimants);
+  return unassigned ? `${label} · ${unassigned} left` : label;
+}
+
+function describeUnassignedShare(item: EditableItem, claimants: ClaimPerson[]): string | null {
+  const unassignedWeight = item.assignment.unassignedWeight ?? 0;
+  if (unassignedWeight === 0) return null;
+
+  const total = claimants.reduce(
+    (sum, person) => sum + (item.assignment.weights?.[person.id] ?? 1),
+    unassignedWeight,
   );
-  const weights = Object.fromEntries(
-    claimantIds.map((id) => [id, item.assignment.weights?.[id] ?? 1]),
-  );
-  const isEqual = new Set(Object.values(weights)).size === 1;
-
-  if (isEqual) {
-    const each = formatCurrencyFromCents(Math.round(priceCents / claimants.length), currency);
-    return `Shared ${claimants.length} ways · ${each} each`;
-  }
-
-  if (!claimantIds.includes(activePersonId)) return 'Custom split';
-  const shares = allocateCents(priceCents, claimantIds, weights);
-  return `Custom split · you pay ${formatCurrencyFromCents(shares[activePersonId], currency)}`;
+  return formatShareFraction(unassignedWeight, total);
 }
