@@ -72,7 +72,7 @@ export function BottomNav({
 
   return (
     <footer
-      className="fixed bottom-0 left-0 z-50 w-full px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8"
+      className="sticky bottom-0 z-50 w-full px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8"
       style={{ bottom: bottomInset }}
     >
       <div

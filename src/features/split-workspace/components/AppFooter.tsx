@@ -1,6 +1,6 @@
 export function AppFooter() {
   return (
-    <footer className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 border-t border-surface-container-highest px-6 pt-6 pb-28 text-xs text-on-surface-variant md:px-8">
+    <footer className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 border-t border-surface-container-highest px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-xs text-on-surface-variant md:px-8">
       <p>© {new Date().getFullYear()} Eugene Chua</p>
       <a
         href="https://github.com/eugene3231/split"

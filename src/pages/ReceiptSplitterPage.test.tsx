@@ -211,6 +211,19 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4/i);
     });
 
+    it('keeps the credit footer below the wizard nav so it closes the page', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+
+      const workspace = screen.getByTestId('workspace');
+      const nav = screen.getByTestId('wizard-continue-btn').closest('footer');
+      const credit = screen.getByRole('link', { name: 'Source on GitHub' }).closest('footer');
+
+      expect(workspace.lastElementChild).toBe(credit);
+      expect(nav?.nextElementSibling).toBe(credit);
+    });
+
     it('supports back navigation through all steps', async () => {
       seedV2Draft({});
       render(<ReceiptSplitterPage />);
