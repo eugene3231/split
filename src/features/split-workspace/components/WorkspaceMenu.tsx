@@ -127,7 +127,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
           {PRESET_WORKSPACES.map((preset) => (
             <MenuItem
               key={preset.id}
-              icon="science"
+              icon="restaurant"
               data-testid={`workspace-preset-${preset.id}`}
               onClick={() => requestLoad({ draft: preset.build(), source: preset.label })}
             >
