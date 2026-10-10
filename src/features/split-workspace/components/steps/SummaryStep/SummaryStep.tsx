@@ -16,6 +16,7 @@ import { useSummaryExport } from './useSummaryExport';
 import { SummaryModeToggle } from './SummaryModeToggle';
 import type { SummaryMode } from './SummaryModeToggle';
 import { OverviewTable } from './OverviewTable';
+import { MixedCurrencyNote } from './MixedCurrencyNote';
 import { cn } from '@shared/utils/cn';
 
 export type SummaryStepProps = {
@@ -144,8 +145,10 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                   activeTab={activeTab}
                   currentCurrency={nativeCurrency}
                 />
-                {view.kind === 'total' && view.foreignRates.length > 0 ? (
-                  <></>
+                {view.kind === 'total' &&
+                !showBaseCurrency &&
+                view.displayCurrency === BASE_CURRENCY ? (
+                  <MixedCurrencyNote currencies={view.billedCurrencies} />
                 ) : view.kind === 'receipt' && view.effectiveRate ? (
                   <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
                     <span className="material-symbols-outlined text-sm">currency_exchange</span>
