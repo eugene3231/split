@@ -17,11 +17,15 @@ interface PresetItem {
   claim: PresetClaim;
 }
 
+/** A percent or a fixed amount; null leaves the charge off, e.g. a receipt with no GST line. */
+type PresetCharge = { percent: string } | { amount: string } | null;
+
 interface PresetReceipt {
   name: string;
+  currency?: string;
   items: PresetItem[];
-  serviceChargePercent: string;
-  gstPercent: string;
+  serviceCharge: PresetCharge;
+  gst: PresetCharge;
   total: string;
 }
 
@@ -48,8 +52,8 @@ const LUNCH_FOR_THREE: PresetDefinition = {
   receipts: [
     {
       name: 'Lunch',
-      serviceChargePercent: '10',
-      gstPercent: '9',
+      serviceCharge: { percent: '10' },
+      gst: { percent: '9' },
       total: '47.48',
       items: [
         { name: 'Chicken Rice', price: '8.50', claim: 'Alice' },
@@ -84,8 +88,8 @@ const DINNER_FOR_TWELVE: PresetDefinition = {
   receipts: [
     {
       name: 'Dinner',
-      serviceChargePercent: '10',
-      gstPercent: '',
+      serviceCharge: { percent: '10' },
+      gst: null,
       total: '166.98',
       items: [
         { name: 'Genki Forest', price: '2.50', claim: 'Alice' },
@@ -121,11 +125,82 @@ const DINNER_FOR_TWELVE: PresetDefinition = {
   ],
 };
 
-/** An empty percent leaves the charge off, e.g. a receipt with no GST line. */
-function percentCharge(fallback: ChargeState, percent: string): ChargeState {
-  return percent
-    ? { ...fallback, enabled: true, mode: 'percent', percentInput: percent }
-    : { ...fallback, enabled: false };
+const BALI_TRIP = ['Eugene', 'Sam', 'Moses', 'Glen', 'Beelee'];
+
+// Copied from a real Split export, including its quirks: receipts 2 and 3 are tagged SGD
+// although their prices are in rupiah.
+const BALI_TRIP_FOR_FIVE: PresetDefinition = {
+  id: 'bali-trip-for-five',
+  label: 'Bali trip for 5',
+  peopleNames: BALI_TRIP,
+  payerMobile: '',
+  receipts: [
+    {
+      name: 'Woods pererenan',
+      currency: 'IDR',
+      serviceCharge: { amount: '71750.00' },
+      gst: { amount: '109675.00' },
+      total: '1206500.00',
+      items: [
+        { name: 'Osmathus Flower', price: '50000.00', claim: 'Moses' },
+        { name: 'Ice Cappucino', price: '55000.00', claim: 'Sam' },
+        { name: 'Extra Almond Milk', price: '15000.00', claim: 'Sam' },
+        { name: 'Ice Matcha Latte', price: '55000.00', claim: 'Glen' },
+        { name: 'Extra Oat Milk', price: '15000.00', claim: 'Glen' },
+        { name: 'Bamboo Benny', price: '95000.00', claim: 'Sam' },
+        { name: '#Add Ham', price: '25000.00', claim: 'Sam' },
+        { name: 'Buckwheat Pancakes', price: '105000.00', claim: BALI_TRIP },
+        { name: 'Pan Seared Barramundi', price: '270000.00', claim: ['Moses', 'Eugene'] },
+        { name: 'Moroccan Shakshouka', price: '105000.00', claim: 'Glen' },
+        { name: '#Add Pork Sausage', price: '40000.00', claim: 'Glen' },
+        { name: 'Pandan Pannacea', price: '50000.00', claim: 'Eugene' },
+        { name: 'Green V', price: '55000.00', claim: 'Beelee' },
+        { name: 'Scrambled Egg On Toast', price: '90000.00', claim: 'Beelee' },
+      ],
+    },
+    {
+      name: 'Receipt 2',
+      currency: 'SGD',
+      serviceCharge: { amount: '16980' },
+      gst: { amount: '30000' },
+      total: '329.98',
+      items: [
+        { name: 'ACAI BOWL', price: '139000', claim: ['Sam', 'Eugene'] },
+        { name: 'PB&J SMOOTHIE', price: '75000', claim: 'Beelee' },
+        { name: 'BANOFFEE PIE', price: '69000', claim: 'Beelee' },
+      ],
+    },
+    {
+      name: 'Receipt 3',
+      currency: 'SGD',
+      serviceCharge: { amount: '79100.00' },
+      gst: { amount: '120910.00' },
+      total: '1330010.00',
+      items: [
+        { name: 'homemade turmeric jamu', price: '65000.00', claim: 'Beelee' },
+        { name: 'mocktails-pina colada (1gls)', price: '75000.00', claim: 'Glen' },
+        { name: 'reflection still water (1ge)', price: '65000.00', claim: BALI_TRIP },
+        { name: 'healty juice - clean green', price: '60000.00', claim: 'Sam' },
+        { name: 'arak (50ml) - by pak jero', price: '85000.00', claim: 'Moses' },
+        { name: 'ayam betutu', price: '150000.00', claim: ['Eugene', 'Moses', 'Glen', 'Beelee'] },
+        { name: 'rendang sapi', price: '170000.00', claim: ['Eugene', 'Moses', 'Glen', 'Beelee'] },
+        { name: 'bebek goreng', price: '145000.00', claim: ['Eugene', 'Moses', 'Glen', 'Beelee'] },
+        { name: 'urap urap', price: '60000.00', claim: ['Eugene', 'Moses', 'Glen', 'Beelee'] },
+        { name: 'nasi campur', price: '120000.00', claim: 'Sam' },
+        { name: 'nasi putih', price: '20000.00', claim: ['Eugene', 'Moses', 'Glen', 'Beelee'] },
+        { name: 'nasi merah', price: '25000.00', claim: ['Moses', 'Glen', 'Beelee'] },
+        { name: 'nasi kuning', price: '25000.00', claim: ['Moses', 'Glen', 'Beelee'] },
+        { name: 'pisang goreng', price: '65000.00', claim: ['Sam', 'Moses', 'Glen', 'Beelee'] },
+      ],
+    },
+  ],
+};
+
+function buildCharge(fallback: ChargeState, charge: PresetCharge): ChargeState {
+  if (!charge) return { ...fallback, enabled: false };
+  if ('amount' in charge)
+    return { ...fallback, enabled: true, mode: 'amount', amountInput: charge.amount };
+  return { ...fallback, enabled: true, mode: 'percent', percentInput: charge.percent };
 }
 
 function buildAssignment(
@@ -168,10 +243,10 @@ function buildPresetDraft(definition: PresetDefinition): SessionDraft {
       assignment: buildAssignment(item.claim, idByName),
     })),
     discount: { ...defaultDiscountState },
-    serviceCharge: percentCharge(defaultServiceChargeState, receipt.serviceChargePercent),
-    gst: percentCharge(defaultGstState, receipt.gstPercent),
+    serviceCharge: buildCharge(defaultServiceChargeState, receipt.serviceCharge),
+    gst: buildCharge(defaultGstState, receipt.gst),
     receiptTotalInput: receipt.total,
-    currency: BASE_CURRENCY,
+    currency: receipt.currency ?? BASE_CURRENCY,
     exchangeRateOverride: null,
   }));
 
@@ -187,14 +262,23 @@ function buildPresetDraft(definition: PresetDefinition): SessionDraft {
 
 function describePreset(definition: PresetDefinition): string {
   const itemCount = definition.receipts.reduce((count, receipt) => count + receipt.items.length, 0);
-  return `${definition.peopleNames.length} people · ${itemCount} items`;
+  const receiptCount = definition.receipts.length;
+  return [
+    `${definition.peopleNames.length} people`,
+    receiptCount > 1 && `${receiptCount} receipts`,
+    `${itemCount} items`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
-export const PRESET_WORKSPACES: PresetWorkspace[] = [LUNCH_FOR_THREE, DINNER_FOR_TWELVE].map(
-  (definition) => ({
-    id: definition.id,
-    label: definition.label,
-    description: describePreset(definition),
-    build: () => buildPresetDraft(definition),
-  }),
-);
+export const PRESET_WORKSPACES: PresetWorkspace[] = [
+  LUNCH_FOR_THREE,
+  DINNER_FOR_TWELVE,
+  BALI_TRIP_FOR_FIVE,
+].map((definition) => ({
+  id: definition.id,
+  label: definition.label,
+  description: describePreset(definition),
+  build: () => buildPresetDraft(definition),
+}));

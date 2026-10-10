@@ -3,7 +3,7 @@ import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspa
 import { computeSplit } from '@features/split-workspace/logic/split/split';
 import { isStepValid } from '@features/split-workspace/logic/wizardValidation';
 
-const [lunch, dinner] = PRESET_WORKSPACES;
+const [lunch, dinner, bali] = PRESET_WORKSPACES;
 
 function splitOf(preset: (typeof PRESET_WORKSPACES)[number]) {
   const draft = preset.build();
@@ -12,13 +12,15 @@ function splitOf(preset: (typeof PRESET_WORKSPACES)[number]) {
 }
 
 describe('PRESET_WORKSPACES', () => {
-  it('offers one test split per sample receipt', () => {
+  it('offers a small, a large and a multi-receipt test split', () => {
     expect(PRESET_WORKSPACES.map((preset) => preset.label)).toEqual([
       'Lunch for 3',
       'Dinner for 12',
+      'Bali trip for 5',
     ]);
     expect(lunch.description).toBe('3 people · 4 items');
     expect(dinner.description).toBe('12 people · 20 items');
+    expect(bali.description).toBe('5 people · 3 receipts · 31 items');
   });
 
   it.each(PRESET_WORKSPACES)(
@@ -30,7 +32,7 @@ describe('PRESET_WORKSPACES', () => {
     },
   );
 
-  it.each(PRESET_WORKSPACES)('matches the printed total of $label', (preset) => {
+  it.each([lunch, dinner])('matches the printed total of $label', (preset) => {
     const { receipt, split } = splitOf(preset);
     expect((split.grandTotalCents / 100).toFixed(2)).toBe(receipt.receiptTotalInput);
   });
@@ -65,5 +67,22 @@ describe('PRESET_WORKSPACES', () => {
     expect(second.people[0].id).not.toBe(first.people[0].id);
     expect(second.receipts[0].id).not.toBe(first.receipts[0].id);
     expect(second.activeReceiptId).toBe(second.receipts[0].id);
+  });
+
+  it('keeps the Bali export as it was exported, amount charges and currencies included', () => {
+    const draft = bali.build();
+    expect(draft.receipts.map((receipt) => [receipt.name, receipt.currency])).toEqual([
+      ['Woods pererenan', 'IDR'],
+      ['Receipt 2', 'SGD'],
+      ['Receipt 3', 'SGD'],
+    ]);
+    expect(draft.receipts[0].serviceCharge).toMatchObject({
+      enabled: true,
+      mode: 'amount',
+      amountInput: '71750.00',
+    });
+    const [woods] = draft.receipts;
+    const split = computeSplit({ people: draft.people, ...woods });
+    expect(split.grandTotalCents).toBe(120642500);
   });
 });
