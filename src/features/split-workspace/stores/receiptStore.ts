@@ -30,10 +30,6 @@ interface ApplyReceiptScanArgs {
   payload: OcrResponse;
 }
 
-// ---------------------------------------------------------------------------
-// Module-level helpers
-// ---------------------------------------------------------------------------
-
 function createBlankReceipt(name: string): Receipt {
   return {
     id: createId(),
@@ -56,15 +52,9 @@ function updateActiveReceipt(
   return receipts.map((r) => (r.id === activeReceiptId ? { ...r, ...patch } : r));
 }
 
-// ---------------------------------------------------------------------------
-// Combined store type
-// ---------------------------------------------------------------------------
-
 type ReceiptStoreState = {
-  // UI form state
   peopleInput: string;
 
-  // Workspace state
   initialized: boolean;
   people: Person[];
   receipts: Receipt[];
@@ -73,10 +63,8 @@ type ReceiptStoreState = {
 };
 
 type ReceiptStoreActions = {
-  // UI form actions
   setPeopleInput: (next: string) => void;
 
-  // Workspace actions
   initialize: () => void;
   resetSplit: () => void;
   reset: () => void;
@@ -97,25 +85,18 @@ type ReceiptStoreActions = {
   getExportJson: () => string;
   importFromJson: (raw: string) => void;
 
-  // Payer actions
   setPayerMobile: (mobile: string) => void;
 
-  // Receipt management actions
   addReceipt: () => void;
   removeReceipt: (receiptId: string) => void;
   setActiveReceiptId: (receiptId: string) => void;
   renameReceipt: (receiptId: string, name: string) => void;
 
-  // Currency actions (modify receipts, so stay here)
   setReceiptCurrency: (receiptId: string, currency: string) => void;
   setReceiptExchangeRateOverride: (receiptId: string, rate: number | null) => void;
 };
 
 type ReceiptStore = ReceiptStoreState & ReceiptStoreActions;
-
-// ---------------------------------------------------------------------------
-// Initial state
-// ---------------------------------------------------------------------------
 
 const initialState: ReceiptStoreState = {
   peopleInput: '',
@@ -127,19 +108,11 @@ const initialState: ReceiptStoreState = {
   payerMobile: '',
 };
 
-// ---------------------------------------------------------------------------
-// Store
-// ---------------------------------------------------------------------------
-
 export const useReceiptStore = create<ReceiptStore>((set, get) => {
   return {
     ...initialState,
 
-    // --- UI form actions ---
-
     setPeopleInput: (next) => set({ peopleInput: next }),
-
-    // --- Workspace actions ---
 
     initialize: () => {
       if (get().initialized) {
@@ -375,11 +348,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       });
     },
 
-    // --- Payer actions ---
-
     setPayerMobile: (mobile) => set({ payerMobile: mobile }),
-
-    // --- Receipt management actions ---
 
     addReceipt: () => {
       set((state) => {
@@ -418,8 +387,6 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         ),
       }));
     },
-
-    // --- Currency actions ---
 
     setReceiptCurrency: (receiptId, currency) => {
       set((state) => ({

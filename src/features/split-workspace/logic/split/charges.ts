@@ -1,11 +1,7 @@
 import type { ChargeDetection, ChargeState } from '@shared/types';
 import { parseCurrencyToCents, parseNumber } from '@shared/logic/core/money';
 
-export function resolveChargeCents(
-  charge: ChargeState,
-  subtotalCents: number,
-  percentageBaseCents: number,
-): number {
+export function resolveChargeCents(charge: ChargeState, percentageBaseCents: number): number {
   if (!charge.enabled) {
     return 0;
   }
@@ -19,8 +15,36 @@ export function resolveChargeCents(
     return 0;
   }
 
-  const baseCents = percentageBaseCents === 0 ? subtotalCents : percentageBaseCents;
-  return Math.round((baseCents * rate) / 100);
+  return Math.round((percentageBaseCents * rate) / 100);
+}
+
+interface ReceiptChargesInput {
+  subtotalCents: number;
+  discount: ChargeState;
+  serviceCharge: ChargeState;
+  gst: ChargeState;
+}
+
+export function resolveReceiptCharges({
+  subtotalCents,
+  discount,
+  serviceCharge,
+  gst,
+}: ReceiptChargesInput) {
+  const discountCents = Math.min(
+    subtotalCents,
+    Math.max(0, resolveChargeCents(discount, subtotalCents)),
+  );
+  const discountedSubtotalCents = subtotalCents - discountCents;
+  const serviceChargeCents = resolveChargeCents(serviceCharge, discountedSubtotalCents);
+  const gstCents = resolveChargeCents(gst, discountedSubtotalCents + serviceChargeCents);
+  return {
+    discountCents,
+    discountedSubtotalCents,
+    serviceChargeCents,
+    gstCents,
+    grandTotalCents: discountedSubtotalCents + serviceChargeCents + gstCents,
+  };
 }
 
 export function applyChargeDetection(

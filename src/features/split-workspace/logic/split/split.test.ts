@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChargeState, EditableItem, Person } from '@shared/types';
-import { computeSplit } from '@shared/logic/split/split';
-import { convertSplitResult } from '@shared/logic/core/exchangeRates';
+import { computeSplit } from '@features/split-workspace/logic/split/split';
+import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
 
 const disabledCharge: ChargeState = {
   enabled: false,

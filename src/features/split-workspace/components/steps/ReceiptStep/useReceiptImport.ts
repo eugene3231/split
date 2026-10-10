@@ -5,9 +5,9 @@ import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtur
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 
-type UseReceiptImportArgs = {
+interface UseReceiptImportArgs {
   activeReceiptId: string;
-};
+}
 
 export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
   const handleReceiptFileSelected = useReceiptStore((state) => state.handleReceiptFileSelected);
@@ -27,15 +27,26 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
     const { receipts, people } = useReceiptStore.getState();
     const receipt = receipts.find((candidate) => candidate.id === activeReceiptId);
     if (!receipt) return;
+    const scannedFile = receipt.receiptFile ?? null;
 
     const payload = await scanReceipt({
       receiptId: activeReceiptId,
-      receiptFile: receipt.receiptFile ?? null,
+      receiptFile: scannedFile,
       apiKeyInput: geminiApiKeyInput,
       model: geminiModel,
+      isCurrent: () =>
+        useReceiptStore.getState().receipts.find((candidate) => candidate.id === activeReceiptId)
+          ?.receiptFile === scannedFile,
     });
 
     if (!payload) {
+      return;
+    }
+
+    const currentReceipt = useReceiptStore
+      .getState()
+      .receipts.find((candidate) => candidate.id === activeReceiptId);
+    if (currentReceipt && (currentReceipt.receiptFile ?? null) !== scannedFile) {
       return;
     }
 
@@ -83,7 +94,10 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
           const payload = fixture.buildResponse();
           useScanStore.getState().clearScanFeedback(targetReceiptId);
           useScanStore.getState().setScanWarnings(targetReceiptId, payload.warnings);
-          applyReceiptScan({ receipt, people: currentPeople, payload });
+          const result = applyReceiptScan({ receipt, people: currentPeople, payload });
+          if (result.kind === 'applied') {
+            useReceiptStore.getState().patchReceipt(targetReceiptId, { receiptFile: null });
+          }
         },
       })),
     [],

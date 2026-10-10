@@ -72,17 +72,6 @@ export type SplitResult = {
   unassignedItemCount: number;
 };
 
-export type ResolvedItem = {
-  itemId: string;
-  name: string;
-  grossAmountCents: number;
-  discountPercent: number;
-  discountAmountCents: number;
-  assignedPersonIds: Set<string>;
-  netByPerson: Record<string, number>;
-  grossByPerson: Record<string, number>;
-};
-
 export type PersonReceiptLineItem = {
   itemId: string;
   name: string;
@@ -106,19 +95,4 @@ export type Receipt = {
   receiptFile?: File | null;
   currency: string;
   exchangeRateOverride: number | null;
-};
-
-export type SessionDraft = {
-  version: 2;
-  people: Person[];
-  receipts: Receipt[];
-  activeReceiptId: string;
-  payerMobile: string;
-  savedAt: string;
-};
-
-export type PersistedOcrSettings = {
-  version: 1;
-  geminiModel: string;
-  savedAt: string;
 };

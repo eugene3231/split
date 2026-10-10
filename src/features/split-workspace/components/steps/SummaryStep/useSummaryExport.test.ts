@@ -156,6 +156,42 @@ describe('useSummaryExport', () => {
     expect(result.current.exportState).toEqual({ kind: 'text-success', method: 'fallback' });
   });
 
+  it('copies the summary when native sharing fails', async () => {
+    const share = vi.fn().mockRejectedValue(new TypeError('Sharing unsupported'));
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { share, clipboard: { writeText } });
+    const { result } = renderExporter();
+
+    await act(async () => result.current.share());
+
+    expect(writeText).toHaveBeenCalledWith('Dinner total: $10.00\n\nAlice: $10.00');
+    expect(result.current.exportState).toEqual({ kind: 'text-success', method: 'fallback' });
+  });
+
+  it('clears failed-copy feedback while a retry is pending', async () => {
+    const copy = Promise.withResolvers<void>();
+    const writeText = vi
+      .fn()
+      .mockRejectedValueOnce(new DOMException('Denied', 'NotAllowedError'))
+      .mockReturnValueOnce(copy.promise);
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    const { result } = renderExporter();
+    await act(async () => result.current.share());
+    expect(result.current.exportState.kind).toBe('manual-copy');
+
+    let retry = Promise.resolve();
+    act(() => {
+      retry = result.current.share();
+    });
+    expect(result.current.exportState).toEqual({ kind: 'busy', action: 'share' });
+
+    await act(async () => {
+      copy.resolve();
+      await retry;
+    });
+    expect(result.current.exportState).toEqual({ kind: 'text-success', method: 'fallback' });
+  });
+
   it('expires success feedback after two seconds', async () => {
     vi.useFakeTimers();
     vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });

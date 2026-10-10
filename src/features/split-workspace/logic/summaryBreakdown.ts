@@ -3,71 +3,20 @@ import type { ChargeState, Person, PersonReceiptLineItem } from '@shared/types';
 import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 
-export interface BreakdownConversion {
-  amountCents: number;
-  rate: number;
-  fromCurrency: string;
-  toCurrency: string;
-}
+import type {
+  BreakdownConversion,
+  BreakdownItemRow,
+  BreakdownChargeRow,
+  ReceiptBreakdownSection,
+  PersonBreakdown,
+  SummaryBreakdown,
+} from '@shared/types/summaryBreakdown';
 
-export interface BreakdownItemRow {
-  id: string;
-  label: string;
-  amountCents: number | null;
-  involved: boolean;
-  currency: string;
-}
-
-export interface BreakdownChargeRow {
-  kind: 'discount' | 'service' | 'gst';
-  label: string;
-  amountCents: number;
-  sign: 'minus' | 'plus';
-  currency: string;
-}
-
-export interface ReceiptBreakdownTotal {
-  id: string;
-  label: string;
-  totalCents: number;
-  currency: string;
-}
-
-export interface ReceiptBreakdownSection {
-  id: string;
-  title: string;
-  totalCents: number;
-  currency: string;
-  conversion?: BreakdownConversion;
-  itemRows: BreakdownItemRow[];
-  chargeRows: BreakdownChargeRow[];
-  emptyMessage?: string;
-}
-
-export interface PersonBreakdown {
-  person: Person;
-  colorIndex: number;
-  headerLabel: 'Total Due' | 'Grand Total Due';
-  totalCents: number;
-  currency: string;
-  conversion?: BreakdownConversion;
-  qrDataUrl?: string;
-  collapsedReceiptTotals: ReceiptBreakdownTotal[];
-  sections: ReceiptBreakdownSection[];
-  emptyMessage?: string;
-}
-
-export interface SummaryBreakdown {
-  personBreakdowns: PersonBreakdown[];
-  emptyPeopleMessage?: string;
-  unassignedItemCount: number;
-}
-
-export type ResolveSummaryBreakdownInput = {
+export interface ResolveSummaryBreakdownInput {
   people: Person[];
   view: SummaryView;
   qrDataUrls?: Record<string, string>;
-};
+}
 
 export function resolveSummaryBreakdown({
   people,
@@ -108,7 +57,14 @@ export function resolvePersonBreakdowns({
                 discount: entry.discount,
                 serviceCharge: entry.serviceCharge,
                 gst: entry.gst,
-                conversionRate: entry.effectiveRate,
+                conversion:
+                  entry.effectiveRate !== undefined
+                    ? buildConversion(
+                        entry.sgdSplit.totalByPersonCents[person.id] ?? 0,
+                        entry.effectiveRate,
+                        entry.currency,
+                      )
+                    : undefined,
                 itemRows,
               });
             })
@@ -123,7 +79,6 @@ export function resolvePersonBreakdowns({
               discount: view.discount,
               serviceCharge: view.serviceCharge,
               gst: view.gst,
-              conversionRate: undefined,
               itemRows: buildItemRows(
                 view.displaySplit.lineItemsByPerson[person.id] ?? [],
                 view.displayCurrency,
@@ -142,7 +97,11 @@ export function resolvePersonBreakdowns({
         view.isForeign &&
         view.displayCurrency !== BASE_CURRENCY &&
         view.effectiveRate !== null
-          ? buildConversion(totalCents, view.effectiveRate, view.nativeCurrency)
+          ? buildConversion(
+              view.sgdSplit.totalByPersonCents[person.id] ?? 0,
+              view.effectiveRate,
+              view.nativeCurrency,
+            )
           : undefined,
       qrDataUrl: qrDataUrls[person.id],
       collapsedReceiptTotals:
@@ -160,7 +119,7 @@ export function resolvePersonBreakdowns({
   });
 }
 
-type BuildReceiptSectionInput = {
+interface BuildReceiptSectionInput {
   id: string;
   title: string;
   personId: string;
@@ -169,9 +128,9 @@ type BuildReceiptSectionInput = {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
-  conversionRate: number | undefined;
+  conversion?: BreakdownConversion;
   itemRows: BreakdownItemRow[];
-};
+}
 
 function buildReceiptSection({
   id,
@@ -182,7 +141,7 @@ function buildReceiptSection({
   discount,
   serviceCharge,
   gst,
-  conversionRate,
+  conversion,
   itemRows,
 }: BuildReceiptSectionInput): ReceiptBreakdownSection {
   const totalCents = split.totalByPersonCents[personId] ?? 0;
@@ -191,13 +150,9 @@ function buildReceiptSection({
     title,
     totalCents,
     currency,
-    conversion:
-      conversionRate !== undefined
-        ? buildConversion(totalCents, conversionRate, currency)
-        : undefined,
+    conversion,
     itemRows,
     chargeRows: buildChargeRows({
-      personId,
       currency,
       discount,
       serviceCharge,
@@ -220,8 +175,7 @@ function buildItemRows(lines: PersonReceiptLineItem[], currency: string): Breakd
   }));
 }
 
-type BuildChargeRowsInput = {
-  personId: string;
+interface BuildChargeRowsInput {
   currency: string;
   discount: ChargeState;
   serviceCharge: ChargeState;
@@ -229,7 +183,7 @@ type BuildChargeRowsInput = {
   discountCents: number;
   serviceCents: number;
   gstCents: number;
-};
+}
 
 function buildChargeRows({
   currency,
@@ -277,7 +231,7 @@ function buildConversion(
   fromCurrency: string,
 ): BreakdownConversion {
   return {
-    amountCents: Math.round(amountCents * rate),
+    amountCents,
     rate,
     fromCurrency,
     toCurrency: BASE_CURRENCY,

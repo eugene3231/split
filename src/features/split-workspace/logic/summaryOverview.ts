@@ -1,5 +1,5 @@
 import { BASE_CURRENCY } from '@shared/constants';
-import { resolveDiscountedAmountCents } from '@shared/logic/split/pricing';
+import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import type { ChargeState, EditableItem, Person, Receipt, SplitResult } from '@shared/types';
 import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';

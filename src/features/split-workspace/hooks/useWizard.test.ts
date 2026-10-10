@@ -183,6 +183,32 @@ describe('useWizard', () => {
     expect(result.current.stepReachability.final).toBe(false);
   });
 
+  it('allows summary after claiming the priced item while a blank claimed row remains', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    const receipt = makeReceipt('r1', ['i1', 'i2']);
+    receipt.items[1].amountInput = '';
+
+    const { result } = renderWizard([receipt]);
+
+    expect(result.current.canContinue).toBe(true);
+    expect(result.current.stepReachability.final).toBe(true);
+    act(() => result.current.handleNext());
+    expect(result.current.activeStep).toBe('final');
+  });
+
+  it('blocks summary when only the blank row is claimed', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    const receipt = makeReceipt('r1', ['i1', 'i2']);
+    receipt.items[0].assignment.personIds = [];
+    receipt.items[1].amountInput = '';
+
+    const { result } = renderWizard([receipt]);
+
+    expect(result.current.stepReachability.final).toBe(false);
+    act(() => result.current.handleStepSelect('final'));
+    expect(result.current.activeStep).toBe('items');
+  });
+
   it('starts an initialized blank split and resets navigation without changing Gemini settings', () => {
     saveWizardState({ step: 'final', activePersonId: 'p2' });
     useReceiptStore.setState({

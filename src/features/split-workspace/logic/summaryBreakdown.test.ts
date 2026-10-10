@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { ChargeState, Person, PersonReceiptLineItem, SplitResult } from '@shared/types';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
-import type { SummaryView } from './summaryView';
+import { resolveSummaryView, type SummaryView } from './summaryView';
+import { computeSplit, computeConsolidatedSplit } from './split/split';
+import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
 
 const disabledCharge: ChargeState = {
   enabled: false,
@@ -61,6 +63,44 @@ function split(overrides: Partial<SplitResult> = {}): SplitResult {
 }
 
 describe('resolveSummaryBreakdown', () => {
+  it.each(['r1', 'total'])(
+    'uses allocated SGD cents for conversion copy on the %s tab',
+    (activeTab) => {
+      const people = [alice, bob];
+      const receipt = makeReceipt({
+        id: 'r1',
+        currency: 'USD',
+        items: people.map((person) =>
+          makeItem({
+            id: person.id,
+            amountInput: '10.01',
+            assignment: { mode: 'single', personId: person.id, personIds: [] },
+          }),
+        ),
+      });
+      const nativeSplit = computeSplit({ people, ...receipt });
+      const exchangeRates = { USD: 1.35 };
+      const view = resolveSummaryView({
+        receipts: [receipt],
+        splitByReceipt: [nativeSplit],
+        consolidatedSplit: computeConsolidatedSplit([nativeSplit], people, ['USD'], exchangeRates),
+        fallbackSplit: nativeSplit,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+        exchangeRates,
+        activeTab,
+        showBaseCurrency: false,
+      });
+      const breakdowns = resolveSummaryBreakdown({ people, view }).personBreakdowns;
+      const conversions = breakdowns.map((person) =>
+        activeTab === 'total' ? person.sections[0].conversion : person.conversion,
+      );
+      expect(view.sgdSplit.totalByPersonCents).toEqual({ alice: 1352, bob: 1351 });
+      expect(conversions.map((conversion) => conversion?.amountCents)).toEqual([1352, 1351]);
+    },
+  );
+
   it('resolves single-receipt person rows and charge rows', () => {
     const view: SummaryView = {
       kind: 'receipt',
@@ -176,6 +216,7 @@ describe('resolveSummaryBreakdown', () => {
         {
           name: 'Dinner',
           split: chargedSplit,
+          sgdSplit: chargedSplit,
           currency: 'SGD',
           discount: percentCharge('8.33'),
           serviceCharge: percentCharge('16.67'),
@@ -219,6 +260,7 @@ describe('resolveSummaryBreakdown', () => {
         {
           name: 'Ramen Shop',
           split: ramenSplit,
+          sgdSplit: split({ totalByPersonCents: { alice: 11 } }),
           currency: 'JPY',
           discount: disabledCharge,
           serviceCharge: disabledCharge,
@@ -228,6 +270,7 @@ describe('resolveSummaryBreakdown', () => {
         {
           name: 'Tea Stall',
           split: teaSplit,
+          sgdSplit: teaSplit,
           currency: 'SGD',
           discount: disabledCharge,
           serviceCharge: disabledCharge,
@@ -320,6 +363,7 @@ describe('resolveSummaryBreakdown', () => {
         {
           name: 'Dinner',
           split: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
+          sgdSplit: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
           currency: 'SGD',
           discount: disabledCharge,
           serviceCharge: disabledCharge,

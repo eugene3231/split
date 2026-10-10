@@ -4,7 +4,7 @@ import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { generatePaynowQrDataUrls } from '@features/payments';
 import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
-import type { SummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
+import type { SummaryBreakdown } from '@shared/types/summaryBreakdown';
 import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
 import type { SummaryOverview } from '@features/split-workspace/logic/summaryOverview';
 import { resolveSummaryView } from '@features/split-workspace/logic/summaryView';
@@ -33,8 +33,10 @@ function useQrDataUrls(
     payerMobile,
     people.map((person) => [person.id, sgdSplit.totalByPersonCents[person.id] ?? 0]),
   ]);
+  const completedQrKey = qrResult?.key;
 
   useEffect(() => {
+    if (completedQrKey === qrKey) return;
     let cancelled = false;
     generatePaynowQrDataUrls(people, sgdSplit, payerMobile).then((urls) => {
       if (!cancelled) setQrResult({ key: qrKey, urls });
@@ -42,10 +44,7 @@ function useQrDataUrls(
     return () => {
       cancelled = true;
     };
-    // qrKey encodes every person's SGD amount, so it covers `people` and
-    // `sgdSplit` transitively — no need to list them directly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qrKey]);
+  }, [completedQrKey, payerMobile, people, qrKey, sgdSplit]);
 
   return qrResult?.key === qrKey ? qrResult.urls : {};
 }
@@ -86,14 +85,16 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
     (receipt) => receipt.id === activeSummaryReceipt?.id,
   );
   const selectedSplit = consolidated.splitByReceipt[selectedReceiptIndex] ?? active.split;
-  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation(
-    selectedSplit,
-    activeSummaryReceipt?.discount ?? defaultDiscountState,
-    (discount) => {
+  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation({
+    split: selectedSplit,
+    discount: activeSummaryReceipt?.discount ?? defaultDiscountState,
+    serviceCharge: activeSummaryReceipt?.serviceCharge ?? defaultServiceChargeState,
+    gst: activeSummaryReceipt?.gst ?? defaultGstState,
+    setDiscount: (discount) => {
       if (activeSummaryReceipt) patchReceipt(activeSummaryReceipt.id, { discount });
     },
-    activeSummaryReceipt?.receiptTotalInput ?? '',
-  );
+    receiptTotalInput: activeSummaryReceipt?.receiptTotalInput ?? '',
+  });
 
   const view = resolveSummaryView({
     receipts,

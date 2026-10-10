@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { computeConsolidatedSplit, computeSplit } from '@shared/logic/split/split';
+import {
+  computeConsolidatedSplit,
+  computeSplit,
+} from '@features/split-workspace/logic/split/split';
 import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
 import { resolveSummaryOverview } from './summaryOverview';
