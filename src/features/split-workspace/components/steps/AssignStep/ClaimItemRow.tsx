@@ -76,12 +76,14 @@ export function ClaimItemRow({
       {share && (
         <div className="mt-2 flex flex-wrap items-center justify-end gap-2 pl-9">
           <ItemActionChip
+            icon="groups"
             label="Split evenly"
             disabled={!share.canSplitEvenly}
             testId={`claim-item-split-evenly-${item.id}`}
             onClick={onSplitEvenly}
           />
           <ItemActionChip
+            icon="person"
             label={`Just ${personName}`}
             disabled={!share.canTakeAlone}
             testId={`claim-item-take-alone-${item.id}`}
