@@ -18,6 +18,7 @@ export type ShareStep = 'increase' | 'decrease';
 
 export interface PersonShare {
   label: string;
+  isWhole: boolean;
   amountCents: number;
   canIncrease: boolean;
   canDecrease: boolean;
@@ -65,6 +66,7 @@ export function resolvePersonShare(
 
   return {
     label: formatShareFraction(parts.weights[personId], totalWeight(parts)),
+    isWhole: parts.weights[personId] === totalWeight(parts),
     amountCents,
     canIncrease: stepTarget(parts, personId, 'increase') !== null,
     canDecrease: stepTarget(parts, personId, 'decrease') !== null,
@@ -161,12 +163,13 @@ function stepTarget(parts: ShareParts, personId: string, step: ShareStep): numbe
         ? current - 1
         : Math.floor(exact);
 
-  // Taking the whole item would push everyone else off it; untick them instead.
-  const smallestDivisor = parts.personIds.length > 1 ? 2 : 1;
-  return target >= smallestDivisor && target <= MAX_SHARE_DIVISOR ? target : null;
+  return target >= 1 && target <= MAX_SHARE_DIVISOR ? target : null;
 }
 
-/** Gives this person 1/divisor; everyone else, and any unassigned share, keep their ratio of the rest. */
+/**
+ * Gives this person 1/divisor; everyone else, and any unassigned share, keep their ratio of the rest.
+ * Taking the whole item takes everyone else off it.
+ */
 function setShareFraction(
   item: EditableItem,
   parts: ShareParts,

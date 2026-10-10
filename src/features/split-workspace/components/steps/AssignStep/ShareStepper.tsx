@@ -6,9 +6,27 @@ interface Props {
   testId: string;
 }
 
+/** Fixed width so the steppers and prices line up down the list, whatever the label. */
 export function ShareStepper({ share, onStep, testId }: Props) {
+  if (share.isWhole) {
+    // A whole item needs no label; the lone − is how you halve it.
+    return (
+      <span className="flex w-23 shrink-0">
+        <span className="rounded-full border border-outline-variant">
+          <StepButton
+            icon="remove"
+            label="Take a smaller share"
+            disabled={!share.canDecrease}
+            onClick={() => onStep('decrease')}
+            testId={`${testId}-decrease`}
+          />
+        </span>
+      </span>
+    );
+  }
+
   return (
-    <span className="flex shrink-0 items-center rounded-full border border-outline-variant">
+    <span className="flex w-23 shrink-0 items-center rounded-full border border-outline-variant">
       <StepButton
         icon="remove"
         label="Take a smaller share"
@@ -16,7 +34,7 @@ export function ShareStepper({ share, onStep, testId }: Props) {
         onClick={() => onStep('decrease')}
         testId={`${testId}-decrease`}
       />
-      <span data-testid={testId} className="min-w-10 text-center text-sm font-bold tabular-nums">
+      <span data-testid={testId} className="flex-1 text-center text-sm font-bold tabular-nums">
         {share.label}
       </span>
       <StepButton
@@ -46,7 +64,7 @@ function StepButton({ icon, label, disabled, onClick, testId }: StepButtonProps)
       data-testid={testId}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-30"
+      className="flex h-8 w-7 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-30"
     >
       <span className="material-symbols-outlined text-lg">{icon}</span>
     </button>

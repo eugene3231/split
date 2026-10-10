@@ -127,7 +127,8 @@ describe('AssignStep', () => {
     refresh();
     expect(assignmentOf('open').personIds).toEqual(['p2']);
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent('Whole');
+    expect(screen.queryByTestId('claim-item-share-open')).not.toBeInTheDocument();
+    expect(screen.getByTestId('claim-item-share-open-decrease')).toBeEnabled();
     expect(screen.getByTestId('claim-item-amount-open')).toHaveTextContent('$12.00');
 
     fireEvent.click(toggle());
@@ -156,7 +157,6 @@ describe('AssignStep', () => {
     expect(assignmentOf('w').weights).toEqual({ p1: 2, p2: 1, p3: 1 });
     expect(screen.getByTestId('claim-item-share-w')).toHaveTextContent('1/2');
     expect(screen.getByTestId('claim-item-amount-w')).toHaveTextContent('$6.00');
-    expect(screen.getByTestId('claim-item-share-w-increase')).toBeDisabled();
 
     fireEvent.click(screen.getByTestId('claim-item-share-w-decrease'));
     refresh();

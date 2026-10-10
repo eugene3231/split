@@ -43,22 +43,29 @@ describe('resolvePersonShare', () => {
   it('shows an equal three-way split as 1/3 that can go either way', () => {
     const share = resolvePersonShare(buildItem({ personIds: ['a', 'b', 'c'] }), 'a', 1200);
 
-    expect(share).toEqual({ label: '1/3', amountCents: 400, canIncrease: true, canDecrease: true });
+    expect(share).toEqual({
+      label: '1/3',
+      isWhole: false,
+      amountCents: 400,
+      canIncrease: true,
+      canDecrease: true,
+    });
   });
 
-  it('stops + at a half while someone else is still on the item', () => {
+  it('lets + go from a half to the whole item', () => {
     const share = resolvePersonShare(
       buildItem({ personIds: ['a', 'b'], weights: { a: 1, b: 1 } }),
       'a',
       1200,
     );
 
-    expect(share).toMatchObject({ label: '1/2', canIncrease: false, canDecrease: true });
+    expect(share).toMatchObject({ label: '1/2', isWhole: false, canIncrease: true });
   });
 
   it('labels a solo item as whole and an odd typed split as a percent', () => {
     expect(resolvePersonShare(buildItem({ personIds: ['a'] }), 'a', 1200)).toMatchObject({
       label: 'Whole',
+      isWhole: true,
       canIncrease: false,
       canDecrease: true,
     });
@@ -128,6 +135,13 @@ describe('stepPersonShare', () => {
     expect(resolvePersonShare(stepPersonShare(item, 'a', 'increase'), 'a', 1200)?.label).toBe(
       '1/2',
     );
+  });
+
+  it('takes everyone else off the item when Alice steps up from a half to the whole', () => {
+    const next = stepPersonShare(buildItem({ personIds: ['a', 'b'] }), 'a', 'increase');
+
+    expect(next.assignment).toMatchObject({ personIds: ['a'], weights: undefined });
+    expect(sharesOf(next)).toEqual({ a: 1200 });
   });
 
   it('does nothing past the smallest step', () => {

@@ -57,7 +57,7 @@ export function ClaimItemRow({ item, onToggle, onStepShare, onSetShare }: Props)
           />
         </>
       ) : (
-        <span className="shrink-0 text-right text-on-surface-variant tabular-nums">
+        <span className="min-w-18 shrink-0 text-right text-on-surface-variant tabular-nums">
           {item.priceLabel}
         </span>
       )}
