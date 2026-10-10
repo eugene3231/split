@@ -87,7 +87,7 @@ export function LineItemCard({
                 placeholder="0"
                 className="w-8 border-none bg-transparent p-0 text-right text-xs font-bold text-secondary outline-none focus:ring-0"
               />
-              <span className="ml-0.5 text-[10px] font-bold text-secondary">%</span>
+              <span className="ml-0.5 text-xs font-bold text-secondary">%</span>
             </div>
             <button
               type="button"
@@ -107,14 +107,14 @@ export function LineItemCard({
           <button
             type="button"
             onClick={handleShowDiscount}
-            className="flex items-center gap-0.5 text-[10px] font-semibold text-on-surface-variant transition-colors hover:text-primary"
+            className="flex items-center gap-0.5 text-xs font-semibold text-on-surface-variant transition-colors hover:text-primary"
           >
             <span className="material-symbols-outlined text-xs">add</span>
             <span>Discount</span>
           </button>
         )}
         {discount.enabled && (
-          <span className="ml-auto text-[10px] text-on-surface-variant italic">
+          <span className="ml-auto text-xs text-on-surface-variant italic">
             {discount.mode === 'percent'
               ? `${discount.percentInput || '0'}% bill discount`
               : 'Bill discount'}{' '}

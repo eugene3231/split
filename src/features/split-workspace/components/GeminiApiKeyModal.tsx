@@ -100,7 +100,7 @@ function GeminiApiKeyModalContent({
           <div className="space-y-2">
             <label
               htmlFor="new-modal-gemini-api-key"
-              className="block font-label text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+              className="block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
             >
               API Key
             </label>
@@ -132,7 +132,7 @@ function GeminiApiKeyModalContent({
           <div className="space-y-2">
             <label
               htmlFor="new-modal-gemini-model"
-              className="block font-label text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+              className="block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
             >
               Model
             </label>

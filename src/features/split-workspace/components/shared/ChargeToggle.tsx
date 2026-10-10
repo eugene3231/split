@@ -53,7 +53,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
             type="button"
             onClick={() => isEnabled && onChange({ ...value, mode: 'amount' as ChargeMode })}
             className={cn(
-              'rounded-md px-2 py-0.5 text-[10px] font-extrabold transition-all',
+              'rounded-md px-2 py-0.5 text-xs font-extrabold transition-all',
               value.mode === 'amount'
                 ? 'bg-surface-container-lowest text-primary shadow-sm'
                 : 'text-on-surface-variant',
@@ -65,7 +65,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
             type="button"
             onClick={() => isEnabled && onChange({ ...value, mode: 'percent' as ChargeMode })}
             className={cn(
-              'rounded-md px-2 py-0.5 text-[10px] font-extrabold transition-all',
+              'rounded-md px-2 py-0.5 text-xs font-extrabold transition-all',
               value.mode === 'percent'
                 ? 'bg-surface-container-lowest text-primary shadow-sm'
                 : 'text-on-surface-variant',
@@ -93,13 +93,13 @@ export function ChargeToggle({ label, value, onChange }: Props) {
               )
             }
             placeholder={value.mode === 'amount' ? '0.00' : '0'}
-            className="w-full rounded-xl border-none bg-surface-container-low py-3 pr-3 pl-7 text-sm font-bold text-primary outline-none focus:ring-1 focus:ring-primary/20"
+            className="w-full rounded-xl border-none bg-surface-container-low py-3 pr-3 pl-7 text-base font-bold text-primary outline-none focus:ring-1 focus:ring-primary/20"
           />
         </div>
       )}
 
       {value.detectedSource && (
-        <p className="text-[10px] text-on-surface-variant/70">
+        <p className="text-xs text-on-surface-variant/70">
           Detected via {value.detectedSource}
           {value.detectedConfidence !== null
             ? ` (${Math.round(value.detectedConfidence * 100)}% confidence)`

@@ -147,6 +147,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('workspace')).toBeInTheDocument();
       expect(screen.getByTestId('people-empty-state')).toBeInTheDocument();
       expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled();
+      expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     });
 
     it('does not show a back button on the first step', () => {

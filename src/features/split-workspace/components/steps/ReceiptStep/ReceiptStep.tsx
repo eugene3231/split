@@ -1,4 +1,5 @@
 import { ReceiptImportActions } from './ReceiptImportActions';
+import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { LineItemCard } from '@features/split-workspace/components/shared/LineItemCard';
 import { GlobalChargesPanel } from '@features/split-workspace/components/shared/GlobalChargesPanel';
 import { ReceiptTabs } from '@features/split-workspace/components/shared/ReceiptTabs';
@@ -49,23 +50,11 @@ export function ReceiptStep({ onAddReceipt }: Props) {
 
   return (
     <div>
-      <div className="mb-6 hidden md:block">
-        <h1 className="mb-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-          Add Receipts
-        </h1>
-        <p className="text-lg text-on-surface-variant">
-          Verify scanned items and add missing charges.
-        </p>
-      </div>
-
-      <div className="mb-4 md:hidden">
-        <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
-          Add Receipts
-        </h1>
-        <p className="mt-0.5 text-xs text-on-surface-variant">
-          Verify scanned items and add missing charges.
-        </p>
-      </div>
+      <StepHeader
+        title="Add Receipts"
+        description="Verify scanned items and add missing charges."
+        className="mb-6"
+      />
 
       <ReceiptTabs
         receipts={receipts}

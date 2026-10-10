@@ -35,12 +35,12 @@ export function GlobalChargesPanel({
   currency,
 }: Props) {
   return (
-    <div className="sticky top-24 rounded-3xl border border-surface-container-highest bg-surface-container-lowest p-8 shadow-lg">
-      <h3 className="mb-8 border-b border-surface-container-high pb-4 font-headline text-xl font-bold text-primary">
+    <div className="sticky top-24 rounded-3xl border border-surface-container-highest bg-surface-container-lowest p-6 shadow-lg md:p-8">
+      <h3 className="mb-6 border-b border-surface-container-high pb-4 font-headline text-xl font-bold text-primary">
         Global Charges
       </h3>
 
-      <div className="mb-10 space-y-6">
+      <div className="mb-8 space-y-6">
         <ChargeToggle label="GST / Tax" value={gst} onChange={onGstChange} />
         <ChargeToggle
           label="Service Charge"
@@ -62,7 +62,7 @@ export function GlobalChargesPanel({
         <div>
           <label
             htmlFor="receipt-total-new"
-            className="mb-2 block font-label text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+            className="mb-2 block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
           >
             Receipt Total (Override)
           </label>
@@ -78,7 +78,7 @@ export function GlobalChargesPanel({
               value={receiptTotalInput}
               onChange={(e) => onReceiptTotalInputChange(e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-2xl border-2 border-transparent bg-surface-container-high py-5 pr-4 pl-8 pl-12 font-headline text-3xl font-extrabold text-on-surface transition-all outline-none focus:border-primary/20"
+              className="w-full rounded-2xl border-2 border-transparent bg-surface-container-high py-3 pr-4 pl-10 font-headline text-xl font-extrabold text-on-surface transition-all outline-none focus:border-primary/20"
             />
           </div>
         </div>

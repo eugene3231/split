@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { getShareSupport } from '@features/sharing/logic/shareSplit';
 import { PersonBreakdownCard } from './PersonBreakdownCard';
@@ -59,23 +60,11 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
     <div>
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="mb-6 hidden md:block">
-              <h1 className="mb-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-                Final Breakdown
-              </h1>
-              <p className="text-lg text-on-surface-variant">What everyone owes, by receipt.</p>
-            </div>
-
-            <div className="mb-4 md:hidden">
-              <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
-                Final Breakdown
-              </h1>
-              <p className="mt-0.5 text-xs text-on-surface-variant">
-                What everyone owes, by receipt.
-              </p>
-            </div>
-          </div>
+          <StepHeader
+            title="Final Breakdown"
+            description="What everyone owes, by receipt."
+            className="mb-6"
+          />
           <ResetSplitAction onConfirm={onResetSplit} />
         </div>
 

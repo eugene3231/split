@@ -243,7 +243,7 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('claim-item-amount-weighted')).toHaveTextContent('$12.00');
   });
 
-  it('lists every receipt on one page with a jump chip and a left count per receipt', () => {
+  it('lists every receipt on one page with a heading per receipt', () => {
     setStoreMock([
       makeReceipt('r1', [makeItem('a')]),
       makeReceipt('r2', [makeItem('b', { personIds: ['p2'] })]),
@@ -253,8 +253,7 @@ describe('AssignStep', () => {
     const second = screen.getByTestId('claim-section-r2');
     expect(screen.getByTestId('claim-item-a')).toBeInTheDocument();
     expect(within(second).getByTestId('claim-item-b')).toBeInTheDocument();
-    expect(within(second).getByRole('heading', { level: 2 })).toHaveTextContent('Receipt r2Done');
-    expect(screen.getByTestId('claim-jump-r2')).toHaveTextContent('Receipt r2');
+    expect(within(second).getByRole('heading', { level: 2 })).toHaveTextContent(/^Receipt r2$/);
 
     fireEvent.click(within(second).getByTestId('claim-item-toggle-b'));
     refresh();

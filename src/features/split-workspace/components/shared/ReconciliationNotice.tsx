@@ -27,7 +27,7 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount, cur
           <p className="text-xs leading-tight font-extrabold text-on-secondary-container">
             Totals match!
           </p>
-          <p className="mt-0.5 text-[10px] text-on-secondary-container/80">
+          <p className="mt-0.5 text-xs text-on-secondary-container/80">
             Verified against computed items.
           </p>
         </div>
@@ -50,7 +50,7 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount, cur
           <p className="text-xs leading-tight font-extrabold text-on-error-container">
             Mismatch found ({formatCurrencyFromCents(Math.abs(reconciliationCents), currency)})
           </p>
-          <p className="mt-0.5 text-[10px] text-on-error-container/80">
+          <p className="mt-0.5 text-xs text-on-error-container/80">
             {isOver
               ? 'Computed total is lower than receipt.'
               : 'Computed total is higher than receipt.'}
@@ -62,7 +62,7 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount, cur
           type="button"
           data-testid="apply-discount-reconcile-btn"
           onClick={onApplyDiscount}
-          className="w-full rounded-lg bg-on-error-container py-2 text-[10px] font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
+          className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
         >
           Resolve Difference (Apply Discount)
         </button>

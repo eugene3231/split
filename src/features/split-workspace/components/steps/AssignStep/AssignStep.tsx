@@ -8,6 +8,7 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import { BASE_CURRENCY } from '@shared/constants';
 import { cn } from '@shared/utils/cn';
+import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
 
@@ -15,8 +16,6 @@ interface Props {
   activePersonId: string;
   onActivePersonChange: (personId: string) => void;
 }
-
-const sectionId = (receiptId: string) => `items-receipt-${receiptId}`;
 
 export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
   const { receipts, people, updateReceiptItem } = useReceiptStore(
@@ -67,29 +66,13 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             layout="row"
             className="-mx-6 mt-4 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
           />
-          <h1 className="mt-6 font-headline text-3xl leading-tight font-extrabold tracking-tight break-words md:text-4xl">
-            What did {activePerson.firstName} have?
-          </h1>
-          <p className="mt-1 text-sm text-on-surface-variant">
-            Tap everything they had. Shared items split automatically.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {hasSeveralReceipts &&
-              view.sections.map((section) => (
-                <Chip
-                  key={section.receiptId}
-                  testId={`claim-jump-${section.receiptId}`}
-                  onClick={() =>
-                    document
-                      .getElementById(sectionId(section.receiptId))
-                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }
-                >
-                  <span className="material-symbols-outlined text-sm">arrow_downward</span>
-                  {section.name}
-                </Chip>
-              ))}
-            {view.leftCount > 0 && (
+          <StepHeader
+            title={`What did ${activePerson.firstName} have?`}
+            description="Tap everything they had. Shared items split automatically."
+            className="mt-6"
+          />
+          {view.leftCount > 0 && (
+            <div className="mt-4 flex">
               <Chip
                 testId="claim-left-filter"
                 pressed={filtering}
@@ -97,29 +80,19 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
               >
                 {formatItemCount(view.leftCount)} left
               </Chip>
-            )}
-          </div>
+            </div>
+          )}
         </header>
 
         {sections.map((section) => (
           <section
             key={section.receiptId}
-            id={sectionId(section.receiptId)}
             aria-label={section.name}
             data-testid={`claim-section-${section.receiptId}`}
-            className="scroll-mt-16 md:scroll-mt-24"
           >
             {hasSeveralReceipts && (
-              <h2 className="sticky top-15 z-10 -mx-6 flex items-baseline justify-between gap-3 border-b border-surface-container-high bg-surface px-6 pt-5 pb-2 text-sm font-bold md:top-22 md:mx-0 md:px-1">
-                <span className="min-w-0 truncate">{section.name}</span>
-                <span
-                  className={cn(
-                    'shrink-0 text-xs',
-                    section.leftCount > 0 ? 'text-warning' : 'text-on-surface-variant',
-                  )}
-                >
-                  {section.leftCount > 0 ? `${section.leftCount} left` : 'Done'}
-                </span>
+              <h2 className="sticky top-15 z-10 -mx-6 truncate border-b border-surface-container-high bg-surface px-6 pt-6 pb-2 text-lg font-bold md:top-22 md:mx-0 md:px-1">
+                {section.name}
               </h2>
             )}
             <ul className="divide-y divide-surface-container-high">

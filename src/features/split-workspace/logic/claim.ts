@@ -45,7 +45,6 @@ export interface ClaimSection {
   receiptId: string;
   name: string;
   currency: string;
-  leftCount: number;
   items: ClaimItem[];
 }
 
@@ -107,7 +106,6 @@ export function resolveClaimView(args: {
       receiptId: receipt.id,
       name: receipt.name,
       currency: receipt.currency,
-      leftCount: items.filter((item) => item.isLeft).length,
       items,
     };
   });

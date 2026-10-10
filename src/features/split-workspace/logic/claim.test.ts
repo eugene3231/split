@@ -156,7 +156,7 @@ describe('resolveClaimView', () => {
     expect(result[0].name).toBe('Untitled item');
   });
 
-  it('lists every receipt as its own section and counts what is left in each', () => {
+  it('lists every receipt as its own section and counts what is left', () => {
     const receipts = [
       makeReceipt('r1', [makeItem('a', '5.00', { personIds: ['p1'] }), makeItem('b', '6.00')]),
       makeReceipt('r2', [makeItem('c', '7.00'), makeItem('d', '2.00'), makeItem('blank', '')]),
@@ -164,15 +164,9 @@ describe('resolveClaimView', () => {
 
     const result = view(receipts);
 
-    expect(
-      result.sections.map((section) => [
-        section.receiptId,
-        section.leftCount,
-        section.items.length,
-      ]),
-    ).toEqual([
-      ['r1', 1, 2],
-      ['r2', 2, 2],
+    expect(result.sections.map((section) => [section.receiptId, section.items.length])).toEqual([
+      ['r1', 2],
+      ['r2', 2],
     ]);
     expect(result.leftCount).toBe(3);
     expect(result.activeItemCount).toBe(1);
