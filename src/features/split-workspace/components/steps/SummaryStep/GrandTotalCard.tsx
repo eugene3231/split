@@ -99,10 +99,10 @@ export function GrandTotalCard({
           className="material-symbols-outlined !text-sm text-cyan-300"
           style={{ fontVariationSettings: "'FILL' 1" }}
         >
-          verified
+          group
         </span>
         <span className="text-sm font-medium text-white">
-          Fully reconciled across {people.length} {people.length === 1 ? 'person' : 'people'}
+          Split across {people.length} {people.length === 1 ? 'person' : 'people'}
         </span>
       </div>
     </div>

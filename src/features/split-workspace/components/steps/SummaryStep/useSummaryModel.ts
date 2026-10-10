@@ -55,7 +55,6 @@ type UseSummaryModelProps = {
 export type SummaryModel = {
   people: Person[];
   receipts: Receipt[];
-  isMultiReceipt: boolean;
   activeSummaryReceipt: Receipt | null;
   renameReceipt: (receiptId: string, name: string) => void;
   payerMobile: string;
@@ -113,7 +112,6 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
   return {
     people,
     receipts,
-    isMultiReceipt: receipts.length > 1,
     activeSummaryReceipt,
     renameReceipt,
     payerMobile,

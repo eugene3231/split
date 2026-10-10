@@ -54,6 +54,20 @@ describe('SummaryTabs', () => {
     expect(screen.getByTestId('summary-tab-receipt-1')).toBeInTheDocument();
   });
 
+  it('omits the total tab for a single receipt', () => {
+    render(
+      <SummaryTabs
+        receipts={[makeReceipt('r1', 'Dinner')]}
+        activeTab="r1"
+        onTabChange={vi.fn()}
+        onRenameReceipt={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId('summary-tab-total')).toBeNull();
+    expect(screen.getByTestId('summary-tab-receipt-0')).toHaveTextContent('Dinner');
+  });
+
   it('calls onTabChange when a receipt tab is clicked', () => {
     const onTabChange = vi.fn();
     const receipts = [makeReceipt('r1', 'Dinner')];
@@ -88,7 +102,7 @@ describe('SummaryTabs', () => {
 
   it('calls onTabChange when the total tab is clicked', () => {
     const onTabChange = vi.fn();
-    const receipts = [makeReceipt('r1', 'Dinner')];
+    const receipts = [makeReceipt('r1', 'Dinner'), makeReceipt('r2', 'Lunch')];
     render(
       <SummaryTabs
         receipts={receipts}

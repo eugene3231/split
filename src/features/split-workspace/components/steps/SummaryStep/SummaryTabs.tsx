@@ -27,20 +27,22 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
 
   return (
     <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-      <button
-        type="button"
-        data-testid="summary-tab-total"
-        data-active={activeTab === 'total' ? 'true' : undefined}
-        onClick={() => onTabChange('total')}
-        className={cn(
-          'flex-shrink-0 rounded-full px-6 py-2.5 font-bold transition-all',
-          activeTab === 'total'
-            ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
-            : 'bg-surface-container-high font-semibold text-on-surface-variant hover:bg-surface-container-highest',
-        )}
-      >
-        Total ({receipts.length} receipts)
-      </button>
+      {receipts.length > 1 && (
+        <button
+          type="button"
+          data-testid="summary-tab-total"
+          data-active={activeTab === 'total' ? 'true' : undefined}
+          onClick={() => onTabChange('total')}
+          className={cn(
+            'flex-shrink-0 rounded-full px-6 py-2.5 font-bold transition-all',
+            activeTab === 'total'
+              ? 'bg-primary text-on-primary shadow-md shadow-primary/20'
+              : 'bg-surface-container-high font-semibold text-on-surface-variant hover:bg-surface-container-highest',
+          )}
+        >
+          Total ({receipts.length} receipts)
+        </button>
+      )}
       {receipts.map((r, index) => (
         <div
           role="button"
