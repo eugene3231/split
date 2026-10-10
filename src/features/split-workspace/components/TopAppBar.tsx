@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { cn } from '@shared/utils/cn';
 import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
 import { STEP_LABELS, STEP_ORDER } from '@features/split-workspace/logic/wizardSteps';
@@ -9,6 +10,7 @@ interface Props {
   detectedItemsCount: number;
   stepReachability: Record<WizardStep, boolean>;
   onStepSelect: (step: WizardStep) => void;
+  children?: ReactNode;
 }
 
 export function TopAppBar({
@@ -18,6 +20,7 @@ export function TopAppBar({
   detectedItemsCount,
   stepReachability,
   onStepSelect,
+  children,
 }: Props) {
   const stepIndex = STEP_ORDER.indexOf(activeStep);
   const stepNumber = stepIndex + 1;
@@ -177,6 +180,8 @@ export function TopAppBar({
             <p className="truncate text-[10px] text-on-surface-variant">{contextText}</p>
           )}
         </div>
+
+        {children}
 
         {/* GitHub link */}
         <a

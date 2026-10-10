@@ -100,11 +100,9 @@ export function Workspace() {
         detectedItemsCount={detectedItemsCount}
         stepReachability={stepReachability}
         onStepSelect={handleStepSelectWithScroll}
-      />
-
-      <div className="mx-auto flex w-full max-w-7xl justify-end px-6 pt-3 md:px-8">
+      >
         <NewSplitAction onConfirm={handleNewSplitWithScroll} />
-      </div>
+      </TopAppBar>
 
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-48 md:px-8 md:pt-10">
         {activeStep === 'people' && <PeopleStep />}
