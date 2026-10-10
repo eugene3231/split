@@ -91,16 +91,8 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             data-testid={`claim-section-${section.receiptId}`}
           >
             {hasSeveralReceipts && (
-              <h2 className="sticky top-15 z-10 -mx-6 flex items-baseline justify-between gap-3 border-b border-surface-container-high bg-surface px-6 pt-6 pb-2 text-lg font-bold md:top-22 md:mx-0 md:px-1">
-                <span className="min-w-0 truncate">{section.name}</span>
-                <span
-                  className={cn(
-                    'shrink-0 text-sm font-semibold',
-                    section.leftCount > 0 ? 'text-warning' : 'text-on-surface-variant',
-                  )}
-                >
-                  {section.leftCount > 0 ? `${section.leftCount} left` : 'Done'}
-                </span>
+              <h2 className="sticky top-15 z-10 -mx-6 truncate border-b border-surface-container-high bg-surface px-6 pt-6 pb-2 text-lg font-bold md:top-22 md:mx-0 md:px-1">
+                {section.name}
               </h2>
             )}
             <ul className="divide-y divide-surface-container-high">
