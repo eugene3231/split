@@ -22,8 +22,9 @@ Steps live in `components/steps/`. A step stays a flat file until it grows priva
 
 - `PeopleStep.tsx` — reads a small store slice directly; no step hook needed.
 - `AssignStep/` — the Items screen: pick a person, tap what they had. Every receipt is on one page as its own section, and a "n items left" chip filters down to what nobody has yet. Renders from `resolveClaimView` (`logic/claim.ts`), a person-first view over the canonical `EditableItem.assignment`; the step itself holds only whether that filter is on. Every change goes through `applyAssignmentCommand`: ticking an item, the − / + share stepper, and typing an amount or percent into the share (`logic/itemShare.ts`). A share can leave part of an item unassigned (`assignment.unassignedWeight`), which keeps the item counted as left. The wizard owns `activePersonId`; `resolveClaimContinue` decides whether the bottom bar moves to the next person, splits what is left evenly, or opens the summary.
-- `ReceiptStep/` — renders from `useReceiptStepModel`, delegates scan, mock-receipt, and OCR-patching workflows to `useReceiptImport`.
+- `ReceiptStep/` — renders from `useReceiptStepModel`, delegates scan and OCR-patching workflows to `useReceiptImport`.
 - `SummaryStep/` — renders from `useSummaryModel`, delegates export and share to `useSummaryExport`. The component owns only `activeTab`, `showDetails`, `showBaseCurrency`, and `mode` (By person or Overview).
+- `WorkspaceMenu` — the header's import/export menu. It saves the whole workspace as a `.json` file (`exportDraftToJson`), reads one back (`logic/workspaceTransfer.ts`), and loads the test splits in `logic/presetWorkspaces.ts`. Anything that would replace entered work asks first, then `useWizard.handleLoadWorkspace` swaps the store and lands on Items.
 - `components/shared/` — reused across steps: receipt tabs, charge panels, selectors, field and avatar primitives.
 
 ## Summary data flow

@@ -278,6 +278,15 @@ describe('exportDraftToJson', () => {
     expect(parsed.activeReceiptId).toBe('r1');
     expect(parsed.savedAt).toBeTruthy();
   });
+
+  it('leaves out a picked receipt photo, which JSON cannot carry', () => {
+    const photo = new File(['x'], 'receipt.jpg', { type: 'image/jpeg' });
+    const json = exportDraftToJson({
+      ...minimalDraftState,
+      receipts: [{ ...receipt1, receiptFile: photo }],
+    });
+    expect(JSON.parse(json).receipts[0]).not.toHaveProperty('receiptFile');
+  });
 });
 
 describe('importDraftFromJson', () => {

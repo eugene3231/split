@@ -1,7 +1,5 @@
-import { useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { scanReceipt, useScanStore } from '@features/receipt-scanner';
-import { MOCK_RECEIPT_FIXTURES } from '@features/receipt-scanner/logic/ocrFixtures';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 
@@ -75,37 +73,8 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
     }
   };
 
-  const mockReceipts = useMemo(
-    () =>
-      MOCK_RECEIPT_FIXTURES.map((fixture) => ({
-        label: fixture.label,
-        onLoad: () => {
-          const {
-            activeReceiptId: targetReceiptId,
-            people: currentPeople,
-            receipts: currentReceipts,
-            applyReceiptScan,
-          } = useReceiptStore.getState();
-          const receipt = currentReceipts.find((candidate) => candidate.id === targetReceiptId);
-          if (!receipt) {
-            return;
-          }
-
-          const payload = fixture.buildResponse();
-          useScanStore.getState().clearScanFeedback(targetReceiptId);
-          useScanStore.getState().setScanWarnings(targetReceiptId, payload.warnings);
-          const result = applyReceiptScan({ receipt, people: currentPeople, payload });
-          if (result.kind === 'applied') {
-            useReceiptStore.getState().patchReceipt(targetReceiptId, { receiptFile: null });
-          }
-        },
-      })),
-    [],
-  );
-
   return {
     handleReceiptFileChange,
     handleScanReceipt,
-    mockReceipts,
   };
 }

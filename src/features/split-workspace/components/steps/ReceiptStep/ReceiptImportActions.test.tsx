@@ -66,7 +66,6 @@ function makeProps(overrides: Partial<React.ComponentProps<typeof ReceiptImportA
   return {
     onReceiptFileSelected: vi.fn(),
     onScanReceipt: vi.fn(),
-    mockReceipts: [],
     ...overrides,
   };
 }

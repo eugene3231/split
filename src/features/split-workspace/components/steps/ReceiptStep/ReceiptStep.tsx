@@ -39,7 +39,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
     renameReceipt,
     setReceiptCurrency,
   } = useReceiptStepModel();
-  const { handleReceiptFileChange, handleScanReceipt, mockReceipts } = useReceiptImport({
+  const { handleReceiptFileChange, handleScanReceipt } = useReceiptImport({
     activeReceiptId,
   });
 
@@ -85,7 +85,6 @@ export function ReceiptStep({ onAddReceipt }: Props) {
         <ReceiptImportActions
           onReceiptFileSelected={handleReceiptFileChange}
           onScanReceipt={handleScanReceipt}
-          mockReceipts={mockReceipts}
         />
       </div>
 

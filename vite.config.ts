@@ -50,7 +50,6 @@ export default defineConfig({
       exclude: [
         '**/*.test.{ts,tsx}',
         '**/*.d.ts',
-        '**/ocrFixtures.ts',
         '**/index.ts',
         '**/receiptSplitImage*.ts',
         '**/types.ts',

@@ -12,6 +12,7 @@ import {
   resetAllStores,
   seedStore,
 } from '../../../../../tests/integration/testHelpers';
+import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
 import { useReceiptImport } from './useReceiptImport';
 
 vi.mock('@features/receipt-scanner/api/geminiApi', async (importOriginal) => {
@@ -93,9 +94,8 @@ describe('useReceiptImport', () => {
     expect(receipt?.gst.percentInput).toBe('9');
   });
 
-  it('keeps a loaded mock receipt when an older scan finishes', async () => {
-    const file = new File(['a'], 'a.jpg', { type: 'image/jpeg' });
-    seedReceiptWithFile(file);
+  it('keeps a loaded preset workspace when an older scan finishes', async () => {
+    seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
 
     let resolveScan!: (payload: OcrResponse) => void;
     scanReceiptMock.mockImplementation(
@@ -106,62 +106,24 @@ describe('useReceiptImport', () => {
     let scanPromise: Promise<void> = Promise.resolve();
     act(() => {
       scanPromise = result.current.handleScanReceipt();
-      result.current.mockReceipts[0].onLoad();
+      useReceiptStore.getState().loadWorkspace(PRESET_WORKSPACES[0].build());
     });
-
-    expect(useReceiptStore.getState().receipts[0].items[0].name).toBe('Chicken Rice');
 
     await act(async () => {
       resolveScan(makeOcrPayload());
       await scanPromise;
     });
 
-    const receipt = useReceiptStore.getState().receipts[0];
-    expect(receipt.items.map((item) => item.name)).toEqual([
+    const { receipts } = useReceiptStore.getState();
+    expect(receipts).toHaveLength(1);
+    expect(receipts[0].items.map((item) => item.name)).toEqual([
       'Chicken Rice',
       'Iced Lemon Tea',
       'Pasta Alfredo',
       'Truffle Fries',
     ]);
-    expect(receipt.receiptTotalInput).toBe('47.48');
-    expect(receipt.receiptFile).toBeNull();
+    expect(useScanStore.getState().scanStateByReceipt.r1?.isScanning ?? false).toBe(false);
   });
-
-  it.each(['success', 'failure'] as const)(
-    'preserves replacement feedback when an older scan reports %s',
-    async (outcome) => {
-      seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
-      let resolveScan!: (payload: OcrResponse) => void;
-      let rejectScan!: (error: Error) => void;
-      scanReceiptMock.mockImplementation(
-        () =>
-          new Promise<OcrResponse>((resolve, reject) => {
-            resolveScan = resolve;
-            rejectScan = reject;
-          }),
-      );
-      const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
-      let scanPromise = Promise.resolve();
-      act(() => {
-        scanPromise = result.current.handleScanReceipt();
-        result.current.mockReceipts[0].onLoad();
-        useScanStore.getState().setScanWarnings('r1', ['Check the replacement receipt']);
-      });
-      await act(async () => {
-        if (outcome === 'success') {
-          resolveScan({ ...makeOcrPayload(), warnings: ['Older scan warning'] });
-        } else {
-          rejectScan(new Error('Older scan failed'));
-        }
-        await scanPromise;
-      });
-      const feedback = useScanStore.getState().scanStateByReceipt.r1;
-      expect(feedback.scanWarnings).toEqual(['Check the replacement receipt']);
-      expect(feedback.scanError).toBeNull();
-      expect(feedback.isScanning).toBe(false);
-      expect(useReceiptStore.getState().receipts[0].items[0].name).toBe('Chicken Rice');
-    },
-  );
 
   it('ignores late status updates after the receipt file changes', async () => {
     seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));

@@ -36,7 +36,8 @@ export function exportDraftToJson(state: {
   const draft: SessionDraft = {
     version: 2,
     people: state.people,
-    receipts: state.receipts,
+    // A picked receipt photo is a File, which JSON can't carry.
+    receipts: state.receipts.map((receipt) => ({ ...receipt, receiptFile: undefined })),
     activeReceiptId: state.activeReceiptId,
     payerMobile: state.payerMobile,
     savedAt: new Date().toISOString(),
