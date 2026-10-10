@@ -12,6 +12,10 @@ import { ResetSplitAction } from '@features/split-workspace/components/ResetSpli
 import { ImagePreviewModal } from './ImagePreviewModal';
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
+import { SummaryModeToggle } from './SummaryModeToggle';
+import type { SummaryMode } from './SummaryModeToggle';
+import { OverviewTable } from './OverviewTable';
+import { cn } from '@shared/utils/cn';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
@@ -25,12 +29,13 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
   });
   const [showDetails, setShowDetails] = useState(true);
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
+  const [mode, setMode] = useState<SummaryMode>('by-person');
 
   const model = useSummaryModel({
     activeTab,
     showBaseCurrency,
   });
-  const { people, receipts, renameReceipt, view, summaryBreakdown } = model;
+  const { people, receipts, renameReceipt, view, summaryBreakdown, summaryOverview } = model;
   const reconciliationCents = model.reconciliation.cents;
   const { exportState, text, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
@@ -48,6 +53,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
     (view.kind === 'receipt' && view.isForeign) || (view.kind === 'total' && view.hasAnyForeign);
 
   const nativeShareSupported = getShareSupport() === 'native';
+  const isOverview = mode === 'overview';
 
   return (
     <div>
@@ -97,6 +103,10 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
             </span>
           </button>
         </div>
+
+        <div className="mt-4">
+          <SummaryModeToggle mode={mode} onModeChange={setMode} />
+        </div>
       </div>
 
       {reconciliationCents !== null && reconciliationCents !== 0 && (
@@ -134,7 +144,8 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
       )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="order-2 lg:order-1 lg:col-span-8">
+        {/* The overview leads on mobile because it was just asked for */}
+        <div className={cn('lg:order-1 lg:col-span-8', isOverview ? 'order-1' : 'order-2')}>
           <div className="mb-3 flex items-center justify-between">
             {showCurrencyControls ? (
               <div className="flex flex-wrap items-center gap-4">
@@ -160,36 +171,47 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
             ) : (
               <span />
             )}
-            <button
-              type="button"
-              data-testid="summary-show-details-btn"
-              onClick={() => setShowDetails((v) => !v)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
-            >
-              <span className="material-symbols-outlined text-base">
-                {showDetails ? 'expand_less' : 'expand_more'}
-              </span>
-              {showDetails ? 'Hide details' : 'Show details'}
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            {summaryBreakdown.personBreakdowns.map((breakdown) => (
-              <PersonBreakdownCard
-                key={breakdown.person.id}
-                breakdown={breakdown}
-                showDetails={showDetails}
-              />
-            ))}
-            {summaryBreakdown.emptyPeopleMessage && (
-              <p className="py-8 text-center text-sm text-on-surface-variant">
-                {summaryBreakdown.emptyPeopleMessage}
-              </p>
+            {!isOverview && (
+              <button
+                type="button"
+                data-testid="summary-show-details-btn"
+                onClick={() => setShowDetails((v) => !v)}
+                className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
+              >
+                <span className="material-symbols-outlined text-base">
+                  {showDetails ? 'expand_less' : 'expand_more'}
+                </span>
+                {showDetails ? 'Hide details' : 'Show details'}
+              </button>
             )}
           </div>
+
+          {isOverview ? (
+            <OverviewTable overview={summaryOverview} />
+          ) : (
+            <div className="flex flex-col gap-6">
+              {summaryBreakdown.personBreakdowns.map((breakdown) => (
+                <PersonBreakdownCard
+                  key={breakdown.person.id}
+                  breakdown={breakdown}
+                  showDetails={showDetails}
+                />
+              ))}
+              {summaryBreakdown.emptyPeopleMessage && (
+                <p className="py-8 text-center text-sm text-on-surface-variant">
+                  {summaryBreakdown.emptyPeopleMessage}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-4">
+        <div
+          className={cn(
+            'flex flex-col gap-4 lg:order-2 lg:col-span-4',
+            isOverview ? 'order-2' : 'order-1',
+          )}
+        >
           <GrandTotalCard
             grandTotal={view.grandTotal}
             displayCurrency={view.displayCurrency}

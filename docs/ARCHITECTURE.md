@@ -13,6 +13,7 @@ Two conventions that follow from it: a feature component may select from its fea
 - `logic/exchangeRates.ts` — rate selection and currency conversion. Storage guards and persisted workspace types also stay in the feature.
 - `useReceiptSplit` — reads canonical state, returns active/consolidated/per-receipt splits and reconciliation.
 - `logic/summaryView.ts` — pure transform from split data plus summary controls into a screen-facing summary view.
+- `logic/summaryBreakdown.ts` / `logic/summaryOverview.ts` — the per-person breakdown (shared with the PNG export) and the React-only who-had-what overview, both resolved from the summary view.
 - `logic/buildSummaryExportPayload.ts` — pure mapping from the summary model into the export payload.
 
 ## Steps
@@ -22,7 +23,7 @@ Steps live in `components/steps/`. A step stays a flat file until it grows priva
 - `PeopleStep.tsx` — reads a small store slice directly; no step hook needed.
 - `AssignStep/` — the Claim screen: pick a person, tap what they had. Renders from `resolveClaimView` (`logic/claim.ts`), a person-first view over the canonical `EditableItem.assignment`; the step itself holds only which item's sheet is open. Every change goes through `applyAssignmentCommand`, including the Adjust split sheet's Shares / Percent / Amount controls (`resolveSplitAdjustment`). The wizard owns `activePersonId`; `resolveClaimContinue` decides whether the bottom bar moves to the next person, splits what is left evenly, or opens the summary.
 - `ReceiptStep/` — renders from `useReceiptStepModel`, delegates scan, mock-receipt, and OCR-patching workflows to `useReceiptImport`.
-- `SummaryStep/` — renders from `useSummaryModel`, delegates export and share to `useSummaryExport`. The component owns only `activeTab`, `showDetails`, and `showBaseCurrency`.
+- `SummaryStep/` — renders from `useSummaryModel`, delegates export and share to `useSummaryExport`. The component owns only `activeTab`, `showDetails`, `showBaseCurrency`, and `mode` (By person or Overview).
 - `components/shared/` — reused across steps: receipt tabs, charge panels, selectors, field and avatar primitives.
 
 ## Summary data flow

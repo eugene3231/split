@@ -5,6 +5,8 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { generatePaynowQrDataUrls } from '@features/payments';
 import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
 import type { SummaryBreakdown } from '@shared/types/summaryBreakdown';
+import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
+import type { SummaryOverview } from '@features/split-workspace/logic/summaryOverview';
 import { resolveSummaryView } from '@features/split-workspace/logic/summaryView';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 import {
@@ -66,6 +68,7 @@ export type SummaryModel = {
   view: SummaryView;
   qrDataUrls: Record<string, string>;
   summaryBreakdown: SummaryBreakdown;
+  summaryOverview: SummaryOverview;
 };
 
 export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModelProps) {
@@ -108,6 +111,7 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
 
   const qrDataUrls = useQrDataUrls(people, view.sgdSplit, payerMobile);
   const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls });
+  const summaryOverview = resolveSummaryOverview({ people, receipts, view });
 
   return {
     people,
@@ -123,5 +127,6 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
     view,
     qrDataUrls,
     summaryBreakdown,
+    summaryOverview,
   };
 }

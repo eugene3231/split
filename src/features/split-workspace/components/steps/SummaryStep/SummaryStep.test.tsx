@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SummaryStep } from './SummaryStep';
 import {
@@ -133,5 +133,51 @@ describe('SummaryStep', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add receipt' }));
 
     expect(onAddReceipt).toHaveBeenCalledOnce();
+  });
+
+  it('switches between the By person cards and the read-only overview table', () => {
+    const alice = makePerson('Alice');
+    const bob = makePerson('Bob');
+    seedStore(
+      [alice, bob],
+      [
+        makeReceipt({
+          name: 'Dinner',
+          items: [
+            makeItem({
+              name: 'Laksa',
+              amountInput: '10.00',
+              assignment: { mode: 'equal', personId: '', personIds: [alice.id, bob.id] },
+            }),
+            makeItem({
+              name: 'Kopi',
+              amountInput: '2.20',
+              assignment: { mode: 'equal', personId: '', personIds: [bob.id] },
+            }),
+          ],
+        }),
+      ],
+    );
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+
+    const byPerson = screen.getByRole('button', { name: 'By person' });
+    const overviewToggle = screen.getByRole('button', { name: 'Overview' });
+    expect(byPerson).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('region', { name: 'Who had what' })).toBeNull();
+
+    fireEvent.click(overviewToggle);
+
+    expect(overviewToggle).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByTestId('summary-show-details-btn')).toBeNull();
+    const table = within(screen.getByRole('region', { name: 'Who had what' }));
+    expect(table.getByRole('rowheader', { name: /Laksa/ })).toHaveTextContent('$10.00');
+    expect(table.getByRole('rowheader', { name: /Owes/ })).toHaveTextContent('of $12.20');
+    expect(table.getByRole('row', { name: /Owes/ })).toHaveTextContent('$5.00$7.20');
+    expect(table.queryByRole('textbox')).toBeNull();
+
+    fireEvent.click(byPerson);
+
+    expect(screen.queryByRole('region', { name: 'Who had what' })).toBeNull();
+    expect(screen.getByTestId('summary-show-details-btn')).toBeInTheDocument();
   });
 });
