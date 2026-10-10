@@ -93,7 +93,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
               )
             }
             placeholder={value.mode === 'amount' ? '0.00' : '0'}
-            className="w-full rounded-xl border-none bg-surface-container-low py-3 pr-3 pl-7 text-sm font-bold text-primary outline-none focus:ring-1 focus:ring-primary/20"
+            className="w-full rounded-xl border-none bg-surface-container-low py-3 pr-3 pl-7 text-base font-bold text-primary outline-none focus:ring-1 focus:ring-primary/20"
           />
         </div>
       )}
