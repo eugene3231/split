@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 
 export function PeopleStep() {
@@ -15,23 +16,11 @@ export function PeopleStep() {
 
   return (
     <div className="space-y-5">
-      {/* Header — desktop */}
-      <div className="mb-6 hidden md:block">
-        <h1 className="mb-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-          Who's Splitting?
-        </h1>
-        <p className="text-lg text-on-surface-variant">Add everyone who's part of this bill.</p>
-      </div>
-
-      {/* Header — mobile */}
-      <div className="mb-2 md:hidden">
-        <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
-          Who's Splitting?
-        </h1>
-        <p className="mt-0.5 text-xs text-on-surface-variant">
-          Add everyone who's part of this bill.
-        </p>
-      </div>
+      <StepHeader
+        title="Who's Splitting?"
+        description="Add everyone who's part of this bill."
+        className="mb-6"
+      />
 
       {/* Input card */}
       <div className="rounded-2xl bg-surface-container-lowest p-5 shadow-[0_8px_24px_rgba(25,28,29,0.06)]">
@@ -59,7 +48,7 @@ export function PeopleStep() {
             <span className="hidden sm:inline">Add</span>
           </button>
         </form>
-        <p className="mt-2 px-1 text-[10px] font-medium text-on-surface-variant/70">
+        <p className="mt-2 px-1 text-xs font-medium text-on-surface-variant/70">
           Tip: Input multiple names with commas
         </p>
       </div>

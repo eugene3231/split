@@ -121,7 +121,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
           </MenuItem>
 
           <div role="separator" className="mx-3 my-1.5 border-t border-surface-container-high" />
-          <p className="px-3 pt-1 pb-1 text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">
+          <p className="px-3 pt-1 pb-1 text-xs font-bold tracking-widest text-on-surface-variant uppercase">
             Test splits
           </p>
           {PRESET_WORKSPACES.map((preset) => (

@@ -73,7 +73,7 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
       <div className="grid grid-cols-2 gap-3">
         <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl bg-surface-container-low p-4 transition-colors hover:bg-surface-container-high">
           <span className="material-symbols-outlined mb-2 text-primary">upload_file</span>
-          <span className="text-[10px] font-bold text-primary">UPLOAD</span>
+          <span className="text-xs font-bold text-primary">UPLOAD</span>
           <input
             type="file"
             accept="image/*,application/pdf"
@@ -84,7 +84,7 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
         </label>
         <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl bg-surface-container-low p-4 transition-colors hover:bg-surface-container-high">
           <span className="material-symbols-outlined mb-2 text-primary">photo_camera</span>
-          <span className="text-[10px] font-bold text-primary">CAPTURE</span>
+          <span className="text-xs font-bold text-primary">CAPTURE</span>
           <input
             type="file"
             accept="image/*"

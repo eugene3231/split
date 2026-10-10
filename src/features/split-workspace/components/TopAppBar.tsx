@@ -88,7 +88,7 @@ export function TopAppBar({
                   </div>
                   <span
                     className={cn(
-                      'text-[9px] font-bold tracking-widest uppercase',
+                      'text-xs font-bold tracking-widest uppercase',
                       disabled
                         ? 'text-on-surface-variant'
                         : completed
@@ -173,9 +173,7 @@ export function TopAppBar({
           <p className="truncate text-xs font-bold tracking-widest text-primary uppercase">
             Step {stepNumber} of {WIZARD_STEPS.length}
           </p>
-          {contextText && (
-            <p className="truncate text-[10px] text-on-surface-variant">{contextText}</p>
-          )}
+          {contextText && <p className="truncate text-xs text-on-surface-variant">{contextText}</p>}
         </div>
 
         {actions}

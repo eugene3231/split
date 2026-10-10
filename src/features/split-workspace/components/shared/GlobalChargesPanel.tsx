@@ -62,7 +62,7 @@ export function GlobalChargesPanel({
         <div>
           <label
             htmlFor="receipt-total-new"
-            className="mb-2 block font-label text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+            className="mb-2 block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
           >
             Receipt Total (Override)
           </label>
