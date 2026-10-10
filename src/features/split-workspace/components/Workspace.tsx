@@ -10,6 +10,7 @@ import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { BottomNav } from '@features/split-workspace/components/BottomNav';
+import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
@@ -101,7 +102,7 @@ export function Workspace() {
         onStepSelect={handleStepSelectWithScroll}
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-48 md:px-8 md:pt-10">
+      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-12 md:px-8 md:pt-10">
         {activeStep === 'people' && <PeopleStep />}
 
         {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
@@ -119,6 +120,8 @@ export function Workspace() {
           <SummaryStep onAddReceipt={handleAddReceipt} onResetSplit={handleResetSplitWithScroll} />
         )}
       </main>
+
+      <AppFooter />
 
       <BottomNav
         activeStep={activeStep}

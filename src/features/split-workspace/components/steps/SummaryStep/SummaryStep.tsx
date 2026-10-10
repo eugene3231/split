@@ -63,9 +63,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
               <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
                 Final Breakdown
               </h1>
-              <p className="text-lg text-on-surface-variant">
-                Review the consolidated grand total or individual receipt details.
-              </p>
+              <p className="text-lg text-on-surface-variant">What everyone owes, by receipt.</p>
             </div>
 
             {/* Mobile header */}
@@ -74,7 +72,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                 Final Breakdown
               </h1>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                Review the consolidated grand total or individual receipt details.
+                What everyone owes, by receipt.
               </p>
             </div>
           </div>

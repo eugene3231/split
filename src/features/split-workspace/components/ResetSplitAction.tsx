@@ -45,8 +45,8 @@ function ResetSplitConfirmation({ onCancel, onConfirm }: ResetSplitConfirmationP
         Reset this split?
       </h2>
       <p id="reset-split-description" className="mt-3 text-sm text-on-surface-variant">
-        This deletes everyone and every receipt in this split, and can&apos;t be undone. Save the
-        image or copy the text first if you want to keep it.
+        This removes everyone and every receipt, and can&apos;t be undone. To keep a copy of the
+        breakdown, use Save Image or Copy Text first.
       </p>
       <div className="mt-6 flex justify-end gap-3">
         <button
