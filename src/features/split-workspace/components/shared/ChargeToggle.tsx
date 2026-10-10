@@ -19,6 +19,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
             type="button"
             role="switch"
             aria-checked={isEnabled}
+            aria-label={label}
             onClick={() => onChange({ ...value, enabled: !isEnabled })}
             className={cn(
               'relative h-6 w-10 flex-shrink-0 cursor-pointer rounded-full p-1 transition-colors',

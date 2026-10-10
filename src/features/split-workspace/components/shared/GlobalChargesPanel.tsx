@@ -41,13 +41,13 @@ export function GlobalChargesPanel({
       </h3>
 
       <div className="mb-8 space-y-6">
-        <ChargeToggle label="GST / Tax" value={gst} onChange={onGstChange} />
+        <ChargeToggle label="Global Discount" value={discount} onChange={onDiscountChange} />
         <ChargeToggle
           label="Service Charge"
           value={serviceCharge}
           onChange={onServiceChargeChange}
         />
-        <ChargeToggle label="Global Discount" value={discount} onChange={onDiscountChange} />
+        <ChargeToggle label="GST / Tax" value={gst} onChange={onGstChange} />
       </div>
 
       <SummaryTotals
