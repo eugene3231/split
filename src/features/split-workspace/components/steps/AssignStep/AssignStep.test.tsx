@@ -216,24 +216,28 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('claim-item-amount-shared')).toHaveTextContent('$6.00');
   });
 
-  it('splits an item evenly or gives it to the active person from the share editor', () => {
+  it('splits an item evenly or gives it to the active person from the row', () => {
     const { refresh } = renderStep('p1');
+    const splitEvenly = () => screen.getByTestId('claim-item-split-evenly-weighted');
+    const takeAlone = () => screen.getByTestId('claim-item-take-alone-weighted');
 
-    fireEvent.click(screen.getByTestId('claim-item-amount-weighted'));
-    fireEvent.click(screen.getByTestId('claim-item-split-evenly-weighted'));
+    expect(screen.queryByTestId('claim-item-split-evenly-open')).not.toBeInTheDocument();
+    expect(takeAlone()).toHaveTextContent('Just Alice');
+
+    fireEvent.click(splitEvenly());
     refresh();
     expect(assignmentOf('weighted')).toEqual({
       mode: 'equal',
       personId: '',
       personIds: ['p1', 'p2'],
     });
-    expect(screen.queryByTestId('claim-item-amount-weighted-input')).not.toBeInTheDocument();
+    expect(splitEvenly()).toBeDisabled();
 
-    fireEvent.click(screen.getByTestId('claim-item-amount-weighted'));
-    expect(screen.queryByTestId('claim-item-split-evenly-weighted')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('claim-item-take-alone-weighted'));
+    fireEvent.click(takeAlone());
     refresh();
     expect(assignmentOf('weighted').personIds).toEqual(['p1']);
+    expect(takeAlone()).toBeDisabled();
+    expect(splitEvenly()).toBeEnabled();
     expect(screen.getByTestId('claim-item-amount-weighted')).toHaveTextContent('$12.00');
   });
 

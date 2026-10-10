@@ -11,6 +11,7 @@ import {
   resolveActivePersonId,
   countItemsLeft,
   resolveClaimContinue,
+  resolvePreviousPersonId,
 } from '@features/split-workspace/logic/claim';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 
@@ -123,7 +124,9 @@ export function useWizard(
     }
 
     if (activeStep === 'items') {
-      setActiveStep('receipt');
+      const previousPersonId = resolvePreviousPersonId(people, activePersonId);
+      if (previousPersonId) setActivePersonId(previousPersonId);
+      else setActiveStep('receipt');
       return;
     }
 

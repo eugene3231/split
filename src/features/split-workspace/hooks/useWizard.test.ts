@@ -146,13 +146,17 @@ describe('useWizard', () => {
     expect(loadWizardState()).toEqual({ version: 1, step: 'items', activePersonId: 'p1' });
   });
 
-  it('goes back from claiming to the receipt, and from the summary to claiming', () => {
+  it('goes back from the summary to the last person, through each person, then to the receipt', () => {
     saveWizardState({ step: 'final', activePersonId: 'p2' });
     const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
 
     act(() => result.current.handleBack());
     expect(result.current.activeStep).toBe('items');
     expect(result.current.activePersonId).toBe('p2');
+
+    act(() => result.current.handleBack());
+    expect(result.current.activeStep).toBe('items');
+    expect(result.current.activePersonId).toBe('p1');
 
     act(() => result.current.handleBack());
     expect(result.current.activeStep).toBe('receipt');

@@ -12,6 +12,7 @@ import {
   formatItemCount,
   resolveClaimContinue,
   resolveClaimView,
+  resolvePreviousPersonId,
 } from './claim';
 
 const people: Person[] = [
@@ -234,6 +235,14 @@ describe('resolveClaimContinue', () => {
       kind: 'see-summary',
       label: 'See summary',
     });
+  });
+});
+
+describe('resolvePreviousPersonId', () => {
+  it('steps back one person, and gives null on the first or an unknown person', () => {
+    expect(resolvePreviousPersonId(people, 'p3')).toBe('p2');
+    expect(resolvePreviousPersonId(people, 'p1')).toBeNull();
+    expect(resolvePreviousPersonId(people, 'gone')).toBeNull();
   });
 });
 

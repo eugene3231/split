@@ -1,26 +1,19 @@
 interface Props {
-  icon: string;
   label: string;
+  disabled: boolean;
   onClick: () => void;
   testId: string;
 }
 
-// Keeps focus in the share input, so tapping the chip doesn't blur and close the editor first.
-const keepInputFocus = (event: { preventDefault: () => void }) => event.preventDefault();
-
-export function ItemActionChip({ icon, label, onClick, testId }: Props) {
+export function ItemActionChip({ label, disabled, onClick, testId }: Props) {
   return (
     <button
       type="button"
       data-testid={testId}
-      onPointerDown={keepInputFocus}
-      onMouseDown={keepInputFocus}
+      disabled={disabled}
       onClick={onClick}
-      className="flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-lowest px-3 py-1 text-xs font-semibold transition-colors hover:bg-surface-container"
+      className="h-8.5 rounded-full border border-outline-variant px-3 text-xs font-semibold whitespace-nowrap transition-colors hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent"
     >
-      <span aria-hidden className="material-symbols-outlined text-sm">
-        {icon}
-      </span>
       {label}
     </button>
   );

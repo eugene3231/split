@@ -4,8 +4,6 @@ import type { ShareInput } from '@features/split-workspace/logic/itemShare';
 
 interface Props {
   label: string;
-  editing: boolean;
-  onEditingChange: (editing: boolean) => void;
   onCommit: (input: ShareInput) => void;
   testId: string;
 }
@@ -15,19 +13,16 @@ function focusOnMount(element: HTMLInputElement | null) {
 }
 
 /** The active person's share: tap it to type an amount ("8.50") or a percent ("40%"). */
-export function ShareAmountField({ label, editing, onEditingChange, onCommit, testId }: Props) {
-  const [draft, setDraft] = useState('');
+export function ShareAmountField({ label, onCommit, testId }: Props) {
+  const [draft, setDraft] = useState<string | null>(null);
 
-  if (!editing) {
+  if (draft === null) {
     return (
       <button
         type="button"
         aria-label={`Your share ${label}, tap to type an amount or percent`}
         data-testid={testId}
-        onClick={() => {
-          setDraft('');
-          onEditingChange(true);
-        }}
+        onClick={() => setDraft('')}
         className="min-w-18 shrink-0 text-right font-bold tabular-nums underline decoration-outline-variant decoration-dotted underline-offset-4"
       >
         {label}
@@ -38,7 +33,7 @@ export function ShareAmountField({ label, editing, onEditingChange, onCommit, te
   const commit = () => {
     const input = parseShareInput(draft);
     if (input) onCommit(input);
-    onEditingChange(false);
+    setDraft(null);
   };
 
   return (
@@ -54,7 +49,7 @@ export function ShareAmountField({ label, editing, onEditingChange, onCommit, te
       onBlur={commit}
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.currentTarget.blur();
-        if (event.key === 'Escape') onEditingChange(false);
+        if (event.key === 'Escape') setDraft(null);
       }}
       className="w-18 shrink-0 rounded-lg border-2 border-primary bg-surface-container-lowest px-2 py-1 text-right font-bold tabular-nums outline-none"
     />

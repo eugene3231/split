@@ -139,6 +139,12 @@ export function resolveClaimContinue(
   return { kind: 'see-summary', label: 'See summary' };
 }
 
+/** The person before the active one, or null on the first person. */
+export function resolvePreviousPersonId(people: Person[], activePersonId: string): string | null {
+  const index = people.findIndex((person) => person.id === activePersonId);
+  return index > 0 ? people[index - 1].id : null;
+}
+
 function resolveClaimItem(
   item: EditableItem,
   receipt: Receipt,

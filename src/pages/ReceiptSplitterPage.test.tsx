@@ -237,6 +237,9 @@ describe('ReceiptSplitterPage integration', () => {
       clickBack(); // final → claim, still on Bob
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
 
+      clickBack(); // Bob → Alice
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Alice have?');
+
       clickBack(); // claim → receipt
       expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
 
@@ -788,7 +791,8 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue(); // → Bob
       clickContinue(); // → final
 
-      clickBack(); // → claim
+      clickBack(); // → claim, Bob
+      clickBack(); // → Alice
       clickBack(); // → receipt
       clickBack(); // → people
 
