@@ -160,6 +160,7 @@ function buildReceiptSection({
       discountCents: split.discountByPersonCents[personId] ?? 0,
       serviceCents: split.serviceByPersonCents[personId] ?? 0,
       gstCents: split.gstByPersonCents[personId] ?? 0,
+      roundingCents: split.roundingByPersonCents[personId] ?? 0,
     }),
     emptyMessage: itemRows.length === 0 ? 'No items assigned.' : undefined,
   };
@@ -183,6 +184,7 @@ interface BuildChargeRowsInput {
   discountCents: number;
   serviceCents: number;
   gstCents: number;
+  roundingCents: number;
 }
 
 function buildChargeRows({
@@ -193,6 +195,7 @@ function buildChargeRows({
   discountCents,
   serviceCents,
   gstCents,
+  roundingCents,
 }: BuildChargeRowsInput): BreakdownChargeRow[] {
   const rows: BreakdownChargeRow[] = [];
   if (discountCents > 0) {
@@ -218,6 +221,15 @@ function buildChargeRows({
       kind: 'gst',
       label: buildChargeLabel('GST / Tax', gst),
       amountCents: gstCents,
+      sign: 'plus',
+      currency,
+    });
+  }
+  if (roundingCents > 0) {
+    rows.push({
+      kind: 'rounding',
+      label: 'Rounding',
+      amountCents: roundingCents,
       sign: 'plus',
       currency,
     });

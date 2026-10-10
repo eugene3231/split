@@ -8,6 +8,7 @@ interface ReconciliationInput {
   serviceCharge: ChargeState;
   gst: ChargeState;
   setDiscount: (discount: ChargeState) => void;
+  setRoundingInput: (value: string) => void;
   receiptTotalInput: string;
 }
 
@@ -17,6 +18,7 @@ export function useReconciliation({
   serviceCharge,
   gst,
   setDiscount,
+  setRoundingInput,
   receiptTotalInput,
 }: ReconciliationInput) {
   const receiptTotalCents = parseCurrencyToCents(receiptTotalInput);
@@ -31,7 +33,8 @@ export function useReconciliation({
       currentDiscountCents: split.discountCents,
       serviceCharge,
       gst,
-      targetTotalCents: receiptTotalCents,
+      // Rounding sits outside the charges the discount search recomputes.
+      targetTotalCents: receiptTotalCents - split.roundingCents,
     });
     if (totalDiscountCents === null) return;
     setDiscount({
@@ -42,5 +45,10 @@ export function useReconciliation({
     });
   };
 
-  return { reconciliationCents, handleApplyReconciliationDiscount };
+  const handleAddRounding = () => {
+    if (reconciliationCents === null || reconciliationCents <= 0) return;
+    setRoundingInput(((split.roundingCents + reconciliationCents) / 100).toFixed(2));
+  };
+
+  return { reconciliationCents, handleApplyReconciliationDiscount, handleAddRounding };
 }

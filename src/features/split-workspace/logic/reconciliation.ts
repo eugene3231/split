@@ -1,6 +1,28 @@
-import type { ChargeState } from '@shared/types';
+import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { parseNumber } from '@shared/logic/core/money';
 import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
+import { computeSplit } from '@features/split-workspace/logic/split/split';
+import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
+
+type ReceiptPricing = Pick<
+  Receipt,
+  'items' | 'discount' | 'serviceCharge' | 'gst' | 'roundingInput'
+>;
+
+/**
+ * Prices the whole receipt for checking against its printed total. Anything still unclaimed
+ * counts as shared, so the result doesn't move as people claim items.
+ */
+export function computeReceiptTotals(receipt: ReceiptPricing, people: Person[]): SplitResult {
+  return computeSplit({
+    people,
+    items: splitUnassignedItemsEqually(receipt.items, people),
+    discount: receipt.discount,
+    serviceCharge: receipt.serviceCharge,
+    gst: receipt.gst,
+    roundingInput: receipt.roundingInput,
+  });
+}
 
 interface ReconciliationDiscountInput {
   subtotalCents: number;

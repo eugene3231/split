@@ -52,11 +52,13 @@ function makeSplitResult(overrides: Partial<SplitResult> = {}): SplitResult {
     discountByPersonCents: { p1: 0, p2: 0 },
     serviceByPersonCents: { p1: 13, p2: 12 },
     gstByPersonCents: { p1: 11, p2: 11 },
+    roundingByPersonCents: {},
     totalByPersonCents: { p1: 274, p2: 273 },
     subtotalCents: 500,
     discountCents: 0,
     serviceChargeCents: 25,
     gstCents: 22,
+    roundingCents: 0,
     grandTotalCents: 547,
     unassignedItemCount: 0,
     ...overrides,
@@ -280,11 +282,13 @@ describe('convertSplitResult', () => {
       grandTotalCents: 1200, // $12 USD → $16.20 SGD = 1620 SGD cents
       serviceChargeCents: 100, // $1 USD → $1.35 SGD = 135 SGD cents
       gstCents: 100,
+      roundingCents: 0,
       discountCents: 0,
       subtotalByPersonCents: { p1: 500, p2: 500 },
       totalByPersonCents: { p1: 600, p2: 600 },
       serviceByPersonCents: { p1: 50, p2: 50 },
       gstByPersonCents: { p1: 50, p2: 50 },
+      roundingByPersonCents: {},
       discountByPersonCents: { p1: 0, p2: 0 },
     });
 
@@ -306,11 +310,13 @@ describe('convertSplitResult', () => {
       discountByPersonCents: { p1: 0, p2: 0 },
       serviceByPersonCents: { p1: 50, p2: 50 },
       gstByPersonCents: { p1: 50, p2: 50 },
+      roundingByPersonCents: {},
       totalByPersonCents: { p1: 600, p2: 600 },
       subtotalCents: 1000,
       discountCents: 0,
       serviceChargeCents: 100,
       gstCents: 100,
+      roundingCents: 0,
       grandTotalCents: 1200,
     });
 
@@ -339,11 +345,13 @@ describe('convertSplitResult', () => {
       discountByPersonCents: { p1: 0, p2: 0 },
       serviceByPersonCents: { p1: 0, p2: 0 },
       gstByPersonCents: { p1: 0, p2: 0 },
+      roundingByPersonCents: {},
       totalByPersonCents: { p1: 1001, p2: 1001 },
       subtotalCents: 2002,
       discountCents: 0,
       serviceChargeCents: 0,
       gstCents: 0,
+      roundingCents: 0,
       grandTotalCents: 2002,
     });
 
@@ -365,11 +373,13 @@ describe('convertSplitResult', () => {
       discountByPersonCents: { p1: 1, p2: 1 },
       serviceByPersonCents: { p1: 1, p2: 1 },
       gstByPersonCents: { p1: 1, p2: 0 },
+      roundingByPersonCents: {},
       totalByPersonCents: { p1: 1003, p2: 1001 },
       subtotalCents: 2003,
       discountCents: 2,
       serviceChargeCents: 2,
       gstCents: 1,
+      roundingCents: 0,
       grandTotalCents: 2004,
     });
 
@@ -467,6 +477,7 @@ function makeReceipt(currency: string, exchangeRateOverride: number | null = nul
       detectedSource: null,
     },
     receiptTotalInput: '',
+    roundingInput: '',
     currency,
     exchangeRateOverride,
   };

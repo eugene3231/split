@@ -26,6 +26,7 @@ function makeReceipt(id: string, currency = 'SGD', override: number | null = nul
     serviceCharge: makeCharge({ enabled: true, percentInput: '10' }),
     gst: makeCharge({ enabled: true, percentInput: '9' }),
     receiptTotalInput: '',
+    roundingInput: '',
     currency,
     exchangeRateOverride: override,
   };
@@ -39,11 +40,13 @@ function makeSplit(total: number): SplitResult {
     discountByPersonCents: { p1: 0 },
     serviceByPersonCents: { p1: 0 },
     gstByPersonCents: { p1: 0 },
+    roundingByPersonCents: {},
     totalByPersonCents: { p1: total },
     subtotalCents: total,
     discountCents: 0,
     serviceChargeCents: 0,
     gstCents: 0,
+    roundingCents: 0,
     grandTotalCents: total,
     unassignedItemCount: 0,
   };

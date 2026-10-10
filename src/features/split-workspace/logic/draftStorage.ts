@@ -168,6 +168,7 @@ function normalizeDraftReceipt(
     serviceCharge: normalizeDraftChargeState(value.serviceCharge, defaultServiceChargeState),
     gst: normalizeDraftChargeState(value.gst, defaultGstState),
     receiptTotalInput: typeof value.receiptTotalInput === 'string' ? value.receiptTotalInput : '',
+    roundingInput: typeof value.roundingInput === 'string' ? value.roundingInput : '',
     currency: typeof value.currency === 'string' && value.currency ? value.currency : BASE_CURRENCY,
     exchangeRateOverride:
       typeof value.exchangeRateOverride === 'number' && value.exchangeRateOverride > 0

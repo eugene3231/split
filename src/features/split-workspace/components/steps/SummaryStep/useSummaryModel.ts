@@ -16,6 +16,7 @@ import {
 } from '@features/split-workspace/constants';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import { useReconciliation } from '@features/split-workspace/hooks/useReconciliation';
+import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 
 export type { SummaryView };
 
@@ -64,6 +65,7 @@ export type SummaryModel = {
   reconciliation: {
     cents: number | null;
     applyCorrectiveDiscount: () => void;
+    addRounding: () => void;
   };
   view: SummaryView;
   qrDataUrls: Record<string, string>;
@@ -81,20 +83,22 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
   const { active, consolidated } = useReceiptSplit();
   const activeSummaryReceipt =
     activeTab === 'total' ? null : (receipts.find((receipt) => receipt.id === activeTab) ?? null);
-  const selectedReceiptIndex = receipts.findIndex(
-    (receipt) => receipt.id === activeSummaryReceipt?.id,
-  );
-  const selectedSplit = consolidated.splitByReceipt[selectedReceiptIndex] ?? active.split;
-  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation({
-    split: selectedSplit,
-    discount: activeSummaryReceipt?.discount ?? defaultDiscountState,
-    serviceCharge: activeSummaryReceipt?.serviceCharge ?? defaultServiceChargeState,
-    gst: activeSummaryReceipt?.gst ?? defaultGstState,
-    setDiscount: (discount) => {
-      if (activeSummaryReceipt) patchReceipt(activeSummaryReceipt.id, { discount });
-    },
-    receiptTotalInput: activeSummaryReceipt?.receiptTotalInput ?? '',
-  });
+  const { reconciliationCents, handleApplyReconciliationDiscount, handleAddRounding } =
+    useReconciliation({
+      split: activeSummaryReceipt
+        ? computeReceiptTotals(activeSummaryReceipt, people)
+        : active.receiptTotals,
+      discount: activeSummaryReceipt?.discount ?? defaultDiscountState,
+      serviceCharge: activeSummaryReceipt?.serviceCharge ?? defaultServiceChargeState,
+      gst: activeSummaryReceipt?.gst ?? defaultGstState,
+      setDiscount: (discount) => {
+        if (activeSummaryReceipt) patchReceipt(activeSummaryReceipt.id, { discount });
+      },
+      setRoundingInput: (roundingInput) => {
+        if (activeSummaryReceipt) patchReceipt(activeSummaryReceipt.id, { roundingInput });
+      },
+      receiptTotalInput: activeSummaryReceipt?.receiptTotalInput ?? '',
+    });
 
   const view = resolveSummaryView({
     receipts,
@@ -123,6 +127,7 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
     reconciliation: {
       cents: reconciliationCents,
       applyCorrectiveDiscount: handleApplyReconciliationDiscount,
+      addRounding: handleAddRounding,
     },
     view,
     qrDataUrls,

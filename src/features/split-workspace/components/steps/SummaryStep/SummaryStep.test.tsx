@@ -118,6 +118,32 @@ describe('SummaryStep', () => {
     );
   });
 
+  it('adds a short receipt total as rounding that every card then shows', () => {
+    const alice = makePerson('Alice');
+    const bob = makePerson('Bob');
+    seedStore(
+      [alice, bob],
+      [
+        makeReceipt({
+          id: 'r1',
+          items: [
+            makeItem({
+              amountInput: '10.00',
+              assignment: { mode: 'equal', personId: '', personIds: [alice.id, bob.id] },
+            }),
+          ],
+          receiptTotalInput: '10.40',
+        }),
+      ],
+    );
+
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add $0.40 as rounding' }));
+
+    expect(screen.queryByText('Reconciliation Discrepancy')).toBeNull();
+    expect(screen.getAllByText('Rounding')).toHaveLength(2);
+  });
+
   it('offers Reset split once, alongside the export actions', () => {
     seedDinner();
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);

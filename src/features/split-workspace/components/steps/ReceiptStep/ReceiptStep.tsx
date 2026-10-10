@@ -35,6 +35,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
     setServiceCharge,
     setGst,
     setReceiptTotalInput,
+    removeRounding,
     setActiveReceiptId,
     removeReceipt,
     renameReceipt,
@@ -177,6 +178,8 @@ export function ReceiptStep({ onAddReceipt }: Props) {
             reconciliationCents={reconciliation.cents}
             receiptTotalInput={receiptTotalInput}
             onApplyDiscount={reconciliation.applyCorrectiveDiscount}
+            onAddRounding={reconciliation.addRounding}
+            onRemoveRounding={removeRounding}
             onDiscountChange={setDiscount}
             onServiceChargeChange={setServiceCharge}
             onGstChange={setGst}

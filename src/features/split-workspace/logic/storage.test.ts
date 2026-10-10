@@ -63,6 +63,7 @@ describe('draft storage', () => {
             serviceCharge: defaultServiceChargeState,
             gst: defaultGstState,
             receiptTotalInput: '1.00',
+            roundingInput: '',
           },
         ],
         activeReceiptId: 'r1',
@@ -93,6 +94,7 @@ describe('draft storage', () => {
             serviceCharge: defaultServiceChargeState,
             gst: defaultGstState,
             receiptTotalInput: '',
+            roundingInput: '',
           },
         ],
         activeReceiptId: 'does-not-exist',
@@ -118,7 +120,7 @@ describe('draft storage', () => {
             serviceCharge: defaultServiceChargeState,
             gst: defaultGstState,
             receiptTotalInput: '',
-            // no `currency` or `exchangeRateOverride` fields
+            // no `roundingInput`, `currency` or `exchangeRateOverride` fields
           },
         ],
         activeReceiptId: 'r1',
@@ -127,6 +129,7 @@ describe('draft storage', () => {
     );
 
     const draft = loadPersistedDraft();
+    expect(draft?.receipts[0].roundingInput).toBe('');
     expect(draft?.receipts[0].currency).toBe('SGD');
     expect(draft?.receipts[0].exchangeRateOverride).toBeNull();
   });
@@ -146,6 +149,7 @@ describe('draft storage', () => {
             serviceCharge: defaultServiceChargeState,
             gst: defaultGstState,
             receiptTotalInput: '',
+            roundingInput: '0.40',
             currency: 'THB',
             exchangeRateOverride: 0.038,
           },
@@ -156,6 +160,7 @@ describe('draft storage', () => {
     );
 
     const draft = loadPersistedDraft();
+    expect(draft?.receipts[0].roundingInput).toBe('0.40');
     expect(draft?.receipts[0].currency).toBe('THB');
     expect(draft?.receipts[0].exchangeRateOverride).toBe(0.038);
   });
@@ -175,6 +180,7 @@ describe('draft storage', () => {
             serviceCharge: defaultServiceChargeState,
             gst: defaultGstState,
             receiptTotalInput: '',
+            roundingInput: '',
             currency: 'USD',
             exchangeRateOverride: 0, // invalid — should be null
           },
@@ -256,6 +262,7 @@ const receipt1 = {
   serviceCharge: defaultServiceChargeState,
   gst: defaultGstState,
   receiptTotalInput: '8.00',
+  roundingInput: '',
   currency: 'SGD',
   exchangeRateOverride: null,
 };
@@ -321,6 +328,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -343,6 +351,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -365,6 +374,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -399,6 +409,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -425,6 +436,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -447,6 +459,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: null,
           gst: 42,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -479,6 +492,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -521,6 +535,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -559,6 +574,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -602,6 +618,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -638,6 +655,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -673,6 +691,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -703,6 +722,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -741,6 +761,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -779,6 +800,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',
@@ -801,6 +823,7 @@ describe('importDraftFromJson', () => {
           serviceCharge: defaultServiceChargeState,
           gst: defaultGstState,
           receiptTotalInput: '',
+          roundingInput: '',
         },
       ],
       activeReceiptId: 'r1',

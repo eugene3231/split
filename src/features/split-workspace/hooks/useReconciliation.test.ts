@@ -28,11 +28,13 @@ const makeSplit = (grandTotalCents: number): SplitResult => ({
   discountByPersonCents: {},
   serviceByPersonCents: {},
   gstByPersonCents: {},
+  roundingByPersonCents: {},
   totalByPersonCents: {},
   subtotalCents: grandTotalCents,
   discountCents: 0,
   serviceChargeCents: 0,
   gstCents: 0,
+  roundingCents: 0,
   grandTotalCents,
   unassignedItemCount: 0,
   involvedCountByPerson: {},
@@ -60,6 +62,7 @@ describe('useReconciliation', () => {
         serviceCharge: percentCharge('10'),
         gst: percentCharge('9'),
         setDiscount,
+        setRoundingInput: vi.fn(),
         receiptTotalInput: '107.91',
       }),
     );
@@ -81,6 +84,7 @@ describe('useReconciliation', () => {
         serviceCharge: disabledCharge,
         gst: disabledCharge,
         setDiscount,
+        setRoundingInput: vi.fn(),
         receiptTotalInput: '10.00',
       }),
     );
@@ -101,6 +105,7 @@ describe('useReconciliation', () => {
         serviceCharge: disabledCharge,
         gst: disabledCharge,
         setDiscount,
+        setRoundingInput: vi.fn(),
         receiptTotalInput: '12.00',
       }),
     );
@@ -121,6 +126,7 @@ describe('useReconciliation', () => {
         serviceCharge: disabledCharge,
         gst: disabledCharge,
         setDiscount,
+        setRoundingInput: vi.fn(),
         receiptTotalInput: '9.00',
       }),
     );
@@ -130,6 +136,52 @@ describe('useReconciliation', () => {
     });
 
     expect(setDiscount).toHaveBeenCalled();
+  });
+});
+
+describe('useReconciliation rounding', () => {
+  const renderRounding = (split: SplitResult, receiptTotalInput: string) => {
+    const setRoundingInput = vi.fn();
+    const { result } = renderHook(() =>
+      useReconciliation({
+        split,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+        setDiscount: vi.fn(),
+        setRoundingInput,
+        receiptTotalInput,
+      }),
+    );
+    act(() => result.current.handleAddRounding());
+    return setRoundingInput;
+  };
+
+  it('adds the gap to any rounding already on the receipt', () => {
+    const split = { ...makeSplit(1010), roundingCents: 10 };
+    expect(renderRounding(split, '10.40')).toHaveBeenCalledWith('0.40');
+  });
+
+  it('adds no rounding when the receipt total is lower than the shares', () => {
+    expect(renderRounding(makeSplit(1000), '9.60')).not.toHaveBeenCalled();
+  });
+
+  it('leaves rounding out of the corrective discount search', () => {
+    const setDiscount = vi.fn();
+    const split = { ...makeSplit(1000), subtotalCents: 990, roundingCents: 10 };
+    const { result } = renderHook(() =>
+      useReconciliation({
+        split,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+        setDiscount,
+        setRoundingInput: vi.fn(),
+        receiptTotalInput: '9.10',
+      }),
+    );
+    act(() => result.current.handleApplyReconciliationDiscount());
+    expect(setDiscount).toHaveBeenCalledWith(expect.objectContaining({ amountInput: '0.90' }));
   });
 });
 

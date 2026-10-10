@@ -246,6 +246,7 @@ function buildPresetDraft(definition: PresetDefinition): SessionDraft {
     serviceCharge: buildCharge(defaultServiceChargeState, receipt.serviceCharge),
     gst: buildCharge(defaultGstState, receipt.gst),
     receiptTotalInput: receipt.total,
+    roundingInput: '',
     currency: receipt.currency ?? BASE_CURRENCY,
     exchangeRateOverride: null,
   }));

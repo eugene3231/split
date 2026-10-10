@@ -5,7 +5,7 @@ import {
   computeConsolidatedSplit,
 } from '@features/split-workspace/logic/split/split';
 import { useReconciliation } from './useReconciliation';
-import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
+import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -16,12 +16,13 @@ import {
 } from '@features/split-workspace/constants';
 
 export function useReceiptSplit() {
-  const { people, receipts, activeReceiptId, setDiscount } = useReceiptStore(
+  const { people, receipts, activeReceiptId, setDiscount, setRoundingInput } = useReceiptStore(
     useShallow((state) => ({
       people: state.people,
       receipts: state.receipts,
       activeReceiptId: state.activeReceiptId,
       setDiscount: state.setDiscount,
+      setRoundingInput: state.setRoundingInput,
     })),
   );
   const exchangeRates = useCurrencyStore((state) => state.exchangeRates);
@@ -36,21 +37,23 @@ export function useReceiptSplit() {
         discount: activeReceipt?.discount ?? defaultDiscountState,
         serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
         gst: activeReceipt?.gst ?? defaultGstState,
+        roundingInput: activeReceipt?.roundingInput,
       }),
     [people, activeReceipt],
   );
 
-  // Receipt-level totals and reconciliation must not change as people claim items, so
-  // anything still unclaimed counts as shared here.
   const receiptTotals = useMemo(
     () =>
-      computeSplit({
+      computeReceiptTotals(
+        activeReceipt ?? {
+          items: [],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          roundingInput: '',
+        },
         people,
-        items: splitUnassignedItemsEqually(activeReceipt?.items ?? [], people),
-        discount: activeReceipt?.discount ?? defaultDiscountState,
-        serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
-        gst: activeReceipt?.gst ?? defaultGstState,
-      }),
+      ),
     [people, activeReceipt],
   );
 
@@ -63,6 +66,7 @@ export function useReceiptSplit() {
           discount: r.discount,
           serviceCharge: r.serviceCharge,
           gst: r.gst,
+          roundingInput: r.roundingInput,
         }),
       ),
     [people, receipts],
@@ -81,14 +85,16 @@ export function useReceiptSplit() {
     );
   }, [splitByReceipt, people, receipts, exchangeRates]);
 
-  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation({
-    split: receiptTotals,
-    discount: activeReceipt?.discount ?? defaultDiscountState,
-    serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
-    gst: activeReceipt?.gst ?? defaultGstState,
-    setDiscount,
-    receiptTotalInput: activeReceipt?.receiptTotalInput ?? '',
-  });
+  const { reconciliationCents, handleApplyReconciliationDiscount, handleAddRounding } =
+    useReconciliation({
+      split: receiptTotals,
+      discount: activeReceipt?.discount ?? defaultDiscountState,
+      serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
+      gst: activeReceipt?.gst ?? defaultGstState,
+      setDiscount,
+      setRoundingInput,
+      receiptTotalInput: activeReceipt?.receiptTotalInput ?? '',
+    });
 
   return {
     active: {
@@ -103,6 +109,7 @@ export function useReceiptSplit() {
     reconciliation: {
       cents: reconciliationCents,
       applyCorrectiveDiscount: handleApplyReconciliationDiscount,
+      addRounding: handleAddRounding,
     },
   };
 }

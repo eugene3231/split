@@ -584,6 +584,7 @@ describe('receiptStore additional coverage', () => {
     const receiptId = useReceiptStore.getState().activeReceiptId;
     useReceiptStore.getState().patchReceipt(receiptId, {
       receiptTotalInput: '42.00',
+      roundingInput: '',
       currency: 'USD',
     });
 
@@ -614,6 +615,7 @@ describe('receiptStore additional coverage', () => {
         serviceCharge: { ...defaultServiceChargeState },
         gst: { ...defaultGstState },
         receiptTotalInput: '',
+        roundingInput: '',
         currency: 'SGD',
         exchangeRateOverride: null,
       },
@@ -633,6 +635,7 @@ describe('receiptStore additional coverage', () => {
         serviceCharge: { ...defaultServiceChargeState },
         gst: { ...defaultGstState },
         receiptTotalInput: '',
+        roundingInput: '',
         currency: 'SGD',
         exchangeRateOverride: null,
       },
