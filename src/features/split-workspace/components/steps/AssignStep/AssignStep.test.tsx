@@ -175,7 +175,9 @@ describe('AssignStep', () => {
     refresh();
 
     expect(assignmentOf('bread').unassignedWeight).toBe(1);
-    expect(screen.getByTestId('claim-item-claimants-bread')).toHaveTextContent('Alice · 1/2 left');
+    expect(screen.getByTestId('claim-item-claimants-bread')).toHaveAccessibleName(
+      'Alice Tan, 1/2 left',
+    );
     expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
 
@@ -214,6 +216,31 @@ describe('AssignStep', () => {
 
     expect(storeMock.updateReceiptItem).not.toHaveBeenCalled();
     expect(screen.getByTestId('claim-item-amount-shared')).toHaveTextContent('$6.00');
+  });
+
+  it('splits an item evenly or gives it to the active person from the row', () => {
+    const { refresh } = renderStep('p1');
+    const splitEvenly = () => screen.getByTestId('claim-item-split-evenly-weighted');
+    const takeAlone = () => screen.getByTestId('claim-item-take-alone-weighted');
+
+    expect(screen.queryByTestId('claim-item-split-evenly-open')).not.toBeInTheDocument();
+    expect(takeAlone()).toHaveAccessibleName('Alice only');
+
+    fireEvent.click(splitEvenly());
+    refresh();
+    expect(assignmentOf('weighted')).toEqual({
+      mode: 'equal',
+      personId: '',
+      personIds: ['p1', 'p2'],
+    });
+    expect(splitEvenly()).toBeDisabled();
+
+    fireEvent.click(takeAlone());
+    refresh();
+    expect(assignmentOf('weighted').personIds).toEqual(['p1']);
+    expect(takeAlone()).toBeDisabled();
+    expect(splitEvenly()).toBeEnabled();
+    expect(screen.getByTestId('claim-item-amount-weighted')).toHaveTextContent('$12.00');
   });
 
   it('lists every receipt on one page with a jump chip and a left count per receipt', () => {

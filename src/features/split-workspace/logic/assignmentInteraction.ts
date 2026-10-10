@@ -10,7 +10,9 @@ import {
 export type AssignmentCommand =
   | { type: 'toggle-person'; personId: string; checked: boolean }
   | { type: 'step-share'; personId: string; step: ShareStep }
-  | { type: 'set-share'; personId: string; input: ShareInput };
+  | { type: 'set-share'; personId: string; input: ShareInput }
+  | { type: 'split-evenly'; personIds: string[] }
+  | { type: 'only-person'; personId: string };
 
 export function applyAssignmentCommand(
   item: EditableItem,
@@ -21,6 +23,12 @@ export function applyAssignmentCommand(
   }
   if (command.type === 'step-share') {
     return stepPersonShare(item, command.personId, command.step);
+  }
+  if (command.type === 'split-evenly') {
+    return assignEqually(item, command.personIds);
+  }
+  if (command.type === 'only-person') {
+    return assignEqually(item, [command.personId]);
   }
   return setPersonShare(item, command.personId, command.input);
 }
@@ -101,6 +109,11 @@ export function splitUnassignedItemsEqually(
       assignment: { mode: 'equal', personId: '', personIds, weights },
     };
   });
+}
+
+/** Puts exactly these people on the item in equal shares, with nothing left over. */
+function assignEqually(item: EditableItem, personIds: string[]): EditableItem {
+  return { ...item, assignment: { mode: 'equal', personId: '', personIds } };
 }
 
 function averageWeight(weights: number[]): number {

@@ -20,6 +20,10 @@ export interface ClaimPerson {
 
 export interface ClaimItemShare extends PersonShare {
   amountLabel: string;
+  /** False once everyone already has an equal share. */
+  canSplitEvenly: boolean;
+  /** False once the active person has the whole item alone. */
+  canTakeAlone: boolean;
 }
 
 export interface ClaimItem {
@@ -29,7 +33,10 @@ export interface ClaimItem {
   priceLabel: string;
   claimedByActive: boolean;
   isLeft: boolean;
-  claimantsLabel: string;
+  /** Everyone on the item, in people order. */
+  claimants: ClaimPerson[];
+  /** "1/2 left" when part of the item has nobody yet. */
+  leftLabel: string | null;
   /** The active person's slice; null when they are not on the item. */
   share: ClaimItemShare | null;
 }
@@ -135,6 +142,12 @@ export function resolveClaimContinue(
   return { kind: 'see-summary', label: 'See summary' };
 }
 
+/** The person before the active one, or null on the first person. */
+export function resolvePreviousPersonId(people: Person[], activePersonId: string): string | null {
+  const index = people.findIndex((person) => person.id === activePersonId);
+  return index > 0 ? people[index - 1].id : null;
+}
+
 function resolveClaimItem(
   item: EditableItem,
   receipt: Receipt,
@@ -151,6 +164,11 @@ function resolveClaimItem(
     ? resolvePersonShare(item, activePersonId, priceCents)
     : null;
 
+  const { weights, unassignedWeight } = item.assignment;
+  const hasEqualWeights =
+    !weights || new Set(item.assignment.personIds.map((id) => weights[id] ?? 1)).size <= 1;
+  const isSplitEvenly = claimedIds.size === people.length && !unassignedWeight && hasEqualWeights;
+
   return {
     id: item.id,
     receiptId: receipt.id,
@@ -158,31 +176,24 @@ function resolveClaimItem(
     priceLabel: formatCurrencyFromCents(priceCents, receipt.currency),
     claimedByActive: share !== null,
     isLeft: !isItemAssigned(item, validIds),
-    claimantsLabel: describeClaimants(item, claimants),
+    claimants,
+    leftLabel: describeLeftShare(item, claimants),
     share: share && {
       ...share,
       amountLabel: formatCurrencyFromCents(share.amountCents, receipt.currency),
+      canSplitEvenly: people.length > 1 && !isSplitEvenly,
+      canTakeAlone: claimedIds.size > 1 || Boolean(unassignedWeight),
     },
   };
 }
 
-function describeClaimants(item: EditableItem, claimants: ClaimPerson[]): string {
-  if (claimants.length === 0) return '';
-
-  const names = claimants.map((person) => person.firstName);
-  const label =
-    names.length > 3 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ');
-  const unassigned = describeUnassignedShare(item, claimants);
-  return unassigned ? `${label} · ${unassigned} left` : label;
-}
-
-function describeUnassignedShare(item: EditableItem, claimants: ClaimPerson[]): string | null {
+function describeLeftShare(item: EditableItem, claimants: ClaimPerson[]): string | null {
   const unassignedWeight = item.assignment.unassignedWeight ?? 0;
-  if (unassignedWeight === 0) return null;
+  if (unassignedWeight === 0 || claimants.length === 0) return null;
 
   const total = claimants.reduce(
     (sum, person) => sum + (item.assignment.weights?.[person.id] ?? 1),
     unassignedWeight,
   );
-  return formatShareFraction(unassignedWeight, total);
+  return `${formatShareFraction(unassignedWeight, total)} left`;
 }

@@ -123,6 +123,29 @@ describe('applyAssignmentCommand', () => {
     });
     expect(sharesOf(typed)).toEqual({ p1: 900, p2: 300 });
   });
+
+  it('splits an item evenly between everyone, dropping custom shares and any part left', () => {
+    const next = applyAssignmentCommand(
+      buildItem({ personIds: ['p1'], weights: { p1: 1 }, unassignedWeight: 1 }),
+      { type: 'split-evenly', personIds: ['p1', 'p2', 'p3'] },
+    );
+
+    expect(next.assignment).toEqual({
+      mode: 'equal',
+      personId: '',
+      personIds: ['p1', 'p2', 'p3'],
+    });
+    expect(sharesOf(next)).toEqual({ p1: 400, p2: 400, p3: 400 });
+  });
+
+  it('gives the whole item to one person', () => {
+    const next = applyAssignmentCommand(buildItem({ weights: { p1: 2, p2: 1 } }), {
+      type: 'only-person',
+      personId: 'p2',
+    });
+
+    expect(next.assignment).toEqual({ mode: 'equal', personId: '', personIds: ['p2'] });
+  });
 });
 
 describe('splitUnassignedItemsEqually', () => {
