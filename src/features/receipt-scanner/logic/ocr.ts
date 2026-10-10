@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { ChargeState, EditableItem, OcrResponse, Person } from '@shared/types';
+import type { ChargeState, EditableItem, OcrResponse } from '@shared/types';
 import { applyChargeDetection } from '@shared/logic/split/charges';
 import { createItemFromOcr } from '@features/receipt-scanner/logic/itemMapper';
 export {
@@ -9,7 +9,6 @@ export {
 
 export function applyOcrPayload(
   payload: OcrResponse,
-  people: Person[],
   setItems: Dispatch<SetStateAction<EditableItem[]>>,
   setServiceCharge: Dispatch<SetStateAction<ChargeState>>,
   setGst: Dispatch<SetStateAction<ChargeState>>,
@@ -17,7 +16,7 @@ export function applyOcrPayload(
   setReceiptTotalInput: Dispatch<SetStateAction<string>>,
 ) {
   if (payload.items.length > 0) {
-    setItems(payload.items.map((item) => createItemFromOcr(item, people)));
+    setItems(payload.items.map((item) => createItemFromOcr(item)));
   }
 
   setServiceCharge((current) => applyChargeDetection(current, payload.detected.serviceCharge));

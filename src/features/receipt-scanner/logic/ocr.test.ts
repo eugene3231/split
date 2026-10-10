@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ChargeState, EditableItem, OcrResponse, Person } from '@shared/types';
+import type { ChargeState, EditableItem, OcrResponse } from '@shared/types';
 import { applyOcrPayload } from './ocr';
 
 function setStateValue<T>(current: T, next: SetStateAction<T>): T {
@@ -9,7 +9,6 @@ function setStateValue<T>(current: T, next: SetStateAction<T>): T {
 
 describe('applyOcrPayload', () => {
   it('updates items, charges, warnings, and receipt total', () => {
-    const people: Person[] = [{ id: 'p1', name: 'Alice' }];
     const payload: OcrResponse = {
       items: [
         { description: 'Laksa', amount: 12 },
@@ -82,7 +81,6 @@ describe('applyOcrPayload', () => {
 
     applyOcrPayload(
       payload,
-      people,
       setItems,
       setServiceCharge,
       setGst,
@@ -93,7 +91,7 @@ describe('applyOcrPayload', () => {
     expect(items).toHaveLength(2);
     expect(items[0].name).toBe('Laksa');
     expect(items[0].amountInput).toBe('12.00');
-    expect(items[0].assignment.personId).toBe('p1');
+    expect(items[0].assignment.personIds).toEqual([]);
     expect(serviceCharge.mode).toBe('percent');
     expect(serviceCharge.percentInput).toBe('10');
     expect(gst.mode).toBe('percent');

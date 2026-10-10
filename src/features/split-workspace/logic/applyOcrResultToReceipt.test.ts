@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { OcrResponse, Person } from '@shared/types';
+import type { OcrResponse } from '@shared/types';
 import {
   defaultDiscountState,
   defaultGstState,
@@ -7,13 +7,8 @@ import {
 } from '@features/split-workspace/constants';
 import { buildReceiptOcrReplacement } from './applyOcrResultToReceipt';
 
-const people: Person[] = [
-  { id: 'p1', name: 'Alice' },
-  { id: 'p2', name: 'Bob' },
-];
-
 describe('buildReceiptOcrReplacement', () => {
-  it('maps OCR items into workspace items and applies detected charges and total', () => {
+  it('maps OCR items into unclaimed workspace items and applies detected charges and total', () => {
     const payload: OcrResponse = {
       items: [{ description: 'Laksa', amount: 12.5 }],
       subtotal: 12.5,
@@ -37,7 +32,7 @@ describe('buildReceiptOcrReplacement', () => {
       warnings: [],
     };
 
-    const patch = buildReceiptOcrReplacement(payload, people);
+    const patch = buildReceiptOcrReplacement(payload);
 
     expect(patch.items).toHaveLength(1);
     expect(patch.items[0]).toMatchObject({
@@ -46,7 +41,7 @@ describe('buildReceiptOcrReplacement', () => {
       assignment: {
         mode: 'equal',
         personId: '',
-        personIds: ['p1', 'p2'],
+        personIds: [],
       },
     });
     expect(patch.serviceCharge).toMatchObject({
@@ -90,7 +85,7 @@ describe('buildReceiptOcrReplacement', () => {
       warnings: ['No confident line items'],
     };
 
-    const patch = buildReceiptOcrReplacement(payload, people);
+    const patch = buildReceiptOcrReplacement(payload);
 
     expect(patch.discount).toEqual(defaultDiscountState);
     expect(patch.discount).not.toBe(defaultDiscountState);

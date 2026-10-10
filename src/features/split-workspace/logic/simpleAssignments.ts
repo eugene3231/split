@@ -2,19 +2,14 @@ import type { EditableItem, Person } from '@shared/types';
 import { createId } from '@shared/logic/core/id';
 import { sanitizeItemAssignment } from '@features/split-workspace/logic/assignmentItems';
 
-export function createDefaultItem(people: Person[]): EditableItem {
-  const baseItem = {
+export function createDefaultItem(): EditableItem {
+  return {
     id: createId(),
     name: '',
     amountInput: '',
     discountPercentInput: '',
-    assignment: {
-      mode: 'equal' as const,
-      personId: '',
-      personIds: people.map((person) => person.id),
-    },
+    assignment: { mode: 'equal', personId: '', personIds: [] },
   };
-  return baseItem;
 }
 
 export function normalizeItemAssignments(items: EditableItem[], people: Person[]): EditableItem[] {
@@ -70,7 +65,7 @@ export function syncItemsWithPeople(items: EditableItem[], people: Person[]): Ed
 
 export function buildInitialItems(items: EditableItem[], people: Person[]): EditableItem[] {
   if (items.length === 0) {
-    return [createDefaultItem(people)];
+    return [createDefaultItem()];
   }
 
   return syncItemsWithPeople(items, people);
