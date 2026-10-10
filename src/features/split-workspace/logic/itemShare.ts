@@ -18,7 +18,6 @@ export type ShareStep = 'increase' | 'decrease';
 
 export interface PersonShare {
   label: string;
-  isWhole: boolean;
   amountCents: number;
   canIncrease: boolean;
   canDecrease: boolean;
@@ -66,14 +65,13 @@ export function resolvePersonShare(
 
   return {
     label: formatShareFraction(parts.weights[personId], totalWeight(parts)),
-    isWhole: parts.weights[personId] === totalWeight(parts),
     amountCents,
     canIncrease: stepTarget(parts, personId, 'increase') !== null,
     canDecrease: stepTarget(parts, personId, 'decrease') !== null,
   };
 }
 
-/** Apple-style − / +: walks this person's slice through Whole, 1/2, 1/3 … 1/MAX_SHARE_DIVISOR. */
+/** Apple-style − / +: walks this person's slice through 1, 1/2, 1/3 … 1/MAX_SHARE_DIVISOR. */
 export function stepPersonShare(
   item: EditableItem,
   personId: string,
@@ -124,12 +122,12 @@ export function parseShareInput(raw: string): ShareInput | null {
   return cents !== null && cents >= 0 ? { kind: 'amount', cents } : null;
 }
 
-/** "Whole", "1/3", "2/5" while the denominator stays small, otherwise a rounded percent. */
+/** "1", "1/3", "2/5" while the denominator stays small, otherwise a rounded percent. */
 export function formatShareFraction(part: number, total: number): string {
   const divisor = gcd(part, total);
   const numerator = part / divisor;
   const denominator = total / divisor;
-  if (numerator === denominator) return 'Whole';
+  if (numerator === denominator) return '1';
   if (denominator <= MAX_SHARE_DIVISOR) return `${numerator}/${denominator}`;
   return `${Math.round((part / total) * 100)}%`;
 }

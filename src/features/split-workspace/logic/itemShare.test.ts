@@ -45,7 +45,6 @@ describe('resolvePersonShare', () => {
 
     expect(share).toEqual({
       label: '1/3',
-      isWhole: false,
       amountCents: 400,
       canIncrease: true,
       canDecrease: true,
@@ -59,13 +58,12 @@ describe('resolvePersonShare', () => {
       1200,
     );
 
-    expect(share).toMatchObject({ label: '1/2', isWhole: false, canIncrease: true });
+    expect(share).toMatchObject({ label: '1/2', canIncrease: true });
   });
 
-  it('labels a solo item as whole and an odd typed split as a percent', () => {
+  it('labels a solo item as 1 with + disabled, and an odd typed split as a percent', () => {
     expect(resolvePersonShare(buildItem({ personIds: ['a'] }), 'a', 1200)).toMatchObject({
-      label: 'Whole',
-      isWhole: true,
+      label: '1',
       canIncrease: false,
       canDecrease: true,
     });
@@ -237,7 +235,7 @@ describe('parseShareInput', () => {
 
 describe('formatShareFraction', () => {
   it('reduces small fractions and falls back to a percent', () => {
-    expect(formatShareFraction(3, 3)).toBe('Whole');
+    expect(formatShareFraction(3, 3)).toBe('1');
     expect(formatShareFraction(3, 12)).toBe('1/4');
     expect(formatShareFraction(4, 6)).toBe('2/3');
     expect(formatShareFraction(1, 11)).toBe('9%');

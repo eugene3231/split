@@ -127,8 +127,9 @@ describe('AssignStep', () => {
     refresh();
     expect(assignmentOf('open').personIds).toEqual(['p2']);
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByTestId('claim-item-share-open')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('claim-item-share-open-decrease')).not.toBeInTheDocument();
+    expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent('1');
+    expect(screen.getByTestId('claim-item-share-open-increase')).toBeDisabled();
+    expect(screen.getByTestId('claim-item-share-open-decrease')).toBeEnabled();
     expect(screen.getByTestId('claim-item-amount-open')).toHaveTextContent('$12.00');
 
     fireEvent.click(toggle());

@@ -8,9 +8,6 @@ interface Props {
 
 /** Fixed width so the steppers and prices line up down the list, whatever the label. */
 export function ShareStepper({ share, onStep, testId }: Props) {
-  // A whole item shows no stepper; type "1/2" or "50%" into its price to share it.
-  if (share.isWhole) return null;
-
   return (
     <span className="flex w-23 shrink-0 items-center rounded-full border border-outline-variant">
       <StepButton
