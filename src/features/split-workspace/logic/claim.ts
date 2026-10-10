@@ -33,7 +33,10 @@ export interface ClaimItem {
   priceLabel: string;
   claimedByActive: boolean;
   isLeft: boolean;
-  claimantsLabel: string;
+  /** Everyone on the item, in people order. */
+  claimants: ClaimPerson[];
+  /** "1/2 left" when part of the item has nobody yet. */
+  leftLabel: string | null;
   /** The active person's slice; null when they are not on the item. */
   share: ClaimItemShare | null;
 }
@@ -173,7 +176,8 @@ function resolveClaimItem(
     priceLabel: formatCurrencyFromCents(priceCents, receipt.currency),
     claimedByActive: share !== null,
     isLeft: !isItemAssigned(item, validIds),
-    claimantsLabel: describeClaimants(item, claimants),
+    claimants,
+    leftLabel: describeLeftShare(item, claimants),
     share: share && {
       ...share,
       amountLabel: formatCurrencyFromCents(share.amountCents, receipt.currency),
@@ -183,23 +187,13 @@ function resolveClaimItem(
   };
 }
 
-function describeClaimants(item: EditableItem, claimants: ClaimPerson[]): string {
-  if (claimants.length === 0) return '';
-
-  const names = claimants.map((person) => person.firstName);
-  const label =
-    names.length > 3 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ');
-  const unassigned = describeUnassignedShare(item, claimants);
-  return unassigned ? `${label} · ${unassigned} left` : label;
-}
-
-function describeUnassignedShare(item: EditableItem, claimants: ClaimPerson[]): string | null {
+function describeLeftShare(item: EditableItem, claimants: ClaimPerson[]): string | null {
   const unassignedWeight = item.assignment.unassignedWeight ?? 0;
-  if (unassignedWeight === 0) return null;
+  if (unassignedWeight === 0 || claimants.length === 0) return null;
 
   const total = claimants.reduce(
     (sum, person) => sum + (item.assignment.weights?.[person.id] ?? 1),
     unassignedWeight,
   );
-  return formatShareFraction(unassignedWeight, total);
+  return `${formatShareFraction(unassignedWeight, total)} left`;
 }

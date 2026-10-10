@@ -175,7 +175,9 @@ describe('AssignStep', () => {
     refresh();
 
     expect(assignmentOf('bread').unassignedWeight).toBe(1);
-    expect(screen.getByTestId('claim-item-claimants-bread')).toHaveTextContent('Alice · 1/2 left');
+    expect(screen.getByTestId('claim-item-claimants-bread')).toHaveAccessibleName(
+      'Alice Tan, 1/2 left',
+    );
     expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
 

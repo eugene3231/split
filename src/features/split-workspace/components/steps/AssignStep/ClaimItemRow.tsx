@@ -1,6 +1,7 @@
 import { cn } from '@shared/utils/cn';
 import type { ClaimItem } from '@features/split-workspace/logic/claim';
 import type { ShareInput, ShareStep } from '@features/split-workspace/logic/itemShare';
+import { ClaimantAvatars } from './ClaimantAvatars';
 import { ItemActionChip } from './ItemActionChip';
 import { ShareAmountField } from './ShareAmountField';
 import { ShareStepper } from './ShareStepper';
@@ -49,14 +50,11 @@ export function ClaimItemRow({
           </span>
           <span className="min-w-0">
             <span className="block font-semibold break-words">{item.name}</span>
-            {item.claimantsLabel && (
-              <span
-                data-testid={`claim-item-claimants-${item.id}`}
-                className="block text-xs text-on-surface-variant"
-              >
-                {item.claimantsLabel}
-              </span>
-            )}
+            <ClaimantAvatars
+              claimants={item.claimants}
+              leftLabel={item.leftLabel}
+              testId={`claim-item-claimants-${item.id}`}
+            />
           </span>
         </button>
 

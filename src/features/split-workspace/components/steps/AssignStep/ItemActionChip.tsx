@@ -1,5 +1,4 @@
-import { cn } from '@shared/utils/cn';
-import { useLongPress } from './useLongPress';
+import { HoverLabel } from './HoverLabel';
 
 interface Props {
   icon: string;
@@ -9,13 +8,9 @@ interface Props {
   testId: string;
 }
 
-/** An icon button whose label shows on hover, or on a long press on touch screens. */
 export function ItemActionChip({ icon, label, disabled, onClick, testId }: Props) {
-  const { pressed, handlers } = useLongPress();
-
   return (
-    // The wrapper takes the hover and press, so a disabled button still shows its label.
-    <span className="group relative flex select-none [-webkit-touch-callout:none]" {...handlers}>
+    <HoverLabel label={label} testId={`${testId}-label`}>
       <button
         type="button"
         aria-label={label}
@@ -28,16 +23,6 @@ export function ItemActionChip({ icon, label, disabled, onClick, testId }: Props
           {icon}
         </span>
       </button>
-      <span
-        aria-hidden
-        data-testid={`${testId}-label`}
-        className={cn(
-          'pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 rounded-lg bg-inverse-surface px-2 py-1 text-xs font-semibold whitespace-nowrap text-inverse-on-surface opacity-0 transition-opacity group-hover:opacity-100',
-          pressed && 'opacity-100',
-        )}
-      >
-        {label}
-      </span>
-    </span>
+    </HoverLabel>
   );
 }

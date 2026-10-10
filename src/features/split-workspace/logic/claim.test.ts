@@ -87,7 +87,8 @@ describe('resolveClaimView', () => {
       priceLabel: '$8.50',
       claimedByActive: false,
       isLeft: true,
-      claimantsLabel: '',
+      claimants: [],
+      leftLabel: null,
       share: null,
     });
   });
@@ -97,7 +98,8 @@ describe('resolveClaimView', () => {
 
     const [item] = items([receipt]);
 
-    expect(item.claimantsLabel).toBe('Eugene, Mei, Arjun');
+    expect(item.claimants.map((person) => person.firstName)).toEqual(['Eugene', 'Mei', 'Arjun']);
+    expect(item.claimants[2]).toMatchObject({ name: 'Arjun', colorIndex: 2 });
     expect(item.isLeft).toBe(false);
     expect(item.share).toMatchObject({ label: '1/3', amountLabel: '$3.00' });
   });
@@ -128,30 +130,14 @@ describe('resolveClaimView', () => {
 
     const [item] = items([receipt], 'p2');
 
-    expect(item).toMatchObject({ claimantsLabel: 'Eugene · 1/2 left', isLeft: true, share: null });
-  });
-
-  it('shortens a long list of people', () => {
-    const many: Person[] = [...people, { id: 'p4', name: 'Dana' }];
-    const receipt = makeReceipt('r1', [
-      makeItem('i1', '8.00', { personIds: ['p1', 'p2', 'p3', 'p4'] }),
-    ]);
-
-    const result = resolveClaimView({
-      receipts: [receipt],
-      people: many,
-      activePersonId: 'p1',
-      totalByPersonCents: {},
-      totalsCurrency: 'SGD',
-    });
-
-    expect(result.sections[0].items[0].claimantsLabel).toBe('Eugene, Mei +2');
+    expect(item).toMatchObject({ leftLabel: '1/2 left', isLeft: true, share: null });
+    expect(item.claimants.map((person) => person.id)).toEqual(['p1']);
   });
 
   it('ignores stale person ids on an assignment', () => {
     const receipt = makeReceipt('r1', [makeItem('i1', '6.00', { personIds: ['p2', 'removed'] })]);
 
-    expect(items([receipt])[0].claimantsLabel).toBe('Mei');
+    expect(items([receipt])[0].claimants.map((person) => person.id)).toEqual(['p2']);
   });
 
   it('prices items after their line discount in the receipt currency', () => {

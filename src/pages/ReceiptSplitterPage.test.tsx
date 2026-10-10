@@ -451,7 +451,7 @@ describe('ReceiptSplitterPage integration', () => {
         'aria-pressed',
         'false',
       );
-      expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveTextContent('Bob');
+      expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveAccessibleName('Bob');
       expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$0.00');
     });
 
@@ -527,8 +527,8 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
 
       clickContinue(); // → Bob
-      expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveTextContent(
-        'Alice · 1/2 left',
+      expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveAccessibleName(
+        'Alice, 1/2 left',
       );
       expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Split 1 left evenly');
       clickContinue();
@@ -896,7 +896,7 @@ describe('ReceiptSplitterPage integration', () => {
       // Restores to Bob on the claim step from localStorage — no navigation needed
       await waitFor(() => {
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
-        expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveTextContent('Alice');
+        expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveAccessibleName('Alice');
       });
     });
   });
