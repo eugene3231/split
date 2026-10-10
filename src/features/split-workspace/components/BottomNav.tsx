@@ -83,7 +83,7 @@ export function BottomNav({
       <div
         className={cn(
           'mx-auto flex max-w-3xl items-center gap-3 rounded-3xl bg-primary p-2 text-on-primary shadow-2xl shadow-black/20',
-          isFinalStep && 'w-fit',
+          isFinalStep && 'ml-0 w-fit md:mx-auto',
         )}
       >
         {!isFirstStep && (
