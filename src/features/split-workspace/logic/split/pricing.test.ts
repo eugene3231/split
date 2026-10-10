@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { EditableItem } from '@shared/types';
-import { parseDiscountPercent, resolveDiscountedAmountCents } from '@shared/logic/split/pricing';
+import {
+  parseDiscountPercent,
+  resolveDiscountedAmountCents,
+} from '@features/split-workspace/logic/split/pricing';
 
 function buildItem(overrides: Partial<EditableItem> = {}): EditableItem {
   return {

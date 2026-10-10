@@ -3,9 +3,10 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 interface Props {
   reconciliationCents: number | null;
   onApplyDiscount?: () => void;
+  currency?: string;
 }
 
-export function ReconciliationNotice({ reconciliationCents, onApplyDiscount }: Props) {
+export function ReconciliationNotice({ reconciliationCents, onApplyDiscount, currency }: Props) {
   if (reconciliationCents === null) return null;
 
   const isMatch = reconciliationCents === 0;
@@ -47,7 +48,7 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount }: P
         </div>
         <div>
           <p className="text-xs leading-tight font-extrabold text-on-error-container">
-            Mismatch found ({formatCurrencyFromCents(Math.abs(reconciliationCents))})
+            Mismatch found ({formatCurrencyFromCents(Math.abs(reconciliationCents), currency)})
           </p>
           <p className="mt-0.5 text-[10px] text-on-error-container/80">
             {isOver

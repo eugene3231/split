@@ -42,9 +42,6 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
     return null;
   }
 
-  // Narrow per-tab fields to avoid repetitive view.kind checks in JSX.
-  // Total tab has no single receipt to name — GrandTotalCard falls back to
-  // a static "Grand Total" label instead of an editable receipt name.
   const receiptForExport = view.kind === 'receipt' ? view.receipt : null;
   const nativeCurrency = view.kind === 'receipt' ? view.nativeCurrency : BASE_CURRENCY;
   const showCurrencyControls =
@@ -54,11 +51,9 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
 
   return (
     <div>
-      {/* Title + tabs */}
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            {/* Desktop header */}
             <div className="mb-6 hidden md:block">
               <h1 className="mb-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
                 Final Breakdown
@@ -66,7 +61,6 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
               <p className="text-lg text-on-surface-variant">What everyone owes, by receipt.</p>
             </div>
 
-            {/* Mobile header */}
             <div className="mb-4 md:hidden">
               <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
                 Final Breakdown
@@ -105,7 +99,6 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
         </div>
       </div>
 
-      {/* Discrepancy notice */}
       {reconciliationCents !== null && reconciliationCents !== 0 && (
         <div className="mb-8">
           <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-error/20 bg-error-container/30 p-6 md:flex-row">
@@ -140,9 +133,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
         </div>
       )}
 
-      {/* Main two-column layout */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Left: Person cards */}
         <div className="order-2 lg:order-1 lg:col-span-8">
           <div className="mb-3 flex items-center justify-between">
             {showCurrencyControls ? (
@@ -198,7 +189,6 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
           </div>
         </div>
 
-        {/* Right: Grand total + export */}
         <div className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-4">
           <GrandTotalCard
             grandTotal={view.grandTotal}

@@ -6,7 +6,7 @@ import type {
   PersonBreakdown,
   ReceiptBreakdownSection,
   SummaryBreakdown,
-} from '@features/split-workspace/logic/summaryBreakdown';
+} from '@shared/types/summaryBreakdown';
 import {
   CANVAS_WIDTH,
   canvasToBlob,
@@ -345,9 +345,7 @@ function drawPersonBreakdownCard(
       args.x + args.width - CARD_PAD,
       args.y + CARD_PAD + 58 + CURRENCY_LINE_H,
       CURRENCY_LINE_H,
-      args.breakdown.totalCents,
-      args.breakdown.conversion.rate,
-      args.breakdown.conversion.fromCurrency,
+      args.breakdown.conversion,
     );
   }
 
@@ -421,9 +419,7 @@ function drawReceiptSection(ctx: CanvasRenderingContext2D, args: DrawReceiptSect
       args.innerX + args.innerWidth,
       rowY + RECEIPT_LABEL_H + 18,
       CURRENCY_LINE_H,
-      args.section.totalCents,
-      args.section.conversion.rate,
-      args.section.conversion.fromCurrency,
+      args.section.conversion,
     );
     rowY += CURRENCY_LINE_H * 2;
   }

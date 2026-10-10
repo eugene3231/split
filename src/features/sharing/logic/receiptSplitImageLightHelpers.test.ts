@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { personColor } from '@shared/utils/personColors';
-import { drawPersonAvatar } from '@features/sharing/logic/receiptSplitImageLightHelpers';
+import {
+  drawCurrencyConversionLines,
+  drawPersonAvatar,
+} from '@features/sharing/logic/receiptSplitImageLightHelpers';
 
 interface FillCall {
   kind: 'fill' | 'text';
@@ -46,5 +49,28 @@ describe('drawPersonAvatar', () => {
     const { ctx, calls } = makeRecordingContext();
     drawPersonAvatar(ctx, { cx: 0, cy: 0, radius: 22, name: '   ', colorIndex: 0 });
     expect(calls[1].text).toBe('?');
+  });
+});
+
+describe('currency conversion copy', () => {
+  it('renders the allocated SGD cents supplied by the shared breakdown', () => {
+    const fillText = vi.fn();
+    const ctx = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      fillText,
+    } as unknown as CanvasRenderingContext2D;
+
+    drawCurrencyConversionLines(ctx, 200, 100, 24, {
+      amountCents: 1352,
+      rate: 1.35,
+      fromCurrency: 'USD',
+      toCurrency: 'SGD',
+    });
+
+    expect(fillText.mock.calls).toEqual([
+      ['≈ $13.52', 200, 100],
+      ['1 SGD = 0.74074 USD', 200, 124],
+    ]);
   });
 });

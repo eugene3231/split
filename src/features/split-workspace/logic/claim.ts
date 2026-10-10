@@ -1,6 +1,6 @@
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
-import { allocateCents } from '@shared/logic/split/allocation';
-import { resolveDiscountedAmountCents } from '@shared/logic/split/pricing';
+import { allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import {
   getAssignedItemsCount,

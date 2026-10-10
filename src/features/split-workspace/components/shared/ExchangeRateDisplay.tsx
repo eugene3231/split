@@ -1,10 +1,10 @@
+import { getEffectiveRate } from '@features/split-workspace/logic/exchangeRates';
 import { useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { BASE_CURRENCY } from '@shared/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import {
-  computeEffectiveRate,
   computeReverseRate,
   parseRateInput,
 } from '@features/split-workspace/logic/exchangeRateDisplay';
@@ -25,7 +25,7 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
   const [editingField, setEditingField] = useState<'forward' | 'reverse' | null>(null);
   const [inputValue, setInputValue] = useState('');
 
-  const autoRate = computeEffectiveRate(currency, exchangeRates, null);
+  const autoRate = getEffectiveRate(currency, exchangeRates, null);
   const effectiveRate = exchangeRateOverride ?? autoRate;
   const isOverridden = exchangeRateOverride !== null;
   const reverseRate = computeReverseRate(effectiveRate);
