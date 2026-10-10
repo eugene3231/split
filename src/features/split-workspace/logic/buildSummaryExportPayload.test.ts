@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChargeState, Receipt, SplitResult } from '@shared/types';
 import { buildSummaryExportPayload } from './buildSummaryExportPayload';
 import type { SummaryBreakdown } from '@shared/types/summaryBreakdown';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 const disabledChargeState: ChargeState = {
   enabled: false,
@@ -19,10 +20,12 @@ const split: SplitResult = {
   discountByPersonCents: { p1: 0, p2: 0 },
   serviceByPersonCents: { p1: 0, p2: 0 },
   gstByPersonCents: { p1: 0, p2: 0 },
+  tipByPersonCents: {},
   subtotalCents: 1000,
   discountCents: 0,
   serviceChargeCents: 0,
   gstCents: 0,
+  tipCents: 0,
   grandTotalCents: 1000,
   totalByPersonCents: { p1: 500, p2: 500 },
   unassignedItemCount: 0,
@@ -36,6 +39,7 @@ const receipts: Receipt[] = [
     discount: disabledChargeState,
     serviceCharge: disabledChargeState,
     gst: disabledChargeState,
+    tip: defaultTipState,
     receiptTotalInput: '',
     currency: 'JPY',
     exchangeRateOverride: 95,
@@ -64,6 +68,7 @@ describe('buildSummaryExportPayload', () => {
           discount: disabledChargeState,
           serviceCharge: disabledChargeState,
           gst: disabledChargeState,
+          tip: disabledChargeState,
           sgdSplit: split,
           nativeCurrency: 'JPY',
           isForeign: true,
@@ -96,6 +101,7 @@ describe('buildSummaryExportPayload', () => {
           discount: disabledChargeState,
           serviceCharge: disabledChargeState,
           gst: disabledChargeState,
+          tip: defaultTipState,
           sgdSplit: split,
           hasAnyForeign: true,
           foreignRates: [],
@@ -108,6 +114,7 @@ describe('buildSummaryExportPayload', () => {
               discount: disabledChargeState,
               serviceCharge: disabledChargeState,
               gst: disabledChargeState,
+              tip: defaultTipState,
               effectiveRate: 95,
             },
           ],

@@ -500,7 +500,8 @@ function drawItemRow(
     x,
     y,
     width,
-    label: row.label,
+    // The card keeps the note outside the truncated label; the wide image has room to inline it.
+    label: row.note ? `${row.label} · ${row.note}` : row.label,
     value: row.amountCents !== null ? formatCurrencyFromCents(row.amountCents, row.currency) : '—',
     italic: !row.involved,
     size: 19,

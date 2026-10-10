@@ -23,6 +23,7 @@ interface ReceiptChargesInput {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
 }
 
 export function resolveReceiptCharges({
@@ -30,6 +31,7 @@ export function resolveReceiptCharges({
   discount,
   serviceCharge,
   gst,
+  tip,
 }: ReceiptChargesInput) {
   const discountCents = Math.min(
     subtotalCents,
@@ -38,12 +40,17 @@ export function resolveReceiptCharges({
   const discountedSubtotalCents = subtotalCents - discountCents;
   const serviceChargeCents = resolveChargeCents(serviceCharge, discountedSubtotalCents);
   const gstCents = resolveChargeCents(gst, discountedSubtotalCents + serviceChargeCents);
+  // A tip percent is on the food, not on service charge or tax, and nothing is charged on the tip.
+  const tipCents = Math.max(0, resolveChargeCents(tip, discountedSubtotalCents));
+  const billTotalCents = discountedSubtotalCents + serviceChargeCents + gstCents;
   return {
     discountCents,
     discountedSubtotalCents,
     serviceChargeCents,
     gstCents,
-    grandTotalCents: discountedSubtotalCents + serviceChargeCents + gstCents,
+    billTotalCents,
+    tipCents,
+    grandTotalCents: billTotalCents + tipCents,
   };
 }
 

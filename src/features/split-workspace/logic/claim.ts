@@ -2,6 +2,7 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import { formatShareFraction, resolvePersonShare } from '@features/split-workspace/logic/itemShare';
 import type { PersonShare } from '@features/split-workspace/logic/itemShare';
+import { formatTreatLabel, resolveTreaterId } from '@features/split-workspace/logic/itemTreat';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import {
   getAssignedItemsCount,
@@ -32,6 +33,12 @@ export interface ClaimItem {
   claimantsLabel: string;
   /** The active person's slice; null when they are not on the item. */
   share: ClaimItemShare | null;
+  treat: ClaimItemTreat | null;
+}
+
+export interface ClaimItemTreat {
+  label: string;
+  byActive: boolean;
 }
 
 export interface ClaimSection {
@@ -150,6 +157,10 @@ function resolveClaimItem(
   const share = claimedIds.has(activePersonId)
     ? resolvePersonShare(item, activePersonId, priceCents)
     : null;
+  const treater = people.find((person) => person.id === resolveTreaterId(item));
+  const treat = treater
+    ? { label: formatTreatLabel(treater.firstName), byActive: treater.id === activePersonId }
+    : null;
 
   return {
     id: item.id,
@@ -158,11 +169,12 @@ function resolveClaimItem(
     priceLabel: formatCurrencyFromCents(priceCents, receipt.currency),
     claimedByActive: share !== null,
     isLeft: !isItemAssigned(item, validIds),
-    claimantsLabel: describeClaimants(item, claimants),
+    claimantsLabel: treat?.label ?? describeClaimants(item, claimants),
     share: share && {
       ...share,
       amountLabel: formatCurrencyFromCents(share.amountCents, receipt.currency),
     },
+    treat,
   };
 }
 

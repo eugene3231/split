@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChargeState, Receipt, SplitResult } from '@shared/types';
 import { resolveSummaryView } from './summaryView';
 import type { ResolveSummaryViewInput } from './summaryView';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 const rates: Record<string, number> = { SGD: 1, USD: 1.35, JPY: 0.009 };
 
@@ -25,6 +26,7 @@ function makeReceipt(id: string, currency = 'SGD', override: number | null = nul
     discount: makeCharge({ percentInput: '5' }),
     serviceCharge: makeCharge({ enabled: true, percentInput: '10' }),
     gst: makeCharge({ enabled: true, percentInput: '9' }),
+    tip: defaultTipState,
     receiptTotalInput: '',
     currency,
     exchangeRateOverride: override,
@@ -39,11 +41,13 @@ function makeSplit(total: number): SplitResult {
     discountByPersonCents: { p1: 0 },
     serviceByPersonCents: { p1: 0 },
     gstByPersonCents: { p1: 0 },
+    tipByPersonCents: {},
     totalByPersonCents: { p1: total },
     subtotalCents: total,
     discountCents: 0,
     serviceChargeCents: 0,
     gstCents: 0,
+    tipCents: 0,
     grandTotalCents: total,
     unassignedItemCount: 0,
   };
@@ -62,6 +66,7 @@ function makeInput(overrides: Partial<ResolveSummaryViewInput> = {}): ResolveSum
     discount: globalDiscount,
     serviceCharge: globalServiceCharge,
     gst: globalGst,
+    tip: defaultTipState,
     exchangeRates: rates,
     activeTab: 'total',
     showBaseCurrency: false,

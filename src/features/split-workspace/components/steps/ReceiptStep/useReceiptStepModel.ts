@@ -13,6 +13,7 @@ export function useReceiptStepModel() {
     setDiscount,
     setServiceCharge,
     setGst,
+    setTip,
     setReceiptTotalInput,
     setActiveReceiptId,
     removeReceipt,
@@ -28,6 +29,7 @@ export function useReceiptStepModel() {
       setDiscount: state.setDiscount,
       setServiceCharge: state.setServiceCharge,
       setGst: state.setGst,
+      setTip: state.setTip,
       setReceiptTotalInput: state.setReceiptTotalInput,
       setActiveReceiptId: state.setActiveReceiptId,
       removeReceipt: state.removeReceipt,
@@ -42,6 +44,7 @@ export function useReceiptStepModel() {
   const discount = activeReceipt?.discount;
   const serviceCharge = activeReceipt?.serviceCharge;
   const gst = activeReceipt?.gst;
+  const tip = activeReceipt?.tip;
   const receiptTotalInput = activeReceipt?.receiptTotalInput ?? '';
   const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY;
 
@@ -53,6 +56,7 @@ export function useReceiptStepModel() {
     discount,
     serviceCharge,
     gst,
+    tip,
     receiptTotalInput,
     activeCurrency,
     hasItems: items.length > 0,
@@ -64,6 +68,7 @@ export function useReceiptStepModel() {
     setDiscount,
     setServiceCharge,
     setGst,
+    setTip,
     setReceiptTotalInput,
     setActiveReceiptId,
     removeReceipt,

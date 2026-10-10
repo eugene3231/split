@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import {
@@ -38,6 +39,7 @@ function createBlankReceipt(name: string): Receipt {
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
+    tip: { ...defaultTipState },
     receiptTotalInput: '',
     currency: BASE_CURRENCY,
     exchangeRateOverride: null,
@@ -82,6 +84,7 @@ type ReceiptStoreActions = {
   setDiscount: (next: ChargeState) => void;
   setServiceCharge: (next: ChargeState) => void;
   setGst: (next: ChargeState) => void;
+  setTip: (next: ChargeState) => void;
   setReceiptTotalInput: (value: string) => void;
   normalizeItems: () => void;
   handleReceiptFileSelected: (file: File | null) => void;
@@ -279,6 +282,11 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     setGst: (next) => {
       set((state) => ({
         receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, { gst: next }),
+      }));
+    },
+    setTip: (next) => {
+      set((state) => ({
+        receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, { tip: next }),
       }));
     },
     setReceiptTotalInput: (value) => {

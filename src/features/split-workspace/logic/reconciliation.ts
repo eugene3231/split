@@ -1,4 +1,5 @@
 import type { ChargeState } from '@shared/types';
+import { defaultTipState } from '@features/split-workspace/constants';
 import { parseNumber } from '@shared/logic/core/money';
 import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
 
@@ -39,7 +40,8 @@ export function findReconciliationDiscount({
       },
       serviceCharge,
       gst,
-    }).grandTotalCents;
+      tip: defaultTipState,
+    }).billTotalCents;
   const currentTotalCents = totalAt(currentDiscountCents);
   if (currentTotalCents <= targetTotalCents) return null;
 

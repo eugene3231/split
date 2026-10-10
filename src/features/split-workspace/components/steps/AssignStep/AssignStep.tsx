@@ -127,6 +127,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
                 <ClaimItemRow
                   key={item.id}
                   item={item}
+                  personName={activePerson.firstName}
                   onToggle={() =>
                     applyCommand(section.receiptId, item.id, {
                       type: 'toggle-person',
@@ -148,6 +149,13 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
                       input,
                     })
                   }
+                  onTreat={() =>
+                    applyCommand(section.receiptId, item.id, {
+                      type: 'treat',
+                      personId: activePerson.id,
+                    })
+                  }
+                  onUntreat={() => applyCommand(section.receiptId, item.id, { type: 'untreat' })}
                 />
               ))}
             </ul>

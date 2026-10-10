@@ -22,6 +22,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
     discount,
     serviceCharge,
     gst,
+    tip,
     receiptTotalInput,
     activeCurrency,
     hasItems,
@@ -33,6 +34,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
     setDiscount,
     setServiceCharge,
     setGst,
+    setTip,
     setReceiptTotalInput,
     setActiveReceiptId,
     removeReceipt,
@@ -43,7 +45,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
     activeReceiptId,
   });
 
-  if (!activeReceipt || !discount || !serviceCharge || !gst) {
+  if (!activeReceipt || !discount || !serviceCharge || !gst || !tip) {
     return null;
   }
 
@@ -186,12 +188,14 @@ export function ReceiptStep({ onAddReceipt }: Props) {
             discount={discount}
             serviceCharge={serviceCharge}
             gst={gst}
+            tip={tip}
             reconciliationCents={reconciliation.cents}
             receiptTotalInput={receiptTotalInput}
             onApplyDiscount={reconciliation.applyCorrectiveDiscount}
             onDiscountChange={setDiscount}
             onServiceChargeChange={setServiceCharge}
             onGstChange={setGst}
+            onTipChange={setTip}
             onReceiptTotalInputChange={setReceiptTotalInput}
             currency={activeCurrency}
           />

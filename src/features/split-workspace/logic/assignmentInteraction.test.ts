@@ -162,3 +162,57 @@ describe('splitUnassignedItemsEqually', () => {
     expect(result.assignment.personIds).toEqual(['p1', 'p2', 'p3']);
   });
 });
+
+describe('treats', () => {
+  it('locks an item to the treater, even off a shared item', () => {
+    const treated = applyAssignmentCommand(buildItem({ weights: { p1: 2, p2: 1 } }), {
+      type: 'treat',
+      personId: 'p1',
+    });
+
+    expect(treated.assignment).toEqual({
+      mode: 'equal',
+      personId: '',
+      personIds: ['p1'],
+      treatedBy: 'p1',
+    });
+    expect(
+      applyAssignmentCommand(treated, { type: 'toggle-person', personId: 'p2', checked: true }),
+    ).toBe(treated);
+  });
+
+  it('frees the item when the treater unticks it', () => {
+    const treated = applyAssignmentCommand(buildItem(), { type: 'treat', personId: 'p1' });
+
+    const next = applyAssignmentCommand(treated, {
+      type: 'toggle-person',
+      personId: 'p1',
+      checked: false,
+    });
+
+    expect(next.assignment.personIds).toEqual([]);
+    expect(next.assignment.treatedBy).toBeUndefined();
+  });
+
+  it('ends the treat but keeps the treater on the item when they undo it or change their share', () => {
+    const treated = applyAssignmentCommand(buildItem(), { type: 'treat', personId: 'p1' });
+
+    const undone = applyAssignmentCommand(treated, { type: 'untreat' });
+    expect(undone.assignment.personIds).toEqual(['p1']);
+    expect(undone.assignment.treatedBy).toBeUndefined();
+
+    const halved = applyAssignmentCommand(treated, {
+      type: 'step-share',
+      personId: 'p1',
+      step: 'decrease',
+    });
+    expect(halved.assignment.treatedBy).toBeUndefined();
+    expect(halved.assignment.unassignedWeight).toBe(1);
+  });
+
+  it('leaves a treated item alone when splitting leftovers evenly', () => {
+    const treated = applyAssignmentCommand(buildItem(), { type: 'treat', personId: 'p2' });
+
+    expect(splitUnassignedItemsEqually([treated], people)).toEqual([treated]);
+  });
+});

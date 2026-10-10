@@ -4,6 +4,7 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 export const disabledCharge: ChargeState = {
   enabled: false,
@@ -65,6 +66,7 @@ export function makeReceipt(overrides: Partial<Receipt> & { id?: string }): Rece
     discount: overrides.discount ?? { ...disabledCharge },
     serviceCharge: overrides.serviceCharge ?? { ...disabledCharge },
     gst: overrides.gst ?? { ...disabledCharge },
+    tip: overrides.tip ?? { ...defaultTipState },
     receiptTotalInput: overrides.receiptTotalInput ?? '',
     currency: overrides.currency ?? 'SGD',
     exchangeRateOverride: overrides.exchangeRateOverride ?? null,

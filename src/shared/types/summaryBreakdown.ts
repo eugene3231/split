@@ -10,13 +10,15 @@ export interface BreakdownConversion {
 export interface BreakdownItemRow {
   id: string;
   label: string;
+  /** Short tag kept visible next to the label, such as "Alex's treat". */
+  note?: string;
   amountCents: number | null;
   involved: boolean;
   currency: string;
 }
 
 export interface BreakdownChargeRow {
-  kind: 'discount' | 'service' | 'gst';
+  kind: 'discount' | 'service' | 'gst' | 'tip';
   label: string;
   amountCents: number;
   sign: 'minus' | 'plus';

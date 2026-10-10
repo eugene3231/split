@@ -47,6 +47,10 @@ export function normalizeItemAssignments(items: EditableItem[], people: Person[]
         personIds: nextPersonIds,
         weights: finalWeights,
         unassignedWeight,
+        treatedBy:
+          item.assignment.treatedBy && nextPersonIds.includes(item.assignment.treatedBy)
+            ? item.assignment.treatedBy
+            : undefined,
       },
     };
   });

@@ -12,6 +12,7 @@ import { computeSplit } from '@features/split-workspace/logic/split/split';
 import { makeItem, percentCharge } from '../../../tests/integration/testHelpers';
 import { useReconciliation } from './useReconciliation';
 import type { ChargeState, SplitResult } from '@shared/types';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 const disabledCharge: ChargeState = {
   enabled: false,
@@ -28,11 +29,13 @@ const makeSplit = (grandTotalCents: number): SplitResult => ({
   discountByPersonCents: {},
   serviceByPersonCents: {},
   gstByPersonCents: {},
+  tipByPersonCents: {},
   totalByPersonCents: {},
   subtotalCents: grandTotalCents,
   discountCents: 0,
   serviceChargeCents: 0,
   gstCents: 0,
+  tipCents: 0,
   grandTotalCents,
   unassignedItemCount: 0,
   involvedCountByPerson: {},
@@ -52,6 +55,7 @@ describe('useReconciliation', () => {
       discount: disabledCharge,
       serviceCharge: percentCharge('10'),
       gst: percentCharge('9'),
+      tip: defaultTipState,
     });
     const { result } = renderHook(() =>
       useReconciliation({
@@ -182,5 +186,23 @@ describe('receipt correction state flow', () => {
     act(() => result.current.reconciliation.applyCorrectiveDiscount());
     expect(useReceiptStore.getState().receipts).toBe(after);
     expect(result.current.reconciliation.cents).toBe(-40);
+  });
+});
+
+describe('useReconciliation with a tip', () => {
+  it('compares the printed total with the bill before the tip', () => {
+    const split = { ...makeSplit(11500), tipCents: 1500 };
+    const { result } = renderHook(() =>
+      useReconciliation({
+        split,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+        setDiscount: vi.fn(),
+        receiptTotalInput: '100.00',
+      }),
+    );
+
+    expect(result.current.reconciliationCents).toBe(0);
   });
 });

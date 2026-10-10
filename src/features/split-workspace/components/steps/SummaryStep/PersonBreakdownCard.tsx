@@ -10,6 +10,7 @@ import type {
 } from '@shared/types/summaryBreakdown';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import { buildDownloadFilename } from '@features/sharing/logic/shareSplit';
+import { cn } from '@shared/utils/cn';
 
 interface Props {
   breakdown: PersonBreakdown;
@@ -131,13 +132,13 @@ function ItemRow({ row }: { row: BreakdownItemRow }) {
   return (
     <div className="flex justify-between pl-4 text-base">
       <span
-        className={
-          row.involved
-            ? 'truncate pr-4 text-on-surface-variant'
-            : 'truncate pr-4 text-on-surface-variant/40 italic'
-        }
+        className={cn(
+          'flex min-w-0 pr-4 text-on-surface-variant',
+          !row.involved && 'text-on-surface-variant/40 italic',
+        )}
       >
-        {row.label}
+        <span className="truncate">{row.label}</span>
+        {row.note && <span className="shrink-0">&nbsp;· {row.note}</span>}
       </span>
       <span
         className={

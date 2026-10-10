@@ -25,6 +25,7 @@ interface ResolvedItem {
   assignedPersonIds: Set<string>;
   netByPerson: Record<string, number>;
   grossByPerson: Record<string, number>;
+  treatedBy?: string;
 }
 
 export function computeSplit({
@@ -33,12 +34,14 @@ export function computeSplit({
   discount,
   serviceCharge,
   gst,
+  tip,
 }: {
   people: Person[];
   items: EditableItem[];
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
 }): SplitResult {
   const personIds = people.map((person) => person.id);
   const validPeopleSet = new Set(personIds);
@@ -92,6 +95,9 @@ export function computeSplit({
       assignedPersonIds,
       netByPerson,
       grossByPerson,
+      treatedBy: assignedPersonIds.has(item.assignment.treatedBy ?? '')
+        ? item.assignment.treatedBy
+        : undefined,
     });
   }
 
@@ -115,6 +121,7 @@ export function computeSplit({
           assignedAmountCents: net,
           splitCount: resolved.assignedPersonIds.size,
           involved: true,
+          treatedBy: resolved.treatedBy,
         });
       } else {
         lineItemsByPerson[personId].push({
@@ -127,17 +134,19 @@ export function computeSplit({
           assignedAmountCents: 0,
           splitCount: resolved.assignedPersonIds.size,
           involved: false,
+          treatedBy: resolved.treatedBy,
         });
       }
     }
   }
 
   const subtotalCents = sumMapValues(subtotalByPersonCents);
-  const { discountCents, serviceChargeCents, gstCents } = resolveReceiptCharges({
+  const { discountCents, serviceChargeCents, gstCents, tipCents } = resolveReceiptCharges({
     subtotalCents,
     discount,
     serviceCharge,
     gst,
+    tip,
   });
   const discountWeights = weightsFromBase(subtotalByPersonCents, personIds);
   const discountByPersonCents = allocateCents(discountCents, personIds, discountWeights);
@@ -162,13 +171,15 @@ export function computeSplit({
 
   const gstWeights = weightsFromBase(gstWeightSeed, personIds);
   const gstByPersonCents = allocateCents(gstCents, personIds, gstWeights);
+  const tipByPersonCents = allocateCents(tipCents, personIds, serviceWeights);
 
   const totalByPersonCents = initializeCentsMap(personIds);
   for (const personId of personIds) {
     totalByPersonCents[personId] =
       discountedSubtotalByPersonCents[personId] +
       serviceByPersonCents[personId] +
-      gstByPersonCents[personId];
+      gstByPersonCents[personId] +
+      tipByPersonCents[personId];
   }
 
   const grandTotalCents = sumMapValues(totalByPersonCents);
@@ -180,11 +191,13 @@ export function computeSplit({
     discountByPersonCents,
     serviceByPersonCents,
     gstByPersonCents,
+    tipByPersonCents,
     totalByPersonCents,
     subtotalCents,
     discountCents,
     serviceChargeCents,
     gstCents,
+    tipCents,
     grandTotalCents,
     unassignedItemCount,
   };
@@ -205,12 +218,14 @@ export function computeConsolidatedSplit(
   const discountByPersonCents = initializeCentsMap(personIds);
   const serviceByPersonCents = initializeCentsMap(personIds);
   const gstByPersonCents = initializeCentsMap(personIds);
+  const tipByPersonCents = initializeCentsMap(personIds);
   const totalByPersonCents = initializeCentsMap(personIds);
 
   let subtotalCents = 0;
   let discountCents = 0;
   let serviceChargeCents = 0;
   let gstCents = 0;
+  let tipCents = 0;
   let grandTotalCents = 0;
   let unassignedItemCount = 0;
 
@@ -230,12 +245,14 @@ export function computeConsolidatedSplit(
       discountByPersonCents[personId] += result.discountByPersonCents[personId] ?? 0;
       serviceByPersonCents[personId] += result.serviceByPersonCents[personId] ?? 0;
       gstByPersonCents[personId] += result.gstByPersonCents[personId] ?? 0;
+      tipByPersonCents[personId] += result.tipByPersonCents[personId] ?? 0;
       totalByPersonCents[personId] += result.totalByPersonCents[personId] ?? 0;
     }
     subtotalCents += result.subtotalCents;
     discountCents += result.discountCents;
     serviceChargeCents += result.serviceChargeCents;
     gstCents += result.gstCents;
+    tipCents += result.tipCents;
     grandTotalCents += result.grandTotalCents;
     unassignedItemCount += result.unassignedItemCount;
   }
@@ -247,11 +264,13 @@ export function computeConsolidatedSplit(
     discountByPersonCents,
     serviceByPersonCents,
     gstByPersonCents,
+    tipByPersonCents,
     totalByPersonCents,
     subtotalCents,
     discountCents,
     serviceChargeCents,
     gstCents,
+    tipCents,
     grandTotalCents,
     unassignedItemCount,
   };

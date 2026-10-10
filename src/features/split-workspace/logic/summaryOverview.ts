@@ -2,6 +2,7 @@ import { BASE_CURRENCY } from '@shared/constants';
 import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import type { ChargeState, EditableItem, Person, Receipt, SplitResult } from '@shared/types';
 import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
+import { labelTreatedItem } from '@features/split-workspace/logic/itemTreat';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 
 export interface OverviewItemRow {
@@ -15,7 +16,7 @@ export interface OverviewItemRow {
 }
 
 export interface OverviewChargeRow {
-  kind: 'discount' | 'service' | 'gst';
+  kind: 'discount' | 'service' | 'gst' | 'tip';
   label: string;
   sign: 'minus' | 'plus';
   totalCents: number;
@@ -56,6 +57,7 @@ interface SectionSource {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
 }
 
 export function resolveSummaryOverview({
@@ -97,6 +99,7 @@ function resolveSectionSources({
         discount: view.discount,
         serviceCharge: view.serviceCharge,
         gst: view.gst,
+        tip: view.tip,
       },
     ];
   }
@@ -110,6 +113,7 @@ function resolveSectionSources({
     discount: entry.discount,
     serviceCharge: entry.serviceCharge,
     gst: entry.gst,
+    tip: entry.tip,
   }));
 }
 
@@ -151,7 +155,7 @@ function collectAssignedRows(
     for (const line of split.lineItemsByPerson[person.id] ?? []) {
       const row = rows.get(line.itemId) ?? {
         id: line.itemId,
-        name: line.name,
+        name: labelTreatedItem(line.name, line.treatedBy, people),
         priceCents: 0,
         currency,
         sharesByPerson: {},
@@ -203,6 +207,13 @@ function buildChargeRows(people: Person[], source: SectionSource): OverviewCharg
       sign: 'plus',
       totalCents: split.gstCents,
       sharesByPerson: nonZeroShares(people, split.gstByPersonCents),
+    },
+    {
+      kind: 'tip',
+      label: buildChargeLabel('Tip', source.tip),
+      sign: 'plus',
+      totalCents: split.tipCents,
+      sharesByPerson: nonZeroShares(people, split.tipByPersonCents),
     },
   ];
   return candidates.filter((row) => row.totalCents > 0);

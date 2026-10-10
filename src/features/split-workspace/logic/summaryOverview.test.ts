@@ -7,6 +7,7 @@ import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
 import { resolveSummaryOverview } from './summaryOverview';
 import { resolveSummaryView } from './summaryView';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 const offCharge: ChargeState = {
   enabled: false,
@@ -42,6 +43,7 @@ function receipt(overrides: Partial<Receipt> & Pick<Receipt, 'id' | 'items'>): R
     discount: offCharge,
     serviceCharge: offCharge,
     gst: offCharge,
+    tip: defaultTipState,
     receiptTotalInput: '',
     currency: 'SGD',
     exchangeRateOverride: null,
@@ -57,6 +59,7 @@ function resolve(receipts: Receipt[], activeTab: string, exchangeRates = {}, sho
       discount: r.discount,
       serviceCharge: r.serviceCharge,
       gst: r.gst,
+      tip: r.tip,
     }),
   );
   const consolidatedSplit = computeConsolidatedSplit(
@@ -74,6 +77,7 @@ function resolve(receipts: Receipt[], activeTab: string, exchangeRates = {}, sho
     discount: offCharge,
     serviceCharge: offCharge,
     gst: offCharge,
+    tip: defaultTipState,
     exchangeRates,
     activeTab,
     showBaseCurrency: showBase,
@@ -215,5 +219,48 @@ describe('resolveSummaryOverview', () => {
       'rice',
       'fries',
     ]);
+  });
+});
+
+describe('tip and treats on the summary', () => {
+  const tipped = receipt({
+    id: 'tipped',
+    gst: percent('9'),
+    tip: percent('10'),
+    items: [
+      item('steak', '30.00', ['alice']),
+      {
+        ...item('wine', '50.00', ['bob']),
+        assignment: { mode: 'equal', personId: '', personIds: ['bob'], treatedBy: 'bob' },
+      },
+      item('salad', '10.00', ['cara']),
+    ],
+  });
+
+  it('adds the tip after GST on the breakdown and the overview, by what each person had', () => {
+    const { overview, breakdown } = resolve([tipped], 'tipped');
+
+    const [aliceCard] = breakdown.personBreakdowns;
+    expect(
+      aliceCard.sections[0].chargeRows.map((row) => [row.kind, row.label, row.amountCents]),
+    ).toEqual([
+      ['gst', 'GST / Tax (9%)', 270],
+      ['tip', 'Tip (10%)', 300],
+    ]);
+    expect(overview.sections[0].chargeRows.at(-1)).toMatchObject({
+      kind: 'tip',
+      totalCents: 900,
+      sharesByPerson: { alice: 300, bob: 500, cara: 100 },
+    });
+  });
+
+  it("names the treater on every person's row for a treated item", () => {
+    const { overview, breakdown } = resolve([tipped], 'tipped');
+
+    const rowsFor = (index: number) => breakdown.personBreakdowns[index].sections[0].itemRows;
+    expect(rowsFor(0)[1]).toMatchObject({ label: 'wine', note: "Bob's treat", involved: false });
+    expect(rowsFor(1)[1]).toMatchObject({ label: 'wine', note: "Bob's treat", amountCents: 5000 });
+    expect(rowsFor(2)[0].note).toBeUndefined();
+    expect(overview.sections[0].itemRows[1].name).toBe("wine · Bob's treat");
   });
 });

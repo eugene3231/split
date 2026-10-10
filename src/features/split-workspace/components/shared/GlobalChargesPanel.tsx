@@ -1,6 +1,7 @@
 import type { ChargeState, SplitResult } from '@shared/types';
 import { ChargeToggle } from '@features/split-workspace/components/shared/ChargeToggle';
 import { SummaryTotals } from '@features/split-workspace/components/shared/SummaryTotals';
+import { TipPicker } from '@features/split-workspace/components/shared/TipPicker';
 import { ReconciliationNotice } from '@features/split-workspace/components/shared/ReconciliationNotice';
 import { getCurrencySymbol } from '@shared/logic/core/money';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -10,12 +11,14 @@ interface Props {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
   reconciliationCents: number | null;
   receiptTotalInput: string;
   onApplyDiscount: () => void;
   onDiscountChange: (discount: ChargeState) => void;
   onServiceChargeChange: (serviceCharge: ChargeState) => void;
   onGstChange: (gst: ChargeState) => void;
+  onTipChange: (tip: ChargeState) => void;
   onReceiptTotalInputChange: (value: string) => void;
   currency?: string;
 }
@@ -25,12 +28,14 @@ export function GlobalChargesPanel({
   discount,
   serviceCharge,
   gst,
+  tip,
   reconciliationCents,
   receiptTotalInput,
   onApplyDiscount,
   onDiscountChange,
   onServiceChargeChange,
   onGstChange,
+  onTipChange,
   onReceiptTotalInputChange,
   currency,
 }: Props) {
@@ -48,6 +53,7 @@ export function GlobalChargesPanel({
           onChange={onServiceChargeChange}
         />
         <ChargeToggle label="Global Discount" value={discount} onChange={onDiscountChange} />
+        <TipPicker value={tip} onChange={onTipChange} currency={currency ?? BASE_CURRENCY} />
       </div>
 
       <SummaryTotals
@@ -55,6 +61,7 @@ export function GlobalChargesPanel({
         discount={discount}
         serviceCharge={serviceCharge}
         gst={gst}
+        tip={tip}
         currency={currency}
       />
 
