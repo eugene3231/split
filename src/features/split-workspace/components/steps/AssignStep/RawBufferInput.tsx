@@ -64,7 +64,7 @@ export function RawBufferInput({
         placeholder={placeholder}
         className={cn(
           widthClassName,
-          'rounded-md border border-outline-variant/40 bg-surface-container-lowest px-2 py-1 text-right text-sm font-bold text-secondary outline-none focus:border-primary/40',
+          'rounded-md border border-outline-variant/40 bg-surface-container-lowest px-2 py-1 text-right text-sm font-bold text-on-surface outline-none focus:border-primary/40',
         )}
       />
       {suffix && <span className="text-sm font-bold text-on-surface-variant">{suffix}</span>}

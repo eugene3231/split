@@ -17,7 +17,7 @@ export function PeopleStep() {
     <div className="space-y-5">
       {/* Header — desktop */}
       <div className="mb-6 hidden md:block">
-        <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
+        <h1 className="mb-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
           Who's Splitting?
         </h1>
         <p className="text-lg text-on-surface-variant">Add everyone who's part of this bill.</p>
@@ -48,12 +48,12 @@ export function PeopleStep() {
             value={peopleInput}
             onChange={(e) => setPeopleInput(e.target.value)}
             placeholder="Names, e.g. Alice, Bob"
-            className="flex-1 rounded-xl border-none bg-surface-container px-4 py-3 text-base text-on-surface outline-none placeholder:text-outline focus:ring-0"
+            className="min-w-0 flex-1 rounded-xl border-none bg-surface-container px-4 py-3 text-base text-on-surface outline-none placeholder:text-outline focus:ring-0"
           />
           <button
             type="submit"
             data-testid="people-add-btn"
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-3 font-bold text-on-primary transition-transform active:scale-95"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-3 font-bold text-on-primary transition-transform active:scale-95"
           >
             <span className="material-symbols-outlined">add</span>
             <span className="hidden sm:inline">Add</span>
