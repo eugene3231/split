@@ -166,7 +166,7 @@ function MenuItem({ icon, children, className, ...props }: MenuItemProps) {
       type="button"
       role="menuitem"
       className={cn(
-        'flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-low',
+        'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-low',
         className,
       )}
       {...props}
