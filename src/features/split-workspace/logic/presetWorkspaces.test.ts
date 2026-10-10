@@ -15,10 +15,10 @@ describe('PRESET_WORKSPACES', () => {
   it('offers one test split per sample receipt', () => {
     expect(PRESET_WORKSPACES.map((preset) => preset.label)).toEqual([
       'Lunch for 3',
-      'Skewer dinner for 4',
+      'Skewer dinner for 12',
     ]);
     expect(lunch.description).toBe('3 people · 4 items');
-    expect(dinner.description).toBe('4 people · 20 items');
+    expect(dinner.description).toBe('12 people · 20 items');
   });
 
   it.each(PRESET_WORKSPACES)(

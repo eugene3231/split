@@ -822,15 +822,10 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
 
       fireEvent.click(screen.getByTestId('workspace-menu-btn'));
-      fireEvent.click(screen.getByTestId('workspace-preset-skewer-dinner-for-four'));
+      fireEvent.click(screen.getByTestId('workspace-preset-skewer-dinner-for-twelve'));
 
       expectActiveStepNav('items');
-      expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual([
-        'Alice',
-        'Bob',
-        'Charlie',
-        'David',
-      ]);
+      expect(useReceiptStore.getState().people).toHaveLength(12);
       expect(screen.getByTestId('wizard-step-nav-final')).not.toBeDisabled();
     });
 

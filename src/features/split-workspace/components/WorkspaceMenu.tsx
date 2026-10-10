@@ -73,7 +73,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
       <button
         type="button"
         data-testid="workspace-menu-btn"
-        aria-label="Import or export split"
+        aria-label="Split menu"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => (isOpen ? closeMenu() : setIsOpen(true))}
@@ -83,7 +83,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
         )}
       >
         <span aria-hidden="true" className="material-symbols-outlined text-xl">
-          import_export
+          more_vert
         </span>
       </button>
 
@@ -101,7 +101,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
       {isOpen && (
         <div
           role="menu"
-          aria-label="Import or export split"
+          aria-label="Split menu"
           className="absolute top-full right-0 z-50 mt-2 w-64 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-1.5 shadow-xl"
         >
           {importFailed && (

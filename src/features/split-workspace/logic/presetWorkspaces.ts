@@ -61,11 +61,24 @@ const LUNCH_FOR_THREE: PresetDefinition = {
   ],
 };
 
-const EVERYONE_AT_DINNER = ['Alice', 'Bob', 'Charlie', 'David'];
+const EVERYONE_AT_DINNER = [
+  'Alice',
+  'Bob',
+  'Charlie',
+  'David',
+  'Emma',
+  'Farid',
+  'Grace',
+  'Hiro',
+  'Isla',
+  'Jun',
+  'Kavya',
+  'Leo',
+];
 
-const SKEWER_DINNER_FOR_FOUR: PresetDefinition = {
-  id: 'skewer-dinner-for-four',
-  label: 'Skewer dinner for 4',
+const SKEWER_DINNER_FOR_TWELVE: PresetDefinition = {
+  id: 'skewer-dinner-for-twelve',
+  label: 'Skewer dinner for 12',
   peopleNames: EVERYONE_AT_DINNER,
   payerMobile: '81234567',
   receipts: [
@@ -80,24 +93,28 @@ const SKEWER_DINNER_FOR_FOUR: PresetDefinition = {
         { name: 'Homemade Barley (warm)', price: '2.00', claim: 'Charlie' },
         { name: 'Chinese Tea (hot)', price: '1.80', claim: EVERYONE_AT_DINNER },
         { name: 'Homemade Barley (cold)', price: '2.00', claim: 'David' },
-        { name: 'Chicken Gizzard', price: '3.00', claim: ['Alice', 'Bob'] },
-        { name: 'Grilled Chicken Hearts', price: '4.00', claim: ['Bob', 'Charlie'] },
+        { name: 'Chicken Gizzard', price: '3.00', claim: ['Emma', 'Farid'] },
+        { name: 'Grilled Chicken Hearts', price: '4.00', claim: ['Grace', 'Hiro', 'Isla'] },
         { name: 'Flammulina (set)', price: '4.80', claim: EVERYONE_AT_DINNER },
-        { name: 'Grilled Eggplant with Garlic', price: '5.00', claim: ['Charlie', 'David'] },
-        { name: 'Grilled Pork Belly', price: '4.80', claim: { Alice: 1, David: 2 } },
-        { name: 'Chives (set)', price: '4.80', claim: ['Alice', 'Charlie', 'David'] },
-        { name: 'Lamb Kebab', price: '3.90', claim: 'David' },
+        { name: 'Grilled Eggplant with Garlic', price: '5.00', claim: ['Jun', 'Kavya'] },
+        { name: 'Grilled Pork Belly', price: '4.80', claim: { Leo: 2, Alice: 1 } },
+        { name: 'Chives (set)', price: '4.80', claim: ['Bob', 'Charlie', 'David', 'Emma'] },
+        { name: 'Lamb Kebab', price: '3.90', claim: 'Farid' },
         {
           name: 'Charcoal Grilled Scallops',
           price: '17.50',
-          claim: { Alice: 2, Bob: 1, Charlie: 1 },
+          claim: { Grace: 2, Hiro: 1, Isla: 1, Jun: 1 },
         },
         { name: 'Rice', price: '6.40', claim: EVERYONE_AT_DINNER },
-        { name: 'Green Chilli with Century Egg', price: '7.80', claim: ['Bob', 'David'] },
+        { name: 'Green Chilli with Century Egg', price: '7.80', claim: ['Kavya', 'Leo'] },
         { name: 'Sweet and Sour Fish', price: '14.80', claim: EVERYONE_AT_DINNER },
-        { name: 'Mala Baby Lobster', price: '23.80', claim: { Bob: 2, Charlie: 1, David: 1 } },
-        { name: 'Dried Chilli Chicken', price: '18.80', claim: EVERYONE_AT_DINNER },
-        { name: 'Twice Cooked Pork', price: '12.80', claim: ['Alice', 'Bob', 'Charlie'] },
+        {
+          name: 'Mala Baby Lobster',
+          price: '23.80',
+          claim: { Alice: 1, Bob: 2, Charlie: 1, David: 1 },
+        },
+        { name: 'Dried Chilli Chicken', price: '18.80', claim: EVERYONE_AT_DINNER.slice(0, 6) },
+        { name: 'Twice Cooked Pork', price: '12.80', claim: EVERYONE_AT_DINNER.slice(6) },
         { name: 'French Beans with Minced Pork', price: '8.80', claim: EVERYONE_AT_DINNER },
       ],
     },
@@ -173,7 +190,7 @@ function describePreset(definition: PresetDefinition): string {
   return `${definition.peopleNames.length} people · ${itemCount} items`;
 }
 
-export const PRESET_WORKSPACES: PresetWorkspace[] = [LUNCH_FOR_THREE, SKEWER_DINNER_FOR_FOUR].map(
+export const PRESET_WORKSPACES: PresetWorkspace[] = [LUNCH_FOR_THREE, SKEWER_DINNER_FOR_TWELVE].map(
   (definition) => ({
     id: definition.id,
     label: definition.label,

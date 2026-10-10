@@ -515,7 +515,7 @@ describe('receiptStore additional coverage', () => {
     useReceiptStore.getState().loadWorkspace(draft);
 
     const state = useReceiptStore.getState();
-    expect(state.people.map((person) => person.name)).toEqual(['Alice', 'Bob', 'Charlie', 'David']);
+    expect(state.people).toHaveLength(12);
     expect(state.receipts.map((receipt) => receipt.name)).toEqual(['Skewer dinner']);
     expect(state.activeReceiptId).toBe(draft.receipts[0].id);
     expect(state.payerMobile).toBe('81234567');
