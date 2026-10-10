@@ -13,7 +13,9 @@ export function getDetectedItemsCount(items: EditableItem[]): number {
 export function getAssignedItemsCount(items: EditableItem[], people: Person[]): number {
   const validPeople = new Set(people.map((person) => person.id));
 
-  return items.filter((item) => isItemAssigned(item, validPeople)).length;
+  return items.filter(
+    (item) => resolveDiscountedAmountCents(item) !== null && isItemAssigned(item, validPeople),
+  ).length;
 }
 
 export function isItemAssigned(item: EditableItem, validPeople: Set<string>): boolean {

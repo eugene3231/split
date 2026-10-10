@@ -8,15 +8,17 @@ import { SummaryTabs } from './SummaryTabs';
 import { CurrencyToggle } from './CurrencyToggle';
 import { GrandTotalCard } from './GrandTotalCard';
 import { ExportActions } from './ExportActions';
+import { ResetSplitAction } from '@features/split-workspace/components/ResetSplitAction';
 import { ImagePreviewModal } from './ImagePreviewModal';
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
+  onResetSplit: () => void;
 };
 
-export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
+export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const receipts = useReceiptStore.getState().receipts;
     return receipts.length > 1 ? 'total' : (receipts[0]?.id ?? 'total');
@@ -28,9 +30,9 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
     activeTab,
     showBaseCurrency,
   });
-  const { people, receipts, isMultiReceipt, renameReceipt, view, summaryBreakdown } = model;
+  const { people, receipts, renameReceipt, view, summaryBreakdown } = model;
   const reconciliationCents = model.reconciliation.cents;
-  const { busy, copied, exportError, previewUrl, download, preview, share, closePreview } =
+  const { exportState, text, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
       model,
       includeItemDetails: showDetails,
@@ -54,34 +56,53 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
     <div>
       {/* Title + tabs */}
       <div className="mb-8">
-        {/* Desktop header */}
-        <div className="mb-6 hidden md:block">
-          <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-            Final Breakdown
-          </h1>
-          <p className="text-lg text-on-surface-variant">
-            Review the consolidated grand total or individual receipt details.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            {/* Desktop header */}
+            <div className="mb-6 hidden md:block">
+              <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
+                Final Breakdown
+              </h1>
+              <p className="text-lg text-on-surface-variant">What everyone owes, by receipt.</p>
+            </div>
+
+            {/* Mobile header */}
+            <div className="mb-4 md:hidden">
+              <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+                Final Breakdown
+              </h1>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                What everyone owes, by receipt.
+              </p>
+            </div>
+          </div>
+          <ResetSplitAction onConfirm={onResetSplit} />
         </div>
 
-        {/* Mobile header */}
-        <div className="mb-4 md:hidden">
-          <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
-            Final Breakdown
-          </h1>
-          <p className="mt-0.5 text-xs text-on-surface-variant">
-            Review the consolidated grand total or individual receipt details.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="min-w-0">
+            <SummaryTabs
+              receipts={receipts}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onRenameReceipt={renameReceipt}
+            />
+          </div>
+          <button
+            type="button"
+            data-testid="summary-add-receipt-btn"
+            aria-label="Add receipt"
+            onClick={onAddReceipt}
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-dashed border-outline-variant px-3 py-2.5 font-semibold text-on-surface-variant transition-colors hover:border-primary hover:text-primary md:px-5"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined text-lg">
+              add
+            </span>
+            <span aria-hidden="true" className="hidden md:inline">
+              Add receipt
+            </span>
+          </button>
         </div>
-
-        {isMultiReceipt && (
-          <SummaryTabs
-            receipts={receipts}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onRenameReceipt={renameReceipt}
-          />
-        )}
       </div>
 
       {/* Discrepancy notice */}
@@ -120,7 +141,7 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
       )}
 
       {/* Main two-column layout */}
-      <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Left: Person cards */}
         <div className="order-2 lg:order-1 lg:col-span-8">
           <div className="mb-3 flex items-center justify-between">
@@ -187,9 +208,8 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
             onRenameReceipt={renameReceipt}
           />
           <ExportActions
-            busy={busy}
-            copied={copied}
-            exportError={exportError}
+            exportState={exportState}
+            text={text}
             nativeShareSupported={nativeShareSupported}
             onDownload={download}
             onShare={share}
@@ -198,18 +218,6 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
         </div>
       </div>
 
-      {/* Add receipt secondary action */}
-      <div className="mb-4 flex justify-center">
-        <button
-          type="button"
-          data-testid="summary-add-receipt-btn"
-          onClick={onAddReceipt}
-          className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
-        >
-          <span className="material-symbols-outlined text-base">add_box</span>
-          Add new receipt
-        </button>
-      </div>
       {previewUrl && <ImagePreviewModal url={previewUrl} onClose={closePreview} />}
     </div>
   );

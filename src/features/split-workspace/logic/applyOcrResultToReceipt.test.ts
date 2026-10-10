@@ -1,46 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import type { OcrResponse, Person, Receipt } from '@shared/types';
+import type { OcrResponse, Person } from '@shared/types';
 import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
-import { buildReceiptOcrPatch } from './applyOcrResultToReceipt';
+import { buildReceiptOcrReplacement } from './applyOcrResultToReceipt';
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },
   { id: 'p2', name: 'Bob' },
 ];
 
-function makeReceipt(): Receipt {
-  return {
-    id: 'r1',
-    name: 'Dinner',
-    items: [
-      {
-        id: 'i-existing',
-        name: 'Existing item',
-        amountInput: '5.00',
-        discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: ['p1', 'p2'],
-        },
-      },
-    ],
-    discount: { ...defaultDiscountState },
-    serviceCharge: { ...defaultServiceChargeState },
-    gst: { ...defaultGstState },
-    receiptTotalInput: '5.00',
-    currency: 'SGD',
-    exchangeRateOverride: null,
-  };
-}
-
-describe('buildReceiptOcrPatch', () => {
+describe('buildReceiptOcrReplacement', () => {
   it('maps OCR items into workspace items and applies detected charges and total', () => {
-    const receipt = makeReceipt();
     const payload: OcrResponse = {
       items: [{ description: 'Laksa', amount: 12.5 }],
       subtotal: 12.5,
@@ -64,7 +37,7 @@ describe('buildReceiptOcrPatch', () => {
       warnings: [],
     };
 
-    const patch = buildReceiptOcrPatch(receipt, payload, people);
+    const patch = buildReceiptOcrReplacement(payload, people);
 
     expect(patch.items).toHaveLength(1);
     expect(patch.items[0]).toMatchObject({
@@ -93,10 +66,9 @@ describe('buildReceiptOcrPatch', () => {
     expect(patch.receiptTotalInput).toBe('13.63');
   });
 
-  it('preserves existing items and receipt total when OCR omits them', () => {
-    const receipt = makeReceipt();
+  it('uses fresh charge defaults and an empty total when extraction omits them', () => {
     const payload: OcrResponse = {
-      items: [],
+      items: [{ description: 'Laksa', amount: 12.5 }],
       subtotal: null,
       total: null,
       detected: {
@@ -118,10 +90,15 @@ describe('buildReceiptOcrPatch', () => {
       warnings: ['No confident line items'],
     };
 
-    const patch = buildReceiptOcrPatch(receipt, payload, people);
+    const patch = buildReceiptOcrReplacement(payload, people);
 
-    expect(patch.items).toBe(receipt.items);
-    expect(patch.receiptTotalInput).toBe('5.00');
+    expect(patch.discount).toEqual(defaultDiscountState);
+    expect(patch.discount).not.toBe(defaultDiscountState);
+    expect(patch.serviceCharge).toEqual({ ...defaultServiceChargeState, enabled: false });
+    expect(patch.serviceCharge).not.toBe(defaultServiceChargeState);
+    expect(patch.gst).toEqual({ ...defaultGstState, enabled: false });
+    expect(patch.gst).not.toBe(defaultGstState);
+    expect(patch.receiptTotalInput).toBe('');
     expect(patch.serviceCharge.detectedSource).toBeNull();
     expect(patch.gst.detectedSource).toBeNull();
   });

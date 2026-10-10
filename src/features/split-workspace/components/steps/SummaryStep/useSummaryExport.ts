@@ -9,24 +9,33 @@ import {
 import { buildSummaryExportPayload } from '@features/split-workspace/logic/buildSummaryExportPayload';
 import type { SummaryModel } from './useSummaryModel';
 
-type ExportBusy = 'downloading' | 'copying' | 'previewing' | null;
+export type SummaryExportState =
+  | { kind: 'idle' }
+  | { kind: 'busy'; action: 'download' | 'preview' | 'share' }
+  | { kind: 'text-success'; method: Awaited<ReturnType<typeof shareText>> }
+  | { kind: 'manual-copy'; message: string }
+  | { kind: 'error'; message: string };
 
-type UseSummaryExportArgs = {
+interface UseSummaryExportArgs {
   model: Pick<SummaryModel, 'people' | 'reconciliation' | 'view' | 'summaryBreakdown'>;
   includeItemDetails: boolean;
-};
+}
 
 export function useSummaryExport({ model, includeItemDetails }: UseSummaryExportArgs) {
-  const [busy, setBusy] = useState<ExportBusy>(null);
+  const [exportState, setExportState] = useState<SummaryExportState>({ kind: 'idle' });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
-  const copyTimeoutRef = useRef<number | null>(null);
+  const successTimeoutRef = useRef<number | null>(null);
 
   const payload = useMemo(
     () => buildSummaryExportPayload({ model, includeItemDetails }),
     [model, includeItemDetails],
   );
+  const text = buildSplitShareText({
+    people: model.people,
+    receiptName: payload.receiptName ?? '',
+    split: model.view.displaySplit,
+    currency: model.view.displayCurrency,
+  });
 
   useEffect(() => {
     return () => {
@@ -36,58 +45,61 @@ export function useSummaryExport({ model, includeItemDetails }: UseSummaryExport
 
   useEffect(() => {
     return () => {
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      if (successTimeoutRef.current !== null) clearTimeout(successTimeoutRef.current);
     };
   }, []);
 
+  const beginAction = (action: Extract<SummaryExportState, { kind: 'busy' }>['action']) => {
+    if (successTimeoutRef.current !== null) {
+      clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
+    }
+    setExportState({ kind: 'busy', action });
+  };
+
   const download = async () => {
-    setBusy('downloading');
-    setExportError(null);
+    beginAction('download');
     try {
       const blob = await generateReceiptSplitImageLight(payload);
       downloadImage(blob, buildDownloadFilename('split', payload.receiptName));
+      setExportState({ kind: 'idle' });
     } catch {
-      setExportError('Failed to generate image.');
-    } finally {
-      setBusy(null);
+      setExportState({ kind: 'error', message: 'Failed to generate image.' });
     }
   };
 
   const preview = async () => {
-    setBusy('previewing');
-    setExportError(null);
+    beginAction('preview');
     try {
       const blob = await generateReceiptSplitImageLight(payload);
       setPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return URL.createObjectURL(blob);
       });
+      setExportState({ kind: 'idle' });
     } catch {
-      setExportError('Failed to generate preview.');
-    } finally {
-      setBusy(null);
+      setExportState({ kind: 'error', message: 'Failed to generate preview.' });
     }
   };
 
   const share = async () => {
-    setBusy('copying');
-    const text = buildSplitShareText({
-      people: model.people,
-      receiptName: payload.receiptName ?? '',
-      split: model.view.displaySplit,
-      currency: model.view.displayCurrency,
-    });
+    beginAction('share');
     try {
-      await shareText(text);
-      setCopied(true);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+      const method = await shareText(text);
+      setExportState({ kind: 'text-success', method });
+      successTimeoutRef.current = window.setTimeout(() => {
+        setExportState({ kind: 'idle' });
+        successTimeoutRef.current = null;
+      }, 2000);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
+        setExportState({ kind: 'idle' });
         return;
       }
-    } finally {
-      setBusy(null);
+      setExportState({
+        kind: 'manual-copy',
+        message: 'Unable to share or copy automatically. Select the text below and copy it.',
+      });
     }
   };
 
@@ -99,9 +111,8 @@ export function useSummaryExport({ model, includeItemDetails }: UseSummaryExport
   };
 
   return {
-    busy,
-    copied,
-    exportError,
+    exportState,
+    text,
     previewUrl,
     download,
     preview,

@@ -10,6 +10,7 @@ import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { BottomNav } from '@features/split-workspace/components/BottomNav';
+import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
@@ -48,6 +49,7 @@ export function Workspace() {
     handleBack,
     handleStepSelect,
     handleAddReceipt,
+    handleResetSplit,
   } = useWizard(items, people, normalizeItems, receipts, activeReceiptId, setActiveReceiptId);
 
   const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items]);
@@ -77,6 +79,11 @@ export function Workspace() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const handleResetSplitWithScroll = () => {
+    handleResetSplit();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   if (!activeReceipt) {
     return null;
   }
@@ -95,7 +102,7 @@ export function Workspace() {
         onStepSelect={handleStepSelectWithScroll}
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-48 md:px-8 md:pt-10">
+      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-24 md:px-8 md:pt-10 md:pb-32">
         {activeStep === 'people' && <PeopleStep />}
 
         {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
@@ -109,8 +116,12 @@ export function Workspace() {
           />
         )}
 
-        {activeStep === 'final' && <SummaryStep onAddReceipt={handleAddReceipt} />}
+        {activeStep === 'final' && (
+          <SummaryStep onAddReceipt={handleAddReceipt} onResetSplit={handleResetSplitWithScroll} />
+        )}
       </main>
+
+      <AppFooter />
 
       <BottomNav
         activeStep={activeStep}
