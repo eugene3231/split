@@ -52,6 +52,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/index.ts',
         '**/receiptSplitImage*.ts',
+        '**/overviewTableImage.ts',
         '**/types.ts',
         '**/constants.ts',
         '**/components/**',
