@@ -3,43 +3,12 @@ import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/sp
 import type { ChargeState, EditableItem, Person, Receipt, SplitResult } from '@shared/types';
 import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
-
-export interface OverviewItemRow {
-  id: string;
-  name: string;
-  priceCents: number;
-  currency: string;
-  /** Only the people who had the item; everyone else is absent. */
-  sharesByPerson: Record<string, number>;
-  unassigned: boolean;
-}
-
-export interface OverviewChargeRow {
-  kind: 'discount' | 'service' | 'gst';
-  label: string;
-  sign: 'minus' | 'plus';
-  totalCents: number;
-  sharesByPerson: Record<string, number>;
-}
-
-export interface OverviewReceiptSection {
-  id: string;
-  title: string;
-  currency: string;
-  itemRows: OverviewItemRow[];
-  chargeRows: OverviewChargeRow[];
-  totalCents: number;
-  totalByPersonCents: Record<string, number>;
-}
-
-export interface SummaryOverview {
-  people: Person[];
-  sections: OverviewReceiptSection[];
-  currency: string;
-  totalCents: number;
-  totalByPersonCents: Record<string, number>;
-  unassignedItemCount: number;
-}
+import type {
+  OverviewChargeRow,
+  OverviewItemRow,
+  OverviewReceiptSection,
+  SummaryOverview,
+} from '@shared/types/summaryOverview';
 
 export interface ResolveSummaryOverviewInput {
   people: Person[];

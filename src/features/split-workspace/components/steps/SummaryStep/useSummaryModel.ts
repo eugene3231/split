@@ -6,7 +6,7 @@ import { generatePaynowQrDataUrls } from '@features/payments';
 import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
 import type { SummaryBreakdown } from '@shared/types/summaryBreakdown';
 import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
-import type { SummaryOverview } from '@features/split-workspace/logic/summaryOverview';
+import type { SummaryOverview } from '@shared/types/summaryOverview';
 import { resolveSummaryView } from '@features/split-workspace/logic/summaryView';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 import {

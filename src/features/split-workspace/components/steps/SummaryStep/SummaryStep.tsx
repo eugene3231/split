@@ -16,7 +16,6 @@ import { useSummaryExport } from './useSummaryExport';
 import { SummaryModeToggle } from './SummaryModeToggle';
 import type { SummaryMode } from './SummaryModeToggle';
 import { OverviewTable } from './OverviewTable';
-import { cn } from '@shared/utils/cn';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
@@ -42,6 +41,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
     useSummaryExport({
       model,
       includeItemDetails: showDetails,
+      mode,
     });
 
   if (receipts.length === 0) {
@@ -133,8 +133,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
       )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* The overview leads on mobile because it was just asked for */}
-        <div className={cn('lg:order-1 lg:col-span-8', isOverview ? 'order-1' : 'order-2')}>
+        <div className="order-2 lg:order-1 lg:col-span-8">
           <div className="mb-3 flex items-center justify-between">
             {showCurrencyControls ? (
               <div className="flex flex-wrap items-center gap-4">
@@ -195,19 +194,17 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
           )}
         </div>
 
-        <div
-          className={cn(
-            'flex flex-col gap-4 lg:order-2 lg:col-span-4',
-            isOverview ? 'order-2' : 'order-1',
+        <div className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-4">
+          {/* The overview's Owes row already gives the total, and PayNow only feeds the cards' QR codes. */}
+          {!isOverview && (
+            <GrandTotalCard
+              grandTotal={view.grandTotal}
+              displayCurrency={view.displayCurrency}
+              currentReceipt={receiptForExport}
+              people={people}
+              onRenameReceipt={renameReceipt}
+            />
           )}
-        >
-          <GrandTotalCard
-            grandTotal={view.grandTotal}
-            displayCurrency={view.displayCurrency}
-            currentReceipt={receiptForExport}
-            people={people}
-            onRenameReceipt={renameReceipt}
-          />
           <ExportActions
             exportState={exportState}
             text={text}

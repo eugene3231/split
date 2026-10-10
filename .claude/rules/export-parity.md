@@ -3,6 +3,7 @@ paths:
   - 'src/features/split-workspace/components/steps/SummaryStep/**/*.{ts,tsx}'
   - 'src/features/sharing/logic/**/*.ts'
   - 'src/features/split-workspace/logic/summaryBreakdown.ts'
+  - 'src/features/split-workspace/logic/summaryOverview.ts'
 ---
 
 # Summary / export parity

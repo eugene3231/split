@@ -181,10 +181,13 @@ describe('SummaryStep', () => {
     expect(table.getByRole('rowheader', { name: /Owes/ })).toHaveTextContent('of $12.20');
     expect(table.getByRole('row', { name: /Owes/ })).toHaveTextContent('$5.00$7.20');
     expect(table.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+    expect(screen.getByTestId('export-copy-text-btn')).toBeInTheDocument();
 
     fireEvent.click(byPerson);
 
     expect(screen.queryByRole('region', { name: 'Who had what' })).toBeNull();
     expect(screen.getByTestId('summary-show-details-btn')).toBeInTheDocument();
+    expect(screen.getByLabelText('PayNow Number')).toBeInTheDocument();
   });
 });

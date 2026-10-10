@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { SummaryOverview } from '@features/split-workspace/logic/summaryOverview';
+import type { SummaryOverview } from '@shared/types/summaryOverview';
 import { OverviewTable } from './OverviewTable';
 
 const alice = { id: 'alice', name: 'Alice Tan' };

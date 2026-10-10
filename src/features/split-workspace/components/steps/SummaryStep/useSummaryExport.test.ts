@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateReceiptSplitImageLight } from '@features/sharing/logic/receiptSplitImageLight';
+import { generateOverviewTableImage } from '@features/sharing/logic/overviewTableImage';
 import {
   makeItem,
   makePerson,
@@ -11,9 +12,14 @@ import {
 } from '../../../../../tests/integration/testHelpers';
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
+import type { SummaryMode } from './SummaryModeToggle';
 
 vi.mock('@features/sharing/logic/receiptSplitImageLight', () => ({
   generateReceiptSplitImageLight: vi.fn(),
+}));
+
+vi.mock('@features/sharing/logic/overviewTableImage', () => ({
+  generateOverviewTableImage: vi.fn(),
 }));
 
 vi.mock('@features/payments', () => ({
@@ -44,11 +50,11 @@ function seedReceipts() {
   );
 }
 
-function renderExporter(strictMode = false) {
+function renderExporter(strictMode = false, mode: SummaryMode = 'by-person') {
   return renderHook(
     ({ activeTab, showBaseCurrency }) => {
       const model = useSummaryModel({ activeTab, showBaseCurrency });
-      return useSummaryExport({ model, includeItemDetails: true });
+      return useSummaryExport({ model, includeItemDetails: true, mode });
     },
     {
       initialProps: { activeTab: 'r1', showBaseCurrency: false },
@@ -61,6 +67,7 @@ beforeEach(() => {
   resetAllStores();
   seedReceipts();
   vi.mocked(generateReceiptSplitImageLight).mockReset();
+  vi.mocked(generateOverviewTableImage).mockReset();
 });
 
 afterEach(() => {
@@ -230,6 +237,23 @@ describe('useSummaryExport', () => {
       kind: 'error',
       message: 'Failed to generate image.',
     });
+  });
+
+  it('saves the overview table as the image while the overview is showing', async () => {
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn().mockReturnValue('blob:x'),
+      revokeObjectURL: vi.fn(),
+    });
+    vi.mocked(generateOverviewTableImage).mockResolvedValue(new Blob(['image']));
+    const { result } = renderExporter(false, 'overview');
+
+    await act(async () => result.current.preview());
+
+    expect(generateReceiptSplitImageLight).not.toHaveBeenCalled();
+    expect(generateOverviewTableImage).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Dinner' }),
+    );
+    expect(result.current.previewUrl).toBe('blob:x');
   });
 
   it('preserves image preview error feedback', async () => {

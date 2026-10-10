@@ -9,13 +9,13 @@ import type {
   OverviewItemRow,
   OverviewReceiptSection,
   SummaryOverview,
-} from '@features/split-workspace/logic/summaryOverview';
+} from '@shared/types/summaryOverview';
 
 interface Props {
   overview: SummaryOverview;
 }
 
-// React-only: the PNG export keeps the By person breakdown and has no Overview counterpart.
+// `features/sharing/logic/overviewTableImage.ts` draws the same table for the PNG export.
 export function OverviewTable({ overview }: Props) {
   const { people, sections } = overview;
   const showSectionHeadings = sections.length > 1;
