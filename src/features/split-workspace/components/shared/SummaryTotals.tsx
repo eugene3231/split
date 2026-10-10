@@ -11,8 +11,6 @@ interface Props {
 }
 
 export function SummaryTotals({ split, discount, serviceCharge, gst, currency }: Props) {
-  const activeChargesCents = split.serviceChargeCents + split.gstCents - split.discountCents;
-
   return (
     <div className="mb-8 space-y-4 border-t border-surface-container-high pt-6">
       <div className="flex items-center justify-between text-sm">
@@ -48,15 +46,6 @@ export function SummaryTotals({ split, discount, serviceCharge, gst, currency }:
           </span>
           <span className="font-bold text-primary">
             +{formatCurrencyFromCents(split.gstCents, currency)}
-          </span>
-        </div>
-      )}
-      {activeChargesCents !== 0 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-on-surface-variant">Active Charges</span>
-          <span className="font-bold text-primary">
-            {activeChargesCents > 0 ? '+' : ''}
-            {formatCurrencyFromCents(activeChargesCents, currency)}
           </span>
         </div>
       )}
