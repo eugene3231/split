@@ -242,7 +242,7 @@ describe('useWizard', () => {
       );
     });
 
-    act(() => result.current.handleResetBill());
+    act(() => result.current.handleResetSplit());
 
     const state = useReceiptStore.getState();
     expect(state.initialized).toBe(true);

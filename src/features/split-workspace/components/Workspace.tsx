@@ -48,7 +48,7 @@ export function Workspace() {
     handleBack,
     handleStepSelect,
     handleAddReceipt,
-    handleResetBill,
+    handleResetSplit,
   } = useWizard(items, people, normalizeItems, receipts, activeReceiptId, setActiveReceiptId);
 
   const detectedItemsCount = useMemo(() => getDetectedItemsCount(items), [items]);
@@ -78,8 +78,8 @@ export function Workspace() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const handleResetBillWithScroll = () => {
-    handleResetBill();
+  const handleResetSplitWithScroll = () => {
+    handleResetSplit();
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -116,7 +116,7 @@ export function Workspace() {
         )}
 
         {activeStep === 'final' && (
-          <SummaryStep onAddReceipt={handleAddReceipt} onResetBill={handleResetBillWithScroll} />
+          <SummaryStep onAddReceipt={handleAddReceipt} onResetSplit={handleResetSplitWithScroll} />
         )}
       </main>
 

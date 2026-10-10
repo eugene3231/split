@@ -120,7 +120,7 @@ describe('workspace recovery', () => {
     expect(restored.payerMobile).toBe('91234567');
   });
 
-  it('keeps a reset bill safe from an old scan, then saves and restores the next bill', async () => {
+  it('keeps a reset split safe from an old scan, then saves and restores the next bill', async () => {
     seedSavedBill();
     const deferred = Promise.withResolvers<OcrResponse>();
     scanApiMock.mockReturnValue(deferred.promise);
@@ -136,7 +136,7 @@ describe('workspace recovery', () => {
     });
     expect(useScanStore.getState().scanStateByReceipt['dinner-a'].isScanning).toBe(true);
 
-    act(() => result.current.wizard.handleResetBill());
+    act(() => result.current.wizard.handleResetSplit());
 
     const freshReceiptId = useReceiptStore.getState().activeReceiptId;
     expect(freshReceiptId).not.toBe('dinner-a');
