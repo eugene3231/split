@@ -129,52 +129,45 @@ describe('normalizeItemAssignments', () => {
     expect(result[0].assignment.weights).toBeUndefined();
   });
 
-  it('preserves weightsInputMode alongside surviving weights when 2+ people remain', () => {
-    const survivingItem = {
-      id: 'i1',
-      name: 'Percent',
-      amountInput: '10.00',
-      discountPercentInput: '',
-      assignment: {
-        mode: 'equal' as const,
-        personId: '',
-        personIds: ['p1', 'p2'],
-        weights: { p1: 60, p2: 40 },
-        weightsInputMode: 'percent' as const,
-      },
-    };
-
-    const survivingResult = normalizeItemAssignments([survivingItem], people);
-    expect(survivingResult[0].assignment.weights).toEqual({ p1: 60, p2: 40 });
-    expect(survivingResult[0].assignment.weightsInputMode).toBe('percent');
-  });
-
-  it('preserves weightsInputMode when 2+ people remain even though no custom weights were entered', () => {
-    // A user who switched to the Percent tab without entering custom weights
-    // yet has personIds.length >= 2 but no `weights`. weightsInputMode must
-    // survive so the Percent tab stays selected — gating on `weights`
-    // presence here would contradict the invariant established in
-    // assignmentInteraction.ts (togglePersonInAssignment/selectAllPeople),
-    // which preserves weightsInputMode purely based on personIds.length >= 2.
+  it('keeps weights and the unassigned share on a half-claimed item with one person', () => {
     const item = {
       id: 'i1',
-      name: 'Percent, no custom weights yet',
-      amountInput: '10.00',
+      name: 'Garlic bread',
+      amountInput: '6.00',
       discountPercentInput: '',
       assignment: {
         mode: 'equal' as const,
         personId: '',
-        personIds: ['p1', 'p2'],
-        weightsInputMode: 'percent' as const,
+        personIds: ['p1'],
+        weights: { p1: 1 },
+        unassignedWeight: 1,
       },
     };
 
-    const result = normalizeItemAssignments([item], people);
-    expect(result[0].assignment.weights).toBeUndefined();
-    expect(result[0].assignment.weightsInputMode).toBe('percent');
+    const [result] = normalizeItemAssignments([item], people);
+    expect(result.assignment).toMatchObject({ weights: { p1: 1 }, unassignedWeight: 1 });
   });
 
-  it('clears weightsInputMode when personIds drops below 2 after normalization', () => {
+  it('drops the unassigned share once nobody valid is left on the item', () => {
+    const item = {
+      id: 'i1',
+      name: 'Garlic bread',
+      amountInput: '6.00',
+      discountPercentInput: '',
+      assignment: {
+        mode: 'equal' as const,
+        personId: '',
+        personIds: ['gone'],
+        weights: { gone: 1 },
+        unassignedWeight: 1,
+      },
+    };
+
+    const [result] = normalizeItemAssignments([item], people);
+    expect(result.assignment).toMatchObject({ personIds: [], unassignedWeight: undefined });
+  });
+
+  it('clears weights when personIds drops below 2 after normalization', () => {
     const droppedItem = {
       id: 'i2',
       name: 'Amount',
@@ -185,14 +178,12 @@ describe('normalizeItemAssignments', () => {
         personId: '',
         personIds: ['p1', 'p2'],
         weights: { p1: 700, p2: 300 },
-        weightsInputMode: 'amount' as const,
       },
     };
 
     const droppedResult = normalizeItemAssignments([droppedItem], [{ id: 'p1', name: 'Alice' }]);
     expect(droppedResult[0].assignment.personIds).toEqual(['p1']);
     expect(droppedResult[0].assignment.weights).toBeUndefined();
-    expect(droppedResult[0].assignment.weightsInputMode).toBeUndefined();
   });
 
   it('passes through undefined when item has no weights', () => {

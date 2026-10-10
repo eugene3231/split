@@ -13,7 +13,6 @@ import type {
   ItemAssignment,
   Person,
   Receipt,
-  WeightsInputMode,
 } from '@shared/types';
 import { createDefaultItem } from '@features/split-workspace/logic/simpleAssignments';
 import { toNullableNumber } from '@shared/logic/core/money';
@@ -259,21 +258,20 @@ function normalizeDraftAssignment(value: unknown): ItemAssignment | null {
     }
   }
 
-  const weightsInputMode: WeightsInputMode | undefined = isWeightsInputMode(value.weightsInputMode)
-    ? value.weightsInputMode
-    : undefined;
+  const unassignedWeight =
+    typeof value.unassignedWeight === 'number' &&
+    value.unassignedWeight > 0 &&
+    Number.isFinite(value.unassignedWeight)
+      ? Math.round(value.unassignedWeight)
+      : undefined;
 
   return {
     mode,
     personId,
     personIds: uniquePersonIds,
     weights,
-    weightsInputMode,
+    unassignedWeight,
   };
-}
-
-function isWeightsInputMode(value: unknown): value is WeightsInputMode {
-  return value === 'shares' || value === 'percent' || value === 'amount';
 }
 
 function normalizeDraftChargeState(value: unknown, fallback: ChargeState): ChargeState {

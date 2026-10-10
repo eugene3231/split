@@ -9,8 +9,8 @@ import { getContinueLabel } from '@features/split-workspace/logic/wizardSteps';
 import { isStepValid } from '@features/split-workspace/logic/wizardValidation';
 import {
   resolveActivePersonId,
+  countItemsLeft,
   resolveClaimContinue,
-  resolveClaimProgress,
 } from '@features/split-workspace/logic/claim';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 
@@ -42,7 +42,7 @@ export function useWizard(
   const claimContinue = resolveClaimContinue(
     people,
     activePersonId,
-    resolveClaimProgress(receipts, people).remaining,
+    countItemsLeft(receipts, people),
   );
 
   useEffect(() => {

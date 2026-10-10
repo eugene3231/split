@@ -1,6 +1,5 @@
 export type AssignmentMode = 'single' | 'equal';
 export type ChargeMode = 'amount' | 'percent';
-export type WeightsInputMode = 'shares' | 'percent' | 'amount';
 
 export type Person = {
   id: string;
@@ -12,12 +11,8 @@ export type ItemAssignment = {
   personId: string;
   personIds: string[];
   weights?: Record<string, number>;
-  /** Which tab last wrote or is currently active for `weights` — used for
-   * display on reopen, not which ratio is "true" (all three tabs express the
-   * same ratio). Can be set even when `weights` is absent (e.g. the user is
-   * on the Percent tab but hasn't entered a custom split yet). Absent +
-   * weights present ⇒ 'shares' (pre-existing data). */
-  weightsInputMode?: WeightsInputMode;
+  /** Share weight nobody has taken yet, on the same scale as `weights`. */
+  unassignedWeight?: number;
 };
 
 export type EditableItem = {

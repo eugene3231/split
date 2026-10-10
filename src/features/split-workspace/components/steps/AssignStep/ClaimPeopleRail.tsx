@@ -17,7 +17,7 @@ export function ClaimPeopleRail({ people, onSelect, layout, className }: Props) 
   return (
     <div
       role="group"
-      aria-label="Who is claiming"
+      aria-label="Whose items"
       className={cn('flex gap-2', layout === 'column' && 'flex-col', className)}
     >
       {people.map((person) => (

@@ -1,110 +1,28 @@
-import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
-import { allocateCents } from '@features/split-workspace/logic/split/allocation';
-import type { EditableItem, Person, WeightsInputMode } from '@shared/types';
+import type { EditableItem, Person } from '@shared/types';
 import { isItemAssigned } from '@features/split-workspace/logic/wizardValidation';
-import { redistributeOnChange } from '@features/split-workspace/logic/weightRedistribution';
-
-export interface SplitAdjustmentRow {
-  id: string;
-  name: string;
-  colorIndex: number;
-  shareAmountCents: number;
-  shareLabel: string;
-  weight: number;
-  percentValue: number;
-}
-
-export interface SplitAdjustment {
-  itemId: string;
-  title: string;
-  priceLabel: string;
-  weightsInputMode: WeightsInputMode;
-  totalWeight: number;
-  claimants: SplitAdjustmentRow[];
-}
+import {
+  setPersonShare,
+  stepPersonShare,
+  type ShareInput,
+  type ShareStep,
+} from '@features/split-workspace/logic/itemShare';
 
 export type AssignmentCommand =
   | { type: 'toggle-person'; personId: string; checked: boolean }
-  | { type: 'select-all' }
-  | { type: 'adjust-weight'; personId: string; delta: number }
-  | { type: 'set-weight'; personId: string; value: number }
-  | { type: 'set-weights-input-mode'; mode: WeightsInputMode }
-  | { type: 'set-percent'; personId: string; value: number }
-  | { type: 'set-amount'; personId: string; valueCents: number }
-  | { type: 'reset-split-to-equal' };
+  | { type: 'step-share'; personId: string; step: ShareStep }
+  | { type: 'set-share'; personId: string; input: ShareInput };
 
-export type AssignmentCommandResult =
-  { type: 'item-updated'; itemId: string; item: EditableItem } | { type: 'ignored' };
-
-export function resolveSplitAdjustment(args: {
-  item: EditableItem;
-  people: Person[];
-  currency: string;
-}): SplitAdjustment {
-  const { item, people, currency } = args;
-  const priceCents = parseCurrencyToCents(item.amountInput);
-  const claimants = resolveClaimantRows(item, people, currency);
-
-  return {
-    itemId: item.id,
-    title: item.name || 'Untitled item',
-    priceLabel: priceCents !== null ? formatCurrencyFromCents(priceCents, currency) : '—',
-    weightsInputMode: item.assignment.weightsInputMode ?? 'shares',
-    totalWeight: claimants.reduce((sum, person) => sum + person.weight, 0),
-    claimants,
-  };
-}
-
-export function applyAssignmentCommand(args: {
-  command: AssignmentCommand;
-  item: EditableItem | null;
-  people: Person[];
-}): AssignmentCommandResult {
-  const { command, item, people } = args;
-  if (!item) return { type: 'ignored' };
-
+export function applyAssignmentCommand(
+  item: EditableItem,
+  command: AssignmentCommand,
+): EditableItem {
   if (command.type === 'toggle-person') {
-    return updated(item, togglePersonInAssignment(command.personId, command.checked, item));
+    return togglePersonInAssignment(command.personId, command.checked, item);
   }
-
-  if (command.type === 'select-all') {
-    return updated(item, selectAllPeople(people, item));
+  if (command.type === 'step-share') {
+    return stepPersonShare(item, command.personId, command.step);
   }
-
-  if (command.type === 'adjust-weight') {
-    const current = item.assignment.weights?.[command.personId] ?? 1;
-    return updated(item, setShareWeight(command.personId, current + command.delta, item));
-  }
-
-  if (command.type === 'set-weight') {
-    return updated(item, setShareWeight(command.personId, command.value, item));
-  }
-
-  if (command.type === 'set-weights-input-mode') {
-    return updated(item, setWeightsInputMode(command.mode, item));
-  }
-
-  if (command.type === 'set-percent') {
-    return updated(item, commitPercent(item, command.personId, command.value));
-  }
-
-  if (command.type === 'set-amount') {
-    return updated(item, commitAmount(item, command.personId, command.valueCents));
-  }
-
-  return updated(item, resetSplitToEqual(item));
-}
-
-function getNewPersonWeight(
-  weights: Record<string, number>,
-  personIds: string[],
-  mode: WeightsInputMode,
-): number {
-  if (mode === 'shares') return 1;
-
-  const existing = personIds.filter((id) => weights[id] !== undefined);
-  const average = existing.reduce((sum, id) => sum + weights[id], 0) / Math.max(1, existing.length);
-  return Math.max(1, Math.round(average));
+  return setPersonShare(item, command.personId, command.input);
 }
 
 export function togglePersonInAssignment(
@@ -112,48 +30,42 @@ export function togglePersonInAssignment(
   checked: boolean,
   currentItem: EditableItem,
 ): EditableItem {
-  const currentIds = new Set(currentItem.assignment.personIds);
-  if (checked) currentIds.add(personId);
-  else currentIds.delete(personId);
+  const { personIds, weights, unassignedWeight } = currentItem.assignment;
+  if (checked === personIds.includes(personId)) return currentItem;
 
-  const nextIds = Array.from(currentIds);
-  let nextWeights: Record<string, number> | undefined;
-  if (currentItem.assignment.weights && nextIds.length >= 2) {
-    const weights = currentItem.assignment.weights;
-    const mode = currentItem.assignment.weightsInputMode ?? 'shares';
-    const newPersonWeight = getNewPersonWeight(weights, nextIds, mode);
-    nextWeights = Object.fromEntries(nextIds.map((id) => [id, weights[id] ?? newPersonWeight]));
+  const nextIds = checked ? [...personIds, personId] : personIds.filter((id) => id !== personId);
+  const nextWeights = { ...weights };
+  let nextUnassigned = unassignedWeight;
+
+  if (!checked) {
+    // Once part of an item is unassigned, a leaver's slice joins it instead of going to the others.
+    if (unassignedWeight) nextUnassigned = unassignedWeight + (weights?.[personId] ?? 1);
+    delete nextWeights[personId];
+  } else if (unassignedWeight) {
+    // Ticking a half-claimed item takes the half nobody had.
+    nextWeights[personId] = unassignedWeight;
+    nextUnassigned = undefined;
+  } else if (weights) {
+    nextWeights[personId] = averageWeight(personIds.map((id) => weights[id] ?? 1));
   }
 
-  const nextWeightsInputMode =
-    nextIds.length >= 2 ? currentItem.assignment.weightsInputMode : undefined;
-
+  const keepsWeights = nextIds.length >= 2 || (nextIds.length === 1 && nextUnassigned);
   return {
     ...currentItem,
     assignment: {
       mode: 'equal',
       personId: '',
       personIds: nextIds,
-      weights: nextWeights,
-      weightsInputMode: nextWeightsInputMode,
+      weights: keepsWeights && (weights || nextUnassigned) ? nextWeights : undefined,
+      unassignedWeight: nextIds.length > 0 ? nextUnassigned : undefined,
     },
   };
 }
 
-export function selectAllPeople(people: Person[], currentItem: EditableItem): EditableItem {
-  const nextIds = people.map((person) => person.id);
-  return {
-    ...currentItem,
-    assignment: {
-      mode: 'equal',
-      personId: '',
-      personIds: nextIds,
-      weights: undefined,
-      weightsInputMode: nextIds.length >= 2 ? currentItem.assignment.weightsInputMode : undefined,
-    },
-  };
-}
-
+/**
+ * Gives every unassigned item, and every unassigned share, to everyone equally.
+ * A claimant's weight scales by the head count so their existing slice is kept.
+ */
 export function splitUnassignedItemsEqually(
   items: EditableItem[],
   people: Person[],
@@ -170,158 +82,27 @@ export function splitUnassignedItemsEqually(
       return item;
     }
 
+    const leftover = item.assignment.unassignedWeight ?? 0;
+    const claimants = new Set(item.assignment.personIds.filter((id) => validPeopleSet.has(id)));
+    const weights =
+      leftover > 0 && claimants.size > 0
+        ? Object.fromEntries(
+            personIds.map((id) => [
+              id,
+              claimants.has(id)
+                ? (item.assignment.weights?.[id] ?? 1) * personIds.length + leftover
+                : leftover,
+            ]),
+          )
+        : undefined;
+
     return {
       ...item,
-      assignment: {
-        mode: 'equal',
-        personId: '',
-        personIds,
-        weights: undefined,
-      },
+      assignment: { mode: 'equal', personId: '', personIds, weights },
     };
   });
 }
 
-function rawWeightsOf(item: EditableItem, selectedIds: string[]): Record<string, number> {
-  const weights = item.assignment.weights;
-  return Object.fromEntries(selectedIds.map((id) => [id, weights?.[id] ?? 1]));
-}
-
-function resolveClaimantRows(
-  item: EditableItem,
-  people: Person[],
-  currency: string,
-): SplitAdjustmentRow[] {
-  const selectedIds = item.assignment.personIds;
-  const rawWeights = rawWeightsOf(item, selectedIds);
-  const priceCents = parseCurrencyToCents(item.amountInput);
-
-  const normalizedCents =
-    priceCents !== null ? allocateCents(priceCents, selectedIds, rawWeights) : {};
-  const normalizedPercent = allocateCents(100, selectedIds, rawWeights);
-
-  return people.flatMap((person, index) => {
-    if (!selectedIds.includes(person.id)) return [];
-    const shareAmountCents = normalizedCents[person.id] ?? 0;
-    return [
-      {
-        id: person.id,
-        name: person.name,
-        colorIndex: index,
-        shareAmountCents,
-        shareLabel: formatCurrencyFromCents(shareAmountCents, currency),
-        weight: rawWeights[person.id],
-        percentValue: normalizedPercent[person.id] ?? 0,
-      },
-    ];
-  });
-}
-
-function setShareWeight(personId: string, value: number, item: EditableItem): EditableItem {
-  const selectedIds = item.assignment.personIds;
-  if (!selectedIds.includes(personId)) {
-    return item;
-  }
-
-  const clamped = Math.max(1, Math.round(value));
-  const weights = item.assignment.weights;
-  const updatedWeights: Record<string, number> = {};
-  for (const id of selectedIds) {
-    updatedWeights[id] = id === personId ? clamped : (weights?.[id] ?? 1);
-  }
-
-  return {
-    ...item,
-    assignment: { ...item.assignment, weights: updatedWeights, weightsInputMode: 'shares' },
-  };
-}
-
-function setWeightsInputMode(mode: WeightsInputMode, item: EditableItem): EditableItem {
-  return {
-    ...item,
-    assignment: { ...item.assignment, weightsInputMode: mode },
-  };
-}
-
-function resetSplitToEqual(item: EditableItem): EditableItem {
-  return {
-    ...item,
-    assignment: { ...item.assignment, weights: undefined },
-  };
-}
-
-function removeZeroWeightsAndRedistribute(
-  selectedIds: string[],
-  weights: Record<string, number>,
-  total: number,
-): { personIds: string[]; weights: Record<string, number> | undefined } {
-  const survivors = selectedIds.filter((id) => (weights[id] ?? 0) > 0);
-  if (survivors.length === selectedIds.length) {
-    return { personIds: selectedIds, weights };
-  }
-  if (survivors.length < 2) {
-    return { personIds: survivors, weights: undefined };
-  }
-  const survivorWeights = Object.fromEntries(survivors.map((id) => [id, weights[id]]));
-  return { personIds: survivors, weights: allocateCents(total, survivors, survivorWeights) };
-}
-
-function commitPercent(item: EditableItem, personId: string, value: number): EditableItem {
-  const selectedIds = item.assignment.personIds;
-  if (!selectedIds.includes(personId) || selectedIds.length < 2) {
-    return item;
-  }
-
-  const rawWeights = rawWeightsOf(item, selectedIds);
-  const prevPercents = allocateCents(100, selectedIds, rawWeights);
-  const nextPercents = redistributeOnChange(
-    prevPercents,
-    personId,
-    Math.round(value),
-    100,
-    selectedIds,
-  );
-  const { personIds, weights } = removeZeroWeightsAndRedistribute(selectedIds, nextPercents, 100);
-
-  return {
-    ...item,
-    assignment: { ...item.assignment, personIds, weights, weightsInputMode: 'percent' },
-  };
-}
-
-function commitAmount(item: EditableItem, personId: string, valueCents: number): EditableItem {
-  const selectedIds = item.assignment.personIds;
-  const priceCents = parseCurrencyToCents(item.amountInput);
-  if (
-    !selectedIds.includes(personId) ||
-    selectedIds.length < 2 ||
-    priceCents === null ||
-    priceCents <= 0
-  ) {
-    return item;
-  }
-
-  const rawWeights = rawWeightsOf(item, selectedIds);
-  const prevAmounts = allocateCents(priceCents, selectedIds, rawWeights);
-  const nextAmounts = redistributeOnChange(
-    prevAmounts,
-    personId,
-    Math.round(valueCents),
-    priceCents,
-    selectedIds,
-  );
-  const { personIds, weights } = removeZeroWeightsAndRedistribute(
-    selectedIds,
-    nextAmounts,
-    priceCents,
-  );
-
-  return {
-    ...item,
-    assignment: { ...item.assignment, personIds, weights, weightsInputMode: 'amount' },
-  };
-}
-
-function updated(item: EditableItem, nextItem: EditableItem): AssignmentCommandResult {
-  return { type: 'item-updated', itemId: item.id, item: nextItem };
+function averageWeight(weights: number[]): number {
+  return Math.max(1, Math.round(weights.reduce((sum, weight) => sum + weight, 0) / weights.length));
 }

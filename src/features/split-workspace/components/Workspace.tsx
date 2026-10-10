@@ -3,7 +3,7 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
-import { firstName, resolveClaimProgress } from '@features/split-workspace/logic/claim';
+import { countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
@@ -46,7 +46,6 @@ export function Workspace() {
     handleResetSplit,
   } = useWizard(items, people, normalizeItems, receipts);
 
-  const claimProgress = resolveClaimProgress(receipts, people);
   const activePerson = people.find((person) => person.id === activePersonId);
 
   const withScrollToTop =
@@ -67,8 +66,7 @@ export function Workspace() {
     >
       <TopAppBar
         activeStep={activeStep}
-        claimedItemCount={claimProgress.claimed}
-        detectedItemsCount={claimProgress.total}
+        itemsLeftCount={countItemsLeft(receipts, people)}
         stepReachability={stepReachability}
         onStepSelect={withScrollToTop(handleStepSelect)}
       />
