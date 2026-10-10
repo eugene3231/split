@@ -1,4 +1,4 @@
-export const PROTOTYPE_NAMES = ['plate', 'claim', 'ledger'] as const;
+export const PROTOTYPE_NAMES = ['claim', 'overview'] as const;
 
 export type PrototypeName = (typeof PROTOTYPE_NAMES)[number];
 

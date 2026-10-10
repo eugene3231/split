@@ -3,8 +3,8 @@ import { readPrototypeSelection, toPrototypeSearch } from './prototypeNames';
 
 describe('readPrototypeSelection', () => {
   it('opens a known prototype on the dinner receipt by default', () => {
-    expect(readPrototypeSelection('?prototype=ledger')).toEqual({
-      name: 'ledger',
+    expect(readPrototypeSelection('?prototype=overview')).toEqual({
+      name: 'overview',
       receipt: 'dinner',
     });
   });
@@ -19,7 +19,7 @@ describe('readPrototypeSelection', () => {
   });
 
   it('round-trips a selection through the query string', () => {
-    const selection = { name: 'plate', receipt: 'stress' } as const;
+    const selection = { name: 'claim', receipt: 'stress' } as const;
     expect(readPrototypeSelection(toPrototypeSearch(selection))).toEqual(selection);
   });
 });

@@ -1,13 +1,12 @@
 interface Props {
   claimed: number;
   total: number;
-  color: string;
 }
 
 const RADIUS = 9;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function ClaimProgress({ claimed, total, color }: Props) {
+export function ClaimProgress({ claimed, total }: Props) {
   const remaining = total - claimed;
   return (
     <div className="flex items-center gap-2 text-sm font-semibold">
@@ -18,12 +17,11 @@ export function ClaimProgress({ claimed, total, color }: Props) {
           cy="12"
           r={RADIUS}
           fill="none"
-          stroke={color}
+          className="stroke-primary transition-all duration-300"
           strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={CIRCUMFERENCE * (1 - claimed / total)}
-          className="transition-all duration-300"
         />
       </svg>
       <span>

@@ -67,23 +67,14 @@
   /* UX prototypes */
   --font-prototype-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  /* UX prototype: Plate */
-  --color-plate-cream: #f4eee3;
-  --color-plate-paper: #fffbf3;
-  --color-plate-ink: #1f1c17;
-  --color-plate-muted: #7d7467;
-  --color-plate-line: #e2d9c8;
-  --color-plate-accent: #d4572a;
-  --font-plate-serif: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-
-  /* UX prototype: Ledger */
-  --color-ledger-bg: #fbfbfa;
-  --color-ledger-panel: #ffffff;
-  --color-ledger-ink: #16181d;
-  --color-ledger-muted: #6b7079;
-  --color-ledger-line: #e8e8e5;
-  --color-ledger-warn: #b45309;
-  --color-ledger-warn-bg: #fff7e8;
+  /* UX prototype: Overview */
+  --color-overview-bg: #fbfbfa;
+  --color-overview-panel: #ffffff;
+  --color-overview-ink: #16181d;
+  --color-overview-muted: #6b7079;
+  --color-overview-line: #e8e8e5;
+  --color-overview-warn: #b45309;
+  --color-overview-warn-bg: #fff7e8;
 
   /* Font families */
   --font-family-headline: 'Manrope', sans-serif;

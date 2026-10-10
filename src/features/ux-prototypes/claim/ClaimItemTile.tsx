@@ -4,14 +4,13 @@ import type { Person } from '@shared/types';
 import { formatMoney } from '@features/ux-prototypes/logic/prototypeFormat';
 import type { PrototypeItem } from '@features/ux-prototypes/logic/prototypeReceipt';
 import { AvatarStack } from '@features/ux-prototypes/components/AvatarStack';
-import { claimColor } from './claimPalette';
+import { personColor } from '@features/ux-prototypes/logic/personPalette';
 
 interface Props {
   item: PrototypeItem;
   people: Person[];
   assignees: string[];
   activePersonId: string;
-  activeColor: string;
   onToggle: () => void;
   onShareWithEveryone: () => void;
 }
@@ -27,7 +26,6 @@ export function ClaimItemTile({
   people,
   assignees,
   activePersonId,
-  activeColor,
   onToggle,
   onShareWithEveryone,
 }: Props) {
@@ -39,14 +37,10 @@ export function ClaimItemTile({
     <li
       className={cn(
         'relative overflow-hidden rounded-2xl border-2 transition-all',
+        claimedByActive && 'border-primary bg-primary/5',
         unclaimed && 'border-dashed border-neutral-300',
         !unclaimed && !claimedByActive && 'border-neutral-100 bg-neutral-50',
       )}
-      style={
-        claimedByActive
-          ? { borderColor: activeColor, backgroundColor: `${activeColor}0f` }
-          : undefined
-      }
     >
       <button
         type="button"
@@ -57,11 +51,8 @@ export function ClaimItemTile({
         <span
           className={cn(
             'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all',
-            !claimedByActive && 'border-neutral-300',
+            claimedByActive ? 'border-primary bg-primary' : 'border-neutral-300',
           )}
-          style={
-            claimedByActive ? { backgroundColor: activeColor, borderColor: activeColor } : undefined
-          }
         >
           {claimedByActive && (
             <span className="material-symbols-outlined text-lg text-white">check</span>
@@ -79,7 +70,7 @@ export function ClaimItemTile({
             <AvatarStack
               people={people}
               personIds={assignees}
-              colorFor={claimColor}
+              colorFor={personColor}
               ringClassName="ring-white"
               max={5}
             />

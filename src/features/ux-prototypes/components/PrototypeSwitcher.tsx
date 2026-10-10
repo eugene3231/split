@@ -7,9 +7,8 @@ import {
 } from '@features/ux-prototypes/prototypeNames';
 
 const LABELS: Record<PrototypeName, string> = {
-  plate: 'Plate',
   claim: 'Claim',
-  ledger: 'Ledger',
+  overview: 'Overview',
 };
 
 const PILL = 'rounded-full px-3 py-1.5 transition-colors';
