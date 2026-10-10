@@ -34,7 +34,7 @@ describe('SummaryStep', () => {
   it('reports the successful native share as shared', async () => {
     seedDinner();
     vi.stubGlobal('navigator', { share: vi.fn().mockResolvedValue(undefined) });
-    render(<SummaryStep onAddReceipt={vi.fn()} />);
+    render(<SummaryStep onAddReceipt={vi.fn()} onNewSplit={vi.fn()} />);
 
     fireEvent.click(screen.getByTestId('export-copy-text-btn'));
 
@@ -47,7 +47,7 @@ describe('SummaryStep', () => {
   it('shows selectable current split text when browser copy is unavailable', async () => {
     seedDinner();
     vi.stubGlobal('navigator', {});
-    render(<SummaryStep onAddReceipt={vi.fn()} />);
+    render(<SummaryStep onAddReceipt={vi.fn()} onNewSplit={vi.fn()} />);
 
     fireEvent.click(screen.getByTestId('export-copy-text-btn'));
 
@@ -83,7 +83,7 @@ describe('SummaryStep', () => {
 
     seedStore([alice], [receipt1, receipt2], { activeReceiptId: 'r1' });
 
-    render(<SummaryStep onAddReceipt={vi.fn()} />);
+    render(<SummaryStep onAddReceipt={vi.fn()} onNewSplit={vi.fn()} />);
 
     // Defaults to the consolidated "total" tab when there are multiple receipts.
     const grandTotalLabel = screen.getByText('Grand Total');
@@ -109,12 +109,29 @@ describe('SummaryStep', () => {
       exchangeRates: { SGD: 1, USD: 1.35 },
     });
 
-    render(<SummaryStep onAddReceipt={vi.fn()} />);
+    render(<SummaryStep onAddReceipt={vi.fn()} onNewSplit={vi.fn()} />);
 
     expect(screen.queryByText('Reconciliation Discrepancy')).toBeNull();
     fireEvent.click(screen.getByTestId('summary-tab-receipt-1'));
     expect(screen.getByText(/The sum of individual shares/)).toHaveTextContent(
       'US$1.00 off from the receipt total.',
     );
+  });
+
+  it('offers New split once, alongside the export actions', () => {
+    seedDinner();
+    render(<SummaryStep onAddReceipt={vi.fn()} onNewSplit={vi.fn()} />);
+
+    expect(screen.getAllByRole('button', { name: 'New split' })).toHaveLength(1);
+  });
+
+  it('adds a receipt from the receipt tabs row', () => {
+    seedDinner();
+    const onAddReceipt = vi.fn();
+    render(<SummaryStep onAddReceipt={onAddReceipt} onNewSplit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add receipt' }));
+
+    expect(onAddReceipt).toHaveBeenCalledOnce();
   });
 });

@@ -75,17 +75,13 @@ export function NewSplitAction({ onConfirm }: NewSplitActionProps) {
     <>
       <button
         type="button"
-        aria-label="New split"
-        title="New split"
         onClick={() => setShowConfirmation(true)}
-        className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary md:px-3"
+        className="flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
       >
-        <span aria-hidden="true" className="material-symbols-outlined text-xl">
+        <span aria-hidden="true" className="material-symbols-outlined text-base">
           restart_alt
         </span>
-        <span aria-hidden="true" className="hidden md:inline">
-          New split
-        </span>
+        New split
       </button>
       {showConfirmation && (
         <NewSplitConfirmation

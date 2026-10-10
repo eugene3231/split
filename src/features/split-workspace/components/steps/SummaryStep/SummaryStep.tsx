@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@shared/utils/cn';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { getShareSupport } from '@features/sharing/logic/shareSplit';
 import { PersonBreakdownCard } from './PersonBreakdownCard';
@@ -8,15 +9,17 @@ import { SummaryTabs } from './SummaryTabs';
 import { CurrencyToggle } from './CurrencyToggle';
 import { GrandTotalCard } from './GrandTotalCard';
 import { ExportActions } from './ExportActions';
+import { NewSplitAction } from '@features/split-workspace/components/NewSplitAction';
 import { ImagePreviewModal } from './ImagePreviewModal';
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
+  onNewSplit: () => void;
 };
 
-export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
+export function SummaryStep({ onAddReceipt, onNewSplit }: SummaryStepProps) {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const receipts = useReceiptStore.getState().receipts;
     return receipts.length > 1 ? 'total' : (receipts[0]?.id ?? 'total');
@@ -74,14 +77,32 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
           </p>
         </div>
 
-        {isMultiReceipt && (
-          <SummaryTabs
-            receipts={receipts}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onRenameReceipt={renameReceipt}
-          />
-        )}
+        <div className="flex items-center gap-3">
+          {isMultiReceipt && (
+            <div className="min-w-0">
+              <SummaryTabs
+                receipts={receipts}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onRenameReceipt={renameReceipt}
+              />
+            </div>
+          )}
+          <button
+            type="button"
+            data-testid="summary-add-receipt-btn"
+            aria-label="Add receipt"
+            onClick={onAddReceipt}
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-dashed border-outline-variant px-3 py-2.5 font-semibold text-on-surface-variant transition-colors hover:border-primary hover:text-primary md:px-5"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined text-lg">
+              add
+            </span>
+            <span aria-hidden="true" className={cn(isMultiReceipt && 'hidden md:inline')}>
+              Add receipt
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Discrepancy notice */}
@@ -194,21 +215,10 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
             onShare={share}
             onPreview={preview}
           />
+          <NewSplitAction onConfirm={onNewSplit} />
         </div>
       </div>
 
-      {/* Add receipt secondary action */}
-      <div className="mb-4 flex justify-center">
-        <button
-          type="button"
-          data-testid="summary-add-receipt-btn"
-          onClick={onAddReceipt}
-          className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
-        >
-          <span className="material-symbols-outlined text-base">add_box</span>
-          Add new receipt
-        </button>
-      </div>
       {previewUrl && <ImagePreviewModal url={previewUrl} onClose={closePreview} />}
     </div>
   );
