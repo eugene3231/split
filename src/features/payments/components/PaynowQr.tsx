@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { renderQrCanvas } from '@features/payments';
-import { buildPaynowString } from '@features/payments/paynow/logic/paynow';
+import { renderQrCanvas } from '../qr/logic/renderQrCanvas';
+import { buildPaynowString } from '../paynow/logic/paynow';
 
 interface PaynowQrProps {
   mobile: string;

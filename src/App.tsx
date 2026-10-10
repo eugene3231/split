@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage';
 import { SettleUpPrototypePage } from '@pages/prototypes/SettleUpPrototypePage';
+import { ShareLinkPrototypePage } from '@pages/prototypes/ShareLinkPrototypePage';
 
 function subscribeToHash(onChange: () => void) {
   window.addEventListener('hashchange', onChange);
@@ -16,6 +17,9 @@ function App() {
 
   if (hash === '#/prototypes/settle-up') {
     return <SettleUpPrototypePage />;
+  }
+  if (hash.startsWith('#/prototypes/share')) {
+    return <ShareLinkPrototypePage hash={hash} />;
   }
   return <ReceiptSplitterPage />;
 }

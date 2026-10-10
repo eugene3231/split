@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { normalizeMobile } from '@features/payments';
+import { normalizeMobile, PaynowQr } from '@features/payments';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type { Person } from '@shared/types';
 import { cn } from '@shared/utils/cn';
 import { getTransferKey, type Transfer } from '../logic/settleUp';
-import { PaynowQr } from './PaynowQr';
 
 interface TransferListProps {
   people: Person[];
