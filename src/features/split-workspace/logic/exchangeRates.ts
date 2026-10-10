@@ -1,9 +1,7 @@
 import type { Receipt, SplitResult } from '@shared/types';
 import { BASE_CURRENCY } from '@shared/constants';
-import { allocateCents } from '@shared/logic/split/allocation';
+import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 
-// Approximate rates: 1 unit of foreign currency = X SGD
-// Used as offline fallback when the exchange rate API is unavailable.
 export const FALLBACK_RATES_TO_SGD: Record<string, number> = {
   SGD: 1,
   USD: 1.35,
@@ -93,7 +91,6 @@ export function convertSplitResult(
 
   const convert = (cents: number) => convertCents(cents, fromCurrency, toCurrency, rates, override);
 
-  // Rounding signed category prefixes keeps the converted receipt total exact.
   const subtotalCents = convert(split.subtotalCents);
   const afterDiscountCents = convert(split.subtotalCents - split.discountCents);
   const afterServiceCents = convert(
@@ -124,6 +121,13 @@ export function convertSplitResult(
 
   const subtotalByPersonCents = allocateCategory(subtotalCents, split.subtotalByPersonCents, 1);
   const discountByPersonCents = allocateCategory(discountCents, split.discountByPersonCents, -1);
+  repairDiscountCoverage({
+    personIds,
+    subtotalByPersonCents,
+    discountByPersonCents,
+    totalByPersonCents,
+    targetByPersonCents,
+  });
   const serviceByPersonCents = allocateCategory(serviceChargeCents, split.serviceByPersonCents, 1);
   const gstByPersonCents = allocateCategory(gstCents, split.gstByPersonCents, 1);
 
@@ -173,4 +177,45 @@ export function convertSplitResult(
     grandTotalCents,
     unassignedItemCount: split.unassignedItemCount,
   };
+}
+
+interface DiscountCoverageInput {
+  personIds: string[];
+  subtotalByPersonCents: Record<string, number>;
+  discountByPersonCents: Record<string, number>;
+  totalByPersonCents: Record<string, number>;
+  targetByPersonCents: Record<string, number>;
+}
+
+function repairDiscountCoverage({
+  personIds,
+  subtotalByPersonCents,
+  discountByPersonCents,
+  totalByPersonCents,
+  targetByPersonCents,
+}: DiscountCoverageInput) {
+  for (const recipient of [...personIds].sort()) {
+    let shortage = discountByPersonCents[recipient] - subtotalByPersonCents[recipient];
+    if (shortage <= 0) continue;
+    const donors = personIds
+      .filter((id) => subtotalByPersonCents[id] > discountByPersonCents[id])
+      .sort(
+        (a, b) =>
+          totalByPersonCents[b] -
+            targetByPersonCents[b] -
+            (totalByPersonCents[a] - targetByPersonCents[a]) || a.localeCompare(b),
+      );
+    for (const donor of donors) {
+      const transfer = Math.min(
+        shortage,
+        subtotalByPersonCents[donor] - discountByPersonCents[donor],
+      );
+      subtotalByPersonCents[donor] -= transfer;
+      subtotalByPersonCents[recipient] += transfer;
+      totalByPersonCents[donor] -= transfer;
+      totalByPersonCents[recipient] += transfer;
+      shortage -= transfer;
+      if (shortage === 0) break;
+    }
+  }
 }

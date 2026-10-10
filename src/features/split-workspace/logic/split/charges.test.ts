@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ChargeState } from '@shared/types';
-import { applyChargeDetection, resolveChargeCents } from '@shared/logic/split/charges';
+import {
+  applyChargeDetection,
+  resolveChargeCents,
+  resolveReceiptCharges,
+} from '@features/split-workspace/logic/split/charges';
 
 const baseChargeState: ChargeState = {
   enabled: true,
@@ -13,7 +17,7 @@ const baseChargeState: ChargeState = {
 
 describe('resolveChargeCents', () => {
   it('returns 0 when charge is disabled', () => {
-    expect(resolveChargeCents({ ...baseChargeState, enabled: false }, 1000, 1000)).toBe(0);
+    expect(resolveChargeCents({ ...baseChargeState, enabled: false }, 1000)).toBe(0);
   });
 
   it('resolves amount mode from amount input', () => {
@@ -25,21 +29,20 @@ describe('resolveChargeCents', () => {
           amountInput: '2.35',
         },
         1000,
-        1000,
       ),
     ).toBe(235);
   });
 
   it('returns 0 when percent input is empty or unparseable', () => {
     expect(
-      resolveChargeCents({ ...baseChargeState, mode: 'percent', percentInput: '' }, 1000, 1000),
+      resolveChargeCents({ ...baseChargeState, mode: 'percent', percentInput: '' }, 1000),
     ).toBe(0);
     expect(
-      resolveChargeCents({ ...baseChargeState, mode: 'percent', percentInput: 'abc' }, 1000, 1000),
+      resolveChargeCents({ ...baseChargeState, mode: 'percent', percentInput: 'abc' }, 1000),
     ).toBe(0);
   });
 
-  it('uses percentage base when provided, otherwise falls back to subtotal', () => {
+  it('uses the explicit percentage base including zero', () => {
     expect(
       resolveChargeCents(
         {
@@ -47,7 +50,6 @@ describe('resolveChargeCents', () => {
           mode: 'percent',
           percentInput: '10',
         },
-        1000,
         500,
       ),
     ).toBe(50);
@@ -59,10 +61,9 @@ describe('resolveChargeCents', () => {
           mode: 'percent',
           percentInput: '10',
         },
-        1000,
         0,
       ),
-    ).toBe(100);
+    ).toBe(0);
   });
 });
 
@@ -107,7 +108,6 @@ describe('applyChargeDetection', () => {
           amountInput: 'not a number',
         },
         1000,
-        1000,
       ),
     ).toBe(0);
   });
@@ -140,5 +140,23 @@ describe('applyChargeDetection', () => {
     expect(next.percentInput).toBe('10');
     expect(next.amountInput).toBe('');
     expect(next.detectedSource).toBe('ocr');
+  });
+});
+
+describe('receipt charge bases', () => {
+  it('keeps a zero GST base when a fixed service adjustment cancels the subtotal', () => {
+    expect(
+      resolveReceiptCharges({
+        subtotalCents: 1000,
+        discount: { ...baseChargeState, enabled: false },
+        serviceCharge: { ...baseChargeState, mode: 'amount', amountInput: '-10.00' },
+        gst: baseChargeState,
+      }).gstCents,
+    ).toBe(0);
+  });
+  it('resolves fixed charges even with a zero base', () => {
+    expect(resolveChargeCents({ ...baseChargeState, mode: 'amount', amountInput: '2.35' }, 0)).toBe(
+      235,
+    );
   });
 });

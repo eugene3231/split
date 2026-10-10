@@ -1,3 +1,4 @@
+import { isRecord } from './guards';
 import { LOCAL_STORAGE_WIZARD_STATE_KEY } from '@features/split-workspace/constants';
 import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
 
@@ -73,8 +74,4 @@ function normalizeStep(value: unknown): WizardStep {
 
 function normalizeItemsSubPhase(value: unknown): ItemsSubPhase {
   return value === 'review' ? 'review' : 'assign';
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }

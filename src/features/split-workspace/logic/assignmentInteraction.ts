@@ -1,5 +1,5 @@
 import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
-import { allocateCents } from '@shared/logic/split/split';
+import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 import type { EditableItem, Person, Receipt, WeightsInputMode } from '@shared/types';
 import type { ItemsSubPhase } from '@features/split-workspace/types';
 import { isItemAssigned } from '@features/split-workspace/logic/wizardValidation';
@@ -153,6 +153,18 @@ export function applyAssignmentCommand(args: {
   return updated(item, resetSplitToEqual(item));
 }
 
+function getNewPersonWeight(
+  weights: Record<string, number>,
+  personIds: string[],
+  mode: WeightsInputMode,
+): number {
+  if (mode === 'shares') return 1;
+
+  const existing = personIds.filter((id) => weights[id] !== undefined);
+  const average = existing.reduce((sum, id) => sum + weights[id], 0) / Math.max(1, existing.length);
+  return Math.max(1, Math.round(average));
+}
+
 export function togglePersonInAssignment(
   personId: string,
   checked: boolean,
@@ -167,23 +179,10 @@ export function togglePersonInAssignment(
   if (currentItem.assignment.weights && nextIds.length >= 2) {
     const weights = currentItem.assignment.weights;
     const mode = currentItem.assignment.weightsInputMode ?? 'shares';
-    if (mode === 'shares') {
-      nextWeights = Object.fromEntries(nextIds.map((id) => [id, weights[id] ?? 1]));
-    } else {
-      // Percent/amount weights are magnitudes, not multipliers — give the
-      // newcomer an equal-sized slot by scaling to the existing average,
-      // preserving everyone else's ratio.
-      const existing = nextIds.filter((id) => weights[id] !== undefined);
-      const avg = existing.reduce((sum, id) => sum + weights[id], 0) / Math.max(1, existing.length);
-      nextWeights = Object.fromEntries(
-        nextIds.map((id) => [id, weights[id] ?? Math.max(1, Math.round(avg))]),
-      );
-    }
+    const newPersonWeight = getNewPersonWeight(weights, nextIds, mode);
+    nextWeights = Object.fromEntries(nextIds.map((id) => [id, weights[id] ?? newPersonWeight]));
   }
 
-  // weightsInputMode reflects which tab the user is on, independent of
-  // whether custom weights have been entered yet — only clear it when the
-  // assignment drops below 2 people, where split controls stop applying.
   const nextWeightsInputMode =
     nextIds.length >= 2 ? currentItem.assignment.weightsInputMode : undefined;
 
@@ -397,19 +396,11 @@ function setWeightsInputMode(mode: WeightsInputMode, item: EditableItem): Editab
 function resetSplitToEqual(item: EditableItem): EditableItem {
   return {
     ...item,
-    // `weightsInputMode` is deliberately left untouched — "Split equally" on
-    // the Percent tab should stay on Percent, not silently jump to Shares.
     assignment: { ...item.assignment, weights: undefined },
   };
 }
 
-/**
- * A percent/amount commit can legitimately drive another selected person's
- * weight to exactly 0 (e.g. typing 100% for one of two people). Treat that as
- * an implicit deselect rather than leaving a $0.00 "involved" row, then
- * re-normalize the survivors so the total still reconciles exactly.
- */
-function dropZeroWeightPeople(
+function removeZeroWeightsAndRedistribute(
   selectedIds: string[],
   weights: Record<string, number>,
   total: number,
@@ -440,7 +431,7 @@ function commitPercent(item: EditableItem, personId: string, value: number): Edi
     100,
     selectedIds,
   );
-  const { personIds, weights } = dropZeroWeightPeople(selectedIds, nextPercents, 100);
+  const { personIds, weights } = removeZeroWeightsAndRedistribute(selectedIds, nextPercents, 100);
 
   return {
     ...item,
@@ -469,7 +460,11 @@ function commitAmount(item: EditableItem, personId: string, valueCents: number):
     priceCents,
     selectedIds,
   );
-  const { personIds, weights } = dropZeroWeightPeople(selectedIds, nextAmounts, priceCents);
+  const { personIds, weights } = removeZeroWeightsAndRedistribute(
+    selectedIds,
+    nextAmounts,
+    priceCents,
+  );
 
   return {
     ...item,

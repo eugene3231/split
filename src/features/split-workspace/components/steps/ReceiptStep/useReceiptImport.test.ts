@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { scanReceipt } from '@features/receipt-scanner';
+import { analyzeReceiptWithGemini } from '@features/receipt-scanner/api/geminiApi';
+import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import type { OcrResponse } from '@shared/types';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
@@ -13,12 +14,12 @@ import {
 } from '../../../../../tests/integration/testHelpers';
 import { useReceiptImport } from './useReceiptImport';
 
-vi.mock('@features/receipt-scanner', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@features/receipt-scanner')>();
-  return { ...actual, scanReceipt: vi.fn() };
+vi.mock('@features/receipt-scanner/api/geminiApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@features/receipt-scanner/api/geminiApi')>();
+  return { ...actual, analyzeReceiptWithGemini: vi.fn() };
 });
 
-const scanReceiptMock = vi.mocked(scanReceipt);
+const scanReceiptMock = vi.mocked(analyzeReceiptWithGemini);
 
 function makeOcrPayload(): OcrResponse {
   return {
@@ -59,15 +60,19 @@ function seedReceiptWithFile(file: File) {
 }
 
 describe('useReceiptImport', () => {
-  beforeEach(resetAllStores);
+  beforeEach(() => {
+    resetAllStores();
+    scanReceiptMock.mockReset();
+    useGeminiStore.setState({ geminiApiKeyInput: 'test-key' });
+  });
 
   it('applies scan results when the receipt file is unchanged', async () => {
     const file = new File(['a'], 'a.jpg', { type: 'image/jpeg' });
     seedReceiptWithFile(file);
 
-    let resolveScan!: (payload: OcrResponse | null) => void;
+    let resolveScan!: (payload: OcrResponse) => void;
     scanReceiptMock.mockImplementation(
-      () => new Promise<OcrResponse | null>((resolve) => (resolveScan = resolve)),
+      () => new Promise<OcrResponse>((resolve) => (resolveScan = resolve)),
     );
 
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
@@ -88,13 +93,107 @@ describe('useReceiptImport', () => {
     expect(receipt?.gst.percentInput).toBe('9');
   });
 
+  it('keeps a loaded mock receipt when an older scan finishes', async () => {
+    const file = new File(['a'], 'a.jpg', { type: 'image/jpeg' });
+    seedReceiptWithFile(file);
+
+    let resolveScan!: (payload: OcrResponse) => void;
+    scanReceiptMock.mockImplementation(
+      () => new Promise<OcrResponse>((resolve) => (resolveScan = resolve)),
+    );
+
+    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+    let scanPromise: Promise<void> = Promise.resolve();
+    act(() => {
+      scanPromise = result.current.handleScanReceipt();
+      result.current.mockReceipts[0].onLoad();
+    });
+
+    expect(useReceiptStore.getState().receipts[0].items[0].name).toBe('Chicken Rice');
+
+    await act(async () => {
+      resolveScan(makeOcrPayload());
+      await scanPromise;
+    });
+
+    const receipt = useReceiptStore.getState().receipts[0];
+    expect(receipt.items.map((item) => item.name)).toEqual([
+      'Chicken Rice',
+      'Iced Lemon Tea',
+      'Pasta Alfredo',
+      'Truffle Fries',
+    ]);
+    expect(receipt.receiptTotalInput).toBe('47.48');
+    expect(receipt.receiptFile).toBeNull();
+  });
+
+  it.each(['success', 'failure'] as const)(
+    'preserves replacement feedback when an older scan reports %s',
+    async (outcome) => {
+      seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
+      let resolveScan!: (payload: OcrResponse) => void;
+      let rejectScan!: (error: Error) => void;
+      scanReceiptMock.mockImplementation(
+        () =>
+          new Promise<OcrResponse>((resolve, reject) => {
+            resolveScan = resolve;
+            rejectScan = reject;
+          }),
+      );
+      const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+      let scanPromise = Promise.resolve();
+      act(() => {
+        scanPromise = result.current.handleScanReceipt();
+        result.current.mockReceipts[0].onLoad();
+        useScanStore.getState().setScanWarnings('r1', ['Check the replacement receipt']);
+      });
+      await act(async () => {
+        if (outcome === 'success') {
+          resolveScan({ ...makeOcrPayload(), warnings: ['Older scan warning'] });
+        } else {
+          rejectScan(new Error('Older scan failed'));
+        }
+        await scanPromise;
+      });
+      const feedback = useScanStore.getState().scanStateByReceipt.r1;
+      expect(feedback.scanWarnings).toEqual(['Check the replacement receipt']);
+      expect(feedback.scanError).toBeNull();
+      expect(feedback.isScanning).toBe(false);
+      expect(useReceiptStore.getState().receipts[0].items[0].name).toBe('Chicken Rice');
+    },
+  );
+
+  it('ignores late status updates after the receipt file changes', async () => {
+    seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
+    let resolveScan!: (payload: OcrResponse) => void;
+    let reportStatus!: (status: string) => void;
+    scanReceiptMock.mockImplementation((_file, _key, _model, setStatus) => {
+      reportStatus = setStatus!;
+      return new Promise<OcrResponse>((resolve) => {
+        resolveScan = resolve;
+      });
+    });
+    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+    let scanPromise = Promise.resolve();
+    act(() => {
+      scanPromise = result.current.handleScanReceipt();
+      result.current.handleReceiptFileChange(new File(['b'], 'b.jpg', { type: 'image/jpeg' }));
+      reportStatus('Older request completed');
+    });
+    expect(useScanStore.getState().scanStateByReceipt.r1.scanStatus).toBe('');
+    await act(async () => {
+      resolveScan(makeOcrPayload());
+      await scanPromise;
+    });
+  });
+
   it('discards scan results when the receipt file was replaced mid-scan', async () => {
     const fileA = new File(['a'], 'a.jpg', { type: 'image/jpeg' });
     seedReceiptWithFile(fileA);
 
-    let resolveScan!: (payload: OcrResponse | null) => void;
+    let resolveScan!: (payload: OcrResponse) => void;
     scanReceiptMock.mockImplementation(
-      () => new Promise<OcrResponse | null>((resolve) => (resolveScan = resolve)),
+      () => new Promise<OcrResponse>((resolve) => (resolveScan = resolve)),
     );
 
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
@@ -107,7 +206,6 @@ describe('useReceiptImport', () => {
     const fileB = new File(['b'], 'b.jpg', { type: 'image/jpeg' });
     act(() => {
       result.current.handleReceiptFileChange(fileB);
-      useScanStore.getState().setScanWarnings('r1', ['stale warning']);
     });
 
     await act(async () => {
@@ -126,9 +224,9 @@ describe('useReceiptImport', () => {
     const file = new File(['a'], 'a.jpg', { type: 'image/jpeg' });
     seedReceiptWithFile(file);
 
-    let resolveScan!: (payload: OcrResponse | null) => void;
+    let resolveScan!: (payload: OcrResponse) => void;
     scanReceiptMock.mockImplementation(
-      () => new Promise<OcrResponse | null>((resolve) => (resolveScan = resolve)),
+      () => new Promise<OcrResponse>((resolve) => (resolveScan = resolve)),
     );
 
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
@@ -190,7 +288,7 @@ describe('useReceiptImport', () => {
     ['assignments', () => useReceiptStore.getState().normalizeItems()],
   ])('keeps %s edits made while scanning and exposes a retry', async (_name, edit) => {
     seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
-    const deferred = Promise.withResolvers<OcrResponse | null>();
+    const deferred = Promise.withResolvers<OcrResponse>();
     scanReceiptMock.mockReturnValue(deferred.promise);
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
     let scanPromise: Promise<void> = Promise.resolve();
@@ -211,7 +309,7 @@ describe('useReceiptImport', () => {
 
   it('applies the result to its original receipt after adding another receipt and changing payer details', async () => {
     seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
-    const deferred = Promise.withResolvers<OcrResponse | null>();
+    const deferred = Promise.withResolvers<OcrResponse>();
     scanReceiptMock.mockReturnValue(deferred.promise);
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
     let scanPromise: Promise<void> = Promise.resolve();
@@ -238,7 +336,11 @@ describe('useReceiptImport', () => {
     seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
     const before = useReceiptStore.getState().receipts[0];
     useScanStore.getState().setScanWarnings('r1', ['No confident line items']);
-    scanReceiptMock.mockResolvedValue({ ...makeOcrPayload(), items: [] });
+    scanReceiptMock.mockResolvedValue({
+      ...makeOcrPayload(),
+      items: [],
+      warnings: ['No confident line items'],
+    });
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
 
     await act(async () => result.current.handleScanReceipt());

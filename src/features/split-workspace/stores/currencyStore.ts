@@ -4,7 +4,7 @@ import {
   saveExchangeRates,
 } from '@features/split-workspace/logic/exchangeRateStorage';
 import { fetchExchangeRates } from '@features/split-workspace/api/exchangeRateApi';
-import { FALLBACK_RATES_TO_SGD } from '@shared/logic/core/exchangeRates';
+import { FALLBACK_RATES_TO_SGD } from '@features/split-workspace/logic/exchangeRates';
 
 type CurrencyStore = {
   exchangeRates: Record<string, number>;

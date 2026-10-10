@@ -3,17 +3,28 @@ import type {
   EditableItem,
   Person,
   PersonReceiptLineItem,
-  ResolvedItem,
   SplitResult,
 } from '@shared/types';
 import { parseCurrencyToCents } from '@shared/logic/core/money';
-import { resolveChargeCents } from '@shared/logic/split/charges';
-import { parseDiscountPercent, resolveDiscountedAmountCents } from '@shared/logic/split/pricing';
-import { convertSplitResult } from '@shared/logic/core/exchangeRates';
-import { allocateCents } from '@shared/logic/split/allocation';
+import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
+import {
+  parseDiscountPercent,
+  resolveDiscountedAmountCents,
+} from '@features/split-workspace/logic/split/pricing';
+import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
+import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 import { BASE_CURRENCY } from '@shared/constants';
 
-export { allocateCents } from '@shared/logic/split/allocation';
+interface ResolvedItem {
+  itemId: string;
+  name: string;
+  grossAmountCents: number;
+  discountPercent: number;
+  discountAmountCents: number;
+  assignedPersonIds: Set<string>;
+  netByPerson: Record<string, number>;
+  grossByPerson: Record<string, number>;
+}
 
 export function computeSplit({
   people,
@@ -34,9 +45,6 @@ export function computeSplit({
   const subtotalByPersonCents = initializeCentsMap(personIds);
   let unassignedItemCount = 0;
 
-  // --- Phase 1: Resolve valid items (O(N × A)) ---
-  // Each resolved item captures who is assigned and their per-person amounts,
-  // without yet writing into per-person structures.
   const resolvedItems: ResolvedItem[] = [];
 
   for (const item of items) {
@@ -89,10 +97,6 @@ export function computeSplit({
     });
   }
 
-  // --- Phase 2: Populate lineItemsByPerson (O(N × P)) ---
-  // Single pass preserves original item order. involvedCountByPerson is computed
-  // alongside so components can O(1) check whether a person has any assigned items
-  // and the canvas renderer can measure card heights without re-scanning.
   const lineItemsByPerson = initializeLineItemMap(personIds);
   const involvedCountByPerson = initializeCentsMap(personIds);
 
@@ -131,10 +135,12 @@ export function computeSplit({
   }
 
   const subtotalCents = sumMapValues(subtotalByPersonCents);
-  const discountCents = Math.min(
+  const { discountCents, serviceChargeCents, gstCents } = resolveReceiptCharges({
     subtotalCents,
-    Math.max(0, resolveChargeCents(discount, subtotalCents, subtotalCents)),
-  );
+    discount,
+    serviceCharge,
+    gst,
+  });
   const discountWeights = weightsFromBase(subtotalByPersonCents, personIds);
   const discountByPersonCents = allocateCents(discountCents, personIds, discountWeights);
 
@@ -145,18 +151,8 @@ export function computeSplit({
       subtotalByPersonCents[personId] - discountByPersonCents[personId],
     );
   }
-  const discountedSubtotalCents = sumMapValues(discountedSubtotalByPersonCents);
-
-  const serviceChargeCents = resolveChargeCents(
-    serviceCharge,
-    discountedSubtotalCents,
-    discountedSubtotalCents,
-  );
   const serviceWeights = weightsFromBase(discountedSubtotalByPersonCents, personIds);
   const serviceByPersonCents = allocateCents(serviceChargeCents, personIds, serviceWeights);
-
-  const gstBaseCents = discountedSubtotalCents + serviceChargeCents;
-  const gstCents = resolveChargeCents(gst, discountedSubtotalCents, gstBaseCents);
 
   const gstWeightSeed = initializeCentsMap(personIds);
   for (const personId of personIds) {

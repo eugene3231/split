@@ -1,5 +1,5 @@
 import type { EditableItem, Person } from '@shared/types';
-import { resolveDiscountedAmountCents } from '@shared/logic/split/pricing';
+import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import type { WizardStep } from '@features/split-workspace/types';
 
 export function hasAnyValidReceiptItem(items: EditableItem[]): boolean {

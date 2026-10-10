@@ -1,15 +1,5 @@
 import type { ItemsSubPhase, WizardStep } from '@features/split-workspace/types';
 
-export const STEP_ORDER: WizardStep[] = ['people', 'receipt', 'items', 'final'];
-
-export function getStepNumber(step: WizardStep): number {
-  return STEP_ORDER.indexOf(step) + 1;
-}
-
-export function isStepCompleted(step: WizardStep, activeStep: WizardStep): boolean {
-  return STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf(activeStep);
-}
-
 export function getContinueLabel(
   activeStep: WizardStep,
   itemsSubPhase: ItemsSubPhase,
