@@ -12,6 +12,7 @@ import {
 import { BASE_CURRENCY } from '@shared/constants';
 import { createId } from '@shared/logic/core/id';
 import type { ChargeState, EditableItem, OcrResponse, Person, Receipt } from '@shared/types';
+import type { SessionDraft } from '@features/split-workspace/types';
 import {
   buildInitialItems,
   createDefaultItem,
@@ -89,6 +90,7 @@ type ReceiptStoreActions = {
   patchReceipt: (receiptId: string, patch: Partial<Receipt>) => void;
   getExportJson: () => string;
   importFromJson: (raw: string) => void;
+  loadWorkspace: (draft: SessionDraft) => void;
 
   setPayerMobile: (mobile: string) => void;
 
@@ -348,10 +350,12 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     },
     importFromJson: (raw) => {
       const draft = importDraftFromJson(raw);
-      if (!draft) {
-        return;
-      }
+      if (draft) get().loadWorkspace(draft);
+    },
+    loadWorkspace: (draft) => {
       set({
+        initialized: true,
+        peopleInput: '',
         people: draft.people,
         receipts: draft.receipts.map((r) => ({
           ...r,

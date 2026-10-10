@@ -11,6 +11,7 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import type { OcrResponse, Person, Receipt } from '@shared/types';
+import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...';
 const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...';
@@ -503,6 +504,22 @@ describe('receiptStore additional coverage', () => {
 
     useReceiptStore.getState().importFromJson(JSON.stringify({ version: 999 }));
     expect(useReceiptStore.getState().people).toHaveLength(1);
+  });
+
+  it('loadWorkspace replaces people, receipts and payer mobile with the loaded split', () => {
+    useReceiptStore.getState().initialize();
+    useReceiptStore.getState().addPeopleFromInput('Zed');
+    useReceiptStore.getState().setPeopleInput('half-typed');
+
+    const draft = PRESET_WORKSPACES[1].build();
+    useReceiptStore.getState().loadWorkspace(draft);
+
+    const state = useReceiptStore.getState();
+    expect(state.people).toHaveLength(12);
+    expect(state.receipts.map((receipt) => receipt.name)).toEqual(['Dinner']);
+    expect(state.activeReceiptId).toBe(draft.receipts[0].id);
+    expect(state.payerMobile).toBe('81234567');
+    expect(state.peopleInput).toBe('');
   });
 
   it('setReceiptExchangeRateOverride updates the correct receipt', () => {

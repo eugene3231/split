@@ -43,7 +43,6 @@ vi.mock('./useReceiptImport', () => ({
   useReceiptImport: () => ({
     handleReceiptFileChange: vi.fn(),
     handleScanReceipt: vi.fn(),
-    mockReceipts: [],
   }),
 }));
 

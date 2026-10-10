@@ -5,6 +5,7 @@ import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
 import { countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
+import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
@@ -44,6 +45,7 @@ export function Workspace() {
     handleStepSelect,
     handleAddReceipt,
     handleResetSplit,
+    handleLoadWorkspace,
   } = useWizard(items, people, normalizeItems, receipts);
 
   const activePerson = people.find((person) => person.id === activePersonId);
@@ -69,6 +71,7 @@ export function Workspace() {
         itemsLeftCount={countItemsLeft(receipts, people)}
         stepReachability={stepReachability}
         onStepSelect={withScrollToTop(handleStepSelect)}
+        actions={<WorkspaceMenu onLoadWorkspace={withScrollToTop(handleLoadWorkspace)} />}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-6 md:px-8 md:pt-10 md:pb-10">

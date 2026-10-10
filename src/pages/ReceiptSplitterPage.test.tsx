@@ -340,7 +340,19 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue();
       expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled();
 
-      fireEvent.click(screen.getByTestId('load-mock-receipt-btn-0'));
+      act(() =>
+        useReceiptStore.getState().patchReceipt('r1', {
+          items: [
+            {
+              id: 'r1-i1',
+              name: 'Chicken Rice',
+              amountInput: '8.50',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: [] },
+            },
+          ],
+        }),
+      );
       expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled();
     });
 
@@ -375,25 +387,6 @@ describe('ReceiptSplitterPage integration', () => {
         ),
       }));
       await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument());
-    });
-
-    it('loads a mock receipt and populates items, hiding the empty state', async () => {
-      seedV2Draft({});
-      render(<ReceiptSplitterPage />);
-      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
-
-      clickContinue();
-
-      // Clear items to trigger empty state, then load mock to hide it
-      useReceiptStore.setState((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, items: [] } : r,
-        ),
-      }));
-      await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument());
-
-      fireEvent.click(screen.getByTestId('load-mock-receipt-btn-0'));
-      expect(screen.queryByTestId('receipt-empty-state')).not.toBeInTheDocument();
     });
 
     it('adds an item to the store when the empty state add button is clicked', async () => {
@@ -825,6 +818,32 @@ describe('ReceiptSplitterPage integration', () => {
         expect(screen.queryByTestId('export-save-image-btn')).not.toBeInTheDocument();
       });
       expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
+    });
+  });
+
+  describe('Header menu', () => {
+    it('loads a test split on an empty workspace straight into Items', () => {
+      render(<ReceiptSplitterPage />);
+
+      fireEvent.click(screen.getByTestId('workspace-menu-btn'));
+      fireEvent.click(screen.getByTestId('workspace-preset-dinner-for-twelve'));
+
+      expectActiveStepNav('items');
+      expect(useReceiptStore.getState().people).toHaveLength(12);
+      expect(screen.getByTestId('wizard-step-nav-final')).not.toBeDisabled();
+    });
+
+    it('exports the workspace as a dated JSON file', () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+
+      fireEvent.click(screen.getByTestId('workspace-menu-btn'));
+      fireEvent.click(screen.getByTestId('workspace-export-btn'));
+
+      const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
+      expect(blob.type).toBe('application/json');
+      expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
   });
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import type { EditableItem, Person, Receipt } from '@shared/types';
-import type { WizardStep } from '@features/split-workspace/types';
+import type { SessionDraft, WizardStep } from '@features/split-workspace/types';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
 import { resolveWizardStep } from '@features/split-workspace/logic/wizardState';
 import { getContinueLabel } from '@features/split-workspace/logic/wizardSteps';
@@ -25,6 +25,7 @@ export function useWizard(
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
   const resetSplit = useReceiptStore((state) => state.resetSplit);
+  const loadWorkspace = useReceiptStore((state) => state.loadWorkspace);
   const splitUnassignedItemsEqually = useReceiptStore((state) => state.splitUnassignedItemsEqually);
 
   const [initialWizardState] = useState(() => loadWizardState());
@@ -141,12 +142,23 @@ export function useWizard(
     if (!geminiApiKeyInput.trim()) setShowApiKeyModal(true);
   };
 
-  const handleResetSplit = () => {
-    resetSplit();
+  const restartWizard = (step: WizardStep) => {
     useScanStore.getState().resetScanStates();
     setShowApiKeyModal(false);
     setActivePersonId('');
-    setActiveStep('people');
+    setActiveStep(step);
+  };
+
+  const handleResetSplit = () => {
+    resetSplit();
+    restartWizard('people');
+  };
+
+  // Lands on Items so the loaded splits are visible; resolveWizardStep falls back
+  // to an earlier step when the workspace has no people or items yet.
+  const handleLoadWorkspace = (draft: SessionDraft) => {
+    loadWorkspace(draft);
+    restartWizard('items');
   };
 
   return {
@@ -161,5 +173,6 @@ export function useWizard(
     handleStepSelect,
     handleAddReceipt,
     handleResetSplit,
+    handleLoadWorkspace,
   };
 }

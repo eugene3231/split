@@ -8,14 +8,9 @@ import { cn } from '@shared/utils/cn';
 interface Props {
   onReceiptFileSelected: (file: File | null) => void;
   onScanReceipt: () => void;
-  mockReceipts: Array<{ label: string; onLoad: () => void }>;
 }
 
-export function ReceiptImportActions({
-  onReceiptFileSelected,
-  onScanReceipt,
-  mockReceipts,
-}: Props) {
+export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const hasApiKey = useGeminiStore((s) => s.geminiApiKeyInput.trim().length > 0);
@@ -195,22 +190,6 @@ export function ReceiptImportActions({
             <p className="text-xs font-medium text-secondary">{scan.scanStatus}</p>
           )}
           {scan.scanError && <p className="text-xs font-medium text-error">{scan.scanError}</p>}
-        </div>
-      )}
-
-      {mockReceipts.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-surface-container-high pt-3">
-          {mockReceipts.map(({ onLoad }, i) => (
-            <button
-              key={i}
-              type="button"
-              data-testid={`load-mock-receipt-btn-${i}`}
-              onClick={onLoad}
-              className="rounded-lg bg-surface-container-low px-2.5 py-1 text-[10px] font-semibold tracking-wide text-on-surface-variant uppercase transition-colors hover:bg-surface-container hover:text-primary"
-            >
-              Load Mock Receipt {i + 1}
-            </button>
-          ))}
         </div>
       )}
 

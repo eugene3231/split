@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { WIZARD_STEPS } from '@features/split-workspace/types';
 import { cn } from '@shared/utils/cn';
 import type { WizardStep } from '@features/split-workspace/types';
@@ -9,9 +10,16 @@ interface Props {
   itemsLeftCount: number;
   stepReachability: Record<WizardStep, boolean>;
   onStepSelect: (step: WizardStep) => void;
+  actions?: ReactNode;
 }
 
-export function TopAppBar({ activeStep, itemsLeftCount, stepReachability, onStepSelect }: Props) {
+export function TopAppBar({
+  activeStep,
+  itemsLeftCount,
+  stepReachability,
+  onStepSelect,
+  actions,
+}: Props) {
   const stepIndex = WIZARD_STEPS.indexOf(activeStep);
   const stepNumber = stepIndex + 1;
 
@@ -169,6 +177,8 @@ export function TopAppBar({ activeStep, itemsLeftCount, stepReachability, onStep
             <p className="truncate text-[10px] text-on-surface-variant">{contextText}</p>
           )}
         </div>
+
+        {actions}
       </div>
     </header>
   );
