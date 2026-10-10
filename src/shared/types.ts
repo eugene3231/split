@@ -13,6 +13,8 @@ export type ItemAssignment = {
   weights?: Record<string, number>;
   /** Share weight nobody has taken yet, on the same scale as `weights`. */
   unassignedWeight?: number;
+  /** The person covering the whole item for everyone; locks it to them. */
+  treatedBy?: string;
 };
 
 export type EditableItem = {
@@ -58,11 +60,13 @@ export type SplitResult = {
   discountByPersonCents: Record<string, number>;
   serviceByPersonCents: Record<string, number>;
   gstByPersonCents: Record<string, number>;
+  tipByPersonCents: Record<string, number>;
   totalByPersonCents: Record<string, number>;
   subtotalCents: number;
   discountCents: number;
   serviceChargeCents: number;
   gstCents: number;
+  tipCents: number;
   grandTotalCents: number;
   unassignedItemCount: number;
 };
@@ -77,6 +81,7 @@ export type PersonReceiptLineItem = {
   assignedAmountCents: number;
   splitCount: number;
   involved: boolean;
+  treatedBy?: string;
 };
 
 export type Receipt = {
@@ -86,6 +91,8 @@ export type Receipt = {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  /** Added after GST and never taxed, so it stays off the printed receipt total. */
+  tip: ChargeState;
   receiptTotalInput: string;
   receiptFile?: File | null;
   currency: string;

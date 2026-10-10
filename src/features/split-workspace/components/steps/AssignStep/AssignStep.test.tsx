@@ -4,6 +4,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
+  defaultTipState,
 } from '@features/split-workspace/constants';
 import type { EditableItem, ItemAssignment, Person, Receipt } from '@shared/types';
 import { AssignStep } from './AssignStep';
@@ -50,6 +51,7 @@ function makeReceipt(id: string, items: EditableItem[], currency = 'SGD'): Recei
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
+    tip: defaultTipState,
     receiptTotalInput: '',
     currency,
     exchangeRateOverride: null,
@@ -258,5 +260,43 @@ describe('AssignStep', () => {
 
     expect(screen.queryByRole('heading', { level: 2, name: /Receipt r1/ })).not.toBeInTheDocument();
     expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
+  });
+
+  it("treats an item from the price editor and locks it on everyone else's screen", () => {
+    const { refresh } = renderStep('p1');
+
+    fireEvent.click(screen.getByTestId('claim-item-amount-shared'));
+    fireEvent.click(screen.getByTestId('claim-item-treat-shared'));
+    refresh();
+
+    expect(assignmentOf('shared')).toMatchObject({ personIds: ['p1'], treatedBy: 'p1' });
+    expect(screen.getByTestId('claim-item-claimants-shared')).toHaveTextContent("Alice's treat");
+    expect(screen.queryByTestId('claim-item-share-shared')).not.toBeInTheDocument();
+    expect(screen.getByTestId('claim-item-amount-shared')).toHaveTextContent('$12.00');
+  });
+
+  it("shows another person's treat greyed out with nothing to tick", () => {
+    setStoreMock([makeReceipt('r1', [makeItem('wine', { personIds: ['p1'], treatedBy: 'p1' })])]);
+    const { refresh } = renderStep('p2');
+
+    const toggle = screen.getByTestId('claim-item-toggle-wine');
+    expect(toggle).toBeDisabled();
+    expect(screen.getByTestId('claim-item-claimants-wine')).toHaveTextContent("Alice's treat");
+    fireEvent.click(toggle);
+    refresh();
+    expect(assignmentOf('wine').personIds).toEqual(['p1']);
+  });
+
+  it('undoes a treat from the price editor', () => {
+    setStoreMock([makeReceipt('r1', [makeItem('wine', { personIds: ['p1'], treatedBy: 'p1' })])]);
+    const { refresh } = renderStep('p1');
+
+    fireEvent.click(screen.getByTestId('claim-item-amount-wine'));
+    expect(screen.getByTestId('claim-item-treat-wine')).toHaveTextContent('Undo treat');
+    fireEvent.click(screen.getByTestId('claim-item-treat-wine'));
+    refresh();
+
+    expect(assignmentOf('wine')).toMatchObject({ personIds: ['p1'], treatedBy: undefined });
+    expect(screen.getByTestId('claim-item-share-wine')).toBeInTheDocument();
   });
 });

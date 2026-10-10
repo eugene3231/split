@@ -16,6 +16,7 @@ interface BaseView {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
   /** Always in SGD — used for QR generation and PayNow amounts. */
   sgdSplit: SplitResult;
 }
@@ -33,6 +34,7 @@ export interface TotalTabView extends BaseView {
     discount: ChargeState;
     serviceCharge: ChargeState;
     gst: ChargeState;
+    tip: ChargeState;
     effectiveRate?: number;
   }[];
 }
@@ -56,6 +58,7 @@ export type ResolveSummaryViewInput = {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
   exchangeRates: Record<string, number>;
   activeTab: string;
   showBaseCurrency: boolean;
@@ -72,6 +75,7 @@ function resolveTotalTab({
   discount,
   serviceCharge,
   gst,
+  tip,
   exchangeRates,
   showBaseCurrency,
 }: ResolveSummaryViewInput): TotalTabView {
@@ -99,6 +103,7 @@ function resolveTotalTab({
       discount: r.discount,
       serviceCharge: r.serviceCharge,
       gst: r.gst,
+      tip: r.tip,
       effectiveRate:
         !showBaseCurrency && isForeign
           ? getEffectiveRate(r.currency!, exchangeRates, r.exchangeRateOverride ?? null)
@@ -114,6 +119,7 @@ function resolveTotalTab({
     discount,
     serviceCharge,
     gst,
+    tip,
     sgdSplit: consolidatedSplit,
     hasAnyForeign: receipts.some((r) => (r.currency ?? BASE_CURRENCY) !== BASE_CURRENCY),
     foreignRates: getForeignReceiptRates(receipts, exchangeRates),
@@ -128,6 +134,7 @@ function resolveReceiptTab({
   discount,
   serviceCharge,
   gst,
+  tip,
   exchangeRates,
   activeTab,
   showBaseCurrency,
@@ -161,6 +168,7 @@ function resolveReceiptTab({
     discount: receipt?.discount ?? discount,
     serviceCharge: receipt?.serviceCharge ?? serviceCharge,
     gst: receipt?.gst ?? gst,
+    tip: receipt?.tip ?? tip,
     sgdSplit,
     nativeCurrency,
     isForeign,

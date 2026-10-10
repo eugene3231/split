@@ -1,6 +1,7 @@
 import { BASE_CURRENCY } from '@shared/constants';
 import type { ChargeState, Person, PersonReceiptLineItem } from '@shared/types';
 import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
+import { describeTreat } from '@features/split-workspace/logic/itemTreat';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 
 import type {
@@ -44,6 +45,7 @@ export function resolvePersonBreakdowns({
               const itemRows = buildItemRows(
                 entry.split.lineItemsByPerson[person.id] ?? [],
                 entry.currency,
+                people,
               );
               if (itemRows.length === 0) {
                 return null;
@@ -57,6 +59,7 @@ export function resolvePersonBreakdowns({
                 discount: entry.discount,
                 serviceCharge: entry.serviceCharge,
                 gst: entry.gst,
+                tip: entry.tip,
                 conversion:
                   entry.effectiveRate !== undefined
                     ? buildConversion(
@@ -79,9 +82,11 @@ export function resolvePersonBreakdowns({
               discount: view.discount,
               serviceCharge: view.serviceCharge,
               gst: view.gst,
+              tip: view.tip,
               itemRows: buildItemRows(
                 view.displaySplit.lineItemsByPerson[person.id] ?? [],
                 view.displayCurrency,
+                people,
               ),
             }),
           ];
@@ -128,6 +133,7 @@ interface BuildReceiptSectionInput {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
   conversion?: BreakdownConversion;
   itemRows: BreakdownItemRow[];
 }
@@ -141,6 +147,7 @@ function buildReceiptSection({
   discount,
   serviceCharge,
   gst,
+  tip,
   conversion,
   itemRows,
 }: BuildReceiptSectionInput): ReceiptBreakdownSection {
@@ -157,18 +164,25 @@ function buildReceiptSection({
       discount,
       serviceCharge,
       gst,
+      tip,
       discountCents: split.discountByPersonCents[personId] ?? 0,
       serviceCents: split.serviceByPersonCents[personId] ?? 0,
       gstCents: split.gstByPersonCents[personId] ?? 0,
+      tipCents: split.tipByPersonCents[personId] ?? 0,
     }),
     emptyMessage: itemRows.length === 0 ? 'No items assigned.' : undefined,
   };
 }
 
-function buildItemRows(lines: PersonReceiptLineItem[], currency: string): BreakdownItemRow[] {
+function buildItemRows(
+  lines: PersonReceiptLineItem[],
+  currency: string,
+  people: Person[],
+): BreakdownItemRow[] {
   return lines.map((line, index) => ({
     id: `${line.itemId}:${index}`,
     label: line.name,
+    note: describeTreat(line.treatedBy, people),
     amountCents: line.involved ? line.assignedAmountCents : null,
     involved: line.involved,
     currency,
@@ -180,9 +194,11 @@ interface BuildChargeRowsInput {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
   discountCents: number;
   serviceCents: number;
   gstCents: number;
+  tipCents: number;
 }
 
 function buildChargeRows({
@@ -190,9 +206,11 @@ function buildChargeRows({
   discount,
   serviceCharge,
   gst,
+  tip,
   discountCents,
   serviceCents,
   gstCents,
+  tipCents,
 }: BuildChargeRowsInput): BreakdownChargeRow[] {
   const rows: BreakdownChargeRow[] = [];
   if (discountCents > 0) {
@@ -218,6 +236,15 @@ function buildChargeRows({
       kind: 'gst',
       label: buildChargeLabel('GST / Tax', gst),
       amountCents: gstCents,
+      sign: 'plus',
+      currency,
+    });
+  }
+  if (tipCents > 0) {
+    rows.push({
+      kind: 'tip',
+      label: buildChargeLabel('Tip', tip),
+      amountCents: tipCents,
       sign: 'plus',
       currency,
     });

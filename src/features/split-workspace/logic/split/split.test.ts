@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChargeState, EditableItem, Person } from '@shared/types';
 import { computeSplit } from '@features/split-workspace/logic/split/split';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 const disabledCharge: ChargeState = {
   enabled: false,
@@ -37,6 +38,7 @@ describe('computeSplit', () => {
       discount,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
     const converted = convertSplitResult(split, 'USD', 'SGD', { USD: 1.35, SGD: 1 });
 
@@ -74,6 +76,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.totalByPersonCents).toEqual({ alice: 300, bob: 0 });
@@ -106,6 +109,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.subtotalCents).toBe(1000);
@@ -164,7 +168,14 @@ describe('computeSplit', () => {
       detectedSource: null,
     };
 
-    const split = computeSplit({ people, items, discount: disabledCharge, serviceCharge, gst });
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge,
+      gst,
+      tip: defaultTipState,
+    });
 
     // Subtotal = $30, service = $3, gst = 9% of $33 = $2.97 → 297 cents
     expect(split.subtotalCents).toBe(3000);
@@ -214,6 +225,7 @@ describe('computeSplit', () => {
       discount,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.discountCents).toBe(400);
@@ -241,6 +253,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.lineItemsByPerson.p1[0]?.name).toBe('Untitled item');
@@ -271,6 +284,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.subtotalCents).toBe(1000);
@@ -299,6 +313,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     const bobLine = split.lineItemsByPerson.bob[0];
@@ -365,6 +380,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.unassignedItemCount).toBe(2);
@@ -411,6 +427,7 @@ describe('computeSplit', () => {
       discount: { ...disabledCharge, enabled: true, mode: 'amount', amountInput: '0.00' },
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.grandTotalCents).toBe(1000);
@@ -445,6 +462,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     const total =
@@ -475,6 +493,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.subtotalCents).toBe(0);
@@ -510,6 +529,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.subtotalCents).toBe(3000);
@@ -545,6 +565,7 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     expect(split.subtotalByPersonCents.alice).toBe(1000);
@@ -577,11 +598,96 @@ describe('computeSplit', () => {
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
 
     // $10 split 2:1 → alice $6.67, bob $3.33 (remainder to alice via largest-remainder)
     expect(split.subtotalByPersonCents.alice).toBe(667);
     expect(split.subtotalByPersonCents.bob).toBe(333);
     expect(split.subtotalByPersonCents.alice + split.subtotalByPersonCents.bob).toBe(1000);
+  });
+});
+
+describe('computeSplit tip and treats', () => {
+  const people: Person[] = [
+    { id: 'alice', name: 'Alice' },
+    { id: 'bob', name: 'Bob' },
+  ];
+  const gst: ChargeState = { ...disabledCharge, enabled: true, percentInput: '9' };
+  const items: EditableItem[] = [
+    {
+      id: 'steak',
+      name: 'Steak',
+      amountInput: '30.00',
+      discountPercentInput: '',
+      assignment: { mode: 'equal', personId: '', personIds: ['alice'] },
+    },
+    {
+      id: 'salad',
+      name: 'Salad',
+      amountInput: '10.00',
+      discountPercentInput: '',
+      assignment: { mode: 'equal', personId: '', personIds: ['bob'] },
+    },
+  ];
+
+  it('splits the tip by what each person had and adds it after GST', () => {
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst,
+      tip: { ...disabledCharge, enabled: true, percentInput: '20' },
+    });
+
+    expect(split.tipCents).toBe(800);
+    expect(split.tipByPersonCents).toEqual({ alice: 600, bob: 200 });
+    expect(split.gstCents).toBe(360);
+    expect(split.totalByPersonCents).toEqual({ alice: 3000 + 270 + 600, bob: 1000 + 90 + 200 });
+    expect(split.grandTotalCents).toBe(4000 + 360 + 800);
+  });
+
+  it('keeps the tip as its own category when converting currency', () => {
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst,
+      tip: { ...disabledCharge, enabled: true, mode: 'amount', amountInput: '8.00' },
+    });
+    const converted = convertSplitResult(split, 'USD', 'SGD', { USD: 1.35, SGD: 1 });
+
+    expect(converted.tipCents).toBe(1080);
+    expect(converted.tipByPersonCents.alice + converted.tipByPersonCents.bob).toBe(1080);
+    expect(converted.grandTotalCents).toBe(
+      converted.subtotalCents -
+        converted.discountCents +
+        converted.serviceChargeCents +
+        converted.gstCents +
+        converted.tipCents,
+    );
+  });
+
+  it("charges a treated item to the treater and marks it on everyone's lines", () => {
+    const treated: EditableItem[] = [
+      {
+        ...items[0],
+        assignment: { mode: 'equal', personId: '', personIds: ['alice'], treatedBy: 'alice' },
+      },
+    ];
+    const split = computeSplit({
+      people,
+      items: treated,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+      tip: defaultTipState,
+    });
+
+    expect(split.totalByPersonCents).toEqual({ alice: 3000, bob: 0 });
+    expect(split.lineItemsByPerson.alice[0]).toMatchObject({ involved: true, treatedBy: 'alice' });
+    expect(split.lineItemsByPerson.bob[0]).toMatchObject({ involved: false, treatedBy: 'alice' });
   });
 });

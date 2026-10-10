@@ -6,6 +6,7 @@ import {
   defaultServiceChargeState,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
+  defaultTipState,
 } from '@features/split-workspace/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
@@ -596,6 +597,7 @@ describe('receiptStore additional coverage', () => {
         discount: { ...defaultDiscountState },
         serviceCharge: { ...defaultServiceChargeState },
         gst: { ...defaultGstState },
+        tip: defaultTipState,
         receiptTotalInput: '',
         currency: 'SGD',
         exchangeRateOverride: null,
@@ -615,6 +617,7 @@ describe('receiptStore additional coverage', () => {
         discount: { ...defaultDiscountState },
         serviceCharge: { ...defaultServiceChargeState },
         gst: { ...defaultGstState },
+        tip: defaultTipState,
         receiptTotalInput: '',
         currency: 'SGD',
         exchangeRateOverride: null,

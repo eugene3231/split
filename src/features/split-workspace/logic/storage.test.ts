@@ -7,6 +7,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
+  defaultTipState,
 } from '@features/split-workspace/constants';
 import {
   clearPersistedDraft,
@@ -255,6 +256,7 @@ const receipt1 = {
   discount: defaultDiscountState,
   serviceCharge: defaultServiceChargeState,
   gst: defaultGstState,
+  tip: defaultTipState,
   receiptTotalInput: '8.00',
   currency: 'SGD',
   exchangeRateOverride: null,
@@ -600,6 +602,64 @@ describe('importDraftFromJson', () => {
     });
     const imported = importDraftFromJson(json);
     expect(imported?.receipts[0].items[0].assignment.unassignedWeight).toBe(1);
+  });
+
+  it('round-trips a treat and a tip, and drops a treat by someone not on the item', () => {
+    const json = JSON.stringify({
+      version: 2,
+      people: [
+        { id: 'p1', name: 'Alice' },
+        { id: 'p2', name: 'Bob' },
+      ],
+      receipts: [
+        {
+          id: 'r1',
+          name: 'R1',
+          items: [
+            {
+              id: 'wine',
+              name: 'Wine',
+              amountInput: '60.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1'], treatedBy: 'p1' },
+            },
+            {
+              id: 'cake',
+              name: 'Cake',
+              amountInput: '9.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: ['p1'], treatedBy: 'p2' },
+            },
+          ],
+          discount: defaultDiscountState,
+          serviceCharge: defaultServiceChargeState,
+          gst: defaultGstState,
+          tip: { ...defaultTipState, enabled: true, percentInput: '15' },
+          receiptTotalInput: '',
+        },
+      ],
+      activeReceiptId: 'r1',
+      savedAt: '',
+    });
+
+    const receipt = importDraftFromJson(json)?.receipts[0];
+
+    expect(receipt?.items.map((item) => item.assignment.treatedBy)).toEqual(['p1', undefined]);
+    expect(receipt?.tip).toMatchObject({ enabled: true, mode: 'percent', percentInput: '15' });
+  });
+
+  it('gives a draft saved before tips a tip that is off', () => {
+    const imported = importDraftFromJson(
+      JSON.stringify({
+        version: 2,
+        people: [],
+        receipts: [{ id: 'r1', name: 'R1', items: [] }],
+        activeReceiptId: 'r1',
+        savedAt: '',
+      }),
+    );
+
+    expect(imported?.receipts[0].tip).toEqual(defaultTipState);
   });
 
   it('ignores a non-positive unassigned share', () => {

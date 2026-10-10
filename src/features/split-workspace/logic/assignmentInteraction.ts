@@ -6,11 +6,18 @@ import {
   type ShareInput,
   type ShareStep,
 } from '@features/split-workspace/logic/itemShare';
+import {
+  resolveTreaterId,
+  treatItem,
+  untreatItem,
+} from '@features/split-workspace/logic/itemTreat';
 
 export type AssignmentCommand =
   | { type: 'toggle-person'; personId: string; checked: boolean }
   | { type: 'step-share'; personId: string; step: ShareStep }
-  | { type: 'set-share'; personId: string; input: ShareInput };
+  | { type: 'set-share'; personId: string; input: ShareInput }
+  | { type: 'treat'; personId: string }
+  | { type: 'untreat' };
 
 export function applyAssignmentCommand(
   item: EditableItem,
@@ -19,10 +26,17 @@ export function applyAssignmentCommand(
   if (command.type === 'toggle-person') {
     return togglePersonInAssignment(command.personId, command.checked, item);
   }
-  if (command.type === 'step-share') {
-    return stepPersonShare(item, command.personId, command.step);
+  if (command.type === 'treat') {
+    return treatItem(item, command.personId);
   }
-  return setPersonShare(item, command.personId, command.input);
+  if (command.type === 'untreat') {
+    return untreatItem(item);
+  }
+  // Changing your share means you're no longer covering the whole thing.
+  if (command.type === 'step-share') {
+    return stepPersonShare(untreatItem(item), command.personId, command.step);
+  }
+  return setPersonShare(untreatItem(item), command.personId, command.input);
 }
 
 export function togglePersonInAssignment(
@@ -32,6 +46,8 @@ export function togglePersonInAssignment(
 ): EditableItem {
   const { personIds, weights, unassignedWeight } = currentItem.assignment;
   if (checked === personIds.includes(personId)) return currentItem;
+  const treaterId = resolveTreaterId(currentItem);
+  if (treaterId && treaterId !== personId) return currentItem;
 
   const nextIds = checked ? [...personIds, personId] : personIds.filter((id) => id !== personId);
   const nextWeights = { ...weights };

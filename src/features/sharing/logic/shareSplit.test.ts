@@ -57,6 +57,7 @@ describe('buildSplitShareText', () => {
           discountByPersonCents: {},
           serviceByPersonCents: {},
           gstByPersonCents: {},
+          tipByPersonCents: {},
           totalByPersonCents: {
             p1: 1250,
             p2: 2500,
@@ -65,6 +66,7 @@ describe('buildSplitShareText', () => {
           discountCents: 0,
           serviceChargeCents: 0,
           gstCents: 0,
+          tipCents: 0,
           grandTotalCents: 3750,
           unassignedItemCount: 0,
           involvedCountByPerson: {},

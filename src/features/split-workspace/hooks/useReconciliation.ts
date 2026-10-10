@@ -20,8 +20,11 @@ export function useReconciliation({
   receiptTotalInput,
 }: ReconciliationInput) {
   const receiptTotalCents = parseCurrencyToCents(receiptTotalInput);
+  // The printed total never includes the tip, so compare against the bill before it.
   const reconciliationCents =
-    receiptTotalCents === null ? null : receiptTotalCents - split.grandTotalCents;
+    receiptTotalCents === null
+      ? null
+      : receiptTotalCents - (split.grandTotalCents - split.tipCents);
 
   const handleApplyReconciliationDiscount = () => {
     if (receiptTotalCents === null || reconciliationCents === null || reconciliationCents >= 0)

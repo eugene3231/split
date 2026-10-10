@@ -8,6 +8,7 @@ import {
   getEffectiveRate,
   getForeignReceiptRates,
 } from '@features/split-workspace/logic/exchangeRates';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 const rates: Record<string, number> = {
   SGD: 1,
@@ -52,11 +53,13 @@ function makeSplitResult(overrides: Partial<SplitResult> = {}): SplitResult {
     discountByPersonCents: { p1: 0, p2: 0 },
     serviceByPersonCents: { p1: 13, p2: 12 },
     gstByPersonCents: { p1: 11, p2: 11 },
+    tipByPersonCents: {},
     totalByPersonCents: { p1: 274, p2: 273 },
     subtotalCents: 500,
     discountCents: 0,
     serviceChargeCents: 25,
     gstCents: 22,
+    tipCents: 0,
     grandTotalCents: 547,
     unassignedItemCount: 0,
     ...overrides,
@@ -174,6 +177,7 @@ describe('convertSplitResult', () => {
         discount: amountCharge(discount),
         serviceCharge: disabledCharge,
         gst: disabledCharge,
+        tip: defaultTipState,
       });
       const converted = convertSplitResult(native, 'USD', 'SGD', rates);
       expect(converted.totalByPersonCents).toEqual({ a: 0, b: 1 });
@@ -217,6 +221,7 @@ describe('convertSplitResult', () => {
       discount: amountCharge('0.05'),
       serviceCharge: disabledCharge,
       gst: disabledCharge,
+      tip: defaultTipState,
     });
     const converted = convertSplitResult(native, 'USD', 'SGD', rates);
     expect(converted.subtotalByPersonCents).toEqual({
@@ -466,6 +471,7 @@ function makeReceipt(currency: string, exchangeRateOverride: number | null = nul
       detectedConfidence: null,
       detectedSource: null,
     },
+    tip: defaultTipState,
     receiptTotalInput: '',
     currency,
     exchangeRateOverride,

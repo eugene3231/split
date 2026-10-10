@@ -27,6 +27,17 @@ export const defaultGstState: ChargeState = {
   detectedSource: null,
 };
 
+export const defaultTipState: ChargeState = {
+  enabled: false,
+  mode: 'percent',
+  amountInput: '',
+  percentInput: '',
+  detectedConfidence: null,
+  detectedSource: null,
+};
+
+export const TIP_PERCENT_PRESETS = ['10', '15', '20'] as const;
+
 export const SUPPORTED_CURRENCIES = [
   'SGD',
   'USD',

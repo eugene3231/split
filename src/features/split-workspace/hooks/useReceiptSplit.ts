@@ -13,6 +13,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
+  defaultTipState,
 } from '@features/split-workspace/constants';
 
 export function useReceiptSplit() {
@@ -36,6 +37,7 @@ export function useReceiptSplit() {
         discount: activeReceipt?.discount ?? defaultDiscountState,
         serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
         gst: activeReceipt?.gst ?? defaultGstState,
+        tip: activeReceipt?.tip ?? defaultTipState,
       }),
     [people, activeReceipt],
   );
@@ -50,6 +52,7 @@ export function useReceiptSplit() {
         discount: activeReceipt?.discount ?? defaultDiscountState,
         serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
         gst: activeReceipt?.gst ?? defaultGstState,
+        tip: activeReceipt?.tip ?? defaultTipState,
       }),
     [people, activeReceipt],
   );
@@ -63,6 +66,7 @@ export function useReceiptSplit() {
           discount: r.discount,
           serviceCharge: r.serviceCharge,
           gst: r.gst,
+          tip: r.tip,
         }),
       ),
     [people, receipts],

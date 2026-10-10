@@ -11,6 +11,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
+  defaultTipState,
 } from '@features/split-workspace/constants';
 import { resolveWizardStep } from '../logic/wizardState';
 import { useWizard } from './useWizard';
@@ -42,6 +43,7 @@ function makeReceipt(id: string, itemIds: string[]): Receipt {
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
+    tip: defaultTipState,
     receiptTotalInput: '',
     currency: 'SGD',
     exchangeRateOverride: null,

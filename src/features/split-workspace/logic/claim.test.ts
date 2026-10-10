@@ -4,6 +4,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
+  defaultTipState,
 } from '@features/split-workspace/constants';
 import {
   firstName,
@@ -43,6 +44,7 @@ function makeReceipt(id: string, items: EditableItem[], currency = 'SGD'): Recei
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
+    tip: defaultTipState,
     receiptTotalInput: '',
     currency,
     exchangeRateOverride: null,
@@ -230,5 +232,36 @@ describe('firstName', () => {
   it('takes the first word of a trimmed name', () => {
     expect(firstName('  Alexandra Konstantinopoulou ')).toBe('Alexandra');
     expect(firstName('Mei')).toBe('Mei');
+  });
+});
+
+describe('treats in the claim view', () => {
+  const treated = () => [
+    makeReceipt('r1', [makeItem('wine', '60.00', { personIds: ['p2'], treatedBy: 'p2' })]),
+  ];
+
+  it("shows someone else's treat by name with nothing for the active person to take", () => {
+    const [wine] = items(treated(), 'p1');
+
+    expect(wine).toMatchObject({
+      claimedByActive: false,
+      isLeft: false,
+      share: null,
+      claimantsLabel: "Mei's treat",
+      treat: { label: "Mei's treat", byActive: false },
+    });
+  });
+
+  it("gives the treater the whole item and knows it's theirs", () => {
+    const [wine] = items(treated(), 'p2');
+
+    expect(wine.treat).toEqual({ label: "Mei's treat", byActive: true });
+    expect(wine.share?.amountLabel).toBe('$60.00');
+  });
+
+  it('drops the treat once the treater is no longer on the item', () => {
+    const receipts = [makeReceipt('r1', [makeItem('wine', '60.00', { treatedBy: 'p2' })])];
+
+    expect(items(receipts)[0]).toMatchObject({ treat: null, isLeft: true });
   });
 });

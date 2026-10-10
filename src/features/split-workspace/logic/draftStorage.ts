@@ -4,6 +4,7 @@ import {
   LOCAL_STORAGE_DRAFT_KEY,
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import type {
@@ -166,6 +167,7 @@ function normalizeDraftReceipt(
     discount: normalizeDraftChargeState(value.discount, defaultDiscountState),
     serviceCharge: normalizeDraftChargeState(value.serviceCharge, defaultServiceChargeState),
     gst: normalizeDraftChargeState(value.gst, defaultGstState),
+    tip: normalizeDraftChargeState(value.tip, defaultTipState),
     receiptTotalInput: typeof value.receiptTotalInput === 'string' ? value.receiptTotalInput : '',
     currency: typeof value.currency === 'string' && value.currency ? value.currency : BASE_CURRENCY,
     exchangeRateOverride:
@@ -265,12 +267,18 @@ function normalizeDraftAssignment(value: unknown): ItemAssignment | null {
       ? Math.round(value.unassignedWeight)
       : undefined;
 
+  const treatedBy =
+    typeof value.treatedBy === 'string' && uniquePersonIds.includes(value.treatedBy)
+      ? value.treatedBy
+      : undefined;
+
   return {
     mode,
     personId,
     personIds: uniquePersonIds,
     weights,
     unassignedWeight,
+    treatedBy,
   };
 }
 

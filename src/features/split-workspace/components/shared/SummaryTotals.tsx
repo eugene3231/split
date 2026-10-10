@@ -7,11 +7,13 @@ interface Props {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  tip: ChargeState;
   currency?: string;
 }
 
-export function SummaryTotals({ split, discount, serviceCharge, gst, currency }: Props) {
-  const activeChargesCents = split.serviceChargeCents + split.gstCents - split.discountCents;
+export function SummaryTotals({ split, discount, serviceCharge, gst, tip, currency }: Props) {
+  const activeChargesCents =
+    split.serviceChargeCents + split.gstCents + split.tipCents - split.discountCents;
 
   return (
     <div className="mb-8 space-y-4 border-t border-surface-container-high pt-6">
@@ -48,6 +50,16 @@ export function SummaryTotals({ split, discount, serviceCharge, gst, currency }:
           </span>
           <span className="font-bold text-primary">
             +{formatCurrencyFromCents(split.gstCents, currency)}
+          </span>
+        </div>
+      )}
+      {split.tipCents > 0 && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium text-on-surface-variant">
+            {buildChargeLabel('Tip', tip)}
+          </span>
+          <span className="font-bold text-primary">
+            +{formatCurrencyFromCents(split.tipCents, currency)}
           </span>
         </div>
       )}

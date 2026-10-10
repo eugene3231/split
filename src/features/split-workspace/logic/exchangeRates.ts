@@ -96,10 +96,12 @@ export function convertSplitResult(
   const afterServiceCents = convert(
     split.subtotalCents - split.discountCents + split.serviceChargeCents,
   );
+  const afterGstCents = convert(split.grandTotalCents - split.tipCents);
   const grandTotalCents = convert(split.grandTotalCents);
   const discountCents = subtotalCents - afterDiscountCents;
   const serviceChargeCents = afterServiceCents - afterDiscountCents;
-  const gstCents = grandTotalCents - afterServiceCents;
+  const gstCents = afterGstCents - afterServiceCents;
+  const tipCents = grandTotalCents - afterGstCents;
 
   const personIds = Object.keys(split.subtotalByPersonCents);
   const targetByPersonCents = allocateCents(grandTotalCents, personIds, split.totalByPersonCents);
@@ -130,6 +132,7 @@ export function convertSplitResult(
   });
   const serviceByPersonCents = allocateCategory(serviceChargeCents, split.serviceByPersonCents, 1);
   const gstByPersonCents = allocateCategory(gstCents, split.gstByPersonCents, 1);
+  const tipByPersonCents = allocateCategory(tipCents, split.tipByPersonCents, 1);
 
   const lineItemsByPerson = Object.fromEntries(
     Object.entries(split.lineItemsByPerson).map(([personId, lines]) => {
@@ -169,11 +172,13 @@ export function convertSplitResult(
     discountByPersonCents,
     serviceByPersonCents,
     gstByPersonCents,
+    tipByPersonCents,
     totalByPersonCents,
     subtotalCents,
     discountCents,
     serviceChargeCents,
     gstCents,
+    tipCents,
     grandTotalCents,
     unassignedItemCount: split.unassignedItemCount,
   };

@@ -6,6 +6,7 @@ import {
   disabledCharge,
   percentCharge,
 } from '../../../tests/integration/testHelpers';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 describe('findReconciliationDiscount', () => {
   it.each([
@@ -29,12 +30,15 @@ describe('findReconciliationDiscount', () => {
           discount: amountCharge('10.00'),
           serviceCharge,
           gst,
+          tip: defaultTipState,
         }),
       ).toEqual({
         discountCents: 1000,
         discountedSubtotalCents: 9000,
         serviceChargeCents,
         gstCents,
+        billTotalCents: targetTotalCents,
+        tipCents: 0,
         grandTotalCents: targetTotalCents,
       });
       expect(findReconciliationDiscount({ ...input, currentDiscountCents: 1000 })).toBeNull();
@@ -93,6 +97,7 @@ describe('findReconciliationDiscount', () => {
         discount: amountCharge('1.00'),
         serviceCharge: input.serviceCharge,
         gst: disabledCharge,
+        tip: defaultTipState,
       }).grandTotalCents,
     ).toBe(50);
   });

@@ -13,6 +13,7 @@ import {
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
+  defaultTipState,
 } from '@features/split-workspace/constants';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import { useReconciliation } from '@features/split-workspace/hooks/useReconciliation';
@@ -104,6 +105,7 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
     discount: activeSummaryReceipt?.discount ?? defaultDiscountState,
     serviceCharge: activeSummaryReceipt?.serviceCharge ?? defaultServiceChargeState,
     gst: activeSummaryReceipt?.gst ?? defaultGstState,
+    tip: activeSummaryReceipt?.tip ?? defaultTipState,
     exchangeRates,
     activeTab,
     showBaseCurrency,

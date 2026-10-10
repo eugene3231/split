@@ -5,6 +5,7 @@ import {
   computeConsolidatedSplit,
 } from '@features/split-workspace/logic/split/split';
 import { BASE_CURRENCY } from '@shared/constants';
+import { defaultTipState } from '@features/split-workspace/constants';
 
 const disabled: ChargeState = {
   enabled: false,
@@ -40,6 +41,7 @@ describe('computeConsolidatedSplit — same currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
     const split2 = computeSplit({
       people,
@@ -47,6 +49,7 @@ describe('computeConsolidatedSplit — same currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
 
     const consolidated = computeConsolidatedSplit(
@@ -77,6 +80,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
 
     // Receipt 2: USD $20 for Bob → 2000 USD cents * 1.35 = 2700 SGD cents
@@ -86,6 +90,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
 
     const consolidated = computeConsolidatedSplit(
@@ -113,6 +118,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
     // 10000 THB cents * 0.038 = 380 SGD cents
 
@@ -137,6 +143,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
 
     // Auto rate is 1.35, but user overrides to 1.50
@@ -168,6 +175,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
     const usdSplit = computeSplit({
       people,
@@ -175,6 +183,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
     const thbSplit = computeSplit({
       people,
@@ -182,6 +191,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
 
     // SGD: 1000 cents
@@ -209,6 +219,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
     const split2 = computeSplit({
       people,
@@ -216,6 +227,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
 
     // currencies array is shorter — second receipt defaults to SGD (no conversion)
@@ -248,6 +260,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge,
       gst: disabled,
+      tip: defaultTipState,
     });
 
     // 10000 USD subtotal * 1.35 = 13500 SGD cents
@@ -281,6 +294,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
     const split2 = computeSplit({
       people,
@@ -296,6 +310,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
       discount: disabled,
       serviceCharge: disabled,
       gst: disabled,
+      tip: defaultTipState,
     });
 
     const consolidated = computeConsolidatedSplit(
