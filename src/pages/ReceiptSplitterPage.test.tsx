@@ -372,6 +372,47 @@ describe('ReceiptSplitterPage integration', () => {
     });
   });
 
+  describe('Even split', () => {
+    it('goes from a head count to the summary without naming or claiming', async () => {
+      render(<ReceiptSplitterPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'More people' }));
+      fireEvent.click(screen.getByTestId('even-split-add-people-btn'));
+      clickContinue(); // → receipt
+
+      const receiptId = useReceiptStore.getState().activeReceiptId;
+      act(() =>
+        useReceiptStore.getState().patchReceipt(receiptId, {
+          items: [
+            {
+              id: 'i1',
+              name: 'Dinner',
+              amountInput: '90.00',
+              discountPercentInput: '',
+              assignment: { mode: 'equal', personId: '', personIds: [] },
+            },
+          ],
+        }),
+      );
+      fireEvent.click(screen.getByTestId('even-split-btn'));
+
+      expectActiveStepNav('final');
+      const { people, receipts } = useReceiptStore.getState();
+      expect(people.map((person) => person.name)).toEqual(['Person 1', 'Person 2', 'Person 3']);
+      expect(receipts[0].items[0].assignment.personIds).toEqual(people.map((person) => person.id));
+    });
+
+    it('is not offered once someone has claimed an item', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+
+      clickContinue(); // → receipt
+
+      expect(screen.queryByTestId('even-split-btn')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Receipt step', () => {
     it('shows empty state when all items are removed', async () => {
       seedV2Draft({});

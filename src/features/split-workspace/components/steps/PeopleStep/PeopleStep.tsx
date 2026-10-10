@@ -2,6 +2,7 @@ import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { EvenSplitPeople } from './EvenSplitPeople';
 
 export function PeopleStep() {
   const { people, peopleInput, setPeopleInput, addPeopleFromInput, removePerson } = useReceiptStore(
@@ -52,6 +53,8 @@ export function PeopleStep() {
           Tip: Input multiple names with commas
         </p>
       </div>
+
+      {people.length === 0 && <EvenSplitPeople />}
 
       {/* People list or empty state */}
       {people.length === 0 ? (

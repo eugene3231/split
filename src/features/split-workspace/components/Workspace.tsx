@@ -8,7 +8,7 @@ import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
-import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
+import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
 import { SummaryStep } from '@features/split-workspace/components/steps/SummaryStep/SummaryStep';
@@ -44,6 +44,7 @@ export function Workspace() {
     handleBack,
     handleStepSelect,
     handleAddReceipt,
+    handleSplitEvenly,
     handleResetSplit,
     handleLoadWorkspace,
   } = useWizard(items, people, normalizeItems, receipts);
@@ -76,7 +77,12 @@ export function Workspace() {
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-6 md:px-8 md:pt-10 md:pb-10">
         {activeStep === 'people' && <PeopleStep />}
 
-        {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
+        {activeStep === 'receipt' && (
+          <ReceiptStep
+            onAddReceipt={handleAddReceipt}
+            onSplitEvenly={withScrollToTop(handleSplitEvenly)}
+          />
+        )}
 
         {activeStep === 'items' && (
           <AssignStep activePersonId={activePersonId} onActivePersonChange={setActivePersonId} />

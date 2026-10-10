@@ -27,6 +27,7 @@ export function useWizard(
   const resetSplit = useReceiptStore((state) => state.resetSplit);
   const loadWorkspace = useReceiptStore((state) => state.loadWorkspace);
   const splitUnassignedItemsEqually = useReceiptStore((state) => state.splitUnassignedItemsEqually);
+  const splitEveryItemEvenly = useReceiptStore((state) => state.splitEveryItemEvenly);
 
   const [initialWizardState] = useState(() => loadWizardState());
   const [activeStepState, setActiveStep] = useState<WizardStep>(
@@ -136,6 +137,12 @@ export function useWizard(
     }
   };
 
+  const handleSplitEvenly = () => {
+    normalizeItems();
+    splitEveryItemEvenly();
+    setActiveStep('final');
+  };
+
   const handleAddReceipt = () => {
     addReceipt();
     setActiveStep('receipt');
@@ -172,6 +179,7 @@ export function useWizard(
     handleBack,
     handleStepSelect,
     handleAddReceipt,
+    handleSplitEvenly,
     handleResetSplit,
     handleLoadWorkspace,
   };

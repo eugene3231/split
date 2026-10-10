@@ -20,6 +20,7 @@ import {
   syncItemsWithPeople,
 } from '@features/split-workspace/logic/simpleAssignments';
 import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
+import { assignEveryItemEqually } from '@features/split-workspace/logic/evenSplit';
 import { buildReceiptOcrReplacement } from '@features/split-workspace/logic/applyOcrResultToReceipt';
 
 type ReceiptScanCommit =
@@ -71,6 +72,7 @@ type ReceiptStoreActions = {
   resetSplit: () => void;
   reset: () => void;
   addPeopleFromInput: (rawInput: string) => void;
+  addPeople: (names: string[]) => void;
   removePerson: (personId: string) => void;
   addItem: () => void;
   removeItem: (itemId: string) => void;
@@ -81,6 +83,7 @@ type ReceiptStoreActions = {
     updater: (item: EditableItem) => EditableItem,
   ) => void;
   splitUnassignedItemsEqually: () => void;
+  splitEveryItemEvenly: () => void;
   setDiscount: (next: ChargeState) => void;
   setServiceCharge: (next: ChargeState) => void;
   setGst: (next: ChargeState) => void;
@@ -181,12 +184,17 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         return;
       }
 
+      get().addPeople(nextNames);
+      set({ peopleInput: '' });
+    },
+    addPeople: (names) => {
       set((state) => {
         const existing = new Set(state.people.map((person) => person.name.toLowerCase()));
-        const additions = nextNames
+        const additions = names
+          .map((name) => name.trim())
           .filter((name) => {
             const key = name.toLowerCase();
-            if (existing.has(key)) return false;
+            if (key.length === 0 || existing.has(key)) return false;
             existing.add(key);
             return true;
           })
@@ -206,8 +214,6 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           })),
         };
       });
-
-      set({ peopleInput: '' });
     },
     removePerson: (personId) => {
       set((state) => {
@@ -265,6 +271,14 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         receipts: state.receipts.map((r) => ({
           ...r,
           items: splitUnassignedItemsEqually(r.items, state.people),
+        })),
+      }));
+    },
+    splitEveryItemEvenly: () => {
+      set((state) => ({
+        receipts: state.receipts.map((r) => ({
+          ...r,
+          items: assignEveryItemEqually(r.items, state.people),
         })),
       }));
     },
