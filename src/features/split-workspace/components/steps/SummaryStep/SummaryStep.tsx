@@ -141,7 +141,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
       )}
 
       {/* Main two-column layout */}
-      <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Left: Person cards */}
         <div className="order-2 lg:order-1 lg:col-span-8">
           <div className="mb-3 flex items-center justify-between">

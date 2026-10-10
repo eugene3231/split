@@ -102,7 +102,7 @@ export function Workspace() {
         onStepSelect={handleStepSelectWithScroll}
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-12 md:px-8 md:pt-10">
+      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-24 md:px-8 md:pt-10 md:pb-32">
         {activeStep === 'people' && <PeopleStep />}
 
         {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
