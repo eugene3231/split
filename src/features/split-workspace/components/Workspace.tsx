@@ -90,7 +90,7 @@ export function Workspace() {
 
   return (
     <div
-      className="font-body flex min-h-screen flex-col bg-surface text-on-surface"
+      className="flex min-h-screen flex-col bg-surface font-body text-on-surface"
       data-testid="workspace"
     >
       <TopAppBar
