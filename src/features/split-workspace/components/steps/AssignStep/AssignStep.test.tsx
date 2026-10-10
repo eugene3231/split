@@ -128,7 +128,7 @@ describe('AssignStep', () => {
     expect(assignmentOf('open').personIds).toEqual(['p2']);
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByTestId('claim-item-share-open')).not.toBeInTheDocument();
-    expect(screen.getByTestId('claim-item-share-open-decrease')).toBeEnabled();
+    expect(screen.queryByTestId('claim-item-share-open-decrease')).not.toBeInTheDocument();
     expect(screen.getByTestId('claim-item-amount-open')).toHaveTextContent('$12.00');
 
     fireEvent.click(toggle());
@@ -163,11 +163,14 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('claim-item-share-w')).toHaveTextContent('1/3');
   });
 
-  it('halves a solo item and shows the other half as left', () => {
+  it('halves a solo item by typing 1/2 and shows the other half as left', () => {
     setStoreMock([makeReceipt('r1', [makeItem('bread', { personIds: ['p1'] })])]);
     const { refresh } = renderStep();
 
-    fireEvent.click(screen.getByTestId('claim-item-share-bread-decrease'));
+    fireEvent.click(screen.getByTestId('claim-item-amount-bread'));
+    const input = screen.getByTestId('claim-item-amount-bread-input');
+    fireEvent.change(input, { target: { value: '1/2' } });
+    fireEvent.blur(input);
     refresh();
 
     expect(assignmentOf('bread').unassignedWeight).toBe(1);

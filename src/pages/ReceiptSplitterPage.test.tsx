@@ -503,7 +503,10 @@ describe('ReceiptSplitterPage integration', () => {
         }),
       ]);
 
-      fireEvent.click(screen.getByTestId('claim-item-share-r1-i1-decrease'));
+      fireEvent.click(screen.getByTestId('claim-item-amount-r1-i1'));
+      const input = screen.getByTestId('claim-item-amount-r1-i1-input');
+      fireEvent.change(input, { target: { value: '50%' } });
+      fireEvent.blur(input);
       expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$3.00');
       expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
 

@@ -8,22 +8,8 @@ interface Props {
 
 /** Fixed width so the steppers and prices line up down the list, whatever the label. */
 export function ShareStepper({ share, onStep, testId }: Props) {
-  if (share.isWhole) {
-    // A whole item needs no label; the lone − is how you halve it.
-    return (
-      <span className="flex w-23 shrink-0">
-        <span className="rounded-full border border-outline-variant">
-          <StepButton
-            icon="remove"
-            label="Take a smaller share"
-            disabled={!share.canDecrease}
-            onClick={() => onStep('decrease')}
-            testId={`${testId}-decrease`}
-          />
-        </span>
-      </span>
-    );
-  }
+  // A whole item shows no stepper; type "1/2" or "50%" into its price to share it.
+  if (share.isWhole) return null;
 
   return (
     <span className="flex w-23 shrink-0 items-center rounded-full border border-outline-variant">
