@@ -788,4 +788,32 @@ describe('Split pipeline integration', () => {
       expect(active.split.subtotalByPersonCents[alice.id]).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe('Receipt totals before everything is claimed', () => {
+    it('counts unclaimed items in receipt totals and reconciliation, not in the split', () => {
+      const alice = makePerson('Alice');
+      const bob = makePerson('Bob');
+      const receipt = makeReceipt({
+        items: [
+          makeItem({
+            amountInput: '10.00',
+            assignment: { mode: 'equal', personId: '', personIds: [alice.id] },
+          }),
+          makeItem({
+            amountInput: '20.00',
+            assignment: { mode: 'equal', personId: '', personIds: [] },
+          }),
+        ],
+        receiptTotalInput: '30.00',
+      });
+
+      seedStore([alice, bob], [receipt]);
+      const { result } = useSplitFromStore();
+
+      expect(result.current.active.receiptTotals.grandTotalCents).toBe(3000);
+      expect(result.current.reconciliation.cents).toBe(0);
+      expect(result.current.active.split.grandTotalCents).toBe(1000);
+      expect(result.current.active.split.unassignedItemCount).toBe(1);
+    });
+  });
 });

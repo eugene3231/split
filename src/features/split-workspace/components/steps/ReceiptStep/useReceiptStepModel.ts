@@ -56,7 +56,7 @@ export function useReceiptStepModel() {
     receiptTotalInput,
     activeCurrency,
     hasItems: items.length > 0,
-    activeSplit: active.split,
+    activeSplit: active.receiptTotals,
     reconciliation,
     addItem,
     removeItem,
