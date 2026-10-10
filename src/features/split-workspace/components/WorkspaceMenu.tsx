@@ -114,7 +114,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
             data-testid="workspace-import-btn"
             onClick={handleImportClick}
           >
-            Import from file…
+            Import from file
           </MenuItem>
           <MenuItem icon="download" data-testid="workspace-export-btn" onClick={handleExport}>
             Export to file
