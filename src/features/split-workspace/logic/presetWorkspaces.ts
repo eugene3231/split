@@ -127,8 +127,8 @@ const DINNER_FOR_TWELVE: PresetDefinition = {
 
 const BALI_TRIP = ['Eugene', 'Sam', 'Moses', 'Glen', 'Beelee'];
 
-// Copied from a real Split export, including its quirks: receipts 2 and 3 are tagged SGD
-// although their prices are in rupiah.
+// Copied from a real Split export. Receipts 2 and 3 were tagged SGD and receipt 2's total read
+// 329.98; both are corrected to rupiah here.
 const BALI_TRIP_FOR_FIVE: PresetDefinition = {
   id: 'bali-trip-for-five',
   label: 'Bali trip for 5',
@@ -160,10 +160,10 @@ const BALI_TRIP_FOR_FIVE: PresetDefinition = {
     },
     {
       name: 'Receipt 2',
-      currency: 'SGD',
+      currency: 'IDR',
       serviceCharge: { amount: '16980' },
       gst: { amount: '30000' },
-      total: '329.98',
+      total: '329980',
       items: [
         { name: 'ACAI BOWL', price: '139000', claim: ['Sam', 'Eugene'] },
         { name: 'PB&J SMOOTHIE', price: '75000', claim: 'Beelee' },
@@ -172,7 +172,7 @@ const BALI_TRIP_FOR_FIVE: PresetDefinition = {
     },
     {
       name: 'Receipt 3',
-      currency: 'SGD',
+      currency: 'IDR',
       serviceCharge: { amount: '79100.00' },
       gst: { amount: '120910.00' },
       total: '1330010.00',

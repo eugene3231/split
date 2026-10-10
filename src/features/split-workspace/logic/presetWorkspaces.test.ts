@@ -69,12 +69,12 @@ describe('PRESET_WORKSPACES', () => {
     expect(second.activeReceiptId).toBe(second.receipts[0].id);
   });
 
-  it('keeps the Bali export as it was exported, amount charges and currencies included', () => {
+  it('prices every Bali receipt in rupiah with the exported amount charges', () => {
     const draft = bali.build();
     expect(draft.receipts.map((receipt) => [receipt.name, receipt.currency])).toEqual([
       ['Woods pererenan', 'IDR'],
-      ['Receipt 2', 'SGD'],
-      ['Receipt 3', 'SGD'],
+      ['Receipt 2', 'IDR'],
+      ['Receipt 3', 'IDR'],
     ]);
     expect(draft.receipts[0].serviceCharge).toMatchObject({
       enabled: true,
@@ -84,5 +84,14 @@ describe('PRESET_WORKSPACES', () => {
     const [woods] = draft.receipts;
     const split = computeSplit({ people: draft.people, ...woods });
     expect(split.grandTotalCents).toBe(120642500);
+  });
+
+  it.each([1, 2])('matches the printed total of Bali receipt index %i', (index) => {
+    const draft = bali.build();
+    const receipt = draft.receipts[index];
+    const split = computeSplit({ people: draft.people, ...receipt });
+    expect((split.grandTotalCents / 100).toFixed(2)).toBe(
+      Number(receipt.receiptTotalInput).toFixed(2),
+    );
   });
 });
