@@ -84,7 +84,7 @@ export function ClaimItemRow({
           />
           <ItemActionChip
             icon="person"
-            label={`Just ${personName}`}
+            label={`${personName} only`}
             disabled={!share.canTakeAlone}
             testId={`claim-item-take-alone-${item.id}`}
             onClick={onTakeAlone}

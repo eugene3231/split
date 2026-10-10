@@ -222,7 +222,7 @@ describe('AssignStep', () => {
     const takeAlone = () => screen.getByTestId('claim-item-take-alone-weighted');
 
     expect(screen.queryByTestId('claim-item-split-evenly-open')).not.toBeInTheDocument();
-    expect(takeAlone()).toHaveAccessibleName('Just Alice');
+    expect(takeAlone()).toHaveAccessibleName('Alice only');
 
     fireEvent.click(splitEvenly());
     refresh();
