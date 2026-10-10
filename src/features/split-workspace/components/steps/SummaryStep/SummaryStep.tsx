@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { cn } from '@shared/utils/cn';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { getShareSupport } from '@features/sharing/logic/shareSplit';
 import { PersonBreakdownCard } from './PersonBreakdownCard';
@@ -31,7 +30,7 @@ export function SummaryStep({ onAddReceipt, onNewSplit }: SummaryStepProps) {
     activeTab,
     showBaseCurrency,
   });
-  const { people, receipts, isMultiReceipt, renameReceipt, view, summaryBreakdown } = model;
+  const { people, receipts, renameReceipt, view, summaryBreakdown } = model;
   const reconciliationCents = model.reconciliation.cents;
   const { exportState, text, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
@@ -57,37 +56,40 @@ export function SummaryStep({ onAddReceipt, onNewSplit }: SummaryStepProps) {
     <div>
       {/* Title + tabs */}
       <div className="mb-8">
-        {/* Desktop header */}
-        <div className="mb-6 hidden md:block">
-          <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-            Final Breakdown
-          </h1>
-          <p className="text-lg text-on-surface-variant">
-            Review the consolidated grand total or individual receipt details.
-          </p>
-        </div>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            {/* Desktop header */}
+            <div className="mb-6 hidden md:block">
+              <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
+                Final Breakdown
+              </h1>
+              <p className="text-lg text-on-surface-variant">
+                Review the consolidated grand total or individual receipt details.
+              </p>
+            </div>
 
-        {/* Mobile header */}
-        <div className="mb-4 md:hidden">
-          <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
-            Final Breakdown
-          </h1>
-          <p className="mt-0.5 text-xs text-on-surface-variant">
-            Review the consolidated grand total or individual receipt details.
-          </p>
+            {/* Mobile header */}
+            <div className="mb-4 md:hidden">
+              <h1 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+                Final Breakdown
+              </h1>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                Review the consolidated grand total or individual receipt details.
+              </p>
+            </div>
+          </div>
+          <NewSplitAction onConfirm={onNewSplit} />
         </div>
 
         <div className="flex items-center gap-3">
-          {isMultiReceipt && (
-            <div className="min-w-0">
-              <SummaryTabs
-                receipts={receipts}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                onRenameReceipt={renameReceipt}
-              />
-            </div>
-          )}
+          <div className="min-w-0">
+            <SummaryTabs
+              receipts={receipts}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onRenameReceipt={renameReceipt}
+            />
+          </div>
           <button
             type="button"
             data-testid="summary-add-receipt-btn"
@@ -98,7 +100,7 @@ export function SummaryStep({ onAddReceipt, onNewSplit }: SummaryStepProps) {
             <span aria-hidden="true" className="material-symbols-outlined text-lg">
               add
             </span>
-            <span aria-hidden="true" className={cn(isMultiReceipt && 'hidden md:inline')}>
+            <span aria-hidden="true" className="hidden md:inline">
               Add receipt
             </span>
           </button>
@@ -215,7 +217,6 @@ export function SummaryStep({ onAddReceipt, onNewSplit }: SummaryStepProps) {
             onShare={share}
             onPreview={preview}
           />
-          <NewSplitAction onConfirm={onNewSplit} />
         </div>
       </div>
 

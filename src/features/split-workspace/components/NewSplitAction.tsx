@@ -76,7 +76,7 @@ export function NewSplitAction({ onConfirm }: NewSplitActionProps) {
       <button
         type="button"
         onClick={() => setShowConfirmation(true)}
-        className="flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
+        className="flex shrink-0 items-center justify-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold whitespace-nowrap text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary md:px-4"
       >
         <span aria-hidden="true" className="material-symbols-outlined text-base">
           restart_alt
