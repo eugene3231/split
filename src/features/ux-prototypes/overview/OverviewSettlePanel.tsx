@@ -39,7 +39,7 @@ export function OverviewSettlePanel({ people, split, className }: Props) {
         ))}
       </ul>
       <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-semibold">
-        <button type="button" className="rounded-lg bg-primary py-2.5 text-on-primary">
+        <button type="button" className="rounded-lg bg-ink py-2.5 text-on-ink">
           Copy as text
         </button>
         <button type="button" className="rounded-lg border border-overview-line py-2.5">

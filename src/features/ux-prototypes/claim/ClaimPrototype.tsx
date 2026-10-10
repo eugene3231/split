@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { firstName } from '@features/ux-prototypes/logic/prototypeFormat';
 import type { PrototypeReceipt } from '@features/ux-prototypes/logic/prototypeReceipt';
-import { Avatar } from '@features/ux-prototypes/components/Avatar';
 import { usePrototypeSplit } from '@features/ux-prototypes/hooks/usePrototypeSplit';
 import { ClaimItemTile } from './ClaimItemTile';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
 import { ClaimProgress } from './ClaimProgress';
 import { ClaimTally } from './ClaimTally';
-import { personColor } from '@features/ux-prototypes/logic/personPalette';
 
 export function ClaimPrototype({ receipt }: { receipt: PrototypeReceipt }) {
   const { people, items, assignments, split, toggle, assign } = usePrototypeSplit(receipt);
@@ -30,16 +28,10 @@ export function ClaimPrototype({ receipt }: { receipt: PrototypeReceipt }) {
             className="-mx-5 mt-5 overflow-x-auto px-5 pb-1 lg:hidden"
           />
           <h1 className="mt-6 text-3xl leading-tight font-extrabold tracking-tight break-words">
-            What did{' '}
-            <Avatar
-              name={activePerson.name}
-              color={personColor(activeIndex)}
-              className="h-8 w-8 -translate-y-0.5 align-middle text-base"
-            />{' '}
-            {activeName} have?
+            What did {activeName} have?
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Tap everything they ate or drank. Shared dishes split automatically.
+            Tap everything they had. Shared items split automatically.
           </p>
         </div>
       </header>

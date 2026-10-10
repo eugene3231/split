@@ -66,6 +66,8 @@
 
   /* UX prototypes */
   --font-prototype-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #18181b;
+  --color-on-ink: #ffffff;
 
   /* UX prototype: Overview */
   --color-overview-bg: #fbfbfa;

@@ -37,7 +37,7 @@ export function ClaimItemTile({
     <li
       className={cn(
         'relative overflow-hidden rounded-2xl border-2 transition-all',
-        claimedByActive && 'border-primary bg-primary/5',
+        claimedByActive && 'border-ink bg-ink/5',
         unclaimed && 'border-dashed border-neutral-300',
         !unclaimed && !claimedByActive && 'border-neutral-100 bg-neutral-50',
       )}
@@ -51,7 +51,7 @@ export function ClaimItemTile({
         <span
           className={cn(
             'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all',
-            claimedByActive ? 'border-primary bg-primary' : 'border-neutral-300',
+            claimedByActive ? 'border-ink bg-ink' : 'border-neutral-300',
           )}
         >
           {claimedByActive && (

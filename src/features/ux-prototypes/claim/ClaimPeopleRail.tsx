@@ -26,9 +26,7 @@ export function ClaimPeopleRail({ people, totals, activeIndex, onSelect, classNa
             onClick={() => onSelect(index)}
             className={cn(
               'flex shrink-0 items-center gap-2 rounded-2xl border-2 bg-white py-1.5 pr-3.5 pl-1.5 text-left transition-all',
-              active
-                ? 'border-primary shadow-md'
-                : 'border-transparent opacity-70 hover:opacity-100',
+              active ? 'border-ink shadow-md' : 'border-transparent opacity-70 hover:opacity-100',
             )}
           >
             <Avatar name={person.name} color={personColor(index)} className="h-8 w-8 text-sm" />

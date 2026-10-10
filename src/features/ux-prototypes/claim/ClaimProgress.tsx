@@ -17,7 +17,7 @@ export function ClaimProgress({ claimed, total }: Props) {
           cy="12"
           r={RADIUS}
           fill="none"
-          className="stroke-primary transition-all duration-300"
+          className="stroke-ink transition-all duration-300"
           strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray={CIRCUMFERENCE}
