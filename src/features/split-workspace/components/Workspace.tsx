@@ -30,8 +30,7 @@ export function Workspace() {
 
   const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
   const items = activeReceipt?.items ?? [];
-  const { consolidated } = useReceiptSplit();
-  const totalByPersonCents = consolidated.split.totalByPersonCents;
+  const { active, consolidated } = useReceiptSplit();
 
   const {
     activeStep,
@@ -103,7 +102,12 @@ export function Workspace() {
           <WorkspaceNavStatus
             activeStep={activeStep}
             activePerson={activePerson}
-            totalByPersonCents={totalByPersonCents}
+            activePersonTotal={formatCurrencyFromCents(
+              consolidated.split.totalByPersonCents[activePersonId] ?? 0,
+              BASE_CURRENCY,
+            )}
+            receiptTotalCents={active.receiptTotals.grandTotalCents}
+            receiptCurrency={activeReceipt.currency}
           />
         }
       />
@@ -114,32 +118,29 @@ export function Workspace() {
 interface WorkspaceNavStatusProps {
   activeStep: WizardStep;
   activePerson: Person | undefined;
-  totalByPersonCents: Record<string, number>;
+  activePersonTotal: string;
+  receiptTotalCents: number;
+  receiptCurrency: string;
 }
 
 function WorkspaceNavStatus({
   activeStep,
   activePerson,
-  totalByPersonCents,
+  activePersonTotal,
+  receiptTotalCents,
+  receiptCurrency,
 }: WorkspaceNavStatusProps) {
-  const format = (cents: number) => formatCurrencyFromCents(cents, BASE_CURRENCY);
-
   if (activeStep === 'items' && activePerson) {
     return (
-      <BottomNavStatus
-        label={`${firstName(activePerson.name)} owes`}
-        value={format(totalByPersonCents[activePerson.id] ?? 0)}
-      />
+      <BottomNavStatus label={`${firstName(activePerson.name)} owes`} value={activePersonTotal} />
     );
   }
 
-  if (activeStep === 'receipt') {
-    const grandTotalCents = Object.values(totalByPersonCents).reduce((sum, v) => sum + v, 0);
-    if (grandTotalCents === 0) return null;
+  if (activeStep === 'receipt' && receiptTotalCents > 0) {
     return (
       <BottomNavStatus
-        label="Grand total"
-        value={format(grandTotalCents)}
+        label="Receipt total"
+        value={formatCurrencyFromCents(receiptTotalCents, receiptCurrency)}
         className="hidden md:block"
       />
     );

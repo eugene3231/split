@@ -477,6 +477,16 @@ describe('ReceiptSplitterPage integration', () => {
       expect(items[0].assignment.personIds).toEqual(['p1']);
     });
 
+    it('shows the full receipt total on the receipt step before anything is claimed', async () => {
+      seedV2Draft({ receipts: [makeReceipt({ id: 'r1', items: [unclaimedItem] })] });
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+
+      clickContinue(); // → receipt
+
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Receipt total$2.00');
+    });
+
     it('shares an unclaimed item with everyone', async () => {
       await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
 
