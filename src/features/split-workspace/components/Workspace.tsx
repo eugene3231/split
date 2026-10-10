@@ -61,7 +61,7 @@ export function Workspace() {
 
   return (
     <div
-      className="flex min-h-screen flex-col bg-surface font-body text-on-surface"
+      className="flex min-h-dvh flex-col bg-surface font-body text-on-surface"
       data-testid="workspace"
     >
       <TopAppBar
@@ -71,7 +71,7 @@ export function Workspace() {
         onStepSelect={withScrollToTop(handleStepSelect)}
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-28 md:px-8 md:pt-10 md:pb-32">
+      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-6 md:px-8 md:pt-10 md:pb-10">
         {activeStep === 'people' && <PeopleStep />}
 
         {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
@@ -87,8 +87,6 @@ export function Workspace() {
           />
         )}
       </main>
-
-      <AppFooter />
 
       <BottomNav
         activeStep={activeStep}
@@ -109,6 +107,8 @@ export function Workspace() {
           />
         }
       />
+
+      <AppFooter />
     </div>
   );
 }
