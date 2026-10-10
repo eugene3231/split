@@ -13,6 +13,7 @@ import {
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useReconciliation } from '@features/split-workspace/hooks/useReconciliation';
 
 export type { SummaryView };
 
@@ -21,26 +22,30 @@ function useQrDataUrls(
   sgdSplit: SplitResult,
   payerMobile: string,
 ): Record<string, string> {
-  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
+  const [qrResult, setQrResult] = useState<{
+    key: string;
+    urls: Record<string, string>;
+  } | null>(null);
 
-  const qrAmountsKey = people
-    .map((p) => `${p.id}:${sgdSplit.totalByPersonCents[p.id] ?? 0}`)
-    .join(',');
+  const qrKey = JSON.stringify([
+    payerMobile,
+    people.map((person) => [person.id, sgdSplit.totalByPersonCents[person.id] ?? 0]),
+  ]);
 
   useEffect(() => {
     let cancelled = false;
     generatePaynowQrDataUrls(people, sgdSplit, payerMobile).then((urls) => {
-      if (!cancelled) setQrDataUrls(urls);
+      if (!cancelled) setQrResult({ key: qrKey, urls });
     });
     return () => {
       cancelled = true;
     };
-    // qrAmountsKey encodes every person's SGD amount, so it covers `people` and
+    // qrKey encodes every person's SGD amount, so it covers `people` and
     // `sgdSplit` transitively — no need to list them directly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payerMobile, qrAmountsKey]);
+  }, [qrKey]);
 
-  return qrDataUrls;
+  return qrResult?.key === qrKey ? qrResult.urls : {};
 }
 
 type UseSummaryModelProps = {
@@ -69,13 +74,24 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
   const people = useReceiptStore((s) => s.people);
   const receipts = useReceiptStore((s) => s.receipts);
   const renameReceipt = useReceiptStore((s) => s.renameReceipt);
+  const patchReceipt = useReceiptStore((s) => s.patchReceipt);
   const payerMobile = useReceiptStore((s) => s.payerMobile);
   const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
-  const { active, consolidated, reconciliation } = useReceiptSplit();
+  const { active, consolidated } = useReceiptSplit();
   const activeSummaryReceipt =
-    activeTab === 'total'
-      ? (receipts[0] ?? null)
-      : (receipts.find((receipt) => receipt.id === activeTab) ?? null);
+    activeTab === 'total' ? null : (receipts.find((receipt) => receipt.id === activeTab) ?? null);
+  const selectedReceiptIndex = receipts.findIndex(
+    (receipt) => receipt.id === activeSummaryReceipt?.id,
+  );
+  const selectedSplit = consolidated.splitByReceipt[selectedReceiptIndex] ?? active.split;
+  const { reconciliationCents, handleApplyReconciliationDiscount } = useReconciliation(
+    selectedSplit,
+    activeSummaryReceipt?.discount ?? defaultDiscountState,
+    (discount) => {
+      if (activeSummaryReceipt) patchReceipt(activeSummaryReceipt.id, { discount });
+    },
+    activeSummaryReceipt?.receiptTotalInput ?? '',
+  );
 
   const view = resolveSummaryView({
     receipts,
@@ -101,7 +117,10 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
     renameReceipt,
     payerMobile,
     splitByReceipt: consolidated.splitByReceipt,
-    reconciliation,
+    reconciliation: {
+      cents: reconciliationCents,
+      applyCorrectiveDiscount: handleApplyReconciliationDiscount,
+    },
     view,
     qrDataUrls,
     summaryBreakdown,

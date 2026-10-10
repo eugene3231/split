@@ -138,7 +138,10 @@ export function resolvePersonBreakdowns({
       totalCents,
       currency: view.displayCurrency,
       conversion:
-        view.kind === 'receipt' && view.isForeign && view.effectiveRate !== null
+        view.kind === 'receipt' &&
+        view.isForeign &&
+        view.displayCurrency !== BASE_CURRENCY &&
+        view.effectiveRate !== null
           ? buildConversion(totalCents, view.effectiveRate, view.nativeCurrency)
           : undefined,
       qrDataUrl: qrDataUrls[person.id],

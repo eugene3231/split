@@ -10,7 +10,10 @@ import { parseCurrencyToCents } from '@shared/logic/core/money';
 import { resolveChargeCents } from '@shared/logic/split/charges';
 import { parseDiscountPercent, resolveDiscountedAmountCents } from '@shared/logic/split/pricing';
 import { convertSplitResult } from '@shared/logic/core/exchangeRates';
+import { allocateCents } from '@shared/logic/split/allocation';
 import { BASE_CURRENCY } from '@shared/constants';
+
+export { allocateCents } from '@shared/logic/split/allocation';
 
 export function computeSplit({
   people,
@@ -128,7 +131,10 @@ export function computeSplit({
   }
 
   const subtotalCents = sumMapValues(subtotalByPersonCents);
-  const discountCents = resolveChargeCents(discount, subtotalCents, subtotalCents);
+  const discountCents = Math.min(
+    subtotalCents,
+    Math.max(0, resolveChargeCents(discount, subtotalCents, subtotalCents)),
+  );
   const discountWeights = weightsFromBase(subtotalByPersonCents, personIds);
   const discountByPersonCents = allocateCents(discountCents, personIds, discountWeights);
 
@@ -289,63 +295,4 @@ function weightsFromBase(
   }
 
   return weights;
-}
-
-export function allocateCents(
-  totalCents: number,
-  personIds: string[],
-  rawWeights: Record<string, number>,
-): Record<string, number> {
-  const allocation = initializeCentsMap(personIds);
-
-  if (personIds.length === 0 || totalCents === 0) {
-    return allocation;
-  }
-
-  const weights = personIds.map((personId) => ({
-    personId,
-    weight: Math.max(rawWeights[personId] ?? 0, 0),
-  }));
-
-  let totalWeight = weights.reduce((sum, entry) => sum + entry.weight, 0);
-  if (totalWeight === 0) {
-    for (const entry of weights) {
-      entry.weight = 1;
-    }
-    totalWeight = weights.length;
-  }
-
-  const sign = totalCents < 0 ? -1 : 1;
-  const absoluteCents = Math.abs(totalCents);
-
-  const baseShares = weights.map((entry) => {
-    const exactShare = (absoluteCents * entry.weight) / totalWeight;
-    const floorShare = Math.floor(exactShare);
-
-    return {
-      personId: entry.personId,
-      floorShare,
-      fractional: exactShare - floorShare,
-    };
-  });
-
-  let remainder = absoluteCents - baseShares.reduce((sum, share) => sum + share.floorShare, 0);
-
-  baseShares.sort((a, b) => {
-    if (b.fractional !== a.fractional) {
-      return b.fractional - a.fractional;
-    }
-    return a.personId.localeCompare(b.personId);
-  });
-
-  for (let index = 0; index < baseShares.length && remainder > 0; index += 1) {
-    baseShares[index].floorShare += 1;
-    remainder -= 1;
-  }
-
-  for (const share of baseShares) {
-    allocation[share.personId] = sign * share.floorShare;
-  }
-
-  return allocation;
 }

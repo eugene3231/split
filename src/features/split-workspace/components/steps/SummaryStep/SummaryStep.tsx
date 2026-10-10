@@ -101,8 +101,8 @@ export function SummaryStep({ onAddReceipt }: SummaryStepProps) {
                 <h4 className="font-bold text-on-error-container">Reconciliation Discrepancy</h4>
                 <p className="text-sm text-on-error-container opacity-80">
                   The sum of individual shares is{' '}
-                  {formatCurrencyFromCents(Math.abs(reconciliationCents))} off from the receipt
-                  total.
+                  {formatCurrencyFromCents(Math.abs(reconciliationCents), nativeCurrency)} off from
+                  the receipt total.
                 </p>
               </div>
             </div>

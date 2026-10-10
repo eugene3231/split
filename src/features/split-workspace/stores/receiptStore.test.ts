@@ -291,6 +291,19 @@ describe('receiptStore additional coverage', () => {
     expect(useReceiptStore.getState().people).toHaveLength(2);
   });
 
+  it('keeps only the first spelling of each name within a batch', () => {
+    useReceiptStore.getState().initialize();
+    useReceiptStore.getState().addPeopleFromInput('Alice');
+
+    useReceiptStore.getState().addPeopleFromInput(' Sam, sam\nBOB, Bob, alice ');
+
+    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual([
+      'Alice',
+      'Sam',
+      'BOB',
+    ]);
+  });
+
   it('removeItem is a no-op when only one item remains', () => {
     useReceiptStore.getState().initialize();
     const receiptId = useReceiptStore.getState().activeReceiptId;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Receipt, SplitResult } from '@shared/types';
+import type { PersonReceiptLineItem, Receipt, SplitResult } from '@shared/types';
 import {
   convertCents,
   convertSplitResult,
@@ -59,6 +59,28 @@ function makeSplitResult(overrides: Partial<SplitResult> = {}): SplitResult {
     unassignedItemCount: 0,
     ...overrides,
   };
+}
+
+function line(
+  itemId: string,
+  assignedAmountCents: number,
+  grossAmountCents = assignedAmountCents,
+): PersonReceiptLineItem {
+  return {
+    itemId,
+    name: itemId,
+    grossAmountCents,
+    discountPercent: 0,
+    discountAmountCents: grossAmountCents - assignedAmountCents,
+    netAmountCents: assignedAmountCents,
+    assignedAmountCents,
+    splitCount: 1,
+    involved: true,
+  };
+}
+
+function sum(values: Record<string, number>): number {
+  return Object.values(values).reduce((total, value) => total + value, 0);
 }
 
 // ─── getEffectiveRate ─────────────────────────────────────────────────────────
@@ -160,14 +182,119 @@ describe('convertSplitResult', () => {
     expect(result.totalByPersonCents).toEqual({ p1: 810, p2: 810 });
   });
 
+  it('balances tied charge cents between people with equal native totals', () => {
+    const split = makeSplitResult({
+      lineItemsByPerson: { p1: [line('a', 500)], p2: [line('b', 500)] },
+      subtotalByPersonCents: { p1: 500, p2: 500 },
+      discountByPersonCents: { p1: 0, p2: 0 },
+      serviceByPersonCents: { p1: 50, p2: 50 },
+      gstByPersonCents: { p1: 50, p2: 50 },
+      totalByPersonCents: { p1: 600, p2: 600 },
+      subtotalCents: 1000,
+      discountCents: 0,
+      serviceChargeCents: 100,
+      gstCents: 100,
+      grandTotalCents: 1200,
+    });
+
+    const converted = convertSplitResult(split, 'USD', 'SGD', rates);
+
+    expect(converted.serviceByPersonCents).toEqual({ p1: 68, p2: 67 });
+    expect(converted.gstByPersonCents).toEqual({ p1: 67, p2: 68 });
+    expect(converted.totalByPersonCents).toEqual({ p1: 810, p2: 810 });
+    expect(converted.grandTotalCents).toBe(1620);
+  });
+
   it('converts line item amounts', () => {
     const split = makeSplitResult(); // line items have assignedAmountCents: 250
     const result = convertSplitResult(split, 'USD', 'SGD', rates);
 
     // 250 USD cents * 1.35 = 337.5 → 338 SGD cents
     expect(result.lineItemsByPerson.p1[0].assignedAmountCents).toBe(338);
-    expect(result.lineItemsByPerson.p2[0].assignedAmountCents).toBe(338);
+    expect(result.lineItemsByPerson.p2[0].assignedAmountCents).toBe(337);
     expect(result.lineItemsByPerson.p1[0].grossAmountCents).toBe(675); // 500 * 1.35
+  });
+
+  it('converts the receipt once and allocates its rounding cent across people', () => {
+    const split = makeSplitResult({
+      lineItemsByPerson: { p1: [line('a', 1001)], p2: [line('b', 1001)] },
+      subtotalByPersonCents: { p1: 1001, p2: 1001 },
+      discountByPersonCents: { p1: 0, p2: 0 },
+      serviceByPersonCents: { p1: 0, p2: 0 },
+      gstByPersonCents: { p1: 0, p2: 0 },
+      totalByPersonCents: { p1: 1001, p2: 1001 },
+      subtotalCents: 2002,
+      discountCents: 0,
+      serviceChargeCents: 0,
+      gstCents: 0,
+      grandTotalCents: 2002,
+    });
+
+    const converted = convertSplitResult(split, 'USD', 'SGD', rates);
+
+    expect(converted.grandTotalCents).toBe(2703);
+    expect(converted.totalByPersonCents).toEqual({ p1: 1352, p2: 1351 });
+    expect(converted.lineItemsByPerson.p1[0].assignedAmountCents).toBe(1352);
+    expect(converted.lineItemsByPerson.p2[0].assignedAmountCents).toBe(1351);
+  });
+
+  it('balances categories and item lines through discounts, service, and GST', () => {
+    const split = makeSplitResult({
+      lineItemsByPerson: {
+        p1: [line('discounted', 1001, 1011), line('small', 1)],
+        p2: [line('other', 1001)],
+      },
+      subtotalByPersonCents: { p1: 1002, p2: 1001 },
+      discountByPersonCents: { p1: 1, p2: 1 },
+      serviceByPersonCents: { p1: 1, p2: 1 },
+      gstByPersonCents: { p1: 1, p2: 0 },
+      totalByPersonCents: { p1: 1003, p2: 1001 },
+      subtotalCents: 2003,
+      discountCents: 2,
+      serviceChargeCents: 2,
+      gstCents: 1,
+      grandTotalCents: 2004,
+    });
+
+    const converted = convertSplitResult(split, 'USD', 'SGD', rates);
+
+    expect(converted.grandTotalCents).toBe(2705);
+    expect(converted.subtotalCents).toBe(2704);
+    expect(converted.discountCents).toBe(3);
+    expect(converted.serviceChargeCents).toBe(3);
+    expect(converted.gstCents).toBe(1);
+    expect(converted.lineItemsByPerson.p1.map((item) => item.assignedAmountCents)).toEqual([
+      1352, 1,
+    ]);
+    expect(sum(converted.subtotalByPersonCents)).toBe(converted.subtotalCents);
+    expect(sum(converted.discountByPersonCents)).toBe(converted.discountCents);
+    expect(sum(converted.serviceByPersonCents)).toBe(converted.serviceChargeCents);
+    expect(sum(converted.gstByPersonCents)).toBe(converted.gstCents);
+    expect(sum(converted.totalByPersonCents)).toBe(converted.grandTotalCents);
+    expect(
+      converted.subtotalCents -
+        converted.discountCents +
+        converted.serviceChargeCents +
+        converted.gstCents,
+    ).toBe(converted.grandTotalCents);
+    for (const personId of ['p1', 'p2']) {
+      expect(
+        converted.lineItemsByPerson[personId].reduce(
+          (total, item) => total + item.assignedAmountCents,
+          0,
+        ),
+      ).toBe(converted.subtotalByPersonCents[personId]);
+      expect(converted.totalByPersonCents[personId]).toBe(
+        converted.subtotalByPersonCents[personId] -
+          converted.discountByPersonCents[personId] +
+          converted.serviceByPersonCents[personId] +
+          converted.gstByPersonCents[personId],
+      );
+    }
+    const discountedLine = converted.lineItemsByPerson.p1[0];
+    expect(discountedLine.grossAmountCents - discountedLine.discountAmountCents).toBe(
+      discountedLine.assignedAmountCents,
+    );
   });
 
   it('preserves involvedCountByPerson unchanged (not a monetary field)', () => {

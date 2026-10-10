@@ -179,7 +179,12 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       set((state) => {
         const existing = new Set(state.people.map((person) => person.name.toLowerCase()));
         const additions = nextNames
-          .filter((name) => !existing.has(name.toLowerCase()))
+          .filter((name) => {
+            const key = name.toLowerCase();
+            if (existing.has(key)) return false;
+            existing.add(key);
+            return true;
+          })
           .map((name) => ({ id: createId(), name }));
 
         if (additions.length === 0) {
