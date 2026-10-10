@@ -11,5 +11,5 @@ export function buildChargeLabel(label: string, charge: ChargeState): string {
     }
     return `${label} (%)`;
   }
-  return `${label} (amount)`;
+  return label;
 }

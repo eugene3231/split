@@ -53,7 +53,9 @@ export function LineItemCard({
               value={item.amountInput}
               onChange={(e) => onUpdate((current) => ({ ...current, amountInput: e.target.value }))}
               placeholder="0.00"
-              className="w-16 border-none bg-transparent p-0 text-right text-base font-bold text-primary outline-none placeholder:text-outline focus:ring-0"
+              // Grows with the typed price so rupiah amounts fit; Tailwind has no content-width utility that Safari and Firefox both support.
+              style={{ width: `${Math.min(Math.max(item.amountInput.length, 4), 11) + 1}ch` }}
+              className="border-none bg-transparent p-0 text-right text-base font-bold text-primary outline-none placeholder:text-outline focus:ring-0"
             />
           </div>
           <button

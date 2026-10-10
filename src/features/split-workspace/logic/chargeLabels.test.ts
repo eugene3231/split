@@ -46,7 +46,7 @@ describe('buildChargeLabel', () => {
     expect(buildChargeLabel('GST', charge)).toBe('GST (%)');
   });
 
-  it('returns label with (amount) when mode is amount', () => {
+  it('returns the bare label for a fixed-amount charge', () => {
     const charge: ChargeState = {
       ...disabledCharge,
       enabled: true,
@@ -54,6 +54,6 @@ describe('buildChargeLabel', () => {
       amountInput: '5.00',
       percentInput: '',
     };
-    expect(buildChargeLabel('Service Charge', charge)).toBe('Service Charge (amount)');
+    expect(buildChargeLabel('Service Charge', charge)).toBe('Service Charge');
   });
 });

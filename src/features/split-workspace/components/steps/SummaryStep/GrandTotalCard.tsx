@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Person, Receipt } from '@shared/types';
-import { getCurrencySymbol } from '@shared/logic/core/money';
+import { formatMoneyAmount, getCurrencySymbol } from '@shared/logic/core/money';
 import { normalizeMobile } from '@features/payments';
 import { ReceiptNameField } from '@features/split-workspace/components/shared/ReceiptNameField';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
@@ -62,7 +62,7 @@ export function GrandTotalCard({
           {getCurrencySymbol(displayCurrency)}
         </span>
         <span className="font-headline text-4xl leading-none font-extrabold tracking-tight text-white tabular-nums">
-          {(grandTotal / 100).toFixed(2)}
+          {formatMoneyAmount(grandTotal, displayCurrency)}
         </span>
       </div>
 

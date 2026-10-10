@@ -4,9 +4,13 @@ import { useShallow } from 'zustand/shallow';
 import { BASE_CURRENCY } from '@shared/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
+import { formatExchangeRate } from '@shared/logic/core/money';
 import {
   computeReverseRate,
+  flipRateDirection,
   parseRateInput,
+  resolveReadableRateDirection,
+  type RateDirection,
 } from '@features/split-workspace/logic/exchangeRateDisplay';
 
 interface Props {
@@ -22,15 +26,22 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
     })),
   );
   const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
-  const [editingField, setEditingField] = useState<'forward' | 'reverse' | null>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [editingField, setEditingField] = useState<RateDirection | null>(null);
   const [inputValue, setInputValue] = useState('');
 
   const autoRate = getEffectiveRate(currency, exchangeRates, null);
   const effectiveRate = exchangeRateOverride ?? autoRate;
   const isOverridden = exchangeRateOverride !== null;
   const reverseRate = computeReverseRate(effectiveRate);
+  const readableDirection = resolveReadableRateDirection(effectiveRate);
+  const direction = isFlipped ? flipRateDirection(readableDirection) : readableDirection;
+  const [fromCurrency, toCurrency, shownRate] =
+    direction === 'forward'
+      ? [currency, BASE_CURRENCY, effectiveRate]
+      : [BASE_CURRENCY, currency, reverseRate];
 
-  const startEditing = (field: 'forward' | 'reverse') => {
+  const startEditing = (field: RateDirection) => {
     setInputValue(
       field === 'forward'
         ? effectiveRate.toFixed(6).replace(/\.?0+$/, '')
@@ -61,8 +72,15 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
     <div className="flex items-center gap-2 text-xs text-on-surface-variant">
       <span className="material-symbols-outlined text-sm">currency_exchange</span>
       <span className="flex items-center gap-1">
-        <span>1 {currency} =</span>
-        {editingField === 'forward' ? (
+        <button
+          type="button"
+          onClick={() => setIsFlipped((flipped) => !flipped)}
+          aria-label={`Show the rate as 1 ${toCurrency} in ${fromCurrency}`}
+          className="rounded transition-colors hover:text-on-surface"
+        >
+          1 {fromCurrency} =
+        </button>
+        {editingField === direction ? (
           <input
             type="number"
             step="any"
@@ -78,30 +96,8 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
             autoFocus
           />
         ) : (
-          <button type="button" onClick={() => startEditing('forward')} className={buttonClass}>
-            {effectiveRate.toFixed(5).replace(/\.?0+$/, '')} {BASE_CURRENCY}
-          </button>
-        )}
-        <span className="text-outline/60">·</span>
-        <span>1 {BASE_CURRENCY} =</span>
-        {editingField === 'reverse' ? (
-          <input
-            type="number"
-            step="any"
-            min="0"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitEdit();
-              if (e.key === 'Escape') setEditingField(null);
-            }}
-            className={inputClass}
-            autoFocus
-          />
-        ) : (
-          <button type="button" onClick={() => startEditing('reverse')} className={buttonClass}>
-            {reverseRate.toFixed(5).replace(/\.?0+$/, '')} {currency}
+          <button type="button" onClick={() => startEditing(direction)} className={buttonClass}>
+            {formatExchangeRate(shownRate)} {toCurrency}
           </button>
         )}
       </span>
