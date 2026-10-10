@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NewSplitAction } from './NewSplitAction';
+import { ResetBillAction } from './ResetBillAction';
 
 const prototype = HTMLDialogElement.prototype;
 const originalShowModal = Object.getOwnPropertyDescriptor(prototype, 'showModal');
@@ -31,26 +31,27 @@ beforeEach(() => {
   closeConnections.length = 0;
 });
 
-describe('NewSplitAction', () => {
-  it('requires confirmation before replacing the saved split', () => {
+describe('ResetBillAction', () => {
+  it('requires confirmation before resetting the bill', () => {
     const onConfirm = vi.fn(() => expect(closeConnections).toEqual([true]));
-    render(<NewSplitAction onConfirm={onConfirm} />);
+    render(<ResetBillAction onConfirm={onConfirm} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'New split' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset bill' }));
 
-    expect(screen.getByRole('dialog', { name: 'Start a new split?' })).toBeVisible();
+    const dialog = screen.getByRole('dialog', { name: 'Reset this bill?' });
+    expect(dialog).toBeVisible();
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
     expect(onConfirm).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Start new split' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reset bill' }));
     expect(closeConnections).toEqual([true]);
     expect(onConfirm).toHaveBeenCalledOnce();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('keeps the split when the user cancels', () => {
+  it('keeps the bill when the user cancels', () => {
     const onConfirm = vi.fn();
-    render(<NewSplitAction onConfirm={onConfirm} />);
-    fireEvent.click(screen.getByRole('button', { name: 'New split' }));
+    render(<ResetBillAction onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Reset bill' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -60,10 +61,10 @@ describe('NewSplitAction', () => {
     expect(closeConnections).toEqual([true]);
   });
 
-  it('keeps the split when the browser cancels the modal', () => {
+  it('keeps the bill when the browser cancels the modal', () => {
     const onConfirm = vi.fn();
-    render(<NewSplitAction onConfirm={onConfirm} />);
-    fireEvent.click(screen.getByRole('button', { name: 'New split' }));
+    render(<ResetBillAction onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Reset bill' }));
 
     fireEvent(screen.getByRole('dialog'), new Event('cancel', { bubbles: false }));
 

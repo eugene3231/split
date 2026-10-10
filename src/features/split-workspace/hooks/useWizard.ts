@@ -22,7 +22,7 @@ export function useWizard(
   const geminiApiKeyInput = useGeminiStore((state) => state.geminiApiKeyInput);
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
-  const startNewSplit = useReceiptStore((state) => state.startNewSplit);
+  const resetBill = useReceiptStore((state) => state.resetBill);
 
   const [initialWizardState] = useState(() => loadWizardState());
   const [activeStepState, setActiveStep] = useState<WizardStep>(
@@ -163,8 +163,8 @@ export function useWizard(
     if (!geminiApiKeyInput.trim()) setShowApiKeyModal(true);
   };
 
-  const handleNewSplit = () => {
-    startNewSplit();
+  const handleResetBill = () => {
+    resetBill();
     useScanStore.getState().resetScanStates();
     setShowApiKeyModal(false);
     setItemsSubPhase('assign');
@@ -184,6 +184,6 @@ export function useWizard(
     handleBack,
     handleStepSelect,
     handleAddReceipt,
-    handleNewSplit,
+    handleResetBill,
   };
 }

@@ -8,17 +8,17 @@ import { SummaryTabs } from './SummaryTabs';
 import { CurrencyToggle } from './CurrencyToggle';
 import { GrandTotalCard } from './GrandTotalCard';
 import { ExportActions } from './ExportActions';
-import { NewSplitAction } from '@features/split-workspace/components/NewSplitAction';
+import { ResetBillAction } from '@features/split-workspace/components/ResetBillAction';
 import { ImagePreviewModal } from './ImagePreviewModal';
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
-  onNewSplit: () => void;
+  onResetBill: () => void;
 };
 
-export function SummaryStep({ onAddReceipt, onNewSplit }: SummaryStepProps) {
+export function SummaryStep({ onAddReceipt, onResetBill }: SummaryStepProps) {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const receipts = useReceiptStore.getState().receipts;
     return receipts.length > 1 ? 'total' : (receipts[0]?.id ?? 'total');
@@ -78,7 +78,7 @@ export function SummaryStep({ onAddReceipt, onNewSplit }: SummaryStepProps) {
               </p>
             </div>
           </div>
-          <NewSplitAction onConfirm={onNewSplit} />
+          <ResetBillAction onConfirm={onResetBill} />
         </div>
 
         <div className="flex items-center gap-3">

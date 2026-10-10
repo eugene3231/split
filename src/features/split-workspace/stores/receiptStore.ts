@@ -78,7 +78,7 @@ type ReceiptStoreActions = {
 
   // Workspace actions
   initialize: () => void;
-  startNewSplit: () => void;
+  resetBill: () => void;
   reset: () => void;
   addPeopleFromInput: (rawInput: string) => void;
   removePerson: (personId: string) => void;
@@ -169,7 +169,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         });
       }
     },
-    startNewSplit: () => {
+    resetBill: () => {
       const receipt = createBlankReceipt([], 'Receipt 1');
       set({
         initialized: true,

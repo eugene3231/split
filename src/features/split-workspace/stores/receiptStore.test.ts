@@ -203,7 +203,7 @@ describe('receipt management', () => {
     useReceiptStore.getState().setPayerMobile('91234567');
     const oldReceiptId = useReceiptStore.getState().activeReceiptId;
 
-    useReceiptStore.getState().startNewSplit();
+    useReceiptStore.getState().resetBill();
 
     const state = useReceiptStore.getState();
     expect(state.initialized).toBe(true);
