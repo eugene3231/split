@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { computeReverseRate, parseRateInput } from './exchangeRateDisplay';
+import {
+  computeReverseRate,
+  flipRateDirection,
+  parseRateInput,
+  resolveReadableRateDirection,
+} from './exchangeRateDisplay';
 
 describe('computeReverseRate', () => {
   it('returns 1/rate for positive rates', () => {
@@ -31,5 +36,22 @@ describe('parseRateInput', () => {
 
   it('treats null editingField as forward and returns the parsed value', () => {
     expect(parseRateInput('1.35', null)).toBeCloseTo(1.35);
+  });
+});
+
+describe('resolveReadableRateDirection', () => {
+  it('shows a weak currency as SGD to it, so the number is not a tiny fraction', () => {
+    expect(resolveReadableRateDirection(1 / 12650)).toBe('reverse');
+  });
+
+  it('shows a strong currency as it to SGD', () => {
+    expect(resolveReadableRateDirection(1.3)).toBe('forward');
+  });
+});
+
+describe('flipRateDirection', () => {
+  it('swaps between the two directions', () => {
+    expect(flipRateDirection('forward')).toBe('reverse');
+    expect(flipRateDirection('reverse')).toBe('forward');
   });
 });

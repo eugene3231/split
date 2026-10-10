@@ -32,7 +32,7 @@ function renderPanel() {
 it('shows a receipt mismatch in the receipt currency', () => {
   renderPanel();
 
-  expect(screen.getByText('Mismatch found (¥1.00)')).toBeInTheDocument();
+  expect(screen.getByText('Mismatch found (¥1)')).toBeInTheDocument();
 });
 
 it('lists the charge toggles in the order they are applied', () => {

@@ -1,5 +1,5 @@
 import { ellipsizeText } from '@features/sharing/logic/receiptSplitImageHelpers';
-import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import { formatCurrencyFromCents, formatExchangeRate } from '@shared/logic/core/money';
 import { BASE_CURRENCY } from '@shared/constants';
 import { personColor } from '@shared/utils/personColors';
 import type { BreakdownConversion } from '@shared/types/summaryBreakdown';
@@ -103,7 +103,7 @@ export function drawCurrencyConversionLines(
   lineH: number,
   conversion: BreakdownConversion,
 ): void {
-  const rate = parseFloat((1 / conversion.rate).toFixed(5));
+  const rate = formatExchangeRate(1 / conversion.rate);
 
   ctx.save();
   ctx.font = '400 18px Inter, system-ui, -apple-system, sans-serif';

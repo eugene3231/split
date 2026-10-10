@@ -1,5 +1,5 @@
 import { BASE_CURRENCY } from '@shared/constants';
-import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import { formatCurrencyFromCents, formatExchangeRate } from '@shared/logic/core/money';
 import type {
   BreakdownChargeRow,
   BreakdownConversion,
@@ -177,7 +177,7 @@ function ConversionLines({
         ≈ {formatCurrencyFromCents(conversion.amountCents, conversion.toCurrency)}
       </span>
       <span className="block text-xs text-on-surface-variant">
-        1 {BASE_CURRENCY} = {parseFloat((1 / conversion.rate).toFixed(5))} {conversion.fromCurrency}
+        1 {BASE_CURRENCY} = {formatExchangeRate(1 / conversion.rate)} {conversion.fromCurrency}
       </span>
     </>
   );
