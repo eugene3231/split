@@ -1,4 +1,4 @@
-import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import { formatMoney } from '@features/ux-prototypes/logic/prototypeFormat';
 import { getPersonColor } from '@shared/utils/personColors';
 import type { Person, SplitResult } from '@shared/types';
 import { Avatar } from '@features/ux-prototypes/components/Avatar';
@@ -14,7 +14,9 @@ export function LedgerSettlePanel({ people, split }: Props) {
   return (
     <aside className="h-fit rounded-xl border border-ledger-line bg-ledger-panel p-4">
       <h2 className="text-sm font-semibold">Settle up</h2>
-      <p className="mt-0.5 text-xs text-ledger-muted">{payer.name} paid the bill</p>
+      <p className="mt-0.5 text-xs text-ledger-muted">
+        Everyone pays <span className="font-medium text-ledger-ink">{payer.name}</span>
+      </p>
       <ul className="mt-4 space-y-2.5">
         {others.map((person, index) => (
           <li key={person.id} className="flex items-center gap-2.5 text-sm">
@@ -23,11 +25,11 @@ export function LedgerSettlePanel({ people, split }: Props) {
               color={getPersonColor(index + 1).avatarBg}
               className="h-6 w-6 text-[11px]"
             />
-            <span className="flex-1">
-              {person.name} <span className="text-ledger-muted">→ {payer.name}</span>
+            <span className="min-w-0 flex-1 truncate" title={person.name}>
+              {person.name}
             </span>
-            <span className="font-semibold tabular-nums">
-              {formatCurrencyFromCents(split.totalByPersonCents[person.id])}
+            <span className="shrink-0 font-semibold tabular-nums">
+              {formatMoney(split.totalByPersonCents[person.id])}
             </span>
           </li>
         ))}

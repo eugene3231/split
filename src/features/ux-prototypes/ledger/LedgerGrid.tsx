@@ -1,5 +1,6 @@
 import { cn } from '@shared/utils/cn';
-import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
+import { parseCurrencyToCents } from '@shared/logic/core/money';
+import { firstName, formatMoney } from '@features/ux-prototypes/logic/prototypeFormat';
 import { getPersonColor } from '@shared/utils/personColors';
 import type { SplitResult } from '@shared/types';
 import type { usePrototypeSplit } from '@features/ux-prototypes/hooks/usePrototypeSplit';
@@ -21,16 +22,15 @@ export function LedgerGrid({ prototype }: { prototype: Prototype }) {
         <thead>
           <tr className="border-b border-ledger-line text-left text-xs text-ledger-muted">
             <th className="sticky left-0 z-10 bg-ledger-panel px-4 py-3 font-medium">Item</th>
-            <th className="hidden px-3 py-3 text-right font-medium sm:table-cell">Price</th>
             {people.map((person, index) => (
-              <th key={person.id} className="min-w-16 px-1 py-3 font-medium sm:min-w-20 sm:px-2">
+              <th key={person.id} title={person.name} className="min-w-16 px-1 py-3 font-medium">
                 <span className="flex flex-col items-center gap-1 text-ledger-ink">
                   <Avatar
                     name={person.name}
                     color={getPersonColor(index).avatarBg}
                     className="h-6 w-6 text-[11px]"
                   />
-                  {person.name}
+                  <span className="max-w-16 truncate">{firstName(person.name)}</span>
                 </span>
               </th>
             ))}
@@ -51,25 +51,22 @@ export function LedgerGrid({ prototype }: { prototype: Prototype }) {
                 <th
                   scope="row"
                   className={cn(
-                    'sticky left-0 z-10 max-w-36 border-l-2 px-4 py-2.5 text-left font-medium sm:max-w-none sm:whitespace-nowrap',
+                    'sticky left-0 z-10 w-40 min-w-40 border-l-2 px-4 py-2.5 text-left font-medium sm:w-64 sm:min-w-64',
                     unassigned
                       ? 'border-ledger-warn bg-ledger-warn-bg'
                       : 'border-transparent bg-ledger-panel',
                   )}
                 >
                   {item.name}
-                  <span className="block text-xs font-normal text-ledger-muted tabular-nums sm:hidden">
-                    {formatCurrencyFromCents(parseCurrencyToCents(item.amountInput) ?? 0)}
+                  <span className="block text-xs font-normal text-ledger-muted tabular-nums">
+                    {formatMoney(parseCurrencyToCents(item.amountInput) ?? 0)}
                   </span>
                 </th>
-                <td className="hidden px-3 text-right text-ledger-muted tabular-nums sm:table-cell">
-                  {formatCurrencyFromCents(parseCurrencyToCents(item.amountInput) ?? 0)}
-                </td>
                 {people.map((person, index) => {
                   const cents = shareCents(split, person.id, item.id);
                   const color = getPersonColor(index);
                   return (
-                    <td key={person.id} className="px-1.5 py-1.5 text-center">
+                    <td key={person.id} className="px-1 py-1.5 text-center">
                       <button
                         type="button"
                         aria-pressed={cents !== null}
@@ -82,7 +79,7 @@ export function LedgerGrid({ prototype }: { prototype: Prototype }) {
                             : cn(color.lightBg, 'font-semibold text-ledger-ink'),
                         )}
                       >
-                        {cents === null ? '+' : formatCurrencyFromCents(cents)}
+                        {cents === null ? '+' : formatMoney(cents)}
                       </button>
                     </td>
                   );
@@ -155,10 +152,9 @@ function FooterRow({
       >
         {label}
       </th>
-      <td className="hidden sm:table-cell" />
       {prototype.people.map((person) => (
-        <td key={person.id} className="px-1.5 py-2 text-center">
-          {formatCurrencyFromCents(byPerson[person.id])}
+        <td key={person.id} className="px-1 py-2 text-center">
+          {formatMoney(byPerson[person.id])}
         </td>
       ))}
       <td />

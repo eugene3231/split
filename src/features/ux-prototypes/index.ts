@@ -1,2 +1,2 @@
 export { UxPrototype } from './UxPrototype';
-export { toPrototypeName } from './prototypeNames';
+export { readPrototypeSelection } from './prototypeNames';

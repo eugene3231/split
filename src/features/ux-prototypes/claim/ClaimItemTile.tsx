@@ -1,8 +1,9 @@
 import { cn } from '@shared/utils/cn';
-import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
+import { parseCurrencyToCents } from '@shared/logic/core/money';
 import type { Person } from '@shared/types';
+import { formatMoney } from '@features/ux-prototypes/logic/prototypeFormat';
 import type { PrototypeItem } from '@features/ux-prototypes/logic/prototypeReceipt';
-import { Avatar } from '@features/ux-prototypes/components/Avatar';
+import { AvatarStack } from '@features/ux-prototypes/components/AvatarStack';
 import { claimColor } from './claimPalette';
 
 interface Props {
@@ -13,6 +14,12 @@ interface Props {
   activeColor: string;
   onToggle: () => void;
   onShareWithEveryone: () => void;
+}
+
+function describeShare(assigneeCount: number, priceCents: number): string {
+  if (assigneeCount === 0) return 'Nobody yet';
+  if (assigneeCount === 1) return 'Just one person';
+  return `Shared ${assigneeCount} ways · ${formatMoney(Math.round(priceCents / assigneeCount))} each`;
 }
 
 export function ClaimItemTile({
@@ -45,11 +52,11 @@ export function ClaimItemTile({
         type="button"
         aria-pressed={claimedByActive}
         onClick={onToggle}
-        className="flex w-full items-center gap-3 p-4 text-left"
+        className="flex w-full items-start gap-3 p-4 text-left"
       >
         <span
           className={cn(
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all',
+            'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all',
             !claimedByActive && 'border-neutral-300',
           )}
           style={
@@ -60,30 +67,22 @@ export function ClaimItemTile({
             <span className="material-symbols-outlined text-lg text-white">check</span>
           )}
         </span>
-        <span className="flex-1">
-          <span className="block font-semibold">{item.name}</span>
-          <span className="block text-xs text-neutral-500">
-            {unclaimed
-              ? 'Nobody yet'
-              : assignees.length === 1
-                ? 'Just one person'
-                : `Shared ${assignees.length} ways · ${formatCurrencyFromCents(Math.round(priceCents / assignees.length))} each`}
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-3">
+            <span className="font-semibold">{item.name}</span>
+            <span className="shrink-0 font-bold tabular-nums">{formatMoney(priceCents)}</span>
           </span>
-        </span>
-        <span className="flex flex-col items-end gap-1">
-          <span className="font-bold tabular-nums">{formatCurrencyFromCents(priceCents)}</span>
-          <span className="flex -space-x-1.5">
-            {assignees.map((personId) => {
-              const index = people.findIndex((person) => person.id === personId);
-              return (
-                <Avatar
-                  key={personId}
-                  name={people[index].name}
-                  color={claimColor(index)}
-                  className="h-5 w-5 text-[10px] ring-2 ring-white"
-                />
-              );
-            })}
+          <span className="mt-1 flex items-center justify-between gap-3">
+            <span className="text-xs text-neutral-500">
+              {describeShare(assignees.length, priceCents)}
+            </span>
+            <AvatarStack
+              people={people}
+              personIds={assignees}
+              colorFor={claimColor}
+              ringClassName="ring-white"
+              max={5}
+            />
           </span>
         </span>
       </button>

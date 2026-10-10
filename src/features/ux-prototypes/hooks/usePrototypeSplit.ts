@@ -2,26 +2,25 @@ import { useState } from 'react';
 import { computeSplit } from '@shared/logic/split/split';
 import {
   PROTOTYPE_CHARGES,
-  PROTOTYPE_INITIAL_ASSIGNMENTS,
-  PROTOTYPE_ITEMS,
-  PROTOTYPE_PEOPLE,
   setAssignees,
   toEditableItems,
   toggleAssignee,
+  type PrototypeReceipt,
 } from '@features/ux-prototypes/logic/prototypeReceipt';
 
-export function usePrototypeSplit() {
-  const [assignments, setAssignments] = useState(PROTOTYPE_INITIAL_ASSIGNMENTS);
+export function usePrototypeSplit(receipt: PrototypeReceipt) {
+  const [assignments, setAssignments] = useState(receipt.initialAssignments);
 
   const split = computeSplit({
-    people: PROTOTYPE_PEOPLE,
-    items: toEditableItems(PROTOTYPE_ITEMS, assignments),
+    people: receipt.people,
+    items: toEditableItems(receipt.items, assignments),
     ...PROTOTYPE_CHARGES,
   });
 
   return {
-    people: PROTOTYPE_PEOPLE,
-    items: PROTOTYPE_ITEMS,
+    receiptName: receipt.name,
+    people: receipt.people,
+    items: receipt.items,
     assignments,
     split,
     toggle: (itemId: string, personId: string) =>

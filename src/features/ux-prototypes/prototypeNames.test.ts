@@ -1,13 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { toPrototypeName } from './prototypeNames';
+import { readPrototypeSelection, toPrototypeSearch } from './prototypeNames';
 
-describe('toPrototypeName', () => {
-  it('accepts a known prototype from the query string', () => {
-    expect(toPrototypeName('ledger')).toBe('ledger');
+describe('readPrototypeSelection', () => {
+  it('opens a known prototype on the dinner receipt by default', () => {
+    expect(readPrototypeSelection('?prototype=ledger')).toEqual({
+      name: 'ledger',
+      receipt: 'dinner',
+    });
   });
 
-  it('rejects unknown or missing values so the real app renders', () => {
-    expect(toPrototypeName('nope')).toBeNull();
-    expect(toPrototypeName(null)).toBeNull();
+  it('switches to the stress receipt when asked', () => {
+    expect(readPrototypeSelection('?prototype=claim&receipt=stress')?.receipt).toBe('stress');
+  });
+
+  it('rejects unknown or missing prototypes so the real app renders', () => {
+    expect(readPrototypeSelection('?prototype=nope')).toBeNull();
+    expect(readPrototypeSelection('')).toBeNull();
+  });
+
+  it('round-trips a selection through the query string', () => {
+    const selection = { name: 'plate', receipt: 'stress' } as const;
+    expect(readPrototypeSelection(toPrototypeSearch(selection))).toEqual(selection);
   });
 });

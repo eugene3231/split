@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { cn } from '@shared/utils/cn';
-import { formatCurrencyFromCents, parseCurrencyToCents } from '@shared/logic/core/money';
+import { parseCurrencyToCents } from '@shared/logic/core/money';
+import { firstName, formatMoney } from '@features/ux-prototypes/logic/prototypeFormat';
 import type { usePrototypeSplit } from '@features/ux-prototypes/hooks/usePrototypeSplit';
 import { Avatar } from '@features/ux-prototypes/components/Avatar';
+import { AvatarStack } from '@features/ux-prototypes/components/AvatarStack';
 import { plateColor } from './platePalette';
 
 type Prototype = ReturnType<typeof usePrototypeSplit>;
@@ -33,10 +35,10 @@ export function PlateReceipt({ prototype }: { prototype: Prototype }) {
                   onClick={() => setOpenItemId(isOpen ? null : item.id)}
                   className="flex w-full items-baseline gap-2 py-3 text-left"
                 >
-                  <span className="text-[15px]">{item.name}</span>
+                  <span className="min-w-0 text-[15px]">{item.name}</span>
                   <span className="mb-1 flex-1 border-b border-dotted border-plate-line" />
-                  <span className="font-mono text-sm tabular-nums">
-                    {formatCurrencyFromCents(parseCurrencyToCents(item.amountInput) ?? 0)}
+                  <span className="shrink-0 font-mono text-sm tabular-nums">
+                    {formatMoney(parseCurrencyToCents(item.amountInput) ?? 0)}
                   </span>
                 </button>
                 <div className="-mt-1 flex min-h-5 items-center pb-3">
@@ -45,19 +47,13 @@ export function PlateReceipt({ prototype }: { prototype: Prototype }) {
                       Nobody yet, tap to assign
                     </span>
                   ) : (
-                    <span className="flex -space-x-1.5">
-                      {assignees.map((personId) => {
-                        const index = people.findIndex((person) => person.id === personId);
-                        return (
-                          <Avatar
-                            key={personId}
-                            name={people[index].name}
-                            color={plateColor(index)}
-                            className="h-5 w-5 text-[10px] ring-2 ring-plate-paper"
-                          />
-                        );
-                      })}
-                    </span>
+                    <AvatarStack
+                      people={people}
+                      personIds={assignees}
+                      colorFor={plateColor}
+                      ringClassName="ring-plate-paper"
+                      max={6}
+                    />
                   )}
                 </div>
                 {isOpen && (
@@ -87,7 +83,7 @@ function ReceiptLine({ label, cents, strong }: { label: string; cents: number; s
   return (
     <div className={cn('flex justify-between', strong && 'pt-1 text-base font-bold')}>
       <dt>{label}</dt>
-      <dd>{formatCurrencyFromCents(cents)}</dd>
+      <dd>{formatMoney(cents)}</dd>
     </div>
   );
 }
@@ -104,7 +100,7 @@ function PlateAssigneePicker({
   const { people, toggle, assign } = prototype;
   return (
     <div className="mb-3 rounded-2xl bg-plate-cream p-3">
-      <div className="flex justify-between">
+      <div className="grid grid-cols-5 gap-y-3">
         {people.map((person, index) => {
           const selected = assignees.includes(person.id);
           return (
@@ -113,7 +109,8 @@ function PlateAssigneePicker({
               type="button"
               aria-pressed={selected}
               onClick={() => toggle(itemId, person.id)}
-              className="flex flex-col items-center gap-1"
+              title={person.name}
+              className="flex min-w-0 flex-col items-center gap-1"
             >
               <Avatar
                 name={person.name}
@@ -125,7 +122,9 @@ function PlateAssigneePicker({
                     : 'scale-90 opacity-35',
                 )}
               />
-              <span className="text-[11px]">{person.name}</span>
+              <span className="w-full truncate text-center text-[11px]">
+                {firstName(person.name)}
+              </span>
             </button>
           );
         })}
