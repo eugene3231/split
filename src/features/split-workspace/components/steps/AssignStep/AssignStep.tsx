@@ -127,6 +127,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
                 <ClaimItemRow
                   key={item.id}
                   item={item}
+                  personName={activePerson.firstName}
                   onToggle={() =>
                     applyCommand(section.receiptId, item.id, {
                       type: 'toggle-person',
@@ -146,6 +147,18 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
                       type: 'set-share',
                       personId: activePerson.id,
                       input,
+                    })
+                  }
+                  onSplitEvenly={() =>
+                    applyCommand(section.receiptId, item.id, {
+                      type: 'split-evenly',
+                      personIds: view.people.map((person) => person.id),
+                    })
+                  }
+                  onTakeAlone={() =>
+                    applyCommand(section.receiptId, item.id, {
+                      type: 'only-person',
+                      personId: activePerson.id,
                     })
                   }
                 />

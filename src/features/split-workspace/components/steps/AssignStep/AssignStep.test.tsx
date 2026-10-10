@@ -216,6 +216,27 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('claim-item-amount-shared')).toHaveTextContent('$6.00');
   });
 
+  it('splits an item evenly or gives it to the active person from the share editor', () => {
+    const { refresh } = renderStep('p1');
+
+    fireEvent.click(screen.getByTestId('claim-item-amount-weighted'));
+    fireEvent.click(screen.getByTestId('claim-item-split-evenly-weighted'));
+    refresh();
+    expect(assignmentOf('weighted')).toEqual({
+      mode: 'equal',
+      personId: '',
+      personIds: ['p1', 'p2'],
+    });
+    expect(screen.queryByTestId('claim-item-amount-weighted-input')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('claim-item-amount-weighted'));
+    expect(screen.queryByTestId('claim-item-split-evenly-weighted')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('claim-item-take-alone-weighted'));
+    refresh();
+    expect(assignmentOf('weighted').personIds).toEqual(['p1']);
+    expect(screen.getByTestId('claim-item-amount-weighted')).toHaveTextContent('$12.00');
+  });
+
   it('lists every receipt on one page with a jump chip and a left count per receipt', () => {
     setStoreMock([
       makeReceipt('r1', [makeItem('a')]),

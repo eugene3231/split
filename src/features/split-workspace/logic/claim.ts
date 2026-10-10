@@ -20,6 +20,10 @@ export interface ClaimPerson {
 
 export interface ClaimItemShare extends PersonShare {
   amountLabel: string;
+  /** False once everyone already has an equal share. */
+  canSplitEvenly: boolean;
+  /** False once the active person has the whole item alone. */
+  canTakeAlone: boolean;
 }
 
 export interface ClaimItem {
@@ -151,6 +155,11 @@ function resolveClaimItem(
     ? resolvePersonShare(item, activePersonId, priceCents)
     : null;
 
+  const { weights, unassignedWeight } = item.assignment;
+  const hasEqualWeights =
+    !weights || new Set(item.assignment.personIds.map((id) => weights[id] ?? 1)).size <= 1;
+  const isSplitEvenly = claimedIds.size === people.length && !unassignedWeight && hasEqualWeights;
+
   return {
     id: item.id,
     receiptId: receipt.id,
@@ -162,6 +171,8 @@ function resolveClaimItem(
     share: share && {
       ...share,
       amountLabel: formatCurrencyFromCents(share.amountCents, receipt.currency),
+      canSplitEvenly: people.length > 1 && !isSplitEvenly,
+      canTakeAlone: claimedIds.size > 1 || Boolean(unassignedWeight),
     },
   };
 }

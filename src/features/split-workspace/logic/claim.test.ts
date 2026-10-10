@@ -101,6 +101,25 @@ describe('resolveClaimView', () => {
     expect(item.share).toMatchObject({ label: '1/3', amountLabel: '$3.00' });
   });
 
+  it('offers to split evenly or take the item alone only when that would change it', () => {
+    const receipt = makeReceipt('r1', [
+      makeItem('even', '9.00', { personIds: ['p1', 'p2', 'p3'] }),
+      makeItem('weighted', '9.00', {
+        personIds: ['p1', 'p2', 'p3'],
+        weights: { p1: 2, p2: 1, p3: 1 },
+      }),
+      makeItem('solo', '9.00', { personIds: ['p1'] }),
+      makeItem('half', '9.00', { personIds: ['p1'], weights: { p1: 1 }, unassignedWeight: 1 }),
+    ]);
+
+    const shares = Object.fromEntries(items([receipt]).map((item) => [item.id, item.share]));
+
+    expect(shares.even).toMatchObject({ canSplitEvenly: false, canTakeAlone: true });
+    expect(shares.weighted).toMatchObject({ canSplitEvenly: true, canTakeAlone: true });
+    expect(shares.solo).toMatchObject({ canSplitEvenly: true, canTakeAlone: false });
+    expect(shares.half).toMatchObject({ canSplitEvenly: true, canTakeAlone: true });
+  });
+
   it('says how much of a half-claimed item is still left', () => {
     const receipt = makeReceipt('r1', [
       makeItem('i1', '6.00', { personIds: ['p1'], weights: { p1: 1 }, unassignedWeight: 1 }),
