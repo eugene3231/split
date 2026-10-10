@@ -176,7 +176,7 @@ export function ReceiptImportActions({
               scan.isScanning ? 'flex-col gap-2 px-4 py-4' : 'gap-2',
               scan.isScanning || !hasApiKey
                 ? 'cursor-not-allowed bg-surface-container-high text-on-surface-variant opacity-50'
-                : 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/20',
+                : 'bg-primary text-on-primary shadow-lg shadow-primary/20',
             )}
           >
             <span

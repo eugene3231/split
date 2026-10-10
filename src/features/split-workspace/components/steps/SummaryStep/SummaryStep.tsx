@@ -55,7 +55,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="mb-6 hidden md:block">
-              <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
+              <h1 className="mb-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
                 Final Breakdown
               </h1>
               <p className="text-lg text-on-surface-variant">What everyone owes, by receipt.</p>

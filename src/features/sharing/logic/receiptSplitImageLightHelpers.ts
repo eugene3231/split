@@ -1,6 +1,7 @@
 import { ellipsizeText } from '@features/sharing/logic/receiptSplitImageHelpers';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { BASE_CURRENCY } from '@shared/constants';
+import { personColor } from '@shared/utils/personColors';
 import type { BreakdownConversion } from '@shared/types/summaryBreakdown';
 
 export {
@@ -63,25 +64,26 @@ export function drawNestedCard(
   ctx.fill();
 }
 
-export function drawAvatar(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  radius: number,
-  initial: string,
-  bgColor: string,
-  textColor: string,
-): void {
-  ctx.fillStyle = bgColor;
+export interface PersonAvatarArgs {
+  cx: number;
+  cy: number;
+  radius: number;
+  name: string;
+  colorIndex: number;
+}
+
+/** Mirrors `PersonAvatar`: person colour fill, white initial. */
+export function drawPersonAvatar(ctx: CanvasRenderingContext2D, args: PersonAvatarArgs): void {
+  ctx.fillStyle = personColor(args.colorIndex);
   ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.arc(args.cx, args.cy, args.radius, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = textColor;
-  ctx.font = `700 ${Math.round(radius * 0.9)}px system-ui, -apple-system, sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `700 ${Math.round(args.radius * 0.9)}px Inter, system-ui, -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(initial, cx, cy);
+  ctx.fillText(args.name.trim().charAt(0).toUpperCase() || '?', args.cx, args.cy);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 }
@@ -104,8 +106,8 @@ export function drawCurrencyConversionLines(
   const rate = parseFloat((1 / conversion.rate).toFixed(5));
 
   ctx.save();
-  ctx.font = '400 18px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#49454f';
+  ctx.font = '400 18px Inter, system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#52525b';
   ctx.textAlign = 'right';
   ctx.fillText(
     `≈ ${formatCurrencyFromCents(conversion.amountCents, conversion.toCurrency)}`,
@@ -124,9 +126,9 @@ export interface LightTwoColumnRowArgs {
   label: string;
   value: string;
   emphasized?: boolean;
-  /** Override value color; defaults to `#1c1b1f` */
+  /** Override value color; defaults to `#18181b` */
   valueColor?: string;
-  /** Override label color; defaults to `#49454f` */
+  /** Override label color; defaults to `#52525b` */
   labelColor?: string;
   size: number;
   italic?: boolean;
@@ -138,19 +140,19 @@ export function drawLightTwoColumnRow(
 ): void {
   const style = args.italic ? 'italic ' : '';
   const weight = args.emphasized ? 700 : 400;
-  const valueFont = `${style}${weight} ${args.size}px system-ui, -apple-system, sans-serif`;
-  const labelFont = `${style}${weight} ${Math.max(14, args.size - 2)}px system-ui, -apple-system, sans-serif`;
+  const valueFont = `${style}${weight} ${args.size}px Inter, system-ui, -apple-system, sans-serif`;
+  const labelFont = `${style}${weight} ${Math.max(14, args.size - 2)}px Inter, system-ui, -apple-system, sans-serif`;
 
   ctx.font = valueFont;
   const valueWidth = ctx.measureText(args.value).width;
   const labelMaxWidth = Math.max(80, args.width - valueWidth - 16);
 
   ctx.font = labelFont;
-  ctx.fillStyle = args.labelColor ?? '#49454f';
+  ctx.fillStyle = args.labelColor ?? '#52525b';
   ctx.fillText(ellipsizeText(ctx, args.label, labelMaxWidth), args.x, args.y);
 
   ctx.font = valueFont;
-  ctx.fillStyle = args.valueColor ?? '#1c1b1f';
+  ctx.fillStyle = args.valueColor ?? '#18181b';
   ctx.textAlign = 'right';
   ctx.fillText(args.value, args.x + args.width, args.y);
   ctx.textAlign = 'left';

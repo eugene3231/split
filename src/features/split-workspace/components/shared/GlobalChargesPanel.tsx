@@ -36,7 +36,7 @@ export function GlobalChargesPanel({
 }: Props) {
   return (
     <div className="sticky top-24 rounded-3xl border border-surface-container-highest bg-surface-container-lowest p-8 shadow-lg">
-      <h3 className="font-headline mb-8 border-b border-surface-container-high pb-4 text-xl font-bold text-primary">
+      <h3 className="mb-8 border-b border-surface-container-high pb-4 font-headline text-xl font-bold text-primary">
         Global Charges
       </h3>
 
@@ -62,7 +62,7 @@ export function GlobalChargesPanel({
         <div>
           <label
             htmlFor="receipt-total-new"
-            className="font-label mb-2 block text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+            className="mb-2 block font-label text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
           >
             Receipt Total (Override)
           </label>
@@ -78,7 +78,7 @@ export function GlobalChargesPanel({
               value={receiptTotalInput}
               onChange={(e) => onReceiptTotalInputChange(e.target.value)}
               placeholder="0.00"
-              className="font-headline w-full rounded-2xl border-2 border-transparent bg-surface-container-high py-5 pr-4 pl-8 pl-12 text-3xl font-extrabold text-on-surface transition-all outline-none focus:border-primary/20"
+              className="w-full rounded-2xl border-2 border-transparent bg-surface-container-high py-5 pr-4 pl-8 pl-12 font-headline text-3xl font-extrabold text-on-surface transition-all outline-none focus:border-primary/20"
             />
           </div>
         </div>

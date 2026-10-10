@@ -35,9 +35,9 @@ export function PersonCard({
         if (event.key === 'Enter') onClick();
       }}
       className={cn(
-        'flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all',
+        'flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all',
         isSelected
-          ? 'border-2 border-secondary bg-surface-container-lowest shadow-[0_4px_14px_rgba(27,109,36,0.2)]'
+          ? 'border-2 border-primary bg-surface-container-lowest shadow-md'
           : 'border-2 border-transparent bg-surface-container-low hover:bg-surface-container',
       )}
     >
@@ -48,7 +48,7 @@ export function PersonCard({
           <span
             className={cn(
               'text-sm font-semibold',
-              isSelected ? 'text-secondary' : 'text-on-surface-variant',
+              isSelected ? 'text-on-surface' : 'text-on-surface-variant',
             )}
           >
             {status}

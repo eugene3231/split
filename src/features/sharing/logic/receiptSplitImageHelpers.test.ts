@@ -3,7 +3,6 @@ import {
   ellipsizeText,
   formatGeneratedAt,
   formatPercent,
-  getPersonCanvasColor,
 } from '@features/sharing/logic/receiptSplitImageHelpers';
 
 function makeContext(charWidth: number): CanvasRenderingContext2D {
@@ -53,23 +52,5 @@ describe('formatPercent', () => {
 
   it('keeps significant decimal digits', () => {
     expect(formatPercent(9.99)).toBe('9.99');
-  });
-});
-
-describe('getPersonCanvasColor', () => {
-  it('returns an object with headerBg, headerBorder, and accent', () => {
-    const color = getPersonCanvasColor(0);
-    expect(color).toHaveProperty('headerBg');
-    expect(color).toHaveProperty('headerBorder');
-    expect(color).toHaveProperty('accent');
-  });
-
-  it('cycles through the palette for indices beyond its length', () => {
-    expect(getPersonCanvasColor(0)).toEqual(getPersonCanvasColor(6));
-    expect(getPersonCanvasColor(1)).toEqual(getPersonCanvasColor(7));
-  });
-
-  it('returns different colors for different indices within the palette', () => {
-    expect(getPersonCanvasColor(0)).not.toEqual(getPersonCanvasColor(1));
   });
 });

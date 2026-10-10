@@ -50,7 +50,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
   return (
     <div>
       <div className="mb-6 hidden md:block">
-        <h1 className="font-headline mb-2 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
+        <h1 className="mb-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
           Add Receipts
         </h1>
         <p className="text-lg text-on-surface-variant">
@@ -170,7 +170,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
                   type="button"
                   data-testid="receipt-add-item-btn"
                   onClick={addItem}
-                  className="mt-2 flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2 text-sm font-bold text-on-primary transition-transform active:scale-95"
+                  className="mt-2 flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary transition-transform active:scale-95"
                 >
                   <span className="material-symbols-outlined text-sm">add</span>
                   Add Item

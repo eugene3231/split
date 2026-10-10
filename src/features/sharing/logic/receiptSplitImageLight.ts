@@ -1,4 +1,3 @@
-import { getPersonColor } from '@shared/utils/personColors';
 import type { SplitResult } from '@shared/types';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type {
@@ -11,11 +10,11 @@ import type {
 import {
   CANVAS_WIDTH,
   canvasToBlob,
-  drawAvatar,
   drawCurrencyConversionLines,
   drawLightCardShell,
   drawLightTwoColumnRow,
   drawNestedCard,
+  drawPersonAvatar,
   drawRoundedRect,
   formatGeneratedAt,
 } from '@features/sharing/logic/receiptSplitImageLightHelpers';
@@ -128,13 +127,13 @@ export async function generateReceiptSplitImageLight(
   const x = CANVAS_PADDING;
   const cardWidth = canvasWidth - x * 2;
 
-  ctx.fillStyle = '#1c1b1f';
-  ctx.font = '700 44px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#18181b';
+  ctx.font = '700 44px Inter, system-ui, -apple-system, sans-serif';
   ctx.fillText(options.receiptName || 'Receipt Splitter', x, y);
   y += 36;
 
-  ctx.fillStyle = '#49454f';
-  ctx.font = '500 22px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#52525b';
+  ctx.font = '500 22px Inter, system-ui, -apple-system, sans-serif';
   ctx.fillText(`Generated ${formatGeneratedAt(new Date())}`, x, y);
   y += 40;
 
@@ -149,8 +148,8 @@ export async function generateReceiptSplitImageLight(
 
   if (people.length === 0) {
     drawLightCardShell(ctx, x, y, cardWidth, 72);
-    ctx.fillStyle = '#49454f';
-    ctx.font = '500 22px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#52525b';
+    ctx.font = '500 22px Inter, system-ui, -apple-system, sans-serif';
     ctx.fillText(
       options.summaryBreakdown.emptyPeopleMessage ?? 'No people added yet.',
       x + CARD_PAD,
@@ -195,7 +194,7 @@ export async function generateReceiptSplitImageLight(
     ctx.fill();
     ctx.restore();
     ctx.fillStyle = '#92400e';
-    ctx.font = '500 22px system-ui, -apple-system, sans-serif';
+    ctx.font = '500 22px Inter, system-ui, -apple-system, sans-serif';
     ctx.fillText(
       `${options.summaryBreakdown.unassignedItemCount} item(s) are unassigned and excluded from totals.`,
       x + CARD_PAD,
@@ -227,20 +226,17 @@ function drawGrandTotalCard(ctx: CanvasRenderingContext2D, args: GrandTotalCardA
   const h = GRAND_TOTAL_CARD_H;
 
   ctx.save();
-  const grad = ctx.createLinearGradient(args.x, args.y, args.x + args.width, args.y);
-  grad.addColorStop(0, '#2d6a7f');
-  grad.addColorStop(1, '#1e5068');
-  ctx.fillStyle = grad;
-  drawRoundedRect(ctx, args.x, args.y, args.width, h, 16);
+  ctx.fillStyle = '#18181b';
+  drawRoundedRect(ctx, args.x, args.y, args.width, h, 24);
   ctx.fill();
   ctx.restore();
 
   ctx.fillStyle = 'rgba(255,255,255,0.70)';
-  ctx.font = '700 20px system-ui, -apple-system, sans-serif';
+  ctx.font = '700 20px Inter, system-ui, -apple-system, sans-serif';
   ctx.fillText('GRAND TOTAL', args.x + CARD_PAD, args.y + 36);
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = '600 52px system-ui, -apple-system, sans-serif';
+  ctx.font = '800 52px Inter, system-ui, -apple-system, sans-serif';
   ctx.fillText(
     formatCurrencyFromCents(args.split.grandTotalCents, args.currency),
     args.x + CARD_PAD,
@@ -308,32 +304,34 @@ function drawPersonBreakdownCard(
   ctx: CanvasRenderingContext2D,
   args: PersonBreakdownCardArgs,
 ): void {
-  const color = getPersonColor(args.breakdown.colorIndex);
   drawLightCardShell(ctx, args.x, args.y, args.width, args.height);
 
   const innerX = args.x + CARD_PAD;
   const innerWidth = args.width - CARD_PAD * 2;
   const effectiveHeaderH = HEADER_H + (args.breakdown.conversion ? CURRENCY_LINE_H * 2 : 0);
 
-  const avatarCX = innerX + AVATAR_RADIUS;
-  const avatarCY = args.y + CARD_PAD + AVATAR_RADIUS;
-  const initial = args.breakdown.person.name.trim().charAt(0).toUpperCase() || '?';
-  drawAvatar(ctx, avatarCX, avatarCY, AVATAR_RADIUS, initial, color.avatarBg, color.avatarText);
+  drawPersonAvatar(ctx, {
+    cx: innerX + AVATAR_RADIUS,
+    cy: args.y + CARD_PAD + AVATAR_RADIUS,
+    radius: AVATAR_RADIUS,
+    name: args.breakdown.person.name,
+    colorIndex: args.breakdown.colorIndex,
+  });
 
-  ctx.fillStyle = '#1c1b1f';
-  ctx.font = '700 28px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#18181b';
+  ctx.font = '700 28px Inter, system-ui, -apple-system, sans-serif';
   ctx.fillText(
     args.breakdown.person.name,
     innerX + AVATAR_RADIUS * 2 + AVATAR_GAP,
     args.y + CARD_PAD + 30,
   );
 
-  ctx.font = '500 18px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#49454f';
+  ctx.font = '500 18px Inter, system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#52525b';
   ctx.textAlign = 'right';
   ctx.fillText(args.breakdown.headerLabel, args.x + args.width - CARD_PAD, args.y + CARD_PAD + 18);
-  ctx.font = '600 32px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#1c1b1f';
+  ctx.font = '600 32px Inter, system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#18181b';
   ctx.fillText(
     formatCurrencyFromCents(args.breakdown.totalCents, args.breakdown.currency),
     args.x + args.width - CARD_PAD,
@@ -374,8 +372,8 @@ function drawPersonBreakdownCard(
         rowY += sectionH + RECEIPT_SUB_CARD_GAP;
       }
     } else if (args.breakdown.emptyMessage) {
-      ctx.fillStyle = '#49454f';
-      ctx.font = 'italic 20px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#52525b';
+      ctx.font = 'italic 20px Inter, system-ui, -apple-system, sans-serif';
       ctx.fillText(args.breakdown.emptyMessage, nestedX, rowY + 28);
     }
   } else {
@@ -439,8 +437,8 @@ function drawReceiptSection(ctx: CanvasRenderingContext2D, args: DrawReceiptSect
   rowY += RECEIPT_HEADER_SEP_H;
 
   if (args.section.emptyMessage) {
-    ctx.fillStyle = '#49454f';
-    ctx.font = 'italic 19px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#52525b';
+    ctx.font = 'italic 19px Inter, system-ui, -apple-system, sans-serif';
     ctx.fillText(args.section.emptyMessage, args.innerX + 16, rowY + 24);
     return;
   }

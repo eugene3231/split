@@ -37,7 +37,7 @@ export function InlineStepper({
       </button>
       <span
         data-testid={testId ? `${testId}-value` : undefined}
-        className="font-headline min-w-9 text-center text-base font-extrabold whitespace-nowrap text-secondary"
+        className="min-w-9 text-center font-headline text-base font-extrabold whitespace-nowrap text-on-surface"
       >
         {display ?? weight}
       </span>

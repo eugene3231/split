@@ -72,7 +72,7 @@ function GeminiApiKeyModalContent({
               <h2 className="font-headline text-xl font-extrabold tracking-tight text-primary">
                 Gemini API Key
               </h2>
-              <p className="font-body mt-1 text-sm text-on-surface-variant">
+              <p className="mt-1 font-body text-sm text-on-surface-variant">
                 Required for AI-powered receipt scanning
               </p>
             </div>
@@ -100,7 +100,7 @@ function GeminiApiKeyModalContent({
           <div className="space-y-2">
             <label
               htmlFor="new-modal-gemini-api-key"
-              className="font-label block text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+              className="block font-label text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
             >
               API Key
             </label>
@@ -114,7 +114,7 @@ function GeminiApiKeyModalContent({
                 if (e.key === 'Enter') handleSave();
               }}
               placeholder="AIza…"
-              className="font-body w-full rounded-2xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 text-sm text-on-surface transition-all outline-none placeholder:text-outline focus:border-primary/20"
+              className="w-full rounded-2xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 font-body text-sm text-on-surface transition-all outline-none placeholder:text-outline focus:border-primary/20"
             />
             <p className="font-body text-xs text-outline">
               Get your free key at{' '}
@@ -132,7 +132,7 @@ function GeminiApiKeyModalContent({
           <div className="space-y-2">
             <label
               htmlFor="new-modal-gemini-model"
-              className="font-label block text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
+              className="block font-label text-[10px] font-extrabold tracking-widest text-on-surface-variant uppercase"
             >
               Model
             </label>
@@ -140,7 +140,7 @@ function GeminiApiKeyModalContent({
               id="new-modal-gemini-model"
               value={localModel}
               onChange={(e) => setLocalModel(e.target.value)}
-              className="font-body w-full cursor-pointer rounded-2xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 text-sm text-on-surface transition-all outline-none focus:border-primary/20"
+              className="w-full cursor-pointer rounded-2xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 font-body text-sm text-on-surface transition-all outline-none focus:border-primary/20"
             >
               {GEMINI_MODELS.map((model) => (
                 <option key={model} value={model}>
@@ -158,7 +158,7 @@ function GeminiApiKeyModalContent({
             <button
               type="button"
               onClick={handleSave}
-              className="font-label flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-3 text-sm font-bold text-on-primary shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-label text-sm font-bold text-on-primary shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
             >
               Save &amp; Continue
               <span className="material-symbols-outlined text-base">arrow_forward</span>
@@ -166,7 +166,7 @@ function GeminiApiKeyModalContent({
             <button
               type="button"
               onClick={onClose}
-              className="font-label rounded-xl px-4 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+              className="rounded-xl px-4 py-3 font-label text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
             >
               Skip
             </button>

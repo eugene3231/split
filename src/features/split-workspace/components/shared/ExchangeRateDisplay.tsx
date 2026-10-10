@@ -107,7 +107,7 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
       </span>
       {isOverridden ? (
         <>
-          <span className="bg-warning/20 text-warning-container rounded px-1.5 py-0.5 text-xs font-semibold">
+          <span className="rounded bg-warning-container px-1.5 py-0.5 text-xs font-semibold text-on-warning-container">
             Manual
           </span>
           <button

@@ -35,7 +35,7 @@ export function TopAppBar({
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-3 border-b border-surface-container-highest px-6 py-3 md:gap-6 md:px-8 md:py-4">
         {/* Logo */}
-        <div className="font-headline shrink-0 text-2xl font-bold tracking-tight text-primary">
+        <div className="shrink-0 font-headline text-2xl font-bold tracking-tight text-primary">
           Split
         </div>
 
@@ -70,9 +70,9 @@ export function TopAppBar({
                       disabled
                         ? 'bg-surface-container-highest text-on-surface-variant'
                         : completed
-                          ? 'bg-secondary text-on-secondary'
+                          ? 'bg-primary text-on-primary'
                           : isCurrent
-                            ? 'bg-primary text-on-primary ring-4 ring-primary/10'
+                            ? 'bg-primary text-on-primary ring-4 ring-primary/15'
                             : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >
@@ -93,7 +93,7 @@ export function TopAppBar({
                       disabled
                         ? 'text-on-surface-variant'
                         : completed
-                          ? 'text-secondary'
+                          ? 'text-on-surface'
                           : isCurrent
                             ? 'text-primary'
                             : 'text-on-surface-variant',
@@ -106,7 +106,7 @@ export function TopAppBar({
                   <div
                     className={cn(
                       'mx-2 mb-4 h-0.5 w-12',
-                      completed ? 'bg-secondary' : 'bg-surface-container-highest',
+                      completed ? 'bg-primary' : 'bg-surface-container-highest',
                     )}
                   />
                 )}
@@ -146,9 +146,9 @@ export function TopAppBar({
                       disabled
                         ? 'bg-surface-container-highest text-on-surface-variant'
                         : completed
-                          ? 'bg-secondary text-on-secondary'
+                          ? 'bg-primary text-on-primary'
                           : isCurrent
-                            ? 'bg-primary text-on-primary ring-4 ring-primary/10'
+                            ? 'bg-primary text-on-primary ring-4 ring-primary/15'
                             : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >

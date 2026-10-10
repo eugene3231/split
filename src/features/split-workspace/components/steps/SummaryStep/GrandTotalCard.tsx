@@ -36,10 +36,7 @@ export function GrandTotalCard({
   };
 
   return (
-    <div
-      className="rounded-2xl p-6 text-left shadow-md"
-      style={{ background: 'linear-gradient(135deg, #2d6a7f 0%, #1e5068 100%)' }}
-    >
+    <div className="rounded-3xl bg-primary p-6 text-left text-on-primary shadow-md">
       <div className="mb-4 flex items-start justify-between">
         <span className="mr-2 min-w-0 flex-1 text-sm font-bold tracking-widest text-white uppercase">
           {currentReceipt ? (
@@ -64,7 +61,7 @@ export function GrandTotalCard({
         <span className="text-xl font-semibold text-white/60">
           {getCurrencySymbol(displayCurrency)}
         </span>
-        <span className="font-headline text-4xl leading-none font-semibold text-white">
+        <span className="font-headline text-4xl leading-none font-extrabold tracking-tight text-white tabular-nums">
           {(grandTotal / 100).toFixed(2)}
         </span>
       </div>
@@ -96,7 +93,7 @@ export function GrandTotalCard({
 
       <div className="flex items-center gap-2.5 border-t border-white/10 pt-4">
         <span
-          className="material-symbols-outlined !text-sm text-cyan-300"
+          className="material-symbols-outlined !text-sm text-white/60"
           style={{ fontVariationSettings: "'FILL' 1" }}
         >
           group

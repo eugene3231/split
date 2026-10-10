@@ -65,7 +65,7 @@ export function ReviewPhase({ rows, itemCount, onEditItem }: ReviewPhaseProps) {
                         {row.title || `Item ${index + 1}`}
                       </p>
                       {row.priceLabel !== null && (
-                        <span className="font-headline block text-sm font-bold text-primary">
+                        <span className="block font-headline text-sm font-bold text-primary">
                           {row.priceLabel}
                         </span>
                       )}

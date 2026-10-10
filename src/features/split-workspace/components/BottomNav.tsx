@@ -71,75 +71,65 @@ export function BottomNav({
 }: Props) {
   const isFirstStep = activeStep === 'people';
   const isFinalStep = activeStep === 'final';
-  const isSummaryStep = activeStep === 'items' && itemsSubPhase === 'review';
   const continueLabel = getContinueLabel(activeStep, itemsSubPhase, isLastAssignableItem);
   const continueDisabled = !canContinue && !(activeStep === 'items' && itemsSubPhase === 'assign');
   const bottomInset = useVisualViewportBottomInset();
 
   return (
     <footer
-      className="fixed bottom-0 left-0 z-50 w-full border-t border-surface-container-highest bg-surface/90 shadow-[0_-8px_24px_rgba(25,28,29,0.06)] backdrop-blur-xl"
+      className="fixed bottom-0 left-0 z-50 w-full px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8"
       style={{ bottom: bottomInset }}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 md:px-10">
-        {/* Back */}
+      <div
+        className={cn(
+          'mx-auto flex max-w-3xl items-center gap-3 rounded-3xl bg-primary p-2 text-on-primary shadow-2xl shadow-black/20',
+          isFinalStep && 'ml-0 w-fit md:mx-auto',
+        )}
+      >
         {!isFirstStep && (
           <button
             type="button"
             data-testid="wizard-back-btn"
             onClick={onBack}
-            disabled={isFirstStep}
-            className={cn(
-              'flex items-center gap-2 rounded-xl px-3 py-2 text-on-surface-variant transition-all hover:bg-surface-container-low',
-              isFirstStep && 'pointer-events-none cursor-not-allowed opacity-40',
-            )}
+            className="flex items-center gap-1.5 rounded-2xl px-3 py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
             <span className="material-symbols-outlined text-xl">arrow_back</span>
-            <span className="font-label text-xs font-bold tracking-widest uppercase">Back</span>
+            Back
           </button>
         )}
 
-        {/* Center: grand total or context hint */}
-        <div className="flex flex-col items-center">
-          {grandTotalFormatted && (activeStep === 'receipt' || activeStep === 'items') ? (
-            <div className="hidden items-center gap-2 md:flex">
-              <span className="text-xs font-extrabold tracking-widest text-on-surface-variant uppercase">
-                Grand Total
-              </span>
-              <span className="font-headline text-base font-extrabold text-primary">
-                {grandTotalFormatted}
-              </span>
+        {!isFinalStep && (
+          <>
+            <div className="flex min-w-0 flex-1 flex-col justify-center pl-3">
+              {grandTotalFormatted && (activeStep === 'receipt' || activeStep === 'items') ? (
+                <div className="hidden min-w-0 md:block">
+                  <p className="truncate text-xs text-white/60">Grand total</p>
+                  <p className="truncate text-xl leading-tight font-extrabold tabular-nums">
+                    {grandTotalFormatted}
+                  </p>
+                </div>
+              ) : isFirstStep ? (
+                <p className="hidden truncate text-sm text-white/60 md:block">
+                  Add at least one person to continue
+                </p>
+              ) : null}
             </div>
-          ) : isFirstStep ? (
-            <p className="hidden text-xs font-semibold tracking-wide text-primary md:block">
-              Add at least one person to continue
-            </p>
-          ) : null}
-        </div>
-
-        {/* Final step actions / Continue */}
-        {isFinalStep ? null : (
-          <button
-            type="button"
-            data-testid="wizard-continue-btn"
-            onClick={onNext}
-            disabled={continueDisabled}
-            className={cn(
-              'flex items-center gap-2 rounded-xl px-5 py-2 shadow-md transition-all active:scale-95',
-              continueDisabled
-                ? 'cursor-not-allowed bg-surface-container-high text-on-surface-variant opacity-60'
-                : isSummaryStep
-                  ? 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-primary/20'
-                  : 'bg-white text-neutral-900 shadow-black/10',
-            )}
-          >
-            <span className="font-label text-xs font-bold tracking-wider uppercase">
+            <button
+              type="button"
+              data-testid="wizard-continue-btn"
+              onClick={onNext}
+              disabled={continueDisabled}
+              className={cn(
+                'flex shrink-0 items-center justify-center gap-1 rounded-2xl px-5 py-3 text-sm font-bold transition-all active:scale-95',
+                continueDisabled
+                  ? 'cursor-not-allowed bg-white/15 text-white/50'
+                  : 'bg-white text-primary',
+              )}
+            >
               {continueLabel}
-            </span>
-            <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1">
-              arrow_forward
-            </span>
-          </button>
+              <span className="material-symbols-outlined text-lg">arrow_forward</span>
+            </button>
+          </>
         )}
       </div>
     </footer>
