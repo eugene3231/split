@@ -15,7 +15,7 @@ describe('PRESET_WORKSPACES', () => {
   it('offers one test split per sample receipt', () => {
     expect(PRESET_WORKSPACES.map((preset) => preset.label)).toEqual([
       'Lunch for 3',
-      'Skewer dinner for 12',
+      'Dinner for 12',
     ]);
     expect(lunch.description).toBe('3 people · 4 items');
     expect(dinner.description).toBe('12 people · 20 items');
@@ -52,7 +52,7 @@ describe('PRESET_WORKSPACES', () => {
     ]);
   });
 
-  it('leaves GST off the skewer dinner and sets a payer mobile for the PayNow QR', () => {
+  it('leaves GST off the dinner and sets a payer mobile for the PayNow QR', () => {
     const { draft, receipt } = splitOf(dinner);
     expect(receipt.gst.enabled).toBe(false);
     expect(receipt.serviceCharge).toMatchObject({ enabled: true, percentInput: '10' });

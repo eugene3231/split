@@ -76,14 +76,14 @@ const EVERYONE_AT_DINNER = [
   'Leo',
 ];
 
-const SKEWER_DINNER_FOR_TWELVE: PresetDefinition = {
-  id: 'skewer-dinner-for-twelve',
-  label: 'Skewer dinner for 12',
+const DINNER_FOR_TWELVE: PresetDefinition = {
+  id: 'dinner-for-twelve',
+  label: 'Dinner for 12',
   peopleNames: EVERYONE_AT_DINNER,
   payerMobile: '81234567',
   receipts: [
     {
-      name: 'Skewer dinner',
+      name: 'Dinner',
       serviceChargePercent: '10',
       gstPercent: '',
       total: '166.98',
@@ -190,7 +190,7 @@ function describePreset(definition: PresetDefinition): string {
   return `${definition.peopleNames.length} people · ${itemCount} items`;
 }
 
-export const PRESET_WORKSPACES: PresetWorkspace[] = [LUNCH_FOR_THREE, SKEWER_DINNER_FOR_TWELVE].map(
+export const PRESET_WORKSPACES: PresetWorkspace[] = [LUNCH_FOR_THREE, DINNER_FOR_TWELVE].map(
   (definition) => ({
     id: definition.id,
     label: definition.label,

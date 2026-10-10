@@ -822,7 +822,7 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
 
       fireEvent.click(screen.getByTestId('workspace-menu-btn'));
-      fireEvent.click(screen.getByTestId('workspace-preset-skewer-dinner-for-twelve'));
+      fireEvent.click(screen.getByTestId('workspace-preset-dinner-for-twelve'));
 
       expectActiveStepNav('items');
       expect(useReceiptStore.getState().people).toHaveLength(12);
