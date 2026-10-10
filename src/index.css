@@ -65,9 +65,10 @@
   --color-inverse-on-surface: #eff1f2;
 
   /* Font families */
-  --font-family-headline: 'Manrope', sans-serif;
-  --font-family-body: 'Inter', sans-serif;
-  --font-family-label: 'Inter', sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-sans);
+  --font-body: var(--font-sans);
+  --font-label: var(--font-sans);
 }
 
 html,
