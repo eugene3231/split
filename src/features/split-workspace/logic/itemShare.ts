@@ -73,7 +73,7 @@ export function resolvePersonShare(
   };
 }
 
-/** Apple-style − / +: walks this person's slice through 1, 1/2, 1/3 and on down. */
+/** − / +: walks this person's slice through 1, 1/2, 1/3 and on down. */
 export function stepPersonShare(
   item: EditableItem,
   personId: string,
