@@ -118,9 +118,9 @@ function resolveTotalTab({
       : computeConsolidatedSplit(
           splitByReceipt,
           people,
-          receipts.map((r) => r.currency ?? BASE_CURRENCY),
+          receipts.map((r) => r.currency),
           exchangeRates,
-          receipts.map((r) => r.exchangeRateOverride ?? null),
+          receipts.map((r) => r.exchangeRateOverride),
           totalCurrency,
         );
   const receiptRates = receipts.map((r) =>

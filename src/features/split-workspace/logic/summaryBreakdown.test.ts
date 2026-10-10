@@ -148,6 +148,28 @@ describe('resolveSummaryBreakdown', () => {
     });
   });
 
+  it('leaves out the header rate when the receipts convert at different rates', () => {
+    const view = resolveSummaryView({
+      people: [alice],
+      receipts: [
+        makeReceipt({ id: 'r1', currency: 'USD' }),
+        makeReceipt({ id: 'r2', currency: 'USD', exchangeRateOverride: 1.4 }),
+      ],
+      splitByReceipt: [split(), split()],
+      consolidatedSplit: split(),
+      fallbackSplit: split(),
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+      exchangeRates: { USD: 1.35 },
+      activeTab: 'total',
+      showBaseCurrency: false,
+    });
+    const [aliceBreakdown] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+    expect(aliceBreakdown.currency).toBe('USD');
+    expect(aliceBreakdown.conversion).toBeUndefined();
+  });
+
   it('resolves single-receipt person rows and charge rows', () => {
     const view: SummaryView = {
       kind: 'receipt',
