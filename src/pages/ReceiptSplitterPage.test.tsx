@@ -448,11 +448,29 @@ describe('ReceiptSplitterPage integration', () => {
         fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
         const message = screen.getByTestId('claim-all-assigned');
         expect(screen.getByTestId('wizard-status')).toContainElement(message);
+        expect(screen.getByTestId('claim-owes-panel')).toHaveAttribute('aria-hidden', 'true');
+        expect(screen.getByRole('status')).toHaveTextContent('All assigned');
         expect(screen.getByTestId('wizard-step-panel')).not.toContainElement(message);
         expect(screen.getByTestId('wizard-status')).toHaveTextContent('$2.00');
         act(() => vi.advanceTimersByTime(1600));
         expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
         expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$2.00');
+        expect(screen.getByTestId('claim-owes-panel')).toHaveAttribute('aria-hidden', 'false');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('returns from completion to the currently selected person and amount', async () => {
+      await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
+      vi.useFakeTimers();
+      try {
+        fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
+        fireEvent.click(screen.getAllByTestId('claim-person-p2')[0]);
+        expect(screen.getByRole('status')).toHaveTextContent('All assigned');
+        act(() => vi.advanceTimersByTime(1600));
+        expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
+        expect(screen.getByTestId('wizard-status')).toHaveTextContent('Bob owes$0.00');
       } finally {
         vi.useRealTimers();
       }

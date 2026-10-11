@@ -11,7 +11,7 @@ import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMen
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
-import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
+import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatusReel';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
@@ -141,24 +141,11 @@ function WorkspaceNavStatus({
   const justFinished = useAllAssignedMoment(leftCount);
   if (activeStep === 'items' && activePerson) {
     return (
-      <BottomNavStatus
-        label={
-          justFinished ? (
-            <span
-              key="complete"
-              data-testid="claim-all-assigned"
-              className="inline-flex items-center gap-1 text-white motion-safe:animate-status-flash"
-            >
-              <span aria-hidden className="material-symbols-outlined text-sm">
-                check
-              </span>
-              All assigned
-            </span>
-          ) : (
-            `${firstName(activePerson.name)} owes`
-          )
-        }
-        value={<CountUpAmount cents={activePersonTotalCents} currency={BASE_CURRENCY} />}
+      <ClaimStatusReel
+        label={`${firstName(activePerson.name)} owes`}
+        cents={activePersonTotalCents}
+        currency={BASE_CURRENCY}
+        complete={justFinished}
       />
     );
   }
