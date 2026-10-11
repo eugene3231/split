@@ -13,6 +13,7 @@ import { StepHeader } from '@features/split-workspace/components/shared/StepHead
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
+import { useAllAssignedMoment } from './useAllAssignedMoment';
 
 interface Props {
   activePersonId: string;
@@ -45,6 +46,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
     }))
     .filter((section) => section.items.length > 0);
   const hasSeveralReceipts = view.sections.length > 1;
+  const justFinished = useAllAssignedMoment(view.leftCount);
   const personDirection = useSlideDirection(view.people.findIndex((person) => person.isActive));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
@@ -67,6 +69,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             people={view.people}
             onSelect={onActivePersonChange}
             layout="row"
+            currency={view.totalsCurrency}
             className="-mx-6 mt-4 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
           />
           <SlideIn key={activePerson.id} direction={personDirection} className="mt-6">
@@ -84,6 +87,19 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
               >
                 {formatItemCount(view.leftCount)} left
               </Chip>
+            </div>
+          )}
+          {justFinished && (
+            <div className="mt-4 flex overflow-hidden motion-safe:animate-done-out">
+              <span
+                data-testid="claim-all-assigned"
+                className="flex items-center gap-1 rounded-full bg-secondary-container px-3 py-1 text-xs font-semibold text-on-secondary-container motion-safe:animate-pop-in"
+              >
+                <span aria-hidden className="material-symbols-outlined text-sm">
+                  check
+                </span>
+                All assigned
+              </span>
             </div>
           )}
         </header>
@@ -153,6 +169,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
           people={view.people}
           onSelect={onActivePersonChange}
           layout="column"
+          currency={view.totalsCurrency}
           className="max-h-[calc(100vh-17rem)] overflow-y-auto p-1"
         />
       </aside>

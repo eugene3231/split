@@ -109,7 +109,9 @@ export function BottomNav({
                   : 'cursor-not-allowed bg-white/15 text-white/50',
               )}
             >
-              <span className="truncate">{continueLabel}</span>
+              <span key={continueLabel} className="block truncate motion-safe:animate-nudge">
+                {continueLabel}
+              </span>
               <span className="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
           </>
@@ -121,7 +123,7 @@ export function BottomNav({
 
 interface BottomNavStatusProps {
   label: string;
-  value: string;
+  value: ReactNode;
   className?: string;
 }
 

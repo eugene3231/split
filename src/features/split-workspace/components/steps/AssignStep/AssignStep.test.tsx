@@ -120,6 +120,17 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
 
+  it('marks the moment the last item gets assigned', () => {
+    const { refresh } = renderStep('p2');
+    expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('claim-item-toggle-open'));
+    refresh();
+
+    expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
+    expect(screen.getByTestId('claim-all-assigned')).toHaveTextContent('All assigned');
+  });
+
   it('ticks the active person on and off an item', () => {
     const { refresh } = renderStep('p2');
     const toggle = () => screen.getByTestId('claim-item-toggle-open');

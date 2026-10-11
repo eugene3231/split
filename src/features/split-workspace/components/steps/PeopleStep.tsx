@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { prefersMotion } from '@features/split-workspace/components/shared/motion';
+import { cn } from '@shared/utils/cn';
 
 export function PeopleStep() {
   const { people, peopleInput, setPeopleInput, addPeopleFromInput, removePerson } = useReceiptStore(
@@ -13,6 +16,16 @@ export function PeopleStep() {
       removePerson: state.removePerson,
     })),
   );
+  // Chips play their exit before the person leaves the store.
+  const [leavingIds, setLeavingIds] = useState<string[]>([]);
+
+  const handleRemove = (personId: string) => {
+    if (!prefersMotion()) {
+      removePerson(personId);
+      return;
+    }
+    setLeavingIds((ids) => [...ids, personId]);
+  };
 
   return (
     <div className="space-y-5">
@@ -70,8 +83,17 @@ export function PeopleStep() {
               key={person.id}
               type="button"
               data-testid={`person-chip-${person.id}`}
-              onClick={() => removePerson(person.id)}
-              className="flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95 motion-safe:animate-rise-in"
+              disabled={leavingIds.includes(person.id)}
+              onClick={() => handleRemove(person.id)}
+              onAnimationEnd={(event) => {
+                if (event.animationName === 'shrink-out') removePerson(person.id);
+              }}
+              className={cn(
+                'flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95',
+                leavingIds.includes(person.id)
+                  ? 'animate-shrink-out'
+                  : 'motion-safe:animate-rise-in',
+              )}
             >
               <PersonAvatar name={person.name} colorIndex={index} size="sm" />
               {person.name}

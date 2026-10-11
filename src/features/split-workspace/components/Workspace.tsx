@@ -10,6 +10,7 @@ import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMen
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
+import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
@@ -106,10 +107,7 @@ export function Workspace() {
           <WorkspaceNavStatus
             activeStep={activeStep}
             activePerson={activePerson}
-            activePersonTotal={formatCurrencyFromCents(
-              consolidated.split.totalByPersonCents[activePersonId] ?? 0,
-              BASE_CURRENCY,
-            )}
+            activePersonTotalCents={consolidated.split.totalByPersonCents[activePersonId] ?? 0}
             receiptTotalCents={active.receiptTotals.grandTotalCents}
             receiptCurrency={activeReceipt.currency}
           />
@@ -124,7 +122,7 @@ export function Workspace() {
 interface WorkspaceNavStatusProps {
   activeStep: WizardStep;
   activePerson: Person | undefined;
-  activePersonTotal: string;
+  activePersonTotalCents: number;
   receiptTotalCents: number;
   receiptCurrency: string;
 }
@@ -132,13 +130,16 @@ interface WorkspaceNavStatusProps {
 function WorkspaceNavStatus({
   activeStep,
   activePerson,
-  activePersonTotal,
+  activePersonTotalCents,
   receiptTotalCents,
   receiptCurrency,
 }: WorkspaceNavStatusProps) {
   if (activeStep === 'items' && activePerson) {
     return (
-      <BottomNavStatus label={`${firstName(activePerson.name)} owes`} value={activePersonTotal} />
+      <BottomNavStatus
+        label={`${firstName(activePerson.name)} owes`}
+        value={<CountUpAmount cents={activePersonTotalCents} currency={BASE_CURRENCY} />}
+      />
     );
   }
 

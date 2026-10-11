@@ -15,6 +15,7 @@ export interface ClaimPerson {
   colorIndex: number;
   firstName: string;
   totalLabel: string;
+  totalCents: number;
   isActive: boolean;
 }
 
@@ -52,6 +53,7 @@ export interface ClaimView {
   activePerson: ClaimPerson | null;
   activeItemCount: number;
   people: ClaimPerson[];
+  totalsCurrency: string;
   sections: ClaimSection[];
   leftCount: number;
 }
@@ -94,6 +96,7 @@ export function resolveClaimView(args: {
     colorIndex: index,
     firstName: firstName(person.name),
     totalLabel: formatCurrencyFromCents(totalByPersonCents[person.id] ?? 0, totalsCurrency),
+    totalCents: totalByPersonCents[person.id] ?? 0,
     isActive: person.id === activePersonId,
   }));
 
@@ -115,6 +118,7 @@ export function resolveClaimView(args: {
     activePerson: claimPeople.find((person) => person.isActive) ?? null,
     activeItemCount: items.filter((item) => item.claimedByActive).length,
     people: claimPeople,
+    totalsCurrency,
     sections,
     leftCount: items.filter((item) => item.isLeft).length,
   };

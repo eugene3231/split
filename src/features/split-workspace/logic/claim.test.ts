@@ -71,7 +71,11 @@ describe('resolveClaimView', () => {
 
     expect(result.activePerson).toMatchObject({ id: 'p2', firstName: 'Mei', totalLabel: '$5.00' });
     expect(result.people.map((person) => person.isActive)).toEqual([false, true, false]);
-    expect(result.people[0]).toMatchObject({ firstName: 'Eugene', totalLabel: '$12.34' });
+    expect(result.people[0]).toMatchObject({
+      firstName: 'Eugene',
+      totalLabel: '$12.34',
+      totalCents: 1234,
+    });
     expect(result.people[2].totalLabel).toBe('$0.00');
   });
 
