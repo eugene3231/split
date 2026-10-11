@@ -1,7 +1,7 @@
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { HoverLabel } from '@features/split-workspace/components/shared/HoverLabel';
 import { ExitingClaimantAvatar } from './ExitingClaimantAvatar';
-import { HoverLabel } from './HoverLabel';
 import { useClaimantPresence } from './useClaimantPresence';
 import { cn } from '@shared/utils/cn';
 

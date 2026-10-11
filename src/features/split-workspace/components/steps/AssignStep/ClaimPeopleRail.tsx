@@ -1,6 +1,5 @@
 import { cn } from '@shared/utils/cn';
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
-import { formatItemCount } from '@features/split-workspace/logic/claim';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
 import { prefersMotion } from '@features/split-workspace/components/shared/motion';
@@ -57,12 +56,6 @@ export function ClaimPeopleRail({ people, onSelect, layout, currency, className 
               currency={currency}
               className="block text-xs text-on-surface-variant tabular-nums"
             />
-          </span>
-          <span
-            data-testid={`claim-person-items-${person.id}`}
-            className="shrink-0 text-xs whitespace-nowrap text-on-surface-variant tabular-nums"
-          >
-            {formatItemCount(person.itemCount)}
           </span>
         </button>
       ))}

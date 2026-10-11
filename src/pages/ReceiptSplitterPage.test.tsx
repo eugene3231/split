@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from '@features/receipt-scanner/constants';
@@ -383,6 +383,129 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(screen.getAllByTestId('claim-person-p2')[0]);
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1')); // Bob
       expect(screen.getByTestId('wizard-step-nav-final')).toBeDisabled();
+    });
+  });
+
+  describe('Even split', () => {
+    it('starts everyone on every item, then opens Items so exceptions can be unticked', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [
+              {
+                id: 'r1-i1',
+                name: 'Dinner',
+                amountInput: '90.00',
+                discountPercentInput: '',
+                assignment: { mode: 'equal', personId: '', personIds: [] },
+              },
+            ],
+          }),
+        ],
+      });
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+
+      clickContinue(); // → receipt
+      clickContinue(); // → items
+      fireEvent.click(screen.getByRole('button', { name: 'Share equally' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+      expectActiveStepNav('items');
+      expect(useReceiptStore.getState().receipts[0].items[0].assignment.personIds).toEqual([
+        'p1',
+        'p2',
+      ]);
+    });
+
+    it('shares only the active untouched receipt and preserves claims on other receipts', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [
+              {
+                id: 'r1-i1',
+                name: 'Tea',
+                amountInput: '12',
+                discountPercentInput: '',
+                assignment: {
+                  mode: 'equal',
+                  personId: '',
+                  personIds: ['p1', 'p2'],
+                  weights: { p1: 2, p2: 1 },
+                },
+              },
+            ],
+          }),
+          makeReceipt({
+            id: 'r2',
+            items: [
+              {
+                id: 'r2-i1',
+                name: 'Dinner',
+                amountInput: '90',
+                discountPercentInput: '',
+                assignment: { mode: 'equal', personId: '', personIds: [] },
+              },
+            ],
+          }),
+        ],
+        activeReceiptId: 'r2',
+      });
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      clickContinue();
+      clickContinue();
+
+      fireEvent.click(
+        within(screen.getByTestId('claim-section-r2')).getByRole('button', {
+          name: 'Share equally',
+        }),
+      );
+
+      expectActiveStepNav('items');
+      expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual({
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+      });
+      expect(useReceiptStore.getState().receipts[1].items[0].assignment).toEqual({
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+      });
+    });
+
+    it('confirms replacement, preserves selections on cancel, and disables after sharing', async () => {
+      HTMLDialogElement.prototype.showModal = function () {
+        this.open = true;
+      };
+      HTMLDialogElement.prototype.close = function () {
+        this.open = false;
+      };
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      clickContinue();
+      expect(screen.queryByRole('button', { name: 'Share equally' })).not.toBeInTheDocument();
+      clickContinue();
+      expect(screen.getByRole('button', { name: 'Share equally' })).toBeDisabled();
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
+      const original = useReceiptStore.getState().receipts;
+      fireEvent.click(screen.getByRole('button', { name: 'Share equally' }));
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+      expect(useReceiptStore.getState().receipts).toEqual(original);
+      fireEvent.click(screen.getByRole('button', { name: 'Share equally' }));
+      fireEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Share equally' }),
+      );
+      expect(screen.getByRole('button', { name: 'Share equally' })).toBeDisabled();
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
+      expect(screen.getByRole('button', { name: 'Share equally' })).toBeEnabled();
+      vi.restoreAllMocks();
     });
   });
 

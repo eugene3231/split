@@ -12,7 +12,7 @@ import { BottomNav, BottomNavStatus } from '@features/split-workspace/components
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatusReel';
-import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep';
+import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
 import { SummaryStep } from '@features/split-workspace/components/steps/SummaryStep/SummaryStep';

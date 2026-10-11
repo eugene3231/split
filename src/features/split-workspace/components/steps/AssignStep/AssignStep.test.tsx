@@ -11,6 +11,7 @@ import { AssignStep } from './AssignStep';
 interface AssignStepStoreMock {
   receipts: Receipt[];
   people: Person[];
+  splitReceiptEvenly: ReturnType<typeof vi.fn>;
   updateReceiptItem: ReturnType<typeof vi.fn>;
 }
 
@@ -64,6 +65,7 @@ function setStoreMock(receipts: Receipt[]) {
       { id: 'p1', name: 'Alice Tan' },
       { id: 'p2', name: 'Bob' },
     ],
+    splitReceiptEvenly: vi.fn(),
     updateReceiptItem: vi.fn(
       (receiptId: string, itemId: string, updater: (item: EditableItem) => EditableItem) => {
         storeMock = {
@@ -111,12 +113,12 @@ describe('AssignStep', () => {
     ]);
   });
 
-  it("asks what the active person had and sums up that person's items and total", () => {
+  it('asks what the active person had and shows their total without an item count', () => {
     renderStep('p2');
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
     expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveTextContent('$4.50');
-    expect(screen.getAllByTestId('claim-person-items-p2')[0]).toHaveTextContent('2 items');
+    expect(screen.getAllByTestId('claim-person-p2')[0]).not.toHaveTextContent(/\d+ items?/);
     expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
@@ -302,11 +304,11 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('claim-item-done')).toBeInTheDocument();
   });
 
-  it('hides receipt headings and the left chip when there is nothing to show', () => {
+  it('shows a single receipt heading and hides the left chip when everything is assigned', () => {
     setStoreMock([makeReceipt('r1', [makeItem('a', { personIds: ['p1'] })])]);
     renderStep();
 
-    expect(screen.queryByRole('heading', { level: 2, name: /Receipt r1/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: /Receipt r1/ })).toBeVisible();
     expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
   });
 });

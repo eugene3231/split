@@ -31,7 +31,7 @@ function seedDinner() {
 }
 
 describe('SummaryStep', () => {
-  it("lists only each person's own items until all items are asked for", () => {
+  it("lists each person's own items by default, everyone's on All items, and none on Totals", () => {
     const alice = makePerson('Alice');
     const bob = makePerson('Bob');
     seedStore(
@@ -59,10 +59,20 @@ describe('SummaryStep', () => {
     expect(screen.getAllByText('Laksa')).toHaveLength(1);
     expect(screen.getAllByText('Satay')).toHaveLength(1);
 
-    fireEvent.click(screen.getByTestId('summary-show-all-items-btn'));
+    expect(screen.getByRole('button', { name: 'Their items' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'All items' }));
 
     expect(screen.getAllByText('Laksa')).toHaveLength(2);
     expect(screen.getAllByText('Satay')).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Totals' }));
+
+    expect(screen.queryByText('Laksa')).toBeNull();
+    expect(screen.queryByText('Satay')).toBeNull();
   });
 
   it('reports the successful native share as shared', async () => {
@@ -152,6 +162,22 @@ describe('SummaryStep', () => {
     expect(screen.getByText(/The sum of individual shares/)).toHaveTextContent(
       'US$1.00 off from the receipt total.',
     );
+  });
+
+  it('rounds the foreign receipt rate beside the currency switch like the cards do', () => {
+    const alice = makePerson('Alice');
+    const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+    seedStore(
+      [alice],
+      [makeReceipt({ currency: 'IDR', items: [makeItem({ amountInput: '50000', assignment })] })],
+      { exchangeRates: { SGD: 1, IDR: 0.000083 } },
+    );
+
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+
+    expect(screen.getByRole('group', { name: 'Currency' })).toBeInTheDocument();
+    expect(screen.queryByText(/12048\.\d/)).toBeNull();
+    expect(screen.getAllByText(/1 SGD = 12,048 IDR/).length).toBeGreaterThan(1);
   });
 
   it('adds a short receipt total as rounding that every card then shows', () => {
@@ -262,7 +288,7 @@ describe('SummaryStep', () => {
     fireEvent.click(overviewToggle);
 
     expect(overviewToggle).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByTestId('summary-show-details-btn')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Show on each card' })).toBeNull();
     const table = within(screen.getByRole('region', { name: 'Who had what' }));
     expect(table.getByRole('rowheader', { name: /Laksa/ })).toHaveTextContent('$10.00');
     expect(table.getByRole('rowheader', { name: /Owes/ })).toHaveTextContent('of $12.20');
@@ -274,7 +300,7 @@ describe('SummaryStep', () => {
     fireEvent.click(byPerson);
 
     expect(screen.queryByRole('region', { name: 'Who had what' })).toBeNull();
-    expect(screen.getByTestId('summary-show-details-btn')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Show on each card' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'PayNow' })).toBeInTheDocument();
   });
 

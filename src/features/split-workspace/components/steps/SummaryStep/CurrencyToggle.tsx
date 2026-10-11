@@ -1,6 +1,6 @@
 import { getCurrencySymbol } from '@shared/logic/core/money';
 import { BASE_CURRENCY } from '@shared/constants';
-import { cn } from '@shared/utils/cn';
+import { PillToggle } from './PillToggle';
 
 interface Props {
   showBaseCurrency: boolean;
@@ -10,34 +10,20 @@ interface Props {
 }
 
 export function CurrencyToggle({ showBaseCurrency, onToggle, activeTab, currentCurrency }: Props) {
+  const billedLabel =
+    activeTab === 'total'
+      ? 'As billed'
+      : `${getCurrencySymbol(currentCurrency)} ${currentCurrency}`;
+
   return (
-    <div className="flex items-center gap-1 rounded-full bg-surface-container p-0.5 text-xs font-semibold">
-      <button
-        type="button"
-        onClick={() => onToggle(false)}
-        className={cn(
-          'rounded-full px-3 py-1 transition-all',
-          !showBaseCurrency
-            ? 'bg-primary text-on-primary shadow-sm'
-            : 'text-on-surface-variant hover:text-on-surface',
-        )}
-      >
-        {activeTab === 'total'
-          ? 'As billed'
-          : `${getCurrencySymbol(currentCurrency)} ${currentCurrency}`}
-      </button>
-      <button
-        type="button"
-        onClick={() => onToggle(true)}
-        className={cn(
-          'rounded-full px-3 py-1 transition-all',
-          showBaseCurrency
-            ? 'bg-primary text-on-primary shadow-sm'
-            : 'text-on-surface-variant hover:text-on-surface',
-        )}
-      >
-        {getCurrencySymbol(BASE_CURRENCY)} {BASE_CURRENCY}
-      </button>
-    </div>
+    <PillToggle
+      label="Currency"
+      options={[
+        { value: 'billed', label: billedLabel },
+        { value: 'base', label: `${getCurrencySymbol(BASE_CURRENCY)} ${BASE_CURRENCY}` },
+      ]}
+      value={showBaseCurrency ? 'base' : 'billed'}
+      onChange={(value) => onToggle(value === 'base')}
+    />
   );
 }
