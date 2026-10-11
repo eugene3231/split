@@ -113,12 +113,12 @@ describe('AssignStep', () => {
     ]);
   });
 
-  it("asks what the active person had and sums up that person's items and total", () => {
+  it('asks what the active person had and shows their total without an item count', () => {
     renderStep('p2');
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
     expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveTextContent('$4.50');
-    expect(screen.getAllByTestId('claim-person-items-p2')[0]).toHaveTextContent('2 items');
+    expect(screen.getAllByTestId('claim-person-p2')[0]).not.toHaveTextContent(/\d+ items?/);
     expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });

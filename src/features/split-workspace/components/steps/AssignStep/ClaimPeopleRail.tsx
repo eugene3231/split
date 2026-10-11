@@ -1,6 +1,5 @@
 import { cn } from '@shared/utils/cn';
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
-import { formatItemCount } from '@features/split-workspace/logic/claim';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 
 interface Props {
@@ -48,12 +47,6 @@ export function ClaimPeopleRail({ people, onSelect, layout, className }: Props) 
             <span className="block text-xs text-on-surface-variant tabular-nums">
               {person.totalLabel}
             </span>
-          </span>
-          <span
-            data-testid={`claim-person-items-${person.id}`}
-            className="shrink-0 text-xs whitespace-nowrap text-on-surface-variant tabular-nums"
-          >
-            {formatItemCount(person.itemCount)}
           </span>
         </button>
       ))}
