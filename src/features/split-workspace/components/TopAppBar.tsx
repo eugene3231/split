@@ -3,32 +3,17 @@ import { WIZARD_STEPS } from '@features/split-workspace/types';
 import { cn } from '@shared/utils/cn';
 import type { WizardStep } from '@features/split-workspace/types';
 import { STEP_LABELS } from '@features/split-workspace/logic/wizardSteps';
-import { formatItemCount } from '@features/split-workspace/logic/claim';
 
 interface Props {
   activeStep: WizardStep;
-  itemsLeftCount: number;
   stepReachability: Record<WizardStep, boolean>;
   onStepSelect: (step: WizardStep) => void;
   actions?: ReactNode;
 }
 
-export function TopAppBar({
-  activeStep,
-  itemsLeftCount,
-  stepReachability,
-  onStepSelect,
-  actions,
-}: Props) {
+export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions }: Props) {
   const stepIndex = WIZARD_STEPS.indexOf(activeStep);
   const stepNumber = stepIndex + 1;
-
-  const contextText =
-    activeStep !== 'items'
-      ? ''
-      : itemsLeftCount > 0
-        ? `${formatItemCount(itemsLeftCount)} left`
-        : 'Every item assigned';
 
   return (
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">
@@ -173,7 +158,6 @@ export function TopAppBar({
           <p className="truncate text-xs font-bold tracking-widest text-primary uppercase">
             Step {stepNumber} of {WIZARD_STEPS.length}
           </p>
-          {contextText && <p className="truncate text-xs text-on-surface-variant">{contextText}</p>}
         </div>
 
         {actions}
