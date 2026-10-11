@@ -92,7 +92,7 @@ describe('SummaryStep', () => {
     expect(field.selectionEnd).toBe(field.value.length);
   });
 
-  it('shows a static Grand Total label on the Total tab instead of an editable receipt name', () => {
+  it('names the combined total by its receipt count instead of an editable receipt name', () => {
     const alice = makePerson('Alice');
     const receipt1 = makeReceipt({
       id: 'r1',
@@ -120,7 +120,9 @@ describe('SummaryStep', () => {
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
     // Defaults to the consolidated "total" tab when there are multiple receipts.
-    const grandTotalLabel = screen.getByText('Grand Total');
+    const grandTotalLabel = within(screen.getByTestId('grand-total-card')).getByText(
+      'Total · 2 receipts',
+    );
     expect(grandTotalLabel.closest('[contenteditable="true"]')).toBeNull();
   });
 
@@ -197,8 +199,8 @@ describe('SummaryStep', () => {
 
       render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
-      const grandTotal = screen.getByText('Grand Total').closest('.rounded-3xl');
-      expect(grandTotal?.textContent?.includes('Rp')).toBe(totalsAsBilled);
+      const grandTotal = screen.getByTestId('grand-total-card');
+      expect(grandTotal.textContent?.includes('Rp')).toBe(totalsAsBilled);
       expect(screen.queryByText(/Totals in SGD/) === null).toBe(totalsAsBilled);
     },
   );
@@ -266,13 +268,32 @@ describe('SummaryStep', () => {
     expect(table.getByRole('rowheader', { name: /Owes/ })).toHaveTextContent('of $12.20');
     expect(table.getByRole('row', { name: /Owes/ })).toHaveTextContent('$5.00$7.20');
     expect(table.queryByRole('textbox')).toBeNull();
-    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'PayNow' })).toBeNull();
     expect(screen.getByTestId('export-copy-text-btn')).toBeInTheDocument();
 
     fireEvent.click(byPerson);
 
     expect(screen.queryByRole('region', { name: 'Who had what' })).toBeNull();
     expect(screen.getByTestId('summary-show-details-btn')).toBeInTheDocument();
-    expect(screen.getByLabelText('PayNow Number')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PayNow' })).toBeInTheDocument();
+  });
+
+  it('keeps the PayNow number hidden until the PayNow button is tapped', () => {
+    seedDinner();
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+    const payNow = screen.getByRole('button', { name: 'PayNow' });
+
+    expect(payNow).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+
+    fireEvent.click(payNow);
+
+    expect(payNow).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByLabelText('PayNow Number')).toHaveFocus();
+
+    fireEvent.click(payNow);
+
+    expect(payNow).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
   });
 });

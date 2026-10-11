@@ -82,6 +82,15 @@ body,
   min-height: 100%;
 }
 
+/* Read by the app bar and by anything that pins itself just below it. */
+:root {
+  --app-bar-height: 3.8125rem;
+
+  @media (width >= 48rem) {
+    --app-bar-height: 5.5625rem;
+  }
+}
+
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;

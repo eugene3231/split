@@ -1,8 +1,10 @@
-import type { ReactNode } from 'react';
+import { useRef } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type { Person } from '@shared/types';
 import { cn } from '@shared/utils/cn';
 import { personColor } from '@shared/utils/personColors';
+import { usePinnedSectionTitle } from './usePinnedSectionTitle';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import type {
   OverviewChargeRow,
@@ -15,15 +17,25 @@ interface Props {
   overview: SummaryOverview;
 }
 
+// Both the pinned header and the table lay columns out from these, so they line up without
+// measuring: the Item column is fixed and the people share the rest, never below a minimum.
+const ITEM_COLUMN = 'w-32 sm:w-56';
+const TABLE_WIDTH =
+  'w-full min-w-[calc(8rem+var(--people)*5rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)]';
+
 // `features/sharing/logic/overviewTableImage.ts` draws the same table for the PNG export.
 export function OverviewTable({ overview }: Props) {
   const { people, sections } = overview;
   const showSectionHeadings = sections.length > 1;
+  const headerRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const pinnedSectionTitle = usePinnedSectionTitle(tableRef, headerRef);
 
   return (
     <section
       aria-labelledby="overview-heading"
-      className="min-w-0 overflow-hidden rounded-2xl bg-surface-container-lowest"
+      className="min-w-0 overflow-clip rounded-2xl bg-surface-container-lowest"
+      style={{ '--people': people.length } as CSSProperties}
     >
       <div className="flex items-center justify-between gap-3 px-4 pt-5 pb-3 sm:px-6">
         <h2 id="overview-heading" className="text-lg font-bold text-on-surface">
@@ -35,15 +47,63 @@ export function OverviewTable({ overview }: Props) {
           </span>
         )}
       </div>
-      <div data-testid="overview-table-scroll" className="relative overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-y border-outline-variant/40 text-xs text-on-surface-variant">
-              <StickyCell as="th" className="py-2 font-medium">
-                Item
-              </StickyCell>
-              {people.map((person, index) => (
-                <PersonHeader key={person.id} person={person} colorIndex={index} />
+      {/* The people row, and the receipt being scrolled through, pin under the app bar while the
+          page scrolls. They sit outside the table because a sticky row can't escape the table's
+          sideways scroll box, so the people row follows that box's scroll instead.
+          React only: the PNG shows the whole table at once. */}
+      <div aria-hidden="true" className="sticky top-(--app-bar-height) z-20">
+        <div
+          ref={headerRef}
+          data-testid="overview-pinned-people"
+          className="overflow-hidden border-y border-outline-variant/40 bg-surface-container-lowest text-xs text-on-surface-variant"
+        >
+          <div className={cn('flex', TABLE_WIDTH)}>
+            <div
+              className={cn(
+                ITEM_COLUMN,
+                'sticky left-0 flex shrink-0 items-center bg-surface-container-lowest px-4 font-medium shadow-[inset_-1px_0_0_var(--color-outline-variant)] sm:px-6 sm:shadow-none',
+              )}
+            >
+              Item
+            </div>
+            {people.map((person, index) => (
+              <div
+                key={person.id}
+                title={person.name}
+                className="flex min-w-0 flex-1 basis-0 justify-center px-1 py-2 font-medium last:pr-3 sm:last:pr-5"
+              >
+                <PersonIdentity person={person} colorIndex={index} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {pinnedSectionTitle && (
+          <SectionTitle className="absolute inset-x-0 top-full border-b border-outline-variant/40 bg-surface-container-low">
+            {pinnedSectionTitle}
+          </SectionTitle>
+        )}
+      </div>
+      <div
+        data-testid="overview-table-scroll"
+        className="relative overflow-x-auto"
+        onScroll={(event) => {
+          if (headerRef.current) headerRef.current.scrollLeft = event.currentTarget.scrollLeft;
+        }}
+      >
+        <table ref={tableRef} className={cn('table-fixed border-collapse text-sm', TABLE_WIDTH)}>
+          <colgroup>
+            <col className={ITEM_COLUMN} />
+            {people.map((person) => (
+              <col key={person.id} />
+            ))}
+          </colgroup>
+          <thead className="sr-only">
+            <tr>
+              <th scope="col">Item</th>
+              {people.map((person) => (
+                <th key={person.id} scope="col">
+                  {person.name}
+                </th>
               ))}
             </tr>
           </thead>
@@ -105,16 +165,12 @@ function StickyCell({ as: Cell, scope, className, children }: StickyCellProps) {
   );
 }
 
-function PersonHeader({ person, colorIndex }: { person: Person; colorIndex: number }) {
+function PersonIdentity({ person, colorIndex }: { person: Person; colorIndex: number }) {
   return (
-    <th scope="col" title={person.name} className="px-1 py-2 font-medium">
-      <span className="flex flex-col items-center gap-1 text-on-surface">
-        <PersonAvatar name={person.name} colorIndex={colorIndex} size="sm" />
-        <span className="sr-only sm:not-sr-only sm:block sm:max-w-16 sm:truncate">
-          {person.name.trim().split(/\s+/)[0]}
-        </span>
-      </span>
-    </th>
+    <span className="flex min-w-0 flex-col items-center gap-1 text-on-surface">
+      <PersonAvatar name={person.name} colorIndex={colorIndex} size="sm" />
+      <span className="block max-w-full truncate">{person.name.trim().split(/\s+/)[0]}</span>
+    </span>
   );
 }
 
@@ -126,13 +182,24 @@ function SectionHeading({
   columnCount: number;
 }) {
   return (
-    <tr className="bg-surface-container-low">
+    <tr data-section-title={section.title} className="bg-surface-container-low">
       <th scope="rowgroup" colSpan={columnCount} className="p-0 text-left">
-        <span className="sticky left-0 inline-block px-4 py-2 text-xs font-bold tracking-widest text-on-surface-variant uppercase sm:px-6">
-          {section.title}
-        </span>
+        <SectionTitle className="sticky left-0 inline-block">{section.title}</SectionTitle>
       </th>
     </tr>
+  );
+}
+
+function SectionTitle({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'px-4 py-2 text-xs font-bold tracking-widest text-on-surface-variant uppercase sm:px-6',
+        className,
+      )}
+    >
+      {children}
+    </span>
   );
 }
 

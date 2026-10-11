@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SummaryOverview } from '@shared/types/summaryOverview';
 import { OverviewTable } from './OverviewTable';
 
@@ -53,6 +53,8 @@ function overview(overrides: Partial<SummaryOverview> = {}): SummaryOverview {
   };
 }
 
+afterEach(() => vi.restoreAllMocks());
+
 describe('OverviewTable', () => {
   it('flags unassigned items with no one’s share against them', () => {
     render(<OverviewTable overview={overview()} />);
@@ -67,10 +69,8 @@ describe('OverviewTable', () => {
     render(<OverviewTable overview={overview()} />);
 
     expect(screen.getByTitle('Alice Tan, Laksa: $6.00')).toHaveTextContent('$6.00');
-    expect(screen.getByRole('columnheader', { name: 'Alice' })).toHaveAttribute(
-      'title',
-      'Alice Tan',
-    );
+    expect(screen.getByRole('columnheader', { name: 'Alice Tan' })).toBeInTheDocument();
+    expect(screen.getByTitle('Alice Tan')).toHaveTextContent('Alice');
   });
 
   it('shows discount shares as deductions', () => {
@@ -89,5 +89,42 @@ describe('OverviewTable', () => {
 
     expect(screen.getByRole('rowheader', { name: 'Drinks' })).toBeInTheDocument();
     expect(screen.getByRole('rowheader', { name: /Dinner total/ })).toHaveTextContent('$9.00');
+  });
+
+  it('keeps the pinned people row lined up when the table scrolls sideways', () => {
+    render(<OverviewTable overview={overview()} />);
+    const table = screen.getByTestId('overview-table-scroll');
+    const pinnedRow = screen.getByTestId('overview-pinned-people');
+
+    table.scrollLeft = 40;
+    fireEvent.scroll(table);
+
+    expect(pinnedRow?.scrollLeft).toBe(40);
+  });
+
+  it('pins the receipt being scrolled through under the people row', () => {
+    const dinner = overview().sections[0];
+    const drinks = { ...dinner, id: 'drinks', title: 'Drinks' };
+    render(<OverviewTable overview={overview({ sections: [dinner, drinks] })} />);
+    const tops: Record<string, number> = { Dinner: -200, Drinks: 400 };
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this.dataset.testid === 'overview-pinned-people') return new DOMRect(0, 60, 300, 60);
+      return new DOMRect(0, tops[this.dataset.sectionTitle ?? ''] ?? 0, 300, 30);
+    });
+    const pinned = () => screen.getByTestId('overview-pinned-people').parentElement;
+
+    fireEvent.scroll(window);
+    expect(pinned()).toHaveTextContent('Dinner');
+
+    tops.Drinks = 100;
+    fireEvent.scroll(window);
+    expect(pinned()).toHaveTextContent('Drinks');
+
+    tops.Dinner = 300;
+    tops.Drinks = 600;
+    fireEvent.scroll(window);
+    expect(pinned()).not.toHaveTextContent('Dinner');
   });
 });
