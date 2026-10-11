@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { SummaryOverview } from '@shared/types/summaryOverview';
 import { OverviewTable } from './OverviewTable';
@@ -67,10 +67,8 @@ describe('OverviewTable', () => {
     render(<OverviewTable overview={overview()} />);
 
     expect(screen.getByTitle('Alice Tan, Laksa: $6.00')).toHaveTextContent('$6.00');
-    expect(screen.getByRole('columnheader', { name: 'Alice' })).toHaveAttribute(
-      'title',
-      'Alice Tan',
-    );
+    expect(screen.getByRole('columnheader', { name: 'Alice Tan' })).toBeInTheDocument();
+    expect(screen.getByTitle('Alice Tan')).toHaveTextContent('Alice');
   });
 
   it('shows discount shares as deductions', () => {
@@ -89,5 +87,16 @@ describe('OverviewTable', () => {
 
     expect(screen.getByRole('rowheader', { name: 'Drinks' })).toBeInTheDocument();
     expect(screen.getByRole('rowheader', { name: /Dinner total/ })).toHaveTextContent('$9.00');
+  });
+
+  it('keeps the pinned people row lined up when the table scrolls sideways', () => {
+    render(<OverviewTable overview={overview()} />);
+    const table = screen.getByTestId('overview-table-scroll');
+    const pinnedRow = screen.getByTitle('Alice Tan').closest('[aria-hidden="true"]');
+
+    table.scrollLeft = 40;
+    fireEvent.scroll(table);
+
+    expect(pinnedRow?.scrollLeft).toBe(40);
   });
 });

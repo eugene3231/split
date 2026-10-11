@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useRef } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type { Person } from '@shared/types';
 import { cn } from '@shared/utils/cn';
@@ -15,15 +16,23 @@ interface Props {
   overview: SummaryOverview;
 }
 
+// Both the pinned header and the table lay columns out from these, so they line up without
+// measuring: the Item column is fixed and the people share the rest, never below a minimum.
+const ITEM_COLUMN = 'w-32 sm:w-56';
+const TABLE_WIDTH =
+  'w-full min-w-[calc(8rem+var(--people)*5rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)]';
+
 // `features/sharing/logic/overviewTableImage.ts` draws the same table for the PNG export.
 export function OverviewTable({ overview }: Props) {
   const { people, sections } = overview;
   const showSectionHeadings = sections.length > 1;
+  const headerRef = useRef<HTMLDivElement>(null);
 
   return (
     <section
       aria-labelledby="overview-heading"
-      className="min-w-0 overflow-hidden rounded-2xl bg-surface-container-lowest"
+      className="min-w-0 overflow-clip rounded-2xl bg-surface-container-lowest"
+      style={{ '--people': people.length } as CSSProperties}
     >
       <div className="flex items-center justify-between gap-3 px-4 pt-5 pb-3 sm:px-6">
         <h2 id="overview-heading" className="text-lg font-bold text-on-surface">
@@ -35,24 +44,55 @@ export function OverviewTable({ overview }: Props) {
           </span>
         )}
       </div>
-      {/* Capped at the screen height so the header row can stick: a sticky row only sticks inside
-          its own scroll box, and this box already scrolls sideways. React only: the PNG shows the
-          whole table at once. */}
+      {/* The people row pins under the app bar while the page scrolls. It sits outside the table
+          because a sticky row can't escape the table's sideways scroll box, so it follows that
+          box's scroll instead. React only: the PNG shows the whole table at once. */}
+      <div
+        ref={headerRef}
+        aria-hidden="true"
+        className="sticky top-(--app-bar-height) z-20 overflow-hidden border-y border-outline-variant/40 bg-surface-container-lowest text-xs text-on-surface-variant"
+      >
+        <div className={cn('flex', TABLE_WIDTH)}>
+          <div
+            className={cn(
+              ITEM_COLUMN,
+              'sticky left-0 flex shrink-0 items-center bg-surface-container-lowest px-4 font-medium shadow-[inset_-1px_0_0_var(--color-outline-variant)] sm:px-6 sm:shadow-none',
+            )}
+          >
+            Item
+          </div>
+          {people.map((person, index) => (
+            <div
+              key={person.id}
+              title={person.name}
+              className="flex min-w-0 flex-1 basis-0 justify-center px-1 py-2 font-medium last:pr-3 sm:last:pr-5"
+            >
+              <PersonIdentity person={person} colorIndex={index} />
+            </div>
+          ))}
+        </div>
+      </div>
       <div
         data-testid="overview-table-scroll"
-        className="relative max-h-[calc(100dvh-8rem)] overflow-auto border-t border-outline-variant/40"
+        className="relative overflow-x-auto"
+        onScroll={(event) => {
+          if (headerRef.current) headerRef.current.scrollLeft = event.currentTarget.scrollLeft;
+        }}
       >
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="text-xs text-on-surface-variant">
-              <StickyCell
-                as="th"
-                className="top-0 z-30 py-2 font-medium shadow-[inset_-1px_-1px_0_var(--color-outline-variant)] sm:shadow-[inset_0_-1px_0_var(--color-outline-variant)]"
-              >
-                Item
-              </StickyCell>
-              {people.map((person, index) => (
-                <PersonHeader key={person.id} person={person} colorIndex={index} />
+        <table className={cn('table-fixed border-collapse text-sm', TABLE_WIDTH)}>
+          <colgroup>
+            <col className={ITEM_COLUMN} />
+            {people.map((person) => (
+              <col key={person.id} />
+            ))}
+          </colgroup>
+          <thead className="sr-only">
+            <tr>
+              <th scope="col">Item</th>
+              {people.map((person) => (
+                <th key={person.id} scope="col">
+                  {person.name}
+                </th>
               ))}
             </tr>
           </thead>
@@ -114,20 +154,12 @@ function StickyCell({ as: Cell, scope, className, children }: StickyCellProps) {
   );
 }
 
-function PersonHeader({ person, colorIndex }: { person: Person; colorIndex: number }) {
+function PersonIdentity({ person, colorIndex }: { person: Person; colorIndex: number }) {
   return (
-    <th
-      scope="col"
-      title={person.name}
-      className="sticky top-0 z-20 bg-surface-container-lowest px-1 py-2 font-medium shadow-[inset_0_-1px_0_var(--color-outline-variant)]"
-    >
-      <span className="flex flex-col items-center gap-1 text-on-surface">
-        <PersonAvatar name={person.name} colorIndex={colorIndex} size="sm" />
-        <span className="sr-only sm:not-sr-only sm:block sm:max-w-16 sm:truncate">
-          {person.name.trim().split(/\s+/)[0]}
-        </span>
-      </span>
-    </th>
+    <span className="flex min-w-0 flex-col items-center gap-1 text-on-surface">
+      <PersonAvatar name={person.name} colorIndex={colorIndex} size="sm" />
+      <span className="block max-w-full truncate">{person.name.trim().split(/\s+/)[0]}</span>
+    </span>
   );
 }
 
