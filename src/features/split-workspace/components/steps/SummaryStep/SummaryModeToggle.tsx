@@ -1,3 +1,4 @@
+import { ToggleGroup } from 'radix-ui';
 import { cn } from '@shared/utils/cn';
 
 export type SummaryMode = 'by-person' | 'overview';
@@ -14,9 +15,11 @@ interface Props {
 
 export function SummaryModeToggle({ mode, onModeChange }: Props) {
   return (
-    <div
-      role="group"
+    <ToggleGroup.Root
+      type="single"
       aria-label="Summary view"
+      value={mode}
+      onValueChange={(value: SummaryMode | '') => value && onModeChange(value)}
       className="relative grid w-full grid-cols-2 rounded-full bg-surface-container-high p-1 text-sm font-semibold sm:inline-grid sm:w-auto"
     >
       <span
@@ -26,23 +29,15 @@ export function SummaryModeToggle({ mode, onModeChange }: Props) {
           mode === 'overview' && 'translate-x-full',
         )}
       />
-      {MODES.map((option) => {
-        const pressed = option.value === mode;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={pressed}
-            onClick={() => onModeChange(option.value)}
-            className={cn(
-              'relative rounded-full px-5 py-2 transition-colors',
-              pressed ? 'text-on-surface' : 'text-on-surface-variant hover:text-on-surface',
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+      {MODES.map((option) => (
+        <ToggleGroup.Item
+          key={option.value}
+          value={option.value}
+          className="relative rounded-full px-5 py-2 text-on-surface-variant transition-colors hover:text-on-surface data-[state=on]:text-on-surface"
+        >
+          {option.label}
+        </ToggleGroup.Item>
+      ))}
+    </ToggleGroup.Root>
   );
 }

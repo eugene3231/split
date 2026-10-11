@@ -1,3 +1,4 @@
+import { Switch, ToggleGroup } from 'radix-ui';
 import { cn } from '@shared/utils/cn';
 import {
   formatMoneyAmount,
@@ -7,6 +8,9 @@ import {
 } from '@shared/logic/core/money';
 import { FormattedNumberInput } from '@features/split-workspace/components/shared/FormattedNumberInput';
 import type { ChargeMode, ChargeState } from '@shared/types';
+
+const MODE_ITEM_CLASS =
+  'rounded-md px-2 py-0.5 text-xs font-extrabold text-on-surface-variant transition-all data-[state=on]:bg-surface-container-lowest data-[state=on]:text-primary data-[state=on]:shadow-sm';
 
 interface Props {
   label: string;
@@ -24,25 +28,14 @@ export function ChargeToggle({ label, value, onChange, currency }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {/* Toggle switch */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isEnabled}
+          <Switch.Root
             aria-label={label}
-            onClick={() => onChange({ ...value, enabled: !isEnabled })}
-            className={cn(
-              'relative h-6 w-10 flex-shrink-0 cursor-pointer rounded-full p-1 transition-colors',
-              isEnabled ? 'bg-primary' : 'bg-surface-container-highest',
-            )}
+            checked={isEnabled}
+            onCheckedChange={(enabled) => onChange({ ...value, enabled })}
+            className="relative h-6 w-10 flex-shrink-0 cursor-pointer rounded-full bg-surface-container-highest p-1 transition-colors data-[state=checked]:bg-primary"
           >
-            <div
-              className={cn(
-                'h-4 w-4 rounded-full bg-on-primary shadow-sm transition-transform',
-                isEnabled ? 'translate-x-4' : 'translate-x-0',
-              )}
-            />
-          </button>
+            <Switch.Thumb className="block h-4 w-4 rounded-full bg-on-primary shadow-sm transition-transform data-[state=checked]:translate-x-4" />
+          </Switch.Root>
           <span
             className={cn(
               'text-sm font-bold',
@@ -53,42 +46,32 @@ export function ChargeToggle({ label, value, onChange, currency }: Props) {
           </span>
         </div>
 
-        {/* amount/% mode toggle */}
-        <div
+        <ToggleGroup.Root
+          type="single"
+          aria-label={`How ${label} is entered`}
+          disabled={!isEnabled}
+          value={value.mode}
+          onValueChange={(mode: ChargeMode | '') => mode && onChange({ ...value, mode })}
           className={cn(
             'flex items-center rounded-lg bg-surface-container-low p-1',
             !isEnabled && 'opacity-50',
           )}
         >
-          <button
-            type="button"
+          <ToggleGroup.Item
+            value="amount"
             aria-label={`${label} as an amount`}
-            aria-pressed={isAmount}
-            onClick={() => isEnabled && onChange({ ...value, mode: 'amount' as ChargeMode })}
-            className={cn(
-              'rounded-md px-2 py-0.5 text-xs font-extrabold transition-all',
-              isAmount
-                ? 'bg-surface-container-lowest text-primary shadow-sm'
-                : 'text-on-surface-variant',
-            )}
+            className={MODE_ITEM_CLASS}
           >
             {currencySymbol}
-          </button>
-          <button
-            type="button"
+          </ToggleGroup.Item>
+          <ToggleGroup.Item
+            value="percent"
             aria-label={`${label} as a percent`}
-            aria-pressed={!isAmount}
-            onClick={() => isEnabled && onChange({ ...value, mode: 'percent' as ChargeMode })}
-            className={cn(
-              'rounded-md px-2 py-0.5 text-xs font-extrabold transition-all',
-              !isAmount
-                ? 'bg-surface-container-lowest text-primary shadow-sm'
-                : 'text-on-surface-variant',
-            )}
+            className={MODE_ITEM_CLASS}
           >
             %
-          </button>
-        </div>
+          </ToggleGroup.Item>
+        </ToggleGroup.Root>
       </div>
 
       {isEnabled && (

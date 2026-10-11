@@ -78,7 +78,7 @@ it('writes charge amounts and the receipt total the way the receipt currency is 
 it('shows the receipt currency on the amount toggle and next to the amount', () => {
   render(panel({ currency: 'IDR', serviceCharge: amountCharge('') }));
 
-  expect(screen.getByRole('button', { name: 'Service Charge as an amount' })).toHaveTextContent(
+  expect(screen.getByRole('radio', { name: 'Service Charge as an amount' })).toHaveTextContent(
     'Rp',
   );
   const input = screen.getByRole('textbox', { name: 'Service Charge amount' });
