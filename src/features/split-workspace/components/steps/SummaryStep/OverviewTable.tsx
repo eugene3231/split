@@ -35,11 +35,20 @@ export function OverviewTable({ overview }: Props) {
           </span>
         )}
       </div>
-      <div data-testid="overview-table-scroll" className="relative overflow-x-auto">
+      {/* Capped at the screen height so the header row can stick: a sticky row only sticks inside
+          its own scroll box, and this box already scrolls sideways. React only: the PNG shows the
+          whole table at once. */}
+      <div
+        data-testid="overview-table-scroll"
+        className="relative max-h-[calc(100dvh-8rem)] overflow-auto border-t border-outline-variant/40"
+      >
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-y border-outline-variant/40 text-xs text-on-surface-variant">
-              <StickyCell as="th" className="py-2 font-medium">
+            <tr className="text-xs text-on-surface-variant">
+              <StickyCell
+                as="th"
+                className="top-0 z-30 py-2 font-medium shadow-[inset_-1px_-1px_0_var(--color-outline-variant)] sm:shadow-[inset_0_-1px_0_var(--color-outline-variant)]"
+              >
                 Item
               </StickyCell>
               {people.map((person, index) => (
@@ -107,7 +116,11 @@ function StickyCell({ as: Cell, scope, className, children }: StickyCellProps) {
 
 function PersonHeader({ person, colorIndex }: { person: Person; colorIndex: number }) {
   return (
-    <th scope="col" title={person.name} className="px-1 py-2 font-medium">
+    <th
+      scope="col"
+      title={person.name}
+      className="sticky top-0 z-20 bg-surface-container-lowest px-1 py-2 font-medium shadow-[inset_0_-1px_0_var(--color-outline-variant)]"
+    >
       <span className="flex flex-col items-center gap-1 text-on-surface">
         <PersonAvatar name={person.name} colorIndex={colorIndex} size="sm" />
         <span className="sr-only sm:not-sr-only sm:block sm:max-w-16 sm:truncate">
