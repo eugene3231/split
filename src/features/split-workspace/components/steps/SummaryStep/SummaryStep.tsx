@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
-import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import { formatCurrencyFromCents, formatExchangeRate } from '@shared/logic/core/money';
 import { getShareSupport } from '@features/sharing/logic/shareSplit';
 import { PersonBreakdownCard } from './PersonBreakdownCard';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -18,7 +18,8 @@ import type { SummaryMode } from './SummaryModeToggle';
 import { OverviewTable } from './OverviewTable';
 import { MixedCurrencyNote } from './MixedCurrencyNote';
 import { cn } from '@shared/utils/cn';
-import { SummaryTextToggle } from './SummaryTextToggle';
+import { SummaryDetailToggle } from './SummaryDetailToggle';
+import type { SummaryDetail } from './SummaryDetailToggle';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
@@ -30,22 +31,21 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
     const receipts = useReceiptStore.getState().receipts;
     return receipts.length > 1 ? 'total' : (receipts[0]?.id ?? 'total');
   });
-  const [showDetails, setShowDetails] = useState(true);
-  const [showAllItems, setShowAllItems] = useState(false);
+  const [detail, setDetail] = useState<SummaryDetail>('their-items');
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
   const [mode, setMode] = useState<SummaryMode>('by-person');
 
   const model = useSummaryModel({
     activeTab,
     showBaseCurrency,
-    showAllItems,
+    showAllItems: detail === 'all-items',
   });
   const { people, receipts, renameReceipt, view, summaryBreakdown, summaryOverview } = model;
   const reconciliationCents = model.reconciliation.cents;
   const { exportState, text, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
       model,
-      includeItemDetails: showDetails,
+      includeItemDetails: detail !== 'totals',
       mode,
     });
 
@@ -148,52 +148,36 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         <div className={cn(isOverview ? 'lg:col-span-12' : 'order-2 lg:order-1 lg:col-span-8')}>
-          <div className="mb-3 flex items-center justify-between">
-            {showCurrencyControls ? (
-              <div className="flex flex-wrap items-center gap-4">
+          <div
+            data-testid="summary-controls"
+            className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2"
+          >
+            {showCurrencyControls && (
+              <>
                 <CurrencyToggle
                   showBaseCurrency={showBaseCurrency}
                   onToggle={setShowBaseCurrency}
                   activeTab={activeTab}
                   currentCurrency={nativeCurrency}
                 />
-                {view.kind === 'total' &&
-                !showBaseCurrency &&
-                view.displayCurrency === BASE_CURRENCY ? (
-                  <MixedCurrencyNote currencies={view.billedCurrencies} />
-                ) : view.kind === 'receipt' && view.effectiveRate ? (
-                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                    <span className="material-symbols-outlined text-sm">currency_exchange</span>
-                    <span>
-                      1 {BASE_CURRENCY} = {parseFloat((1 / view.effectiveRate).toFixed(5))}{' '}
+                {/* On phones the note drops below so both switches share one line. */}
+                <div className="order-last w-full sm:order-none sm:w-auto">
+                  {view.kind === 'total' &&
+                  !showBaseCurrency &&
+                  view.displayCurrency === BASE_CURRENCY ? (
+                    <MixedCurrencyNote currencies={view.billedCurrencies} />
+                  ) : view.kind === 'receipt' && view.effectiveRate ? (
+                    <p className="text-xs text-on-surface-variant">
+                      1 {BASE_CURRENCY} = {formatExchangeRate(1 / view.effectiveRate)}{' '}
                       {view.nativeCurrency}
                       {view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <span />
+                    </p>
+                  ) : null}
+                </div>
+              </>
             )}
             {!isOverview && (
-              <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
-                {showDetails && (
-                  <SummaryTextToggle
-                    data-testid="summary-show-all-items-btn"
-                    icon={showAllItems ? 'visibility_off' : 'visibility'}
-                    onClick={() => setShowAllItems((v) => !v)}
-                  >
-                    {showAllItems ? 'Only their items' : 'Show all items'}
-                  </SummaryTextToggle>
-                )}
-                <SummaryTextToggle
-                  data-testid="summary-show-details-btn"
-                  icon={showDetails ? 'expand_less' : 'expand_more'}
-                  onClick={() => setShowDetails((v) => !v)}
-                >
-                  {showDetails ? 'Hide details' : 'Show details'}
-                </SummaryTextToggle>
-              </div>
+              <SummaryDetailToggle detail={detail} onDetailChange={setDetail} className="ml-auto" />
             )}
           </div>
 
@@ -205,7 +189,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                 <PersonBreakdownCard
                   key={breakdown.person.id}
                   breakdown={breakdown}
-                  showDetails={showDetails}
+                  showDetails={detail !== 'totals'}
                 />
               ))}
               {summaryBreakdown.emptyPeopleMessage && (

@@ -1,6 +1,6 @@
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
-import { HoverLabel } from './HoverLabel';
+import { HoverLabel } from '@features/split-workspace/components/shared/HoverLabel';
 
 const MAX_AVATARS = 4;
 

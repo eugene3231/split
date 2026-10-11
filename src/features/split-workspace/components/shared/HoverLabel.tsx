@@ -7,11 +7,12 @@ interface Props {
   testId?: string;
   /** Also show the label on a plain tap, for children that have no click of their own. */
   showOnTap?: boolean;
+  labelClassName?: string;
   children: ReactNode;
 }
 
 /** Shows a label above its children on hover, or on a long press on touch screens. */
-export function HoverLabel({ label, testId, showOnTap = false, children }: Props) {
+export function HoverLabel({ label, testId, showOnTap = false, labelClassName, children }: Props) {
   const { pressed, toggle, handlers } = useLongPress();
 
   return (
@@ -28,6 +29,7 @@ export function HoverLabel({ label, testId, showOnTap = false, children }: Props
         className={cn(
           'pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 rounded-lg bg-inverse-surface px-2 py-1 text-xs font-semibold whitespace-nowrap text-inverse-on-surface opacity-0 transition-opacity group-hover:opacity-100',
           pressed && 'opacity-100',
+          labelClassName,
         )}
       >
         {label}
