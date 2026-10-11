@@ -19,6 +19,10 @@ Add or extend a test on the shared expectation whenever you touch either side.
 
 Row selection, labels, totals, receipt sections, currency-conversion metadata, QR references, and empty states belong in `summaryBreakdown.ts`. The React and canvas adapters only compose and format what it resolves.
 
+## Overview table
+
+The Overview mode has its own pair: `OverviewTable.tsx` in React and `src/features/sharing/logic/overviewTableImage.ts` for the PNG (row order and sizes in `overviewTableLayout.ts`). Both render `SummaryOverview` from `summaryOverview.ts`, so the same rules apply: keep rows, labels, totals and the unassigned treatment in sync, and keep row decisions in `summaryOverview.ts`.
+
 ## Naming
 
 Name things after the user-facing **breakdown** concept, following what is already there: `resolveSummaryBreakdown()`, `resolvePersonBreakdowns()`, `SummaryBreakdown`, `PersonBreakdown`, `ReceiptBreakdownSection`, `BreakdownItemRow`, `BreakdownChargeRow` — rather than card/view-model wording like `buildPersonSummaryCardModels`, `getPersonCards`, or `makeRows`.

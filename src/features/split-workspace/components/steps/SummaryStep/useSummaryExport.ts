@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { generateReceiptSplitImageLight } from '@features/sharing/logic/receiptSplitImageLight';
+import { generateOverviewTableImage } from '@features/sharing/logic/overviewTableImage';
 import {
   buildDownloadFilename,
   buildSplitShareText,
@@ -8,6 +9,7 @@ import {
 } from '@features/sharing/logic/shareSplit';
 import { buildSummaryExportPayload } from '@features/split-workspace/logic/buildSummaryExportPayload';
 import type { SummaryModel } from './useSummaryModel';
+import type { SummaryMode } from './SummaryModeToggle';
 
 export type SummaryExportState =
   | { kind: 'idle' }
@@ -17,11 +19,15 @@ export type SummaryExportState =
   | { kind: 'error'; message: string };
 
 interface UseSummaryExportArgs {
-  model: Pick<SummaryModel, 'people' | 'reconciliation' | 'view' | 'summaryBreakdown'>;
+  model: Pick<
+    SummaryModel,
+    'people' | 'reconciliation' | 'view' | 'summaryBreakdown' | 'summaryOverview'
+  >;
   includeItemDetails: boolean;
+  mode: SummaryMode;
 }
 
-export function useSummaryExport({ model, includeItemDetails }: UseSummaryExportArgs) {
+export function useSummaryExport({ model, includeItemDetails, mode }: UseSummaryExportArgs) {
   const [exportState, setExportState] = useState<SummaryExportState>({ kind: 'idle' });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const successTimeoutRef = useRef<number | null>(null);
@@ -49,6 +55,12 @@ export function useSummaryExport({ model, includeItemDetails }: UseSummaryExport
     };
   }, []);
 
+  // The image follows whichever view is on screen: the person cards or the overview table.
+  const generateImage = () =>
+    mode === 'overview'
+      ? generateOverviewTableImage({ overview: model.summaryOverview, title: payload.receiptName })
+      : generateReceiptSplitImageLight(payload);
+
   const beginAction = (action: Extract<SummaryExportState, { kind: 'busy' }>['action']) => {
     if (successTimeoutRef.current !== null) {
       clearTimeout(successTimeoutRef.current);
@@ -60,8 +72,11 @@ export function useSummaryExport({ model, includeItemDetails }: UseSummaryExport
   const download = async () => {
     beginAction('download');
     try {
-      const blob = await generateReceiptSplitImageLight(payload);
-      downloadImage(blob, buildDownloadFilename('split', payload.receiptName));
+      const blob = await generateImage();
+      downloadImage(
+        blob,
+        buildDownloadFilename(mode === 'overview' ? 'overview' : 'split', payload.receiptName),
+      );
       setExportState({ kind: 'idle' });
     } catch {
       setExportState({ kind: 'error', message: 'Failed to generate image.' });
@@ -71,7 +86,7 @@ export function useSummaryExport({ model, includeItemDetails }: UseSummaryExport
   const preview = async () => {
     beginAction('preview');
     try {
-      const blob = await generateReceiptSplitImageLight(payload);
+      const blob = await generateImage();
       setPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return URL.createObjectURL(blob);

@@ -46,6 +46,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
     useSummaryExport({
       model,
       includeItemDetails: showDetails,
+      mode,
     });
 
   if (receipts.length === 0) {
@@ -146,8 +147,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
       )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* The overview leads on mobile because it was just asked for */}
-        <div className={cn('lg:order-1 lg:col-span-8', isOverview ? 'order-1' : 'order-2')}>
+        <div className={cn(isOverview ? 'lg:col-span-12' : 'order-2 lg:order-1 lg:col-span-8')}>
           <div className="mb-3 flex items-center justify-between">
             {showCurrencyControls ? (
               <div className="flex flex-wrap items-center gap-4">
@@ -219,17 +219,21 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
 
         <div
           className={cn(
-            'flex flex-col gap-4 lg:order-2 lg:col-span-4',
-            isOverview ? 'order-2' : 'order-1',
+            'flex flex-col gap-4 lg:col-span-4',
+            // Overview gives the table the full width, so the buttons follow it.
+            isOverview ? 'lg:col-start-9' : 'order-1 lg:order-2',
           )}
         >
-          <GrandTotalCard
-            grandTotal={view.grandTotal}
-            displayCurrency={view.displayCurrency}
-            currentReceipt={receiptForExport}
-            people={people}
-            onRenameReceipt={renameReceipt}
-          />
+          {/* The overview's Owes row already gives the total, and PayNow only feeds the cards' QR codes. */}
+          {!isOverview && (
+            <GrandTotalCard
+              grandTotal={view.grandTotal}
+              displayCurrency={view.displayCurrency}
+              currentReceipt={receiptForExport}
+              people={people}
+              onRenameReceipt={renameReceipt}
+            />
+          )}
           <ExportActions
             exportState={exportState}
             text={text}
