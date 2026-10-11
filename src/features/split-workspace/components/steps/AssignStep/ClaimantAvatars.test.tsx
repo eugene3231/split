@@ -36,17 +36,17 @@ describe('ClaimantAvatars', () => {
     expect(screen.getByText('D4, E5')).toBeInTheDocument();
   });
 
-  it('keeps a tapped name up for a few seconds, and hides it on a second tap', () => {
+  it('keeps a tapped name up for two seconds, and hides it on a second tap', () => {
     vi.useFakeTimers();
     render(<ClaimantAvatars claimants={[person('a', 'Alex', 0)]} leftLabel={null} testId="who" />);
     const label = screen.getByText('Alex');
 
     fireEvent.click(label);
     fireEvent.pointerLeave(label);
-    act(() => vi.advanceTimersByTime(2500));
+    act(() => vi.advanceTimersByTime(1999));
     expect(label).toHaveClass('opacity-100');
 
-    act(() => vi.advanceTimersByTime(600));
+    act(() => vi.advanceTimersByTime(1));
     expect(label).not.toHaveClass('opacity-100');
 
     fireEvent.click(label);

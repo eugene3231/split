@@ -18,7 +18,7 @@ export function HoverLabel({ label, testId, showOnTap = false, labelClassName, c
   return (
     // The wrapper takes the hover and press, so a disabled button inside still shows its label.
     <span
-      className="group relative flex select-none [-webkit-touch-callout:none]"
+      className="relative flex select-none [-webkit-touch-callout:none]"
       {...handlers}
       onClick={showOnTap ? toggle : undefined}
     >
@@ -27,7 +27,7 @@ export function HoverLabel({ label, testId, showOnTap = false, labelClassName, c
         aria-hidden
         data-testid={testId}
         className={cn(
-          'pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 rounded-lg bg-inverse-surface px-2 py-1 text-xs font-semibold whitespace-nowrap text-inverse-on-surface opacity-0 transition-opacity group-hover:opacity-100',
+          'pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 rounded-lg bg-inverse-surface px-2 py-1 text-xs font-semibold whitespace-nowrap text-inverse-on-surface opacity-0',
           pressed && 'opacity-100',
           labelClassName,
         )}
