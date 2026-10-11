@@ -65,7 +65,6 @@ const COLLAPSED_ROW_H = 40;
 
 const QR_GAP = 24;
 const QR_SIZE = 240;
-const QR_CAPTION_GAP = 16;
 
 export async function generateReceiptSplitImageLight(
   options: GenerateReceiptSplitImageLightOptions,
@@ -346,7 +345,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
   }
 
   if (args.qrImage) {
-    drawPaynowQr(ctx, args.qrImage, args.x, args.y + args.height - CARD_PAD - QR_SIZE);
+    drawPaynowQr(ctx, args.qrImage, innerX, args.y + args.height - CARD_PAD - QR_SIZE);
   }
 }
 
@@ -531,39 +530,17 @@ function drawRule(ctx: CanvasRenderingContext2D, x: number, y: number, width: nu
   ctx.fillRect(x, Math.round(y), width, 1);
 }
 
-/**
- * The PayNow image is the code with its "Pay To / Amount" caption stacked underneath.
- * Drawing the caption beside the code instead lets the code be bigger for the same height.
- */
+/** The image already carries "Pay to" and "Amount" beside the code, so it only needs scaling. */
 function drawPaynowQr(
   ctx: CanvasRenderingContext2D,
   image: HTMLImageElement,
-  cardX: number,
+  x: number,
   y: number,
 ): void {
-  const codeSide = image.naturalWidth;
-  const captionHeight = image.naturalHeight - codeSide;
-  const captionDrawHeight = (captionHeight / codeSide) * QR_SIZE;
-  const blockWidth = QR_SIZE * 2 + QR_CAPTION_GAP;
-  const x = cardX + (COLUMN_WIDTH - blockWidth) / 2;
-
+  const scale = Math.min(QR_SIZE / image.naturalHeight, INNER_WIDTH / image.naturalWidth);
   ctx.save();
   // Keeps the modules crisp when a low-density code is scaled up.
-  ctx.imageSmoothingEnabled = codeSide >= QR_SIZE;
-  ctx.drawImage(image, 0, 0, codeSide, codeSide, x, y, QR_SIZE, QR_SIZE);
+  ctx.imageSmoothingEnabled = scale <= 1;
+  ctx.drawImage(image, x, y, image.naturalWidth * scale, image.naturalHeight * scale);
   ctx.restore();
-
-  if (captionHeight > 0) {
-    ctx.drawImage(
-      image,
-      0,
-      codeSide,
-      codeSide,
-      captionHeight,
-      x + QR_SIZE + QR_CAPTION_GAP,
-      y + (QR_SIZE - captionDrawHeight) / 2,
-      QR_SIZE,
-      captionDrawHeight,
-    );
-  }
 }
