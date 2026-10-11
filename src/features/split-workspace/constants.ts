@@ -51,3 +51,4 @@ export const LOCAL_STORAGE_OCR_SETTINGS_KEY = 'split:ocr-settings:v1';
 export const LOCAL_STORAGE_WIZARD_STATE_KEY = 'split:simple-wizard-state:v1';
 export const SESSION_STORAGE_GEMINI_API_KEY = 'split:gemini-api-key:session';
 export const LOCAL_STORAGE_EXCHANGE_RATES_KEY = 'split:exchange-rates:v1';
+export const LOCAL_STORAGE_SAVED_GROUPS_KEY = 'split:saved-groups:v1';

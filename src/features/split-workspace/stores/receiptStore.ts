@@ -72,7 +72,9 @@ type ReceiptStoreActions = {
   resetSplit: () => void;
   reset: () => void;
   addPeopleFromInput: (rawInput: string) => void;
+  addPeople: (names: string[]) => void;
   removePerson: (personId: string) => void;
+  removeAllPeople: () => void;
   addItem: () => void;
   removeItem: (itemId: string) => void;
   updateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void;
@@ -183,12 +185,17 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         return;
       }
 
+      get().addPeople(nextNames);
+      set({ peopleInput: '' });
+    },
+    addPeople: (names) => {
       set((state) => {
         const existing = new Set(state.people.map((person) => person.name.toLowerCase()));
-        const additions = nextNames
+        const additions = names
+          .map((name) => name.trim())
           .filter((name) => {
             const key = name.toLowerCase();
-            if (existing.has(key)) return false;
+            if (key.length === 0 || existing.has(key)) return false;
             existing.add(key);
             return true;
           })
@@ -208,8 +215,18 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           })),
         };
       });
-
-      set({ peopleInput: '' });
+    },
+    removeAllPeople: () => {
+      set((state) => ({
+        people: [],
+        receipts: state.receipts.map((receipt) => ({
+          ...receipt,
+          items: receipt.items.map((item) => ({
+            ...item,
+            assignment: { mode: 'equal', personId: '', personIds: [] },
+          })),
+        })),
+      }));
     },
     removePerson: (personId) => {
       set((state) => {

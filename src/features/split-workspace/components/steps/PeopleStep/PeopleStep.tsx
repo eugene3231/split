@@ -2,17 +2,21 @@ import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { SavedGroups } from './SavedGroups';
+import { SaveGroupForm } from './SaveGroupForm';
 
 export function PeopleStep() {
-  const { people, peopleInput, setPeopleInput, addPeopleFromInput, removePerson } = useReceiptStore(
-    useShallow((state) => ({
-      people: state.people,
-      peopleInput: state.peopleInput,
-      setPeopleInput: state.setPeopleInput,
-      addPeopleFromInput: state.addPeopleFromInput,
-      removePerson: state.removePerson,
-    })),
-  );
+  const { people, peopleInput, setPeopleInput, addPeopleFromInput, removePerson, removeAllPeople } =
+    useReceiptStore(
+      useShallow((state) => ({
+        people: state.people,
+        peopleInput: state.peopleInput,
+        setPeopleInput: state.setPeopleInput,
+        addPeopleFromInput: state.addPeopleFromInput,
+        removePerson: state.removePerson,
+        removeAllPeople: state.removeAllPeople,
+      })),
+    );
 
   return (
     <div className="space-y-5">
@@ -22,7 +26,6 @@ export function PeopleStep() {
         className="mb-6"
       />
 
-      {/* Input card */}
       <div className="rounded-2xl bg-surface-container-lowest p-5 shadow-[0_8px_24px_rgba(25,28,29,0.06)]">
         <form
           onSubmit={(event) => {
@@ -53,7 +56,8 @@ export function PeopleStep() {
         </p>
       </div>
 
-      {/* People list or empty state */}
+      <SavedGroups />
+
       {people.length === 0 ? (
         <div
           data-testid="people-empty-state"
@@ -64,31 +68,40 @@ export function PeopleStep() {
           <p className="text-sm text-outline">Type names above to get started.</p>
         </div>
       ) : (
-        <div data-testid="people-list" className="flex flex-wrap gap-2">
-          {people.map((person, index) => (
+        <section aria-label="People in this split" className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-on-surface-variant">
+              People in this split <span className="ml-1 text-outline">{people.length}</span>
+            </h2>
             <button
-              key={person.id}
               type="button"
-              data-testid={`person-chip-${person.id}`}
-              onClick={() => removePerson(person.id)}
-              className="flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95"
+              onClick={removeAllPeople}
+              className="min-h-11 rounded-xl px-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
             >
-              <PersonAvatar name={person.name} colorIndex={index} size="sm" />
-              {person.name}
-              <span className="material-symbols-outlined !text-sm leading-none text-on-surface-variant">
-                close
-              </span>
+              Remove all
             </button>
-          ))}
-        </div>
-      )}
-
-      {/* Status */}
-      {people.length > 0 && (
-        <div className="flex items-center gap-2 text-sm font-medium text-on-surface-variant">
-          <span className="h-2 w-2 flex-shrink-0 rounded-full bg-secondary" />
-          {people.length} {people.length === 1 ? 'person' : 'people'} added
-        </div>
+          </div>
+          <div data-testid="people-list" className="flex flex-wrap gap-2">
+            {people.map((person, index) => (
+              <button
+                key={person.id}
+                type="button"
+                data-testid={`person-chip-${person.id}`}
+                onClick={() => removePerson(person.id)}
+                className="flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95"
+              >
+                <PersonAvatar name={person.name} colorIndex={index} size="sm" />
+                {person.name}
+                <span className="material-symbols-outlined !text-sm leading-none text-on-surface-variant">
+                  close
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap justify-end">
+            <SaveGroupForm />
+          </div>
+        </section>
       )}
     </div>
   );
