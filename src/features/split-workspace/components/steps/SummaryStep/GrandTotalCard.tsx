@@ -6,6 +6,7 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { cn } from '@shared/utils/cn';
 import { PayNowField } from './PayNowField';
 import type { PayNowStatus } from './useSummaryModel';
+import { CheckIcon } from '@features/split-workspace/components/shared/CheckIcon';
 
 interface Props {
   payNowStatus: PayNowStatus;
@@ -51,16 +52,20 @@ export function GrandTotalCard({
           )}
         </span>
         <div className="flex shrink-0 items-center gap-2">
-          {(payNowStatus === 'ready' || hasPayNowError) && (
+          {payNowStatus === 'ready' && (
+            <CheckIcon
+              role="img"
+              aria-label="PayNow QR codes ready"
+              strokeWidth="2.5"
+              className="h-5 w-5 shrink-0 text-secondary-container motion-safe:animate-pop-in"
+            />
+          )}
+          {hasPayNowError && (
             <svg
               key={payNowStatus}
               role="img"
               aria-label={
-                payNowStatus === 'ready'
-                  ? 'PayNow QR codes ready'
-                  : payNowStatus === 'invalid'
-                    ? 'PayNow number invalid'
-                    : 'PayNow QR generation failed'
+                payNowStatus === 'invalid' ? 'PayNow number invalid' : 'PayNow QR generation failed'
               }
               viewBox="0 0 24 24"
               fill="none"
@@ -68,18 +73,9 @@ export function GrandTotalCard({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={cn(
-                'h-5 w-5 shrink-0',
-                payNowStatus === 'ready'
-                  ? 'text-secondary-container motion-safe:animate-pop-in'
-                  : 'text-red-300',
-              )}
+              className="h-5 w-5 shrink-0 text-red-300"
             >
-              {payNowStatus === 'ready' ? (
-                <path d="m5 12 4 4L19 6" />
-              ) : (
-                <path d="m6 6 12 12M6 18 18 6" />
-              )}
+              <path d="m6 6 12 12M6 18 18 6" />
             </svg>
           )}
           <button

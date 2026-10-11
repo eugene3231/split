@@ -3,6 +3,7 @@ import { WIZARD_STEPS } from '@features/split-workspace/types';
 import { cn } from '@shared/utils/cn';
 import type { WizardStep } from '@features/split-workspace/types';
 import { STEP_LABELS } from '@features/split-workspace/logic/wizardSteps';
+import { CheckIcon } from '@features/split-workspace/components/shared/CheckIcon';
 
 interface Props {
   activeStep: WizardStep;
@@ -60,16 +61,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                             : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >
-                    {completed ? (
-                      <span
-                        className="material-symbols-outlined text-xs"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        check
-                      </span>
-                    ) : (
-                      i + 1
-                    )}
+                    {completed ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
                   </div>
                   <span
                     className={cn(
@@ -132,16 +124,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                             : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >
-                    {completed ? (
-                      <span
-                        className="material-symbols-outlined text-[20px]!"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        check
-                      </span>
-                    ) : (
-                      i + 1
-                    )}
+                    {completed ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
                   </span>
                 </button>
               );

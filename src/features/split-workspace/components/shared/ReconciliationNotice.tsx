@@ -1,4 +1,5 @@
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import { CheckIcon } from './CheckIcon';
 
 interface Props {
   reconciliationCents: number | null;
@@ -21,13 +22,8 @@ export function ReconciliationNotice({
   if (isMatch) {
     return (
       <div className="flex items-center gap-4 rounded-2xl border border-secondary-container/30 bg-secondary-container/20 p-4">
-        <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-secondary p-1 text-on-secondary">
-          <span
-            className="material-symbols-outlined text-sm"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            check
-          </span>
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-on-secondary">
+          <CheckIcon className="h-4.5 w-4.5" />
         </div>
         <div>
           <p className="text-xs leading-tight font-extrabold text-on-secondary-container">
