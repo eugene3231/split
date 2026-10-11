@@ -115,7 +115,7 @@ describe('AssignStep', () => {
     renderStep('p2');
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Bob have?');
-    expect(screen.getByTestId('claim-person-summary')).toHaveTextContent('Bob · 2 items · $4.50');
+    expect(screen.getAllByTestId('claim-person-stats-p2')[0]).toHaveTextContent('$4.50 · 2 items');
     expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });

@@ -56,20 +56,16 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
       <div className="min-w-0">
         <header className="-mx-6 -mt-4 bg-surface-container-low px-6 pt-5 pb-6 md:mx-0 md:mt-0 md:rounded-3xl md:px-8 md:pt-6 md:pb-7">
-          <p data-testid="claim-person-summary" className="text-sm font-semibold">
-            {activePerson.firstName} · {formatItemCount(view.activeItemCount)} ·{' '}
-            {activePerson.totalLabel}
-          </p>
           <ClaimPeopleRail
             people={view.people}
             onSelect={onActivePersonChange}
             layout="row"
-            className="-mx-6 mt-4 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
+            className="-mx-6 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
           />
           <StepHeader
             title={`What did ${activePerson.firstName} have?`}
             description="Tap everything they had. Shared items split automatically."
-            className="mt-6"
+            className="mt-6 lg:mt-0"
           />
           {view.leftCount > 0 && (
             <div className="mt-4 flex">
