@@ -12,14 +12,14 @@ interface Props {
 
 /** Shows a label above its children on hover, or on a long press on touch screens. */
 export function HoverLabel({ label, testId, showOnTap = false, children }: Props) {
-  const { pressed, flash, handlers } = useLongPress();
+  const { pressed, toggle, handlers } = useLongPress();
 
   return (
     // The wrapper takes the hover and press, so a disabled button inside still shows its label.
     <span
       className="group relative flex select-none [-webkit-touch-callout:none]"
       {...handlers}
-      onClick={showOnTap ? flash : undefined}
+      onClick={showOnTap ? toggle : undefined}
     >
       {children}
       <span

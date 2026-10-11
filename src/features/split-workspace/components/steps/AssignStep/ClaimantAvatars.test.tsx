@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
 import { ClaimantAvatars } from './ClaimantAvatars';
 
@@ -33,6 +33,26 @@ describe('ClaimantAvatars', () => {
 
     expect(screen.getByText('+2')).toBeInTheDocument();
     expect(screen.getByText('D4, E5')).toBeInTheDocument();
+  });
+
+  it('keeps a tapped name up for a few seconds, and hides it on a second tap', () => {
+    vi.useFakeTimers();
+    render(<ClaimantAvatars claimants={[person('a', 'Alex', 0)]} leftLabel={null} testId="who" />);
+    const label = screen.getByText('Alex');
+
+    fireEvent.click(label);
+    fireEvent.pointerLeave(label);
+    act(() => vi.advanceTimersByTime(2500));
+    expect(label).toHaveClass('opacity-100');
+
+    act(() => vi.advanceTimersByTime(600));
+    expect(label).not.toHaveClass('opacity-100');
+
+    fireEvent.click(label);
+    expect(label).toHaveClass('opacity-100');
+    fireEvent.click(label);
+    expect(label).not.toHaveClass('opacity-100');
+    vi.useRealTimers();
   });
 
   it('renders nothing when nobody has the item', () => {
