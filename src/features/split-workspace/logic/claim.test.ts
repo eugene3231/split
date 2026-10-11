@@ -69,14 +69,13 @@ describe('resolveClaimView', () => {
   it('marks only the active person and labels running totals in the totals currency', () => {
     const result = view([makeReceipt('r1', [makeItem('i1', '8.50')])], 'p2');
 
-    expect(result.activePerson).toMatchObject({ id: 'p2', firstName: 'Mei', totalLabel: '$5.00' });
+    expect(result.activePerson).toMatchObject({ id: 'p2', firstName: 'Mei', totalCents: 500 });
     expect(result.people.map((person) => person.isActive)).toEqual([false, true, false]);
     expect(result.people[0]).toMatchObject({
       firstName: 'Eugene',
-      totalLabel: '$12.34',
       totalCents: 1234,
     });
-    expect(result.people[2].totalLabel).toBe('$0.00');
+    expect(result.people[2].totalCents).toBe(0);
   });
 
   it('falls back to the first person when the active person no longer exists', () => {

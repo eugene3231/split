@@ -14,7 +14,6 @@ export interface ClaimPerson {
   name: string;
   colorIndex: number;
   firstName: string;
-  totalLabel: string;
   totalCents: number;
   /** Items this person is on, across every receipt. */
   itemCount: number;
@@ -99,7 +98,6 @@ export function resolveClaimView(args: {
     name: person.name,
     colorIndex: index,
     firstName: firstName(person.name),
-    totalLabel: formatCurrencyFromCents(totalByPersonCents[person.id] ?? 0, totalsCurrency),
     totalCents: totalByPersonCents[person.id] ?? 0,
     itemCount: pricedItems.filter((item) => item.assignment.personIds.includes(person.id)).length,
     isActive: person.id === activePersonId,

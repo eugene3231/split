@@ -8,7 +8,6 @@ const person = (id: string, name: string, colorIndex: number): ClaimPerson => ({
   name,
   colorIndex,
   firstName: name,
-  totalLabel: '$0.00',
   totalCents: 0,
   itemCount: 0,
   isActive: false,

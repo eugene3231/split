@@ -935,3 +935,19 @@ describe('ReceiptSplitterPage integration', () => {
     });
   });
 });
+
+it('completes a person removal when navigating away before the exit finishes', () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }));
+  try {
+    render(<ReceiptSplitterPage />);
+    addPeople('Alice, Bob');
+    const alice = useReceiptStore.getState().people.find((person) => person.name === 'Alice');
+    if (!alice) throw new Error('Alice was not added');
+    fireEvent.click(screen.getByTestId(`person-chip-${alice.id}`));
+    clickContinue();
+    clickBack();
+    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
