@@ -27,9 +27,9 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
       aria-hidden={claimants.length === 0 || undefined}
       aria-label={leftLabel ? `${names}, ${leftLabel}` : names}
       data-testid={testId}
-      className="flex items-center gap-2"
+      className="flex min-w-0 items-center gap-1"
     >
-      <span className="flex -space-x-1">
+      <span className="flex shrink-0 -space-x-1">
         {avatars.map(({ person, isExiting }) => (
           <span
             key={person.id}
@@ -58,7 +58,7 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
           </HoverLabel>
         )}
       </span>
-      {leftLabel && <span className="text-xs text-on-surface-variant">{leftLabel}</span>}
+      {leftLabel && <span className="truncate text-xs text-on-surface-variant">{leftLabel}</span>}
     </span>
   );
 }

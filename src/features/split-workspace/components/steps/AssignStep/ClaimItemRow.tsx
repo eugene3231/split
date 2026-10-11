@@ -28,78 +28,86 @@ export function ClaimItemRow({
   const { share } = item;
 
   return (
-    <li data-testid={`claim-item-${item.id}`} className="py-3">
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <button
-            type="button"
-            aria-pressed={item.claimedByActive}
-            data-testid={`claim-item-toggle-${item.id}`}
-            onClick={onToggle}
-            className="flex w-full items-center gap-3 text-left"
+    <li data-testid={`claim-item-${item.id}`} className="py-2">
+      <div className="flex items-center gap-2 md:gap-3">
+        <button
+          type="button"
+          aria-label={item.name}
+          aria-pressed={item.claimedByActive}
+          data-testid={`claim-item-toggle-${item.id}`}
+          onClick={onToggle}
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <span
+            aria-hidden
+            className={cn(
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+              item.claimedByActive ? 'border-primary bg-primary' : 'border-outline-variant',
+            )}
           >
             <span
-              aria-hidden
               className={cn(
-                'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-                item.claimedByActive ? 'border-primary bg-primary' : 'border-outline-variant',
+                'material-symbols-outlined text-base text-on-primary motion-safe:transition-[transform,opacity] motion-safe:duration-180 motion-safe:ease-out',
+                item.claimedByActive
+                  ? 'scale-100 opacity-100 motion-safe:animate-pop-in'
+                  : 'scale-50 opacity-0',
               )}
             >
-              <span
-                className={cn(
-                  'material-symbols-outlined text-base text-on-primary motion-safe:transition-[transform,opacity] motion-safe:duration-180 motion-safe:ease-out',
-                  item.claimedByActive
-                    ? 'scale-100 opacity-100 motion-safe:animate-pop-in'
-                    : 'scale-50 opacity-0',
-                )}
-              >
-                check
-              </span>
+              check
             </span>
-            <span className="min-w-0 font-semibold break-words">{item.name}</span>
-          </button>
-          {/* Outside the toggle, so tapping an avatar names the person instead of ticking the item. */}
-          <div className="mt-1 pl-9 empty:hidden">
-            <ClaimantAvatars
-              claimants={item.claimants}
-              leftLabel={item.leftLabel}
-              testId={`claim-item-claimants-${item.id}`}
+          </span>
+          <span className="min-w-0 font-semibold break-words">{item.name}</span>
+        </button>
+        {share && (
+          <span className="motion-safe:animate-pop-in">
+            <ShareStepper
+              share={share}
+              onStep={onStepShare}
+              testId={`claim-item-share-${item.id}`}
             />
-          </div>
-        </div>
-
-        {share ? (
-          <ShareAmountField
-            label={share.amountLabel}
-            onCommit={onSetShare}
-            testId={`claim-item-amount-${item.id}`}
-          />
-        ) : (
-          <span className="min-w-18 shrink-0 text-right text-on-surface-variant tabular-nums">
-            {item.priceLabel}
           </span>
         )}
-      </div>
-
-      {share && (
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 pl-9 motion-safe:animate-rise-in">
-          <ItemActionChip
-            icon="groups"
-            label="Split evenly"
-            disabled={!share.canSplitEvenly}
-            testId={`claim-item-split-evenly-${item.id}`}
-            onClick={onSplitEvenly}
-          />
-          <ItemActionChip
-            icon="person"
-            label={`${personName} only`}
-            disabled={!share.canTakeAlone}
-            testId={`claim-item-take-alone-${item.id}`}
-            onClick={onTakeAlone}
-          />
-          <ShareStepper share={share} onStep={onStepShare} testId={`claim-item-share-${item.id}`} />
+        <div className="flex shrink-0 justify-end md:w-28">
+          {share ? (
+            <ShareAmountField
+              label={share.amountLabel}
+              onCommit={onSetShare}
+              testId={`claim-item-amount-${item.id}`}
+            />
+          ) : (
+            <span className="text-on-surface-variant tabular-nums">{item.priceLabel}</span>
+          )}
         </div>
-      )}
+      </div>
+      {/* Outside the toggle, so tapping an avatar names the person instead of ticking the item.
+          Always rendered at a fixed height, so ticking an item never moves the rows below. */}
+      <div className="flex h-9 items-center gap-2 pl-9">
+        <div className="flex shrink-0 items-center">
+          <ClaimantAvatars
+            claimants={item.claimants}
+            leftLabel={item.leftLabel}
+            testId={`claim-item-claimants-${item.id}`}
+          />
+        </div>
+        {share && (
+          <div className="flex flex-1 justify-end gap-1 motion-safe:animate-rise-in">
+            <ItemActionChip
+              icon="groups"
+              label="Split evenly"
+              disabled={!share.canSplitEvenly}
+              testId={`claim-item-split-evenly-${item.id}`}
+              onClick={onSplitEvenly}
+            />
+            <ItemActionChip
+              icon="person"
+              label={`${personName} only`}
+              disabled={!share.canTakeAlone}
+              testId={`claim-item-take-alone-${item.id}`}
+              onClick={onTakeAlone}
+            />
+          </div>
+        )}
+      </div>
     </li>
   );
 }
