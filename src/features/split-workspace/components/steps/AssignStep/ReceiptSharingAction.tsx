@@ -33,7 +33,7 @@ export function ReceiptSharingAction({ receiptId }: Props) {
           if (hasReceiptSelections(receipt.items)) setConfirming(true);
           else share();
         }}
-        className="flex min-h-9 items-center gap-1.5 rounded-xl bg-surface-container-high px-3 py-1.5 text-xs font-bold text-on-surface transition-colors hover:bg-surface-container-highest disabled:cursor-default disabled:opacity-40 disabled:hover:bg-surface-container-high"
+        className="flex min-h-9 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
       >
         <span aria-hidden="true" className="material-symbols-outlined text-base">
           groups
