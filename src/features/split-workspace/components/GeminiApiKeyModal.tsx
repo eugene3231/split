@@ -58,13 +58,13 @@ function GeminiApiKeyModalContent({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm motion-safe:animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Modal card — glassmorphic */}
-      <div className="relative w-full max-w-md rounded-3xl border border-surface-container-highest bg-surface-container-lowest/90 shadow-[0_8px_24px_rgba(25,28,29,0.12)] backdrop-blur-[20px]">
+      <div className="relative w-full max-w-md rounded-3xl border border-surface-container-highest bg-surface-container-lowest/90 shadow-[0_8px_24px_rgba(25,28,29,0.12)] backdrop-blur-[20px] motion-safe:animate-rise-in">
         {/* Header */}
         <div className="px-7 pt-7 pb-5">
           <div className="flex items-start justify-between gap-4">

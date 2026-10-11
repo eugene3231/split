@@ -167,13 +167,20 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
             onClick={onScanReceipt}
             disabled={scan.isScanning || !hasApiKey}
             className={cn(
-              'flex w-full items-center justify-center rounded-xl py-3 text-sm font-bold transition-all active:scale-95',
+              'relative flex w-full items-center justify-center overflow-hidden rounded-xl py-3 text-sm font-bold transition-all active:scale-95',
               scan.isScanning ? 'flex-col gap-2 px-4 py-4' : 'gap-2',
               scan.isScanning || !hasApiKey
                 ? 'cursor-not-allowed bg-surface-container-high text-on-surface-variant opacity-50'
                 : 'bg-primary text-on-primary shadow-lg shadow-primary/20',
             )}
           >
+            {scan.isScanning && (
+              <span
+                aria-hidden
+                data-testid="scan-shimmer"
+                className="absolute inset-0 hidden bg-linear-to-r from-transparent via-white/60 to-transparent motion-safe:block motion-safe:animate-scan-sweep"
+              />
+            )}
             <span
               className={cn('material-symbols-outlined text-sm', scan.isScanning && 'animate-spin')}
             >

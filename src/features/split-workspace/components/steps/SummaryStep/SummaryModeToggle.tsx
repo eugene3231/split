@@ -17,8 +17,15 @@ export function SummaryModeToggle({ mode, onModeChange }: Props) {
     <div
       role="group"
       aria-label="Summary view"
-      className="grid w-full grid-cols-2 rounded-full bg-surface-container-high p-1 text-sm font-semibold sm:inline-grid sm:w-auto"
+      className="relative grid w-full grid-cols-2 rounded-full bg-surface-container-high p-1 text-sm font-semibold sm:inline-grid sm:w-auto"
     >
+      <span
+        aria-hidden
+        className={cn(
+          'absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-surface-container-lowest shadow-sm motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-(--ease-out-quart)',
+          mode === 'overview' && 'translate-x-full',
+        )}
+      />
       {MODES.map((option) => {
         const pressed = option.value === mode;
         return (
@@ -28,10 +35,8 @@ export function SummaryModeToggle({ mode, onModeChange }: Props) {
             aria-pressed={pressed}
             onClick={() => onModeChange(option.value)}
             className={cn(
-              'rounded-full px-5 py-2 transition-colors',
-              pressed
-                ? 'bg-surface-container-lowest text-on-surface shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface',
+              'relative rounded-full px-5 py-2 transition-colors',
+              pressed ? 'text-on-surface' : 'text-on-surface-variant hover:text-on-surface',
             )}
           >
             {option.label}

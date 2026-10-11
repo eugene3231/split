@@ -2,6 +2,8 @@ import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { usePersonRemoval } from '@features/split-workspace/hooks/usePersonRemoval';
+import { cn } from '@shared/utils/cn';
 import { SavedGroups } from './SavedGroups';
 import { SaveGroupForm } from './SaveGroupForm';
 
@@ -17,6 +19,7 @@ export function PeopleStep() {
         removeAllPeople: state.removeAllPeople,
       })),
     );
+  const { leavingIds, startRemoval, finishRemoval } = usePersonRemoval(removePerson);
 
   return (
     <div className="space-y-5">
@@ -87,8 +90,22 @@ export function PeopleStep() {
                 key={person.id}
                 type="button"
                 data-testid={`person-chip-${person.id}`}
-                onClick={() => removePerson(person.id)}
-                className="flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95"
+                disabled={leavingIds.includes(person.id)}
+                onClick={() => startRemoval(person.id)}
+                onAnimationEnd={(event) => {
+                  if (
+                    event.target === event.currentTarget &&
+                    event.animationName === 'shrink-out'
+                  ) {
+                    finishRemoval(person.id);
+                  }
+                }}
+                className={cn(
+                  'flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95',
+                  leavingIds.includes(person.id)
+                    ? 'motion-safe:animate-shrink-out'
+                    : 'motion-safe:animate-person-in',
+                )}
               >
                 <PersonAvatar name={person.name} colorIndex={index} size="sm" />
                 {person.name}
