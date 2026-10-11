@@ -144,6 +144,31 @@ describe('SummaryStep', () => {
     expect(screen.getAllByText('Rounding')).toHaveLength(2);
   });
 
+  it.each([
+    [['IDR', 'IDR'], true],
+    [['IDR', 'USD'], false],
+  ])(
+    'totals %j receipts as billed only when they share one currency',
+    (currencies, totalsAsBilled) => {
+      const alice = makePerson('Alice');
+      const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+      const receipts = currencies.map((currency, index) =>
+        makeReceipt({
+          id: `r${index}`,
+          currency,
+          items: [makeItem({ amountInput: '50000', assignment })],
+        }),
+      );
+      seedStore([alice], receipts, { exchangeRates: { SGD: 1, IDR: 0.00008, USD: 1.35 } });
+
+      render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+
+      const grandTotal = screen.getByText('Grand Total').closest('.rounded-3xl');
+      expect(grandTotal?.textContent?.includes('Rp')).toBe(totalsAsBilled);
+      expect(screen.queryByText(/Totals in SGD/) === null).toBe(totalsAsBilled);
+    },
+  );
+
   it('offers Reset split once, alongside the export actions', () => {
     seedDinner();
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);

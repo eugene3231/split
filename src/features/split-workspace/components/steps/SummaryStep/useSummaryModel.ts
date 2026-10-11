@@ -101,6 +101,7 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
     });
 
   const view = resolveSummaryView({
+    people,
     receipts,
     splitByReceipt: consolidated.splitByReceipt,
     consolidatedSplit: consolidated.split,

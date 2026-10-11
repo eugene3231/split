@@ -58,6 +58,7 @@ const globalGst = makeCharge({ enabled: true, percentInput: '9' });
 
 function makeInput(overrides: Partial<ResolveSummaryViewInput> = {}): ResolveSummaryViewInput {
   return {
+    people: [{ id: 'p1', name: 'Alice' }],
     receipts: [],
     splitByReceipt: [],
     consolidatedSplit: makeSplit(0),
@@ -132,7 +133,7 @@ describe('resolveSummaryView — total tab', () => {
     expect(view.hasAnyForeign).toBe(false);
   });
 
-  it('foreignRates lists distinct foreign currencies', () => {
+  it('billedCurrencies lists each receipt currency once, in receipt order', () => {
     const view = resolveSummaryView(
       makeInput({
         receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'JPY'), makeReceipt('r3', 'USD')],
@@ -141,7 +142,68 @@ describe('resolveSummaryView — total tab', () => {
       }),
     );
     if (view.kind !== 'total') return;
-    expect(view.foreignRates.map((r) => r.currency)).toEqual(['USD', 'JPY']);
+    expect(view.billedCurrencies).toEqual(['USD', 'JPY']);
+  });
+
+  it('totals in the shared currency as billed when every receipt uses it', () => {
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'USD')],
+        splitByReceipt: [makeSplit(500), makeSplit(200)],
+        consolidatedSplit: makeSplit(945),
+        activeTab: 'total',
+      }),
+    );
+    if (view.kind !== 'total') return;
+    expect(view.displayCurrency).toBe('USD');
+    expect(view.displaySplit.totalByPersonCents.p1).toBe(700);
+    expect(view.grandTotal).toBe(700);
+    expect(view.billedRate).toBe(1.35);
+    expect(view.sgdSplit.totalByPersonCents.p1).toBe(945);
+  });
+
+  it('totals in SGD when the toggle asks for it, even with one shared currency', () => {
+    const consolidated = makeSplit(945);
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'USD')],
+        splitByReceipt: [makeSplit(500), makeSplit(200)],
+        consolidatedSplit: consolidated,
+        activeTab: 'total',
+        showBaseCurrency: true,
+      }),
+    );
+    expect(view.displayCurrency).toBe('SGD');
+    expect(view.displaySplit).toBe(consolidated);
+  });
+
+  it('falls back to SGD totals when receipts use different currencies', () => {
+    const consolidated = makeSplit(1125);
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'JPY')],
+        splitByReceipt: [makeSplit(500), makeSplit(50000)],
+        consolidatedSplit: consolidated,
+        activeTab: 'total',
+      }),
+    );
+    if (view.kind !== 'total') return;
+    expect(view.displayCurrency).toBe('SGD');
+    expect(view.displaySplit).toBe(consolidated);
+    expect(view.billedRate).toBeNull();
+  });
+
+  it('leaves billedRate empty when one receipt has its own rate', () => {
+    const view = resolveSummaryView(
+      makeInput({
+        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'USD', 1.4)],
+        splitByReceipt: [makeSplit(500), makeSplit(200)],
+        activeTab: 'total',
+      }),
+    );
+    if (view.kind !== 'total') return;
+    expect(view.displayCurrency).toBe('USD');
+    expect(view.billedRate).toBeNull();
   });
 
   it('receiptBreakdowns uses native currency when showBaseCurrency=false', () => {
