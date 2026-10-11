@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SummaryStep } from './SummaryStep';
+import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import {
   makeItem,
   makePerson,
@@ -9,7 +10,15 @@ import {
   seedStore,
 } from '../../../../../tests/integration/testHelpers';
 
-beforeEach(resetAllStores);
+const { generatePaynowQrDataUrls } = vi.hoisted(() => ({ generatePaynowQrDataUrls: vi.fn() }));
+vi.mock('@features/payments', async (importActual) => ({
+  ...(await importActual<typeof import('@features/payments')>()),
+  generatePaynowQrDataUrls,
+}));
+beforeEach(() => {
+  resetAllStores();
+  generatePaynowQrDataUrls.mockReset().mockResolvedValue({});
+});
 afterEach(() => vi.unstubAllGlobals());
 
 function seedDinner() {
@@ -351,5 +360,31 @@ describe('SummaryStep', () => {
 
     expect(payNow).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+  });
+  it('shows QR readiness only after generation and replaces it when the number changes', async () => {
+    seedDinner();
+    const aliceId = useReceiptStore.getState().people[0].id;
+    let complete!: (urls: Record<string, string>) => void;
+    generatePaynowQrDataUrls.mockImplementation(
+      () =>
+        new Promise<Record<string, string>>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'PayNow' }));
+    fireEvent.change(screen.getByLabelText('PayNow Number'), { target: { value: '91234567' } });
+    const card = within(screen.getByTestId('grand-total-card'));
+    expect(card.getByRole('status')).toHaveTextContent(/Generating/);
+    expect(card.queryByLabelText('PayNow QR codes ready')).toBeNull();
+    await act(async () => complete({ [aliceId]: 'data:image/png;base64,qr' }));
+    expect(card.getByLabelText('PayNow QR codes ready')).toBeInTheDocument();
+    expect(screen.getByAltText('PayNow QR for Alice')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('PayNow Number'), { target: { value: '123' } });
+    expect(card.queryByLabelText('PayNow QR codes ready')).toBeNull();
+    expect(card.getByRole('status')).toHaveTextContent(/valid SG mobile number/);
+    expect(screen.queryByAltText('PayNow QR for Alice')).toBeNull();
+    fireEvent.change(screen.getByLabelText('PayNow Number'), { target: { value: '' } });
+    expect(card.queryByRole('status')).toBeNull();
   });
 });
