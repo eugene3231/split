@@ -11,6 +11,7 @@ import { cn } from '@shared/utils/cn';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
+import { ReceiptSharingAction } from './ReceiptSharingAction';
 
 interface Props {
   activePersonId: string;
@@ -42,7 +43,6 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
       items: filtering ? section.items.filter((item) => item.isLeft) : section.items,
     }))
     .filter((section) => section.items.length > 0);
-  const hasSeveralReceipts = view.sections.length > 1;
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
     updateReceiptItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
@@ -86,11 +86,10 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             aria-label={section.name}
             data-testid={`claim-section-${section.receiptId}`}
           >
-            {hasSeveralReceipts && (
-              <h2 className="sticky top-(--app-bar-height) z-10 -mx-6 truncate border-b border-surface-container-high bg-surface px-6 pt-6 pb-2 text-lg font-bold md:mx-0 md:px-1">
-                {section.name}
-              </h2>
-            )}
+            <div className="sticky top-(--app-bar-height) z-10 -mx-6 flex flex-wrap items-center justify-between gap-2 border-b border-surface-container-high bg-surface px-6 pt-4 pb-2 md:mx-0 md:px-1">
+              <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{section.name}</h2>
+              <ReceiptSharingAction receiptId={section.receiptId} />
+            </div>
             <ul className="divide-y divide-surface-container-high">
               {section.items.map((item) => (
                 <ClaimItemRow

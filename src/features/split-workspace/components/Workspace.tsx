@@ -44,7 +44,6 @@ export function Workspace() {
     handleBack,
     handleStepSelect,
     handleAddReceipt,
-    handleSplitEvenly,
     handleResetSplit,
     handleLoadWorkspace,
   } = useWizard(items, people, normalizeItems, receipts);
@@ -77,12 +76,7 @@ export function Workspace() {
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-6 md:px-8 md:pt-10 md:pb-10">
         {activeStep === 'people' && <PeopleStep />}
 
-        {activeStep === 'receipt' && (
-          <ReceiptStep
-            onAddReceipt={handleAddReceipt}
-            onSplitEvenly={withScrollToTop(handleSplitEvenly)}
-          />
-        )}
+        {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
 
         {activeStep === 'items' && (
           <AssignStep activePersonId={activePersonId} onActivePersonChange={setActivePersonId} />

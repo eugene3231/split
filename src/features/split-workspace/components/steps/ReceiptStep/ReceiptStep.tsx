@@ -6,17 +6,15 @@ import { ReceiptTabs } from '@features/split-workspace/components/shared/Receipt
 import { ReceiptNameField } from '@features/split-workspace/components/shared/ReceiptNameField';
 import { CurrencySelector } from '@features/split-workspace/components/shared/CurrencySelector';
 import { ExchangeRateDisplay } from '@features/split-workspace/components/shared/ExchangeRateDisplay';
-import { EvenSplitCard } from './EvenSplitCard';
 import { useReceiptImport } from './useReceiptImport';
 import { useReceiptStepModel } from './useReceiptStepModel';
 import { BASE_CURRENCY } from '@shared/constants';
 
 type Props = {
   onAddReceipt: () => void;
-  onSplitEvenly: () => void;
 };
 
-export function ReceiptStep({ onAddReceipt, onSplitEvenly }: Props) {
+export function ReceiptStep({ onAddReceipt }: Props) {
   const {
     receipts,
     activeReceiptId,
@@ -113,8 +111,6 @@ export function ReceiptStep({ onAddReceipt, onSplitEvenly }: Props) {
               )}
             </div>
           </div>
-
-          <EvenSplitCard onSplitEvenly={onSplitEvenly} />
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">

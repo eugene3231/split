@@ -12,9 +12,24 @@ export function assignEveryItemEqually(items: EditableItem[], people: Person[]):
 
 export function canSplitEvenly(items: EditableItem[], people: Person[]): boolean {
   if (people.length < 2 || !hasAnyValidReceiptItem(items)) return false;
-  return items.every((item) =>
+  return !items.every((item) => {
+    const { mode, personIds, weights, unassignedWeight } = item.assignment;
+    if (mode !== 'equal' || unassignedWeight) return false;
+    const selectedIds = new Set(personIds);
+    if (
+      selectedIds.size !== people.length ||
+      !people.every((person) => selectedIds.has(person.id))
+    ) {
+      return false;
+    }
+    return new Set(people.map((person) => weights?.[person.id] ?? 1)).size === 1;
+  });
+}
+
+export function hasReceiptSelections(items: EditableItem[]): boolean {
+  return items.some((item) =>
     item.assignment.mode === 'single'
-      ? item.assignment.personId.length === 0
-      : item.assignment.personIds.length === 0,
+      ? Boolean(item.assignment.personId)
+      : item.assignment.personIds.length > 0,
   );
 }

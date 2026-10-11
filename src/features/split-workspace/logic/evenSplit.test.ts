@@ -47,6 +47,18 @@ describe('assignEveryItemEqually', () => {
 });
 
 describe('canSplitEvenly', () => {
+  it('disables sharing only when every item is already equal among everyone', () => {
+    const shared = item('tea', '2', ['p3', 'p1', 'p2']);
+    expect(canSplitEvenly([shared], people)).toBe(false);
+    shared.assignment.weights = { p1: 2, p2: 2, p3: 2 };
+    expect(canSplitEvenly([shared], people)).toBe(false);
+    shared.assignment.weights.p1 = 3;
+    expect(canSplitEvenly([shared], people)).toBe(true);
+    shared.assignment.weights.p1 = 2;
+    shared.assignment.unassignedWeight = 1;
+    expect(canSplitEvenly([shared], people)).toBe(true);
+  });
+
   it('is offered once two people share a priced item nobody has claimed', () => {
     expect(canSplitEvenly([item('rice', '10')], people)).toBe(true);
   });
@@ -59,13 +71,13 @@ describe('canSplitEvenly', () => {
     expect(canSplitEvenly([item('rice', '')], people)).toBe(false);
   });
 
-  it('is not offered once anyone has claimed an item on this receipt', () => {
-    expect(canSplitEvenly([item('rice', '10'), item('tea', '2', ['p2'])], people)).toBe(false);
+  it('is available after someone has claimed an item on this receipt', () => {
+    expect(canSplitEvenly([item('rice', '10'), item('tea', '2', ['p2'])], people)).toBe(true);
   });
 
-  it('does not replace a single-person assignment', () => {
+  it('can replace a single-person assignment', () => {
     const claimed = item('tea', '2');
     claimed.assignment = { mode: 'single', personId: 'p2', personIds: [] };
-    expect(canSplitEvenly([claimed], people)).toBe(false);
+    expect(canSplitEvenly([claimed], people)).toBe(true);
   });
 });

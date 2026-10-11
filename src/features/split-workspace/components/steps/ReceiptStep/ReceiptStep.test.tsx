@@ -119,7 +119,7 @@ vi.mock('./useReceiptStepModel', () => ({
 
 describe('ReceiptStep', () => {
   it('renders the receipt step with key components', () => {
-    render(<ReceiptStep onAddReceipt={vi.fn()} onSplitEvenly={vi.fn()} />);
+    render(<ReceiptStep onAddReceipt={vi.fn()} />);
 
     expect(screen.getByTestId('receipt-import-actions')).toBeInTheDocument();
     expect(screen.getByTestId('receipt-tabs')).toBeInTheDocument();
@@ -127,13 +127,13 @@ describe('ReceiptStep', () => {
   });
 
   it('renders one page heading for every screen size', () => {
-    render(<ReceiptStep onAddReceipt={vi.fn()} onSplitEvenly={vi.fn()} />);
+    render(<ReceiptStep onAddReceipt={vi.fn()} />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
   it('renders the receipt_long icon in the card when no file is uploaded', () => {
-    render(<ReceiptStep onAddReceipt={vi.fn()} onSplitEvenly={vi.fn()} />);
+    render(<ReceiptStep onAddReceipt={vi.fn()} />);
 
     const icons = screen
       .getAllByText('receipt_long')

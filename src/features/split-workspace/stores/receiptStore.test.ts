@@ -656,8 +656,8 @@ describe('receiptStore additional coverage', () => {
   });
 });
 
-describe('equal sharing on the active receipt', () => {
-  it('preserves an existing claim even when sharing is called directly', () => {
+describe('equal sharing on a chosen receipt', () => {
+  it('replaces existing weights on the chosen receipt and preserves other receipts', () => {
     const receipt = makeReceipt({
       id: 'r1',
       items: [
@@ -678,13 +678,18 @@ describe('equal sharing on the active receipt', () => {
         { id: 'p1', name: 'Ana' },
         { id: 'p2', name: 'Ben' },
       ],
-      receipts: [receipt],
-      activeReceiptId: 'r1',
+      receipts: [receipt, { ...receipt, id: 'r2' }],
+      activeReceiptId: 'r2',
     });
 
-    useReceiptStore.getState().splitActiveReceiptEvenly();
+    useReceiptStore.getState().splitReceiptEvenly('r1');
 
-    expect(useReceiptStore.getState().receipts).toEqual([receipt]);
+    expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual({
+      mode: 'equal',
+      personId: '',
+      personIds: ['p1', 'p2'],
+    });
+    expect(useReceiptStore.getState().receipts[1]).toEqual({ ...receipt, id: 'r2' });
   });
 
   it('does not share any receipt when the active receipt no longer exists', () => {
@@ -706,7 +711,7 @@ describe('equal sharing on the active receipt', () => {
       activeReceiptId: 'missing',
     });
 
-    useReceiptStore.getState().splitActiveReceiptEvenly();
+    useReceiptStore.getState().splitReceiptEvenly('missing');
 
     expect(useReceiptStore.getState().receipts).toEqual([receipt]);
   });

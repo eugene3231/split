@@ -82,7 +82,7 @@ type ReceiptStoreActions = {
     updater: (item: EditableItem) => EditableItem,
   ) => void;
   splitUnassignedItemsEqually: () => void;
-  splitActiveReceiptEvenly: () => void;
+  splitReceiptEvenly: (receiptId: string) => void;
   setDiscount: (next: ChargeState) => void;
   setServiceCharge: (next: ChargeState) => void;
   setGst: (next: ChargeState) => void;
@@ -270,12 +270,12 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         })),
       }));
     },
-    splitActiveReceiptEvenly: () => {
+    splitReceiptEvenly: (receiptId) => {
       set((state) => {
-        const receipt = state.receipts.find((entry) => entry.id === state.activeReceiptId);
+        const receipt = state.receipts.find((entry) => entry.id === receiptId);
         if (!receipt || !canSplitEvenly(receipt.items, state.people)) return state;
         return {
-          receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, {
+          receipts: updateActiveReceipt(state.receipts, receiptId, {
             items: assignEveryItemEqually(receipt.items, state.people),
           }),
         };
