@@ -87,7 +87,7 @@ body,
   --app-bar-height: 3.8125rem;
 
   @media (width >= 48rem) {
-    --app-bar-height: 5.5625rem;
+    --app-bar-height: 3.5rem;
   }
 }
 

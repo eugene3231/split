@@ -3,32 +3,17 @@ import { WIZARD_STEPS } from '@features/split-workspace/types';
 import { cn } from '@shared/utils/cn';
 import type { WizardStep } from '@features/split-workspace/types';
 import { STEP_LABELS } from '@features/split-workspace/logic/wizardSteps';
-import { formatItemCount } from '@features/split-workspace/logic/claim';
 
 interface Props {
   activeStep: WizardStep;
-  itemsLeftCount: number;
   stepReachability: Record<WizardStep, boolean>;
   onStepSelect: (step: WizardStep) => void;
   actions?: ReactNode;
 }
 
-export function TopAppBar({
-  activeStep,
-  itemsLeftCount,
-  stepReachability,
-  onStepSelect,
-  actions,
-}: Props) {
+export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions }: Props) {
   const stepIndex = WIZARD_STEPS.indexOf(activeStep);
   const stepNumber = stepIndex + 1;
-
-  const contextText =
-    activeStep !== 'items'
-      ? ''
-      : itemsLeftCount > 0
-        ? `${formatItemCount(itemsLeftCount)} left`
-        : 'Every item assigned';
 
   return (
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">
@@ -57,7 +42,7 @@ export function TopAppBar({
                   disabled={disabled}
                   aria-current={isCurrent ? 'step' : undefined}
                   className={cn(
-                    'group flex flex-col items-center gap-1 rounded-xl px-2 py-1 transition-all',
+                    'group flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all',
                     disabled
                       ? 'cursor-not-allowed opacity-45'
                       : 'hover:bg-surface-container-low active:scale-95',
@@ -65,7 +50,7 @@ export function TopAppBar({
                 >
                   <div
                     className={cn(
-                      'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all',
+                      'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all',
                       disabled
                         ? 'bg-surface-container-highest text-on-surface-variant'
                         : completed
@@ -88,14 +73,10 @@ export function TopAppBar({
                   </div>
                   <span
                     className={cn(
-                      'text-xs font-bold tracking-widest uppercase',
-                      disabled
-                        ? 'text-on-surface-variant'
-                        : completed
-                          ? 'text-on-surface'
-                          : isCurrent
-                            ? 'text-primary'
-                            : 'text-on-surface-variant',
+                      'text-sm',
+                      isCurrent
+                        ? 'font-semibold text-on-surface'
+                        : 'font-medium text-on-surface-variant',
                     )}
                   >
                     {STEP_LABELS[step]}
@@ -104,7 +85,7 @@ export function TopAppBar({
                 {i < WIZARD_STEPS.length - 1 && (
                   <div
                     className={cn(
-                      'mx-2 mb-4 h-0.5 w-12',
+                      'mx-1 h-0.5 w-4 lg:w-12',
                       completed ? 'bg-primary' : 'bg-surface-container-highest',
                     )}
                   />
@@ -169,11 +150,10 @@ export function TopAppBar({
         </nav>
 
         {/* Right: step count on desktop */}
-        <div data-testid="wizard-step-context" className="hidden w-44 shrink-0 text-right md:block">
-          <p className="truncate text-xs font-bold tracking-widest text-primary uppercase">
+        <div data-testid="wizard-step-context" className="hidden w-44 shrink-0 text-right lg:block">
+          <p className="truncate text-xs font-medium text-on-surface-variant">
             Step {stepNumber} of {WIZARD_STEPS.length}
           </p>
-          {contextText && <p className="truncate text-xs text-on-surface-variant">{contextText}</p>}
         </div>
 
         {actions}

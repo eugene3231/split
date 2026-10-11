@@ -294,13 +294,32 @@ describe('SummaryStep', () => {
     expect(table.getByRole('rowheader', { name: /Owes/ })).toHaveTextContent('of $12.20');
     expect(table.getByRole('row', { name: /Owes/ })).toHaveTextContent('$5.00$7.20');
     expect(table.queryByRole('textbox')).toBeNull();
-    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'PayNow' })).toBeNull();
     expect(screen.getByTestId('export-copy-text-btn')).toBeInTheDocument();
 
     fireEvent.click(byPerson);
 
     expect(screen.queryByRole('region', { name: 'Who had what' })).toBeNull();
     expect(screen.getByRole('group', { name: 'Show on each card' })).toBeInTheDocument();
-    expect(screen.getByLabelText('PayNow Number')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PayNow' })).toBeInTheDocument();
+  });
+
+  it('keeps the PayNow number hidden until the PayNow button is tapped', () => {
+    seedDinner();
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+    const payNow = screen.getByRole('button', { name: 'PayNow' });
+
+    expect(payNow).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+
+    fireEvent.click(payNow);
+
+    expect(payNow).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByLabelText('PayNow Number')).toHaveFocus();
+
+    fireEvent.click(payNow);
+
+    expect(payNow).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
   });
 });
