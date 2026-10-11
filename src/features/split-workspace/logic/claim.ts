@@ -55,7 +55,6 @@ export interface ClaimView {
   people: ClaimPerson[];
   totalsCurrency: string;
   sections: ClaimSection[];
-  leftCount: number;
 }
 
 export type ClaimContinue =
@@ -74,10 +73,6 @@ export function resolveActivePersonId(personId: string, people: Person[]): strin
 export function countItemsLeft(receipts: Receipt[], people: Person[]): number {
   const items = receipts.flatMap((receipt) => receipt.items);
   return getDetectedItemsCount(items) - getAssignedItemsCount(items, people);
-}
-
-export function formatItemCount(count: number): string {
-  return `${count} ${count === 1 ? 'item' : 'items'}`;
 }
 
 export function resolveClaimView(args: {
@@ -115,14 +110,11 @@ export function resolveClaimView(args: {
       items,
     };
   });
-  const items = sections.flatMap((section) => section.items);
-
   return {
     activePerson: claimPeople.find((person) => person.isActive) ?? null,
     people: claimPeople,
     totalsCurrency,
     sections,
-    leftCount: items.filter((item) => item.isLeft).length,
   };
 }
 

@@ -701,7 +701,6 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.change(input, { target: { value: '50%' } });
       fireEvent.blur(input);
       expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$3.00');
-      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
 
       clickContinue(); // → Bob
       expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveAccessibleName(
@@ -722,7 +721,6 @@ describe('ReceiptSplitterPage integration', () => {
         makeReceipt({ id: 'r2', items: [{ ...unclaimedItem, id: 'r2-i1' }] }),
       ]);
 
-      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
       expect(screen.getByTestId('claim-item-r1-i1')).toBeInTheDocument();
       expect(screen.getByTestId('claim-item-r2-i1')).toBeInTheDocument();
 
@@ -730,7 +728,6 @@ describe('ReceiptSplitterPage integration', () => {
 
       const [, r2] = useReceiptStore.getState().receipts;
       expect(r2.items[0].assignment.personIds).toEqual(['p1']);
-      expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
     });
   });
 
@@ -1001,7 +998,6 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('export-save-image-btn')).not.toBeInTheDocument();
       });
-      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
     });
   });
 

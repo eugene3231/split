@@ -9,7 +9,6 @@ import {
   firstName,
   resolveActivePersonId,
   countItemsLeft,
-  formatItemCount,
   resolveClaimContinue,
   resolveClaimView,
   resolvePreviousPersonId,
@@ -172,7 +171,6 @@ describe('resolveClaimView', () => {
       ['r1', 2],
       ['r2', 2],
     ]);
-    expect(result.leftCount).toBe(3);
     expect(result.people.map((person) => person.itemCount)).toEqual([1, 0, 0]);
   });
 });
@@ -188,13 +186,6 @@ describe('countItemsLeft', () => {
     ];
 
     expect(countItemsLeft(receipts, people)).toBe(2);
-  });
-});
-
-describe('formatItemCount', () => {
-  it('pluralises items', () => {
-    expect(formatItemCount(1)).toBe('1 item');
-    expect(formatItemCount(3)).toBe('3 items');
   });
 });
 
