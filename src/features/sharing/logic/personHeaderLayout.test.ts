@@ -25,4 +25,17 @@ describe('person header layout', () => {
     expect(layout.lines.join('')).toBe('AlexandriaMontgomery');
     expect(layout.height).toBe(178);
   });
+  it.each([
+    { name: 'A😀B', nameWidth: 20, lines: ['A', '😀', 'B'] },
+    { name: 'A👩‍💻B', nameWidth: 50, lines: ['A', '👩‍💻', 'B'] },
+    { name: 'Ae\u0301B', nameWidth: 20, lines: ['A', 'e\u0301', 'B'] },
+  ])('keeps complete graphemes when wrapping $name', ({ name, nameWidth, lines }) => {
+    const layout = personHeaderLayout({
+      name,
+      nameWidth,
+      conversion: false,
+      measure: (text) => text.length * 10,
+    });
+    expect(layout.lines).toEqual(lines);
+  });
 });
