@@ -305,9 +305,8 @@ describe('ReceiptImportActions – Fullscreen modal (F002)', () => {
     const thumbnailButton = screen.getByAltText('Receipt preview').closest('button')!;
     fireEvent.click(thumbnailButton);
 
-    const backdrop = screen.getByAltText('Receipt fullscreen').parentElement!;
-    expect(backdrop).toHaveAttribute('role', 'dialog');
-    expect(backdrop).toHaveAttribute('aria-modal', 'true');
-    expect(backdrop).toHaveAttribute('aria-label', 'Receipt image preview');
+    expect(screen.getByRole('dialog', { name: 'Receipt image preview' })).toContainElement(
+      screen.getByAltText('Receipt fullscreen'),
+    );
   });
 });

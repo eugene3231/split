@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AddReceiptButton, ReceiptTab, ReceiptTabs } from './ReceiptTabs';
 
@@ -14,15 +14,18 @@ function renderTabs({
   onAdd?: () => void;
 } = {}) {
   render(
-    <ReceiptTabs action={onAdd && <AddReceiptButton onClick={onAdd} />}>
+    <ReceiptTabs
+      value="r1"
+      onValueChange={onSelect}
+      action={onAdd && <AddReceiptButton onClick={onAdd} />}
+    >
       {['Receipt 1', 'Receipt 2'].map((name, index) => {
         const id = `r${index + 1}`;
         return (
           <ReceiptTab
             key={id}
+            value={id}
             label={name}
-            isActive={id === 'r1'}
-            onSelect={() => onSelect(id)}
             onRename={(newName) => onRename(id, newName)}
             onRemove={onRemove && (() => onRemove(id))}
           />
@@ -72,11 +75,24 @@ describe('ReceiptTabs', () => {
     expect(screen.queryByRole('button', { name: /Remove/ })).toBeNull();
   });
 
+  it('selects a tab when pressed, and moves between tabs with the arrow keys', async () => {
+    const onSelect = vi.fn();
+    renderTabs({ onSelect });
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: /Receipt 2/ }));
+    expect(onSelect).toHaveBeenLastCalledWith('r2');
+
+    const first = screen.getByRole('tab', { name: /Receipt 1/ });
+    first.focus();
+    fireEvent.keyDown(first, { key: 'ArrowRight' });
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Receipt 2/ })).toHaveFocus());
+  });
+
   it('still selects the tab with Enter when not renaming', () => {
     const onSelect = vi.fn();
     renderTabs({ onSelect });
 
-    fireEvent.keyDown(screen.getByText('Receipt 2'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('tab', { name: /Receipt 2/ }), { key: 'Enter' });
 
     expect(onSelect).toHaveBeenCalledWith('r2');
   });
@@ -86,7 +102,8 @@ describe('ReceiptTabs', () => {
       const onSelect = vi.fn();
       const onRename = vi.fn();
       renderTabs({ onSelect, onRename });
-      fireEvent.click(screen.getByRole('button', { name: 'Rename receipt' }));
+      const activeTab = screen.getByRole('tab', { selected: true });
+      fireEvent.click(within(activeTab).getByRole('button', { name: 'Rename receipt' }));
       return { onSelect, onRename, input: screen.getByDisplayValue('Receipt 1') };
     }
 

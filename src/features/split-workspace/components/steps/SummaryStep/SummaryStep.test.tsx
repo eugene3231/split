@@ -188,7 +188,7 @@ describe('SummaryStep', () => {
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
     expect(screen.queryByText('Reconciliation Discrepancy')).toBeNull();
-    fireEvent.click(screen.getByTestId('summary-tab-receipt-1'));
+    fireEvent.mouseDown(screen.getByTestId('summary-tab-receipt-1'));
     expect(screen.getByText(/The sum of individual shares/)).toHaveTextContent(
       'US$1.00 off from the receipt total.',
     );

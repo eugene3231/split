@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { exportDraftToJson } from '@features/split-workspace/logic/draftStorage';
 import {
@@ -11,32 +11,6 @@ import {
 } from '../../../tests/integration/testHelpers';
 import { WorkspaceMenu } from './WorkspaceMenu';
 
-const prototype = HTMLDialogElement.prototype;
-const originalShowModal = Object.getOwnPropertyDescriptor(prototype, 'showModal');
-const originalClose = Object.getOwnPropertyDescriptor(prototype, 'close');
-
-beforeAll(() => {
-  Object.defineProperty(prototype, 'showModal', {
-    configurable: true,
-    value: function (this: HTMLDialogElement) {
-      this.open = true;
-    },
-  });
-  Object.defineProperty(prototype, 'close', {
-    configurable: true,
-    value: function (this: HTMLDialogElement) {
-      this.open = false;
-    },
-  });
-});
-
-afterAll(() => {
-  if (originalShowModal) Object.defineProperty(prototype, 'showModal', originalShowModal);
-  else Reflect.deleteProperty(prototype, 'showModal');
-  if (originalClose) Object.defineProperty(prototype, 'close', originalClose);
-  else Reflect.deleteProperty(prototype, 'close');
-});
-
 function seedBlankWorkspace() {
   seedStore([], [makeReceipt({ id: 'r1', items: [makeItem({ name: '', amountInput: '' })] })]);
 }
@@ -46,7 +20,7 @@ function seedWorkspaceWithPeople() {
 }
 
 function openMenu() {
-  fireEvent.click(screen.getByTestId('workspace-menu-btn'));
+  fireEvent.keyDown(screen.getByTestId('workspace-menu-btn'), { key: 'Enter' });
 }
 
 async function pickFile(file: File) {
@@ -72,12 +46,12 @@ describe('WorkspaceMenu', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('closes when the user presses outside the menu', () => {
+  it('closes on Escape', () => {
     seedBlankWorkspace();
     render(<WorkspaceMenu onLoadWorkspace={vi.fn()} />);
 
     openMenu();
-    fireEvent.pointerDown(document.body);
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
@@ -89,7 +63,7 @@ describe('WorkspaceMenu', () => {
     openMenu();
     fireEvent.click(screen.getByTestId('workspace-preset-lunch-for-three'));
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(onLoadWorkspace).toHaveBeenCalledTimes(1);
     expect(onLoadWorkspace.mock.calls[0][0].people).toHaveLength(3);
   });
@@ -101,7 +75,7 @@ describe('WorkspaceMenu', () => {
 
     openMenu();
     fireEvent.click(screen.getByTestId('workspace-preset-lunch-for-three'));
-    const dialog = screen.getByRole('dialog', { name: 'Replace this split?' });
+    const dialog = screen.getByRole('alertdialog', { name: 'Replace this split?' });
     expect(dialog).toHaveTextContent('Loading Lunch for 3');
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
@@ -128,7 +102,7 @@ describe('WorkspaceMenu', () => {
     fireEvent.click(screen.getByTestId('workspace-import-btn'));
     await pickFile(new File([json], 'friday.json', { type: 'application/json' }));
 
-    const dialog = await screen.findByRole('dialog', { name: 'Replace this split?' });
+    const dialog = await screen.findByRole('alertdialog', { name: 'Replace this split?' });
     expect(dialog).toHaveTextContent('Loading friday.json');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Replace split' }));
 
