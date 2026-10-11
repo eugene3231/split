@@ -150,35 +150,34 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
         <div className={cn(isOverview ? 'lg:col-span-12' : 'order-2 lg:order-1 lg:col-span-8')}>
           <div
             data-testid="summary-controls"
-            className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+            className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2"
           >
             {showCurrencyControls && (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <>
                 <CurrencyToggle
                   showBaseCurrency={showBaseCurrency}
                   onToggle={setShowBaseCurrency}
                   activeTab={activeTab}
                   currentCurrency={nativeCurrency}
                 />
-                {view.kind === 'total' &&
-                !showBaseCurrency &&
-                view.displayCurrency === BASE_CURRENCY ? (
-                  <MixedCurrencyNote currencies={view.billedCurrencies} />
-                ) : view.kind === 'receipt' && view.effectiveRate ? (
-                  <p className="text-xs text-on-surface-variant">
-                    1 {BASE_CURRENCY} = {formatExchangeRate(1 / view.effectiveRate)}{' '}
-                    {view.nativeCurrency}
-                    {view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}
-                  </p>
-                ) : null}
-              </div>
+                {/* On phones the note drops below so both switches share one line. */}
+                <div className="order-last w-full sm:order-none sm:w-auto">
+                  {view.kind === 'total' &&
+                  !showBaseCurrency &&
+                  view.displayCurrency === BASE_CURRENCY ? (
+                    <MixedCurrencyNote currencies={view.billedCurrencies} />
+                  ) : view.kind === 'receipt' && view.effectiveRate ? (
+                    <p className="text-xs text-on-surface-variant">
+                      1 {BASE_CURRENCY} = {formatExchangeRate(1 / view.effectiveRate)}{' '}
+                      {view.nativeCurrency}
+                      {view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}
+                    </p>
+                  ) : null}
+                </div>
+              </>
             )}
             {!isOverview && (
-              <SummaryDetailToggle
-                detail={detail}
-                onDetailChange={setDetail}
-                className="sm:ml-auto"
-              />
+              <SummaryDetailToggle detail={detail} onDetailChange={setDetail} className="ml-auto" />
             )}
           </div>
 

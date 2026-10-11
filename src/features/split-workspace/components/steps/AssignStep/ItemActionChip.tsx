@@ -1,4 +1,4 @@
-import { HoverLabel } from './HoverLabel';
+import { HoverLabel } from '@features/split-workspace/components/shared/HoverLabel';
 
 interface Props {
   icon: string;
