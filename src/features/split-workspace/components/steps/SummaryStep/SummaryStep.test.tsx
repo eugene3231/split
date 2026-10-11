@@ -121,7 +121,7 @@ describe('SummaryStep', () => {
 
     // Defaults to the consolidated "total" tab when there are multiple receipts.
     const grandTotalLabel = within(screen.getByTestId('grand-total-card')).getByText(
-      'All 2 receipts',
+      'Total · 2 receipts',
     );
     expect(grandTotalLabel.closest('[contenteditable="true"]')).toBeNull();
   });

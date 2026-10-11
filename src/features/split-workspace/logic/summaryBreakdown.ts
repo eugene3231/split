@@ -99,7 +99,7 @@ export function resolvePersonBreakdowns({
     return {
       person,
       colorIndex,
-      headerLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'This receipt',
+      headerLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'Total · this receipt',
       totalCents,
       currency: view.displayCurrency,
       conversion: headerRate
@@ -122,7 +122,7 @@ export function resolvePersonBreakdowns({
 }
 
 function allReceiptsLabel(view: TotalTabView): string {
-  return `All ${view.receiptBreakdowns.length} receipts`;
+  return `Total · ${view.receiptBreakdowns.length} receipts`;
 }
 
 function resolveHeaderRate(view: SummaryView): BreakdownExchangeRate | undefined {
