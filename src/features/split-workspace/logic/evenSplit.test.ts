@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { EditableItem, Receipt } from '@shared/types';
-import {
-  assignEveryItemEqually,
-  canSplitEvenly,
-  placeholderNames,
-} from '@features/split-workspace/logic/evenSplit';
+import { assignEveryItemEqually, canSplitEvenly } from '@features/split-workspace/logic/evenSplit';
 
 const people = [
-  { id: 'p1', name: 'Person 1' },
-  { id: 'p2', name: 'Person 2' },
-  { id: 'p3', name: 'Person 3' },
+  { id: 'p1', name: 'Ana' },
+  { id: 'p2', name: 'Ben' },
+  { id: 'p3', name: 'Cai' },
 ];
 
 function item(id: string, amountInput: string, personIds: string[] = []): EditableItem {
@@ -25,12 +21,6 @@ function item(id: string, amountInput: string, personIds: string[] = []): Editab
 function receipt(items: EditableItem[]): Receipt {
   return { items } as Receipt;
 }
-
-describe('placeholderNames', () => {
-  it('numbers the stand-in people from one', () => {
-    expect(placeholderNames(3)).toEqual(['Person 1', 'Person 2', 'Person 3']);
-  });
-});
 
 describe('assignEveryItemEqually', () => {
   it('gives every item to everyone in equal shares, replacing weights', () => {

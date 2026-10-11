@@ -138,9 +138,8 @@ export function useWizard(
   };
 
   const handleSplitEvenly = () => {
-    normalizeItems();
     splitEveryItemEvenly();
-    setActiveStep('final');
+    startClaiming();
   };
 
   const handleAddReceipt = () => {

@@ -373,33 +373,34 @@ describe('ReceiptSplitterPage integration', () => {
   });
 
   describe('Even split', () => {
-    it('goes from a head count to the summary without naming or claiming', async () => {
+    it('starts everyone on every item, then opens Items so exceptions can be unticked', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [
+              {
+                id: 'r1-i1',
+                name: 'Dinner',
+                amountInput: '90.00',
+                discountPercentInput: '',
+                assignment: { mode: 'equal', personId: '', personIds: [] },
+              },
+            ],
+          }),
+        ],
+      });
       render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
-      fireEvent.click(screen.getByRole('button', { name: 'More people' }));
-      fireEvent.click(screen.getByTestId('even-split-add-people-btn'));
       clickContinue(); // → receipt
-
-      const receiptId = useReceiptStore.getState().activeReceiptId;
-      act(() =>
-        useReceiptStore.getState().patchReceipt(receiptId, {
-          items: [
-            {
-              id: 'i1',
-              name: 'Dinner',
-              amountInput: '90.00',
-              discountPercentInput: '',
-              assignment: { mode: 'equal', personId: '', personIds: [] },
-            },
-          ],
-        }),
-      );
       fireEvent.click(screen.getByTestId('even-split-btn'));
 
-      expectActiveStepNav('final');
-      const { people, receipts } = useReceiptStore.getState();
-      expect(people.map((person) => person.name)).toEqual(['Person 1', 'Person 2', 'Person 3']);
-      expect(receipts[0].items[0].assignment.personIds).toEqual(people.map((person) => person.id));
+      expectActiveStepNav('items');
+      expect(useReceiptStore.getState().receipts[0].items[0].assignment.personIds).toEqual([
+        'p1',
+        'p2',
+      ]);
     });
 
     it('is not offered once someone has claimed an item', async () => {

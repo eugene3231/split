@@ -13,17 +13,15 @@ export function EvenSplitCard({ onSplitEvenly }: Props) {
 
   if (!canSplitEvenly(receipts, people)) return null;
 
-  const receiptsLabel = receipts.length === 1 ? 'the bill' : `all ${receipts.length} receipts`;
-
   return (
     <div
       data-testid="even-split-card"
       className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-container-lowest px-5 py-4"
     >
       <div className="min-w-0">
-        <p className="text-sm font-bold text-on-surface">Everyone sharing everything?</p>
+        <p className="text-sm font-bold text-on-surface">Shared most of it?</p>
         <p className="text-xs text-on-surface-variant">
-          Split {receiptsLabel} evenly between {people.length} people and skip to the summary.
+          Start with all {people.length} people on every item, then untick what someone didn't have.
         </p>
       </div>
       <button
@@ -33,7 +31,7 @@ export function EvenSplitCard({ onSplitEvenly }: Props) {
         className="flex items-center gap-2 rounded-xl bg-surface-container px-4 py-2 text-sm font-bold text-on-surface transition-transform active:scale-95"
       >
         <span className="material-symbols-outlined !text-base leading-none">call_split</span>
-        Split evenly
+        Start even
       </button>
     </div>
   );

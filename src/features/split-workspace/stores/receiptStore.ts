@@ -72,7 +72,6 @@ type ReceiptStoreActions = {
   resetSplit: () => void;
   reset: () => void;
   addPeopleFromInput: (rawInput: string) => void;
-  addPeople: (names: string[]) => void;
   removePerson: (personId: string) => void;
   addItem: () => void;
   removeItem: (itemId: string) => void;
@@ -184,17 +183,12 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         return;
       }
 
-      get().addPeople(nextNames);
-      set({ peopleInput: '' });
-    },
-    addPeople: (names) => {
       set((state) => {
         const existing = new Set(state.people.map((person) => person.name.toLowerCase()));
-        const additions = names
-          .map((name) => name.trim())
+        const additions = nextNames
           .filter((name) => {
             const key = name.toLowerCase();
-            if (key.length === 0 || existing.has(key)) return false;
+            if (existing.has(key)) return false;
             existing.add(key);
             return true;
           })
@@ -214,6 +208,8 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           })),
         };
       });
+
+      set({ peopleInput: '' });
     },
     removePerson: (personId) => {
       set((state) => {
