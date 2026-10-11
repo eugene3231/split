@@ -1,16 +1,12 @@
-import { ellipsizeText } from '@features/sharing/logic/receiptSplitImageHelpers';
 import { formatCurrencyFromCents, formatExchangeRate } from '@shared/logic/core/money';
-import { BASE_CURRENCY } from '@shared/constants';
 import { personColor } from '@shared/utils/personColors';
-import type { BreakdownConversion } from '@shared/types/summaryBreakdown';
+import type { BreakdownConversion, BreakdownExchangeRate } from '@shared/types/summaryBreakdown';
 
 export {
-  CANVAS_WIDTH,
-  SCRATCH_HEIGHT,
   canvasToBlob,
   formatGeneratedAt,
-  formatPercent,
   ellipsizeText,
+  wrapText,
 } from '@features/sharing/logic/receiptSplitImageHelpers';
 
 export function drawRoundedRect(
@@ -52,18 +48,6 @@ export function drawLightCardShell(
   return y + h;
 }
 
-export function drawNestedCard(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void {
-  ctx.fillStyle = '#f0f0f0';
-  drawRoundedRect(ctx, x, y, w, h, 12);
-  ctx.fill();
-}
-
 export interface PersonAvatarArgs {
   cx: number;
   cy: number;
@@ -88,72 +72,12 @@ export function drawPersonAvatar(ctx: CanvasRenderingContext2D, args: PersonAvat
   ctx.textBaseline = 'alphabetic';
 }
 
-/**
- * Draws two right-aligned currency conversion lines:
- *   ≈ $X.XX SGD
- *   1 SGD = Y.YYYYY [fromCurrency]
- *
- * @param rightEdge - x coordinate of the right edge (text is right-aligned to this)
- * @param y - baseline y of the first line; second line is drawn at y + lineH
- */
-export function drawCurrencyConversionLines(
-  ctx: CanvasRenderingContext2D,
-  rightEdge: number,
-  y: number,
-  lineH: number,
-  conversion: BreakdownConversion,
-): void {
-  const rate = formatExchangeRate(1 / conversion.rate);
-
-  ctx.save();
-  ctx.font = '400 18px Inter, system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#52525b';
-  ctx.textAlign = 'right';
-  ctx.fillText(
-    `≈ ${formatCurrencyFromCents(conversion.amountCents, conversion.toCurrency)}`,
-    rightEdge,
-    y,
-  );
-  ctx.fillText(`1 ${BASE_CURRENCY} = ${rate} ${conversion.fromCurrency}`, rightEdge, y + lineH);
-  ctx.textAlign = 'left';
-  ctx.restore();
+/** The `≈ SGD` amount, then the rate unless the breakdown says it is already shown above. */
+export function formatConversionLines(conversion: BreakdownConversion): string[] {
+  const amount = `≈ ${formatCurrencyFromCents(conversion.amountCents, conversion.toCurrency)}`;
+  return conversion.showRate ? [amount, formatRateLine(conversion)] : [amount];
 }
 
-export interface LightTwoColumnRowArgs {
-  x: number;
-  y: number;
-  width: number;
-  label: string;
-  value: string;
-  emphasized?: boolean;
-  /** Override value color; defaults to `#18181b` */
-  valueColor?: string;
-  /** Override label color; defaults to `#52525b` */
-  labelColor?: string;
-  size: number;
-  italic?: boolean;
-}
-
-export function drawLightTwoColumnRow(
-  ctx: CanvasRenderingContext2D,
-  args: LightTwoColumnRowArgs,
-): void {
-  const style = args.italic ? 'italic ' : '';
-  const weight = args.emphasized ? 700 : 400;
-  const valueFont = `${style}${weight} ${args.size}px Inter, system-ui, -apple-system, sans-serif`;
-  const labelFont = `${style}${weight} ${Math.max(14, args.size - 2)}px Inter, system-ui, -apple-system, sans-serif`;
-
-  ctx.font = valueFont;
-  const valueWidth = ctx.measureText(args.value).width;
-  const labelMaxWidth = Math.max(80, args.width - valueWidth - 16);
-
-  ctx.font = labelFont;
-  ctx.fillStyle = args.labelColor ?? '#52525b';
-  ctx.fillText(ellipsizeText(ctx, args.label, labelMaxWidth), args.x, args.y);
-
-  ctx.font = valueFont;
-  ctx.fillStyle = args.valueColor ?? '#18181b';
-  ctx.textAlign = 'right';
-  ctx.fillText(args.value, args.x + args.width, args.y);
-  ctx.textAlign = 'left';
+export function formatRateLine(rate: BreakdownExchangeRate): string {
+  return `1 ${rate.toCurrency} = ${formatExchangeRate(1 / rate.rate)} ${rate.fromCurrency}`;
 }

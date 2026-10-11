@@ -129,24 +129,10 @@ function ReceiptSection({ section }: { section: ReceiptBreakdownSection }) {
 
 function ItemRow({ row }: { row: BreakdownItemRow }) {
   return (
-    <div className="flex justify-between pl-4 text-base">
-      <span
-        className={
-          row.involved
-            ? 'truncate pr-4 text-on-surface-variant'
-            : 'truncate pr-4 text-on-surface-variant/40 italic'
-        }
-      >
-        {row.label}
-      </span>
-      <span
-        className={
-          row.involved
-            ? 'flex-shrink-0 text-on-surface-variant'
-            : 'flex-shrink-0 text-on-surface-variant/40 italic'
-        }
-      >
-        {row.amountCents !== null ? formatCurrencyFromCents(row.amountCents, row.currency) : '—'}
+    <div className="flex justify-between pl-4 text-base text-on-surface-variant">
+      <span className="truncate pr-4">{row.label}</span>
+      <span className="flex-shrink-0">
+        {formatCurrencyFromCents(row.amountCents, row.currency)}
       </span>
     </div>
   );
@@ -176,9 +162,11 @@ function ConversionLines({
       <span className={`${compact ? 'mt-0.5' : 'mt-1'} block text-xs text-on-surface-variant`}>
         ≈ {formatCurrencyFromCents(conversion.amountCents, conversion.toCurrency)}
       </span>
-      <span className="block text-xs text-on-surface-variant">
-        1 {BASE_CURRENCY} = {formatExchangeRate(1 / conversion.rate)} {conversion.fromCurrency}
-      </span>
+      {conversion.showRate && (
+        <span className="block text-xs text-on-surface-variant">
+          1 {BASE_CURRENCY} = {formatExchangeRate(1 / conversion.rate)} {conversion.fromCurrency}
+        </span>
+      )}
     </>
   );
 }

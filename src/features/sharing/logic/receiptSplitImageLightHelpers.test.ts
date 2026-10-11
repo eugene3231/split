@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { personColor } from '@shared/utils/personColors';
 import {
-  drawCurrencyConversionLines,
   drawPersonAvatar,
+  formatConversionLines,
 } from '@features/sharing/logic/receiptSplitImageLightHelpers';
 
 interface FillCall {
@@ -53,24 +53,19 @@ describe('drawPersonAvatar', () => {
 });
 
 describe('currency conversion copy', () => {
-  it('renders the allocated SGD cents supplied by the shared breakdown', () => {
-    const fillText = vi.fn();
-    const ctx = {
-      save: vi.fn(),
-      restore: vi.fn(),
-      fillText,
-    } as unknown as CanvasRenderingContext2D;
+  const conversion = {
+    amountCents: 1352,
+    rate: 1.35,
+    fromCurrency: 'USD',
+    toCurrency: 'SGD',
+    showRate: true,
+  };
 
-    drawCurrencyConversionLines(ctx, 200, 100, 24, {
-      amountCents: 1352,
-      rate: 1.35,
-      fromCurrency: 'USD',
-      toCurrency: 'SGD',
-    });
+  it('renders the allocated SGD cents supplied by the shared breakdown, then the rate', () => {
+    expect(formatConversionLines(conversion)).toEqual(['≈ $13.52', '1 SGD = 0.74074 USD']);
+  });
 
-    expect(fillText.mock.calls).toEqual([
-      ['≈ $13.52', 200, 100],
-      ['1 SGD = 0.74074 USD', 200, 124],
-    ]);
+  it('leaves the rate out when the breakdown already shows it above', () => {
+    expect(formatConversionLines({ ...conversion, showRate: false })).toEqual(['≈ $13.52']);
   });
 });

@@ -8,16 +8,17 @@ import type {
   SummaryBreakdown,
 } from '@shared/types/summaryBreakdown';
 import {
-  CANVAS_WIDTH,
   canvasToBlob,
-  drawCurrencyConversionLines,
   drawLightCardShell,
-  drawLightTwoColumnRow,
-  drawNestedCard,
   drawPersonAvatar,
   drawRoundedRect,
+  ellipsizeText,
+  formatConversionLines,
   formatGeneratedAt,
+  formatRateLine,
+  wrapText,
 } from '@features/sharing/logic/receiptSplitImageLightHelpers';
+import { chooseMasonryLayout } from '@features/sharing/logic/receiptSplitImageLayout';
 
 type GenerateReceiptSplitImageLightOptions = {
   summaryBreakdown: SummaryBreakdown;
@@ -28,56 +29,131 @@ type GenerateReceiptSplitImageLightOptions = {
   currency?: string;
 };
 
-const CANVAS_PADDING = 56;
-const QR_SIZE = 160;
-const QR_GAP = 20;
-const QR_CAPTION_H = 108;
-const CARD_PAD = 32;
-const AVATAR_RADIUS = 22;
-const AVATAR_GAP = 16;
-const HEADER_H = 88;
-const LINE_ROW_H = 34;
-const RECEIPT_LABEL_H = 40;
-const CHARGE_ROW_H = 34;
-const DIVIDER_H = 22;
-const BODY_TOP_PAD = 16;
-const BETWEEN_CARD_GAP = 20;
-const GRAND_TOTAL_CARD_H = 116;
-const GRAND_TOTAL_AFTER_GAP = 32;
-const RECEIPT_SUB_CARD_PAD = 20;
-const RECEIPT_SUB_CARD_GAP = 12;
-const CURRENCY_LINE_H = 22;
-const RECEIPT_HEADER_SEP_H = 16;
-const EMPTY_STATE_H = 40;
+const FONT = 'Inter, system-ui, -apple-system, sans-serif';
+const INK = '#18181b';
+const MUTED = '#52525b';
+const RULE = 'rgba(202,196,208,0.45)';
 
-function computeRequiredHeight(
+const PAD = 48;
+const COLUMN_WIDTH = 760;
+const COLUMN_GAP = 24;
+const MAX_COLUMNS = 4;
+const TITLE_H = 96;
+const BAND_H = 112;
+const BAND_AFTER_GAP = 28;
+const NOTICE_H = 72;
+const NOTICE_GAP = 24;
+
+const CARD_PAD = 28;
+const AVATAR_RADIUS = 24;
+const HEADER_H = 64;
+const HEADER_CONVERSION_H = 30;
+const BODY_GAP = 20;
+
+const SECTION_PAD = 20;
+const SECTION_GAP = 12;
+const SECTION_TITLE_H = 30;
+const CONVERSION_LINE_H = 26;
+const SECTION_RULE_H = 18;
+const ITEM_H = 38;
+const ITEM_WRAP_H = 28;
+const ITEM_MAX_LINES = 2;
+const CHARGE_RULE_H = 14;
+const CHARGE_H = 34;
+const EMPTY_H = 40;
+const COLLAPSED_ROW_H = 40;
+
+const QR_GAP = 24;
+const QR_SIZE = 240;
+const QR_CAPTION_GAP = 16;
+
+export async function generateReceiptSplitImageLight(
   options: GenerateReceiptSplitImageLightOptions,
-  cols: number,
-): number {
-  let y = CANVAS_PADDING + 36 + 40;
-  y += GRAND_TOTAL_CARD_H + GRAND_TOTAL_AFTER_GAP;
+): Promise<Blob> {
+  if (typeof document === 'undefined') {
+    throw new Error('Image export is only available in the browser.');
+  }
 
-  const people = options.summaryBreakdown.personBreakdowns;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Unable to initialize canvas renderer.');
 
+  const { summaryBreakdown, includeItemDetails } = options;
+  const people = summaryBreakdown.personBreakdowns;
+  const qrImages = await preloadQrImages(summaryBreakdown);
+  const cardHeights = people.map((person) =>
+    measurePersonCard(ctx, person, includeItemDetails, qrImages.has(person.person.id)),
+  );
+
+  const bodyTop = PAD + TITLE_H + BAND_H + BAND_AFTER_GAP;
+  const noticesH = summaryBreakdown.unassignedItemCount > 0 ? NOTICE_GAP + NOTICE_H : 0;
+  const heightFor = (bodyHeight: number) => bodyTop + bodyHeight + noticesH + PAD;
+  const layout = chooseMasonryLayout({
+    heights: cardHeights,
+    maxColumns: MAX_COLUMNS,
+    gap: COLUMN_GAP,
+    widthFor: canvasWidthFor,
+    heightFor,
+  });
+
+  // Resizing clears the canvas and its state, so it happens once the measuring is done.
+  canvas.width = canvasWidthFor(layout.columns);
+  canvas.height = heightFor(people.length > 0 ? layout.height : NOTICE_H);
+
+  ctx.fillStyle = '#f5f5f5';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const contentWidth = canvas.width - PAD * 2;
+  drawTitle(ctx, options.receiptName);
+  drawGrandTotalBand(ctx, {
+    y: PAD + TITLE_H,
+    width: contentWidth,
+    split: options.split,
+    currency: options.currency,
+    summaryBreakdown,
+  });
+
+  let y = bodyTop;
   if (people.length === 0) {
-    y += 72 + BETWEEN_CARD_GAP;
+    drawNotice(
+      ctx,
+      y,
+      contentWidth,
+      summaryBreakdown.emptyPeopleMessage ?? 'No people added yet.',
+      'card',
+    );
+    y += NOTICE_H;
   } else {
-    for (let rowStart = 0; rowStart < people.length; rowStart += cols) {
-      const rowPeople = people.slice(rowStart, Math.min(rowStart + cols, people.length));
-      const rowHeight = rowPeople.reduce(
-        (height, person) =>
-          Math.max(height, measurePersonBreakdownCardHeight(person, options.includeItemDetails)),
-        0,
-      );
-      y += rowHeight + BETWEEN_CARD_GAP;
-    }
+    people.forEach((breakdown, index) => {
+      const placement = layout.placements[index];
+      drawPersonCard(ctx, {
+        x: PAD + placement.column * (COLUMN_WIDTH + COLUMN_GAP),
+        y: bodyTop + placement.y,
+        height: cardHeights[index],
+        breakdown,
+        includeItemDetails,
+        qrImage: qrImages.get(breakdown.person.id),
+      });
+    });
+    y += layout.height;
   }
 
-  if (options.summaryBreakdown.unassignedItemCount > 0) {
-    y += 72 + BETWEEN_CARD_GAP;
+  if (summaryBreakdown.unassignedItemCount > 0) {
+    y += NOTICE_GAP;
+    drawNotice(
+      ctx,
+      y,
+      contentWidth,
+      `${summaryBreakdown.unassignedItemCount} item(s) are unassigned and excluded from totals.`,
+      'warning',
+    );
   }
 
-  return Math.max(240, Math.ceil(y + CANVAS_PADDING));
+  return canvasToBlob(canvas);
+}
+
+function canvasWidthFor(columns: number): number {
+  return PAD * 2 + columns * COLUMN_WIDTH + (columns - 1) * COLUMN_GAP;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -100,412 +176,301 @@ async function preloadQrImages(
   return new Map(entries);
 }
 
-export async function generateReceiptSplitImageLight(
-  options: GenerateReceiptSplitImageLightOptions,
-): Promise<Blob> {
-  if (typeof document === 'undefined') {
-    throw new Error('Image export is only available in the browser.');
-  }
+function drawTitle(ctx: CanvasRenderingContext2D, receiptName?: string): void {
+  ctx.fillStyle = INK;
+  ctx.font = `700 44px ${FONT}`;
+  ctx.fillText(receiptName || 'Receipt Splitter', PAD, PAD + 40);
 
-  const people = options.summaryBreakdown.personBreakdowns;
-  const COLS = people.length >= 5 ? 3 : 2;
-  const canvasWidth = COLS === 3 ? 2700 : CANVAS_WIDTH;
-
-  const scratch = document.createElement('canvas');
-  scratch.width = canvasWidth;
-  scratch.height = computeRequiredHeight(options, COLS);
-
-  const ctx = scratch.getContext('2d');
-  if (!ctx) throw new Error('Unable to initialize canvas renderer.');
-
-  const qrImages = await preloadQrImages(options.summaryBreakdown);
-
-  ctx.fillStyle = '#f5f5f5';
-  ctx.fillRect(0, 0, scratch.width, scratch.height);
-
-  let y = CANVAS_PADDING;
-  const x = CANVAS_PADDING;
-  const cardWidth = canvasWidth - x * 2;
-
-  ctx.fillStyle = '#18181b';
-  ctx.font = '700 44px Inter, system-ui, -apple-system, sans-serif';
-  ctx.fillText(options.receiptName || 'Receipt Splitter', x, y);
-  y += 36;
-
-  ctx.fillStyle = '#52525b';
-  ctx.font = '500 22px Inter, system-ui, -apple-system, sans-serif';
-  ctx.fillText(`Generated ${formatGeneratedAt(new Date())}`, x, y);
-  y += 40;
-
-  y = drawGrandTotalCard(ctx, {
-    x,
-    y,
-    width: cardWidth,
-    split: options.split,
-    currency: options.currency,
-  });
-  y += GRAND_TOTAL_AFTER_GAP;
-
-  if (people.length === 0) {
-    drawLightCardShell(ctx, x, y, cardWidth, 72);
-    ctx.fillStyle = '#52525b';
-    ctx.font = '500 22px Inter, system-ui, -apple-system, sans-serif';
-    ctx.fillText(
-      options.summaryBreakdown.emptyPeopleMessage ?? 'No people added yet.',
-      x + CARD_PAD,
-      y + 46,
-    );
-    y += 72 + BETWEEN_CARD_GAP;
-  } else {
-    const COL_GAP = 24;
-    const colWidth = Math.floor((cardWidth - COL_GAP * (COLS - 1)) / COLS);
-
-    for (let rowStart = 0; rowStart < people.length; rowStart += COLS) {
-      const rowPeople = people.slice(rowStart, Math.min(rowStart + COLS, people.length));
-
-      const rowHeight = rowPeople.reduce(
-        (height, person) =>
-          Math.max(height, measurePersonBreakdownCardHeight(person, options.includeItemDetails)),
-        0,
-      );
-
-      for (let col = 0; col < rowPeople.length; col++) {
-        const breakdown = rowPeople[col];
-        drawPersonBreakdownCard(ctx, {
-          x: x + col * (colWidth + COL_GAP),
-          y,
-          width: colWidth,
-          height: rowHeight,
-          breakdown,
-          includeLineItems: options.includeItemDetails,
-          qrImage: qrImages.get(breakdown.person.id),
-        });
-      }
-
-      y += rowHeight + BETWEEN_CARD_GAP;
-    }
-  }
-
-  if (options.summaryBreakdown.unassignedItemCount > 0) {
-    const warnH = 72;
-    ctx.save();
-    ctx.fillStyle = '#fef3c7';
-    drawRoundedRect(ctx, x, y, cardWidth, warnH, 16);
-    ctx.fill();
-    ctx.restore();
-    ctx.fillStyle = '#92400e';
-    ctx.font = '500 22px Inter, system-ui, -apple-system, sans-serif';
-    ctx.fillText(
-      `${options.summaryBreakdown.unassignedItemCount} item(s) are unassigned and excluded from totals.`,
-      x + CARD_PAD,
-      y + 44,
-    );
-    y += warnH + BETWEEN_CARD_GAP;
-  }
-
-  const requiredHeight = Math.max(240, Math.ceil(y + CANVAS_PADDING));
-
-  const output = document.createElement('canvas');
-  output.width = canvasWidth;
-  output.height = requiredHeight;
-  const outCtx = output.getContext('2d');
-  if (!outCtx) throw new Error('Unable to finalize image export.');
-  outCtx.drawImage(scratch, 0, 0, canvasWidth, requiredHeight, 0, 0, output.width, output.height);
-  return canvasToBlob(output);
+  ctx.fillStyle = MUTED;
+  ctx.font = `500 22px ${FONT}`;
+  ctx.fillText(`Generated ${formatGeneratedAt(new Date())}`, PAD, PAD + 76);
 }
 
-type GrandTotalCardArgs = {
-  x: number;
+interface GrandTotalBandArgs {
   y: number;
   width: number;
   split: SplitResult;
   currency?: string;
-};
+  summaryBreakdown: SummaryBreakdown;
+}
 
-function drawGrandTotalCard(ctx: CanvasRenderingContext2D, args: GrandTotalCardArgs): number {
-  const h = GRAND_TOTAL_CARD_H;
-
-  ctx.save();
-  ctx.fillStyle = '#18181b';
-  drawRoundedRect(ctx, args.x, args.y, args.width, h, 24);
+function drawGrandTotalBand(ctx: CanvasRenderingContext2D, args: GrandTotalBandArgs): void {
+  ctx.fillStyle = INK;
+  drawRoundedRect(ctx, PAD, args.y, args.width, BAND_H, 24);
   ctx.fill();
-  ctx.restore();
 
   ctx.fillStyle = 'rgba(255,255,255,0.70)';
-  ctx.font = '700 20px Inter, system-ui, -apple-system, sans-serif';
-  ctx.fillText('GRAND TOTAL', args.x + CARD_PAD, args.y + 36);
+  ctx.font = `700 18px ${FONT}`;
+  ctx.fillText('GRAND TOTAL', PAD + CARD_PAD, args.y + 38);
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = '800 52px Inter, system-ui, -apple-system, sans-serif';
+  ctx.font = `800 48px ${FONT}`;
   ctx.fillText(
     formatCurrencyFromCents(args.split.grandTotalCents, args.currency),
-    args.x + CARD_PAD,
-    args.y + 92,
+    PAD + CARD_PAD,
+    args.y + 90,
   );
 
-  return args.y + h;
+  // Image only: the cards on screen each keep their rate, but side by side in one image
+  // the same rate would repeat on every card, so it is said once here.
+  const { exchangeRate } = args.summaryBreakdown;
+  if (!exchangeRate) return;
+  ctx.fillStyle = 'rgba(255,255,255,0.70)';
+  ctx.font = `500 20px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(formatRateLine(exchangeRate), PAD + args.width - CARD_PAD, args.y + 90);
+  ctx.textAlign = 'left';
 }
 
-function measureReceiptSectionHeight(
-  section: ReceiptBreakdownSection,
-  includeLineItems: boolean,
-): number {
-  const conversionH = section.conversion ? CURRENCY_LINE_H * 2 : 0;
-  const detailH = includeLineItems
-    ? section.itemRows.length * LINE_ROW_H +
-      RECEIPT_HEADER_SEP_H +
-      (section.chargeRows.length > 0 ? DIVIDER_H + section.chargeRows.length * CHARGE_ROW_H : 0) +
-      (section.emptyMessage ? EMPTY_STATE_H : 0)
-    : 0;
-
-  return RECEIPT_SUB_CARD_PAD + RECEIPT_LABEL_H + conversionH + detailH + RECEIPT_SUB_CARD_PAD;
-}
-
-function measureCollapsedTotalsHeight(breakdown: PersonBreakdown): number {
-  return breakdown.collapsedReceiptTotals.length * LINE_ROW_H;
-}
-
-function measurePersonBreakdownCardHeight(
-  breakdown: PersonBreakdown,
-  includeLineItems: boolean,
-): number {
-  const effectiveHeaderH = HEADER_H + (breakdown.conversion ? CURRENCY_LINE_H * 2 : 0);
-
-  let bodyH = 0;
-  if (includeLineItems) {
-    if (breakdown.sections.length > 0) {
-      bodyH = breakdown.sections.reduce(
-        (sum, section) => sum + measureReceiptSectionHeight(section, true),
-        0,
-      );
-      bodyH += Math.max(0, breakdown.sections.length - 1) * RECEIPT_SUB_CARD_GAP;
-    } else if (breakdown.emptyMessage) {
-      bodyH = EMPTY_STATE_H;
-    }
+function drawNotice(
+  ctx: CanvasRenderingContext2D,
+  y: number,
+  width: number,
+  message: string,
+  tone: 'card' | 'warning',
+): void {
+  if (tone === 'card') {
+    drawLightCardShell(ctx, PAD, y, width, NOTICE_H);
   } else {
-    bodyH = measureCollapsedTotalsHeight(breakdown);
+    ctx.fillStyle = '#fef3c7';
+    drawRoundedRect(ctx, PAD, y, width, NOTICE_H, 16);
+    ctx.fill();
   }
-
-  const qrBlockH = breakdown.qrDataUrl ? QR_GAP + QR_SIZE + QR_CAPTION_H : 0;
-  return CARD_PAD + effectiveHeaderH + BODY_TOP_PAD + bodyH + qrBlockH + CARD_PAD;
+  ctx.fillStyle = tone === 'card' ? MUTED : '#92400e';
+  ctx.font = `500 22px ${FONT}`;
+  ctx.fillText(ellipsizeText(ctx, message, width - CARD_PAD * 2), PAD + CARD_PAD, y + 44);
 }
 
-type PersonBreakdownCardArgs = {
+const INNER_WIDTH = COLUMN_WIDTH - CARD_PAD * 2;
+const SECTION_INNER_WIDTH = INNER_WIDTH - SECTION_PAD * 2;
+
+function measurePersonCard(
+  ctx: CanvasRenderingContext2D,
+  breakdown: PersonBreakdown,
+  includeItemDetails: boolean,
+  hasQr: boolean,
+): number {
+  return (
+    CARD_PAD +
+    measureHeader(breakdown) +
+    BODY_GAP +
+    measureBody(ctx, breakdown, includeItemDetails) +
+    (hasQr ? QR_GAP + QR_SIZE : 0) +
+    CARD_PAD
+  );
+}
+
+function measureHeader(breakdown: PersonBreakdown): number {
+  return HEADER_H + (breakdown.conversion ? HEADER_CONVERSION_H : 0);
+}
+
+function measureBody(
+  ctx: CanvasRenderingContext2D,
+  breakdown: PersonBreakdown,
+  includeItemDetails: boolean,
+): number {
+  if (!includeItemDetails) return breakdown.collapsedReceiptTotals.length * COLLAPSED_ROW_H;
+  if (breakdown.sections.length === 0) return breakdown.emptyMessage ? EMPTY_H : 0;
+  return breakdown.sections.reduce(
+    (height, section, index) =>
+      height + (index > 0 ? SECTION_GAP : 0) + measureSection(ctx, section),
+    0,
+  );
+}
+
+function measureSection(ctx: CanvasRenderingContext2D, section: ReceiptBreakdownSection): number {
+  const conversionH = section.conversion
+    ? formatConversionLines(section.conversion).length * CONVERSION_LINE_H
+    : 0;
+  const itemsH = section.emptyMessage
+    ? EMPTY_H
+    : section.itemRows.reduce((height, row) => height + measureItemRow(ctx, row), 0);
+  const chargesH =
+    section.chargeRows.length > 0 ? CHARGE_RULE_H + section.chargeRows.length * CHARGE_H : 0;
+  return (
+    SECTION_PAD + SECTION_TITLE_H + conversionH + SECTION_RULE_H + itemsH + chargesH + SECTION_PAD
+  );
+}
+
+function measureItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow): number {
+  return ITEM_H + (itemLabelLines(ctx, row).length - 1) * ITEM_WRAP_H;
+}
+
+/** Long item names wrap onto a second line rather than losing the part that tells items apart. */
+function itemLabelLines(ctx: CanvasRenderingContext2D, row: BreakdownItemRow): string[] {
+  ctx.font = `500 22px ${FONT}`;
+  const valueWidth = ctx.measureText(formatCurrencyFromCents(row.amountCents, row.currency)).width;
+  ctx.font = `400 22px ${FONT}`;
+  return wrapText(ctx, row.label, SECTION_INNER_WIDTH - valueWidth - 24, ITEM_MAX_LINES);
+}
+
+interface PersonCardArgs {
   x: number;
   y: number;
-  width: number;
   height: number;
   breakdown: PersonBreakdown;
-  includeLineItems: boolean;
+  includeItemDetails: boolean;
   qrImage?: HTMLImageElement;
-};
+}
 
-function drawPersonBreakdownCard(
-  ctx: CanvasRenderingContext2D,
-  args: PersonBreakdownCardArgs,
-): void {
-  drawLightCardShell(ctx, args.x, args.y, args.width, args.height);
+function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): void {
+  const { breakdown } = args;
+  drawLightCardShell(ctx, args.x, args.y, COLUMN_WIDTH, args.height);
 
   const innerX = args.x + CARD_PAD;
-  const innerWidth = args.width - CARD_PAD * 2;
-  const effectiveHeaderH = HEADER_H + (args.breakdown.conversion ? CURRENCY_LINE_H * 2 : 0);
+  drawPersonHeader(ctx, breakdown, innerX, args.y + CARD_PAD);
 
-  drawPersonAvatar(ctx, {
-    cx: innerX + AVATAR_RADIUS,
-    cy: args.y + CARD_PAD + AVATAR_RADIUS,
-    radius: AVATAR_RADIUS,
-    name: args.breakdown.person.name,
-    colorIndex: args.breakdown.colorIndex,
-  });
-
-  ctx.fillStyle = '#18181b';
-  ctx.font = '700 28px Inter, system-ui, -apple-system, sans-serif';
-  ctx.fillText(
-    args.breakdown.person.name,
-    innerX + AVATAR_RADIUS * 2 + AVATAR_GAP,
-    args.y + CARD_PAD + 30,
-  );
-
-  ctx.font = '500 18px Inter, system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#52525b';
-  ctx.textAlign = 'right';
-  ctx.fillText(args.breakdown.headerLabel, args.x + args.width - CARD_PAD, args.y + CARD_PAD + 18);
-  ctx.font = '600 32px Inter, system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#18181b';
-  ctx.fillText(
-    formatCurrencyFromCents(args.breakdown.totalCents, args.breakdown.currency),
-    args.x + args.width - CARD_PAD,
-    args.y + CARD_PAD + 58,
-  );
-  ctx.textAlign = 'left';
-
-  if (args.breakdown.conversion) {
-    drawCurrencyConversionLines(
-      ctx,
-      args.x + args.width - CARD_PAD,
-      args.y + CARD_PAD + 58 + CURRENCY_LINE_H,
-      CURRENCY_LINE_H,
-      args.breakdown.conversion,
-    );
-  }
-
-  const nestedX = innerX;
-  const nestedY = args.y + CARD_PAD + effectiveHeaderH + BODY_TOP_PAD;
-  const nestedW = innerWidth;
-  const niX = nestedX + RECEIPT_SUB_CARD_PAD;
-  const niW = nestedW - RECEIPT_SUB_CARD_PAD * 2;
-  let rowY = nestedY;
-
-  if (args.includeLineItems) {
-    if (args.breakdown.sections.length > 0) {
-      for (const section of args.breakdown.sections) {
-        const sectionH = measureReceiptSectionHeight(section, true);
-        drawReceiptSection(ctx, {
-          x: nestedX,
-          y: rowY,
-          width: nestedW,
-          innerX: niX,
-          innerWidth: niW,
-          height: sectionH,
-          section,
-        });
-        rowY += sectionH + RECEIPT_SUB_CARD_GAP;
-      }
-    } else if (args.breakdown.emptyMessage) {
-      ctx.fillStyle = '#52525b';
-      ctx.font = 'italic 20px Inter, system-ui, -apple-system, sans-serif';
-      ctx.fillText(args.breakdown.emptyMessage, nestedX, rowY + 28);
+  let y = args.y + CARD_PAD + measureHeader(breakdown) + BODY_GAP;
+  if (!args.includeItemDetails) {
+    for (const total of breakdown.collapsedReceiptTotals) {
+      drawAmountRow(ctx, {
+        x: innerX,
+        y: y + 28,
+        width: INNER_WIDTH,
+        label: total.label,
+        value: formatCurrencyFromCents(total.totalCents, total.currency),
+        font: `400 22px ${FONT}`,
+        valueFont: `500 22px ${FONT}`,
+      });
+      y += COLLAPSED_ROW_H;
     }
+  } else if (breakdown.sections.length === 0 && breakdown.emptyMessage) {
+    drawEmptyMessage(ctx, breakdown.emptyMessage, innerX, y);
   } else {
-    drawCollapsedReceiptTotals(ctx, args.breakdown, nestedX, rowY, nestedW);
+    breakdown.sections.forEach((section, index) => {
+      if (index > 0) y += SECTION_GAP;
+      const height = measureSection(ctx, section);
+      drawSection(ctx, section, innerX, y, height);
+      y += height;
+    });
   }
 
   if (args.qrImage) {
-    const qrDisplayH = QR_SIZE + QR_CAPTION_H;
-    const qrY = args.y + args.height - CARD_PAD - qrDisplayH;
-    const qrX = args.x + (args.width - QR_SIZE) / 2;
-    ctx.drawImage(args.qrImage, qrX, qrY, QR_SIZE, qrDisplayH);
+    drawPaynowQr(ctx, args.qrImage, args.x, args.y + args.height - CARD_PAD - QR_SIZE);
   }
 }
 
-type DrawReceiptSectionArgs = {
-  x: number;
-  y: number;
-  width: number;
-  innerX: number;
-  innerWidth: number;
-  height: number;
-  section: ReceiptBreakdownSection;
-};
-
-function drawReceiptSection(ctx: CanvasRenderingContext2D, args: DrawReceiptSectionArgs): void {
-  drawNestedCard(ctx, args.x, args.y, args.width, args.height);
-
-  let rowY = args.y + RECEIPT_SUB_CARD_PAD;
-
-  drawLightTwoColumnRow(ctx, {
-    x: args.innerX,
-    y: rowY + RECEIPT_LABEL_H - 14,
-    width: args.innerWidth,
-    label: args.section.title,
-    value: formatCurrencyFromCents(args.section.totalCents, args.section.currency),
-    emphasized: true,
-    size: 20,
-  });
-
-  if (args.section.conversion) {
-    drawCurrencyConversionLines(
-      ctx,
-      args.innerX + args.innerWidth,
-      rowY + RECEIPT_LABEL_H + 18,
-      CURRENCY_LINE_H,
-      args.section.conversion,
-    );
-    rowY += CURRENCY_LINE_H * 2;
-  }
-  rowY += RECEIPT_LABEL_H;
-
-  const sepY = rowY + Math.floor(RECEIPT_HEADER_SEP_H / 2);
-  ctx.save();
-  ctx.strokeStyle = 'rgba(202,196,208,0.30)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(args.innerX, sepY);
-  ctx.lineTo(args.innerX + args.innerWidth, sepY);
-  ctx.stroke();
-  ctx.restore();
-  rowY += RECEIPT_HEADER_SEP_H;
-
-  if (args.section.emptyMessage) {
-    ctx.fillStyle = '#52525b';
-    ctx.font = 'italic 19px Inter, system-ui, -apple-system, sans-serif';
-    ctx.fillText(args.section.emptyMessage, args.innerX + 16, rowY + 24);
-    return;
-  }
-
-  for (const row of args.section.itemRows) {
-    drawItemRow(ctx, row, args.innerX + 16, rowY + 22, args.innerWidth - 16);
-    rowY += LINE_ROW_H;
-  }
-
-  if (args.section.chargeRows.length === 0) {
-    return;
-  }
-
-  const divY = rowY + 2;
-  ctx.strokeStyle = 'rgba(202,196,208,0.40)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(args.innerX, divY);
-  ctx.lineTo(args.innerX + args.innerWidth, divY);
-  ctx.stroke();
-  rowY = divY + DIVIDER_H - 4;
-
-  for (const row of args.section.chargeRows) {
-    drawChargeRow(ctx, row, args.innerX, rowY + 22, args.innerWidth);
-    rowY += CHARGE_ROW_H;
-  }
-}
-
-function drawCollapsedReceiptTotals(
+function drawPersonHeader(
   ctx: CanvasRenderingContext2D,
   breakdown: PersonBreakdown,
   x: number,
   y: number,
-  width: number,
 ): void {
-  let rowY = y;
-  for (const total of breakdown.collapsedReceiptTotals) {
-    drawLightTwoColumnRow(ctx, {
-      x,
-      y: rowY + 22,
-      width,
-      label: total.label,
-      value: formatCurrencyFromCents(total.totalCents, total.currency),
-      size: 19,
-    });
-    rowY += LINE_ROW_H;
+  const right = x + INNER_WIDTH;
+  const total = formatCurrencyFromCents(breakdown.totalCents, breakdown.currency);
+  const conversion = breakdown.conversion
+    ? `≈ ${formatCurrencyFromCents(breakdown.conversion.amountCents, breakdown.conversion.toCurrency)}`
+    : null;
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = MUTED;
+  ctx.font = `500 18px ${FONT}`;
+  ctx.fillText(breakdown.headerLabel, right, y + 18);
+  const labelWidth = ctx.measureText(breakdown.headerLabel).width;
+
+  ctx.fillStyle = INK;
+  ctx.font = `700 36px ${FONT}`;
+  ctx.fillText(total, right, y + 56);
+  const totalWidth = ctx.measureText(total).width;
+
+  let conversionWidth = 0;
+  if (conversion) {
+    ctx.fillStyle = MUTED;
+    ctx.font = `500 22px ${FONT}`;
+    ctx.fillText(conversion, right, y + 56 + HEADER_CONVERSION_H);
+    conversionWidth = ctx.measureText(conversion).width;
+  }
+  ctx.textAlign = 'left';
+
+  drawPersonAvatar(ctx, {
+    cx: x + AVATAR_RADIUS,
+    cy: y + 34,
+    radius: AVATAR_RADIUS,
+    name: breakdown.person.name,
+    colorIndex: breakdown.colorIndex,
+  });
+
+  const nameX = x + AVATAR_RADIUS * 2 + 14;
+  const nameWidth = right - nameX - Math.max(labelWidth, totalWidth, conversionWidth) - 20;
+  ctx.fillStyle = INK;
+  ctx.font = `700 30px ${FONT}`;
+  ctx.fillText(ellipsizeText(ctx, breakdown.person.name, nameWidth), nameX, y + 45);
+}
+
+function drawSection(
+  ctx: CanvasRenderingContext2D,
+  section: ReceiptBreakdownSection,
+  x: number,
+  y: number,
+  height: number,
+): void {
+  ctx.fillStyle = '#f0f0f0';
+  drawRoundedRect(ctx, x, y, INNER_WIDTH, height, 14);
+  ctx.fill();
+
+  const innerX = x + SECTION_PAD;
+  const right = innerX + SECTION_INNER_WIDTH;
+  let rowY = y + SECTION_PAD;
+
+  drawAmountRow(ctx, {
+    x: innerX,
+    y: rowY + 22,
+    width: SECTION_INNER_WIDTH,
+    label: section.title,
+    value: formatCurrencyFromCents(section.totalCents, section.currency),
+    font: `700 22px ${FONT}`,
+    valueFont: `700 22px ${FONT}`,
+    labelColor: INK,
+  });
+  rowY += SECTION_TITLE_H;
+
+  if (section.conversion) {
+    ctx.fillStyle = MUTED;
+    ctx.font = `400 18px ${FONT}`;
+    ctx.textAlign = 'right';
+    for (const line of formatConversionLines(section.conversion)) {
+      ctx.fillText(line, right, rowY + 18);
+      rowY += CONVERSION_LINE_H;
+    }
+    ctx.textAlign = 'left';
+  }
+
+  drawRule(ctx, innerX, rowY + SECTION_RULE_H / 2, SECTION_INNER_WIDTH);
+  rowY += SECTION_RULE_H;
+
+  if (section.emptyMessage) {
+    drawEmptyMessage(ctx, section.emptyMessage, innerX, rowY);
+    rowY += EMPTY_H;
+  } else {
+    for (const row of section.itemRows) {
+      drawItemRow(ctx, row, innerX, rowY);
+      rowY += measureItemRow(ctx, row);
+    }
+  }
+
+  if (section.chargeRows.length === 0) return;
+  drawRule(ctx, innerX, rowY + CHARGE_RULE_H / 2, SECTION_INNER_WIDTH);
+  rowY += CHARGE_RULE_H;
+  for (const row of section.chargeRows) {
+    drawChargeRow(ctx, row, innerX, rowY);
+    rowY += CHARGE_H;
   }
 }
 
-function drawItemRow(
-  ctx: CanvasRenderingContext2D,
-  row: BreakdownItemRow,
-  x: number,
-  y: number,
-  width: number,
-): void {
-  if (!row.involved) ctx.globalAlpha = 0.4;
-  drawLightTwoColumnRow(ctx, {
-    x,
-    y,
-    width,
-    label: row.label,
-    value: row.amountCents !== null ? formatCurrencyFromCents(row.amountCents, row.currency) : '—',
-    italic: !row.involved,
-    size: 19,
-  });
-  if (!row.involved) ctx.globalAlpha = 1;
+function drawItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow, x: number, y: number) {
+  const lines = itemLabelLines(ctx, row);
+  ctx.fillStyle = INK;
+  ctx.font = `400 22px ${FONT}`;
+  lines.forEach((line, index) => ctx.fillText(line, x, y + 27 + index * ITEM_WRAP_H));
+
+  ctx.font = `500 22px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(
+    formatCurrencyFromCents(row.amountCents, row.currency),
+    x + SECTION_INNER_WIDTH,
+    y + 27,
+  );
+  ctx.textAlign = 'left';
 }
 
 function drawChargeRow(
@@ -513,19 +478,89 @@ function drawChargeRow(
   row: BreakdownChargeRow,
   x: number,
   y: number,
-  width: number,
-): void {
-  drawLightTwoColumnRow(ctx, {
+) {
+  const sign = row.sign === 'minus' ? '−' : '+';
+  drawAmountRow(ctx, {
     x,
-    y,
-    width,
+    y: y + 25,
+    width: SECTION_INNER_WIDTH,
     label: row.label,
-    value: `${row.sign === 'minus' ? '−' : '+'}${formatCurrencyFromCents(
-      row.amountCents,
-      row.currency,
-    )}`,
-    valueColor: row.sign === 'minus' ? '#16a34a' : undefined,
-    italic: true,
-    size: 19,
+    value: `${sign}${formatCurrencyFromCents(row.amountCents, row.currency)}`,
+    font: `400 20px ${FONT}`,
+    valueFont: `400 20px ${FONT}`,
+    valueColor: row.sign === 'minus' ? '#16a34a' : MUTED,
   });
+}
+
+interface AmountRowArgs {
+  x: number;
+  y: number;
+  width: number;
+  label: string;
+  value: string;
+  font: string;
+  valueFont: string;
+  labelColor?: string;
+  valueColor?: string;
+}
+
+function drawAmountRow(ctx: CanvasRenderingContext2D, args: AmountRowArgs): void {
+  ctx.font = args.valueFont;
+  ctx.fillStyle = args.valueColor ?? INK;
+  ctx.textAlign = 'right';
+  ctx.fillText(args.value, args.x + args.width, args.y);
+  const valueWidth = ctx.measureText(args.value).width;
+  ctx.textAlign = 'left';
+
+  ctx.font = args.font;
+  ctx.fillStyle = args.labelColor ?? MUTED;
+  ctx.fillText(ellipsizeText(ctx, args.label, args.width - valueWidth - 20), args.x, args.y);
+}
+
+function drawEmptyMessage(ctx: CanvasRenderingContext2D, message: string, x: number, y: number) {
+  ctx.fillStyle = MUTED;
+  ctx.font = `italic 400 20px ${FONT}`;
+  ctx.fillText(message, x, y + 28);
+}
+
+function drawRule(ctx: CanvasRenderingContext2D, x: number, y: number, width: number): void {
+  ctx.fillStyle = RULE;
+  ctx.fillRect(x, Math.round(y), width, 1);
+}
+
+/**
+ * The PayNow image is the code with its "Pay To / Amount" caption stacked underneath.
+ * Drawing the caption beside the code instead lets the code be bigger for the same height.
+ */
+function drawPaynowQr(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  cardX: number,
+  y: number,
+): void {
+  const codeSide = image.naturalWidth;
+  const captionHeight = image.naturalHeight - codeSide;
+  const captionDrawHeight = (captionHeight / codeSide) * QR_SIZE;
+  const blockWidth = QR_SIZE * 2 + QR_CAPTION_GAP;
+  const x = cardX + (COLUMN_WIDTH - blockWidth) / 2;
+
+  ctx.save();
+  // Keeps the modules crisp when a low-density code is scaled up.
+  ctx.imageSmoothingEnabled = codeSide >= QR_SIZE;
+  ctx.drawImage(image, 0, 0, codeSide, codeSide, x, y, QR_SIZE, QR_SIZE);
+  ctx.restore();
+
+  if (captionHeight > 0) {
+    ctx.drawImage(
+      image,
+      0,
+      codeSide,
+      codeSide,
+      captionHeight,
+      x + QR_SIZE + QR_CAPTION_GAP,
+      y + (QR_SIZE - captionDrawHeight) / 2,
+      QR_SIZE,
+      captionDrawHeight,
+    );
+  }
 }

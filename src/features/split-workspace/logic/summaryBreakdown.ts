@@ -5,6 +5,7 @@ import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 
 import type {
   BreakdownConversion,
+  BreakdownExchangeRate,
   BreakdownItemRow,
   BreakdownChargeRow,
   ReceiptBreakdownSection,
@@ -25,6 +26,7 @@ export function resolveSummaryBreakdown({
 }: ResolveSummaryBreakdownInput): SummaryBreakdown {
   return {
     personBreakdowns: resolvePersonBreakdowns({ people, view, qrDataUrls }),
+    exchangeRate: resolveHeaderRate(view),
     emptyPeopleMessage: people.length === 0 ? 'Add people to see the breakdown.' : undefined,
     unassignedItemCount: view.displaySplit.unassignedItemCount,
   };
@@ -35,6 +37,7 @@ export function resolvePersonBreakdowns({
   view,
   qrDataUrls = {},
 }: ResolveSummaryBreakdownInput): PersonBreakdown[] {
+  const headerRate = resolveHeaderRate(view);
   return people.map((person, colorIndex) => {
     const totalCents = view.displaySplit.totalByPersonCents[person.id] ?? 0;
     const sections =
@@ -61,8 +64,8 @@ export function resolvePersonBreakdowns({
                   entry.effectiveRate !== undefined
                     ? buildConversion(
                         entry.sgdSplit.totalByPersonCents[person.id] ?? 0,
-                        entry.effectiveRate,
-                        entry.currency,
+                        { rate: entry.effectiveRate, fromCurrency: entry.currency },
+                        !isSameRate(headerRate, entry.effectiveRate, entry.currency),
                       )
                     : undefined,
                 itemRows,
@@ -92,7 +95,9 @@ export function resolvePersonBreakdowns({
       headerLabel: view.kind === 'total' ? 'Grand Total Due' : 'Total Due',
       totalCents,
       currency: view.displayCurrency,
-      conversion: resolveHeaderConversion(view, person.id),
+      conversion: headerRate
+        ? buildConversion(view.sgdSplit.totalByPersonCents[person.id] ?? 0, headerRate, true)
+        : undefined,
       qrDataUrl: qrDataUrls[person.id],
       collapsedReceiptTotals:
         view.kind === 'total'
@@ -109,18 +114,19 @@ export function resolvePersonBreakdowns({
   });
 }
 
-function resolveHeaderConversion(
-  view: SummaryView,
-  personId: string,
-): BreakdownConversion | undefined {
+function resolveHeaderRate(view: SummaryView): BreakdownExchangeRate | undefined {
   if (view.displayCurrency === BASE_CURRENCY) return undefined;
   const rate = view.kind === 'receipt' ? view.effectiveRate : view.billedRate;
   if (rate === null) return undefined;
-  return buildConversion(
-    view.sgdSplit.totalByPersonCents[personId] ?? 0,
-    rate,
-    view.displayCurrency,
-  );
+  return { rate, fromCurrency: view.displayCurrency, toCurrency: BASE_CURRENCY };
+}
+
+function isSameRate(
+  headerRate: BreakdownExchangeRate | undefined,
+  rate: number,
+  fromCurrency: string,
+): boolean {
+  return headerRate?.rate === rate && headerRate.fromCurrency === fromCurrency;
 }
 
 interface BuildReceiptSectionInput {
@@ -169,14 +175,20 @@ function buildReceiptSection({
   };
 }
 
+// The Overview shows who had what across everyone, so a person's breakdown lists only their own items.
 function buildItemRows(lines: PersonReceiptLineItem[], currency: string): BreakdownItemRow[] {
-  return lines.map((line, index) => ({
-    id: `${line.itemId}:${index}`,
-    label: line.name,
-    amountCents: line.involved ? line.assignedAmountCents : null,
-    involved: line.involved,
-    currency,
-  }));
+  return lines.flatMap((line, index) =>
+    line.involved
+      ? [
+          {
+            id: `${line.itemId}:${index}`,
+            label: line.name,
+            amountCents: line.assignedAmountCents,
+            currency,
+          },
+        ]
+      : [],
+  );
 }
 
 interface BuildChargeRowsInput {
@@ -231,13 +243,14 @@ function buildChargeRows({
 
 function buildConversion(
   amountCents: number,
-  rate: number,
-  fromCurrency: string,
+  { rate, fromCurrency }: Pick<BreakdownExchangeRate, 'rate' | 'fromCurrency'>,
+  showRate: boolean,
 ): BreakdownConversion {
   return {
     amountCents,
     rate,
     fromCurrency,
     toCurrency: BASE_CURRENCY,
+    showRate,
   };
 }
