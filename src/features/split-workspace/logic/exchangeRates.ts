@@ -1,5 +1,4 @@
-import type { Receipt, SplitResult } from '@shared/types';
-import { BASE_CURRENCY } from '@shared/constants';
+import type { SplitResult } from '@shared/types';
 import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 
 export const FALLBACK_RATES_TO_SGD: Record<string, number> = {
@@ -50,34 +49,6 @@ export function convertCents(
   const toSgd = getEffectiveRate(fromCurrency, rates, override);
   const fromSgd = getEffectiveRate(toCurrency, rates, null);
   return Math.round((amountCents * toSgd) / fromSgd);
-}
-
-export type ForeignCurrencyRate = {
-  currency: string;
-  rate: number;
-  hasCustomRate: boolean;
-};
-
-/**
- * Returns one entry per distinct foreign currency found in `receipts`, using
- * the effective rate for the first receipt that uses each currency.
- * SGD receipts are excluded. Used to display rate info on the consolidated tab.
- */
-export function getForeignReceiptRates(
-  receipts: Receipt[],
-  exchangeRates: Record<string, number>,
-): ForeignCurrencyRate[] {
-  const seen = new Map<string, ForeignCurrencyRate>();
-  for (const receipt of receipts) {
-    const currency = receipt.currency ?? BASE_CURRENCY;
-    if (currency === BASE_CURRENCY || seen.has(currency)) continue;
-    seen.set(currency, {
-      currency,
-      rate: getEffectiveRate(currency, exchangeRates, receipt.exchangeRateOverride),
-      hasCustomRate: receipt.exchangeRateOverride != null,
-    });
-  }
-  return Array.from(seen.values());
 }
 
 export function convertSplitResult(

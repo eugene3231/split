@@ -127,8 +127,8 @@ const DINNER_FOR_TWELVE: PresetDefinition = {
 
 const BALI_TRIP = ['Eugene', 'Sam', 'Moses', 'Glen', 'Beelee'];
 
-// Copied from a real Split export. Receipts 2 and 3 were tagged SGD and receipt 2's total read
-// 329.98; both are corrected to rupiah here.
+// Copied from a real Split export. Alchemy Cafe and Ulekan Berawa were tagged SGD and Alchemy
+// Cafe's total read 329.98; both are corrected to rupiah here.
 const BALI_TRIP_FOR_FIVE: PresetDefinition = {
   id: 'bali-trip-for-five',
   label: 'Bali trip for 5',
@@ -159,7 +159,7 @@ const BALI_TRIP_FOR_FIVE: PresetDefinition = {
       ],
     },
     {
-      name: 'Receipt 2',
+      name: 'Alchemy Cafe',
       currency: 'IDR',
       serviceCharge: { amount: '16980' },
       gst: { amount: '30000' },
@@ -171,7 +171,7 @@ const BALI_TRIP_FOR_FIVE: PresetDefinition = {
       ],
     },
     {
-      name: 'Receipt 3',
+      name: 'Ulekan Berawa',
       currency: 'IDR',
       serviceCharge: { amount: '79100.00' },
       gst: { amount: '120910.00' },

@@ -92,17 +92,7 @@ export function resolvePersonBreakdowns({
       headerLabel: view.kind === 'total' ? 'Grand Total Due' : 'Total Due',
       totalCents,
       currency: view.displayCurrency,
-      conversion:
-        view.kind === 'receipt' &&
-        view.isForeign &&
-        view.displayCurrency !== BASE_CURRENCY &&
-        view.effectiveRate !== null
-          ? buildConversion(
-              view.sgdSplit.totalByPersonCents[person.id] ?? 0,
-              view.effectiveRate,
-              view.nativeCurrency,
-            )
-          : undefined,
+      conversion: resolveHeaderConversion(view, person.id),
       qrDataUrl: qrDataUrls[person.id],
       collapsedReceiptTotals:
         view.kind === 'total'
@@ -117,6 +107,20 @@ export function resolvePersonBreakdowns({
       emptyMessage: sections.length === 0 ? 'No items assigned.' : undefined,
     };
   });
+}
+
+function resolveHeaderConversion(
+  view: SummaryView,
+  personId: string,
+): BreakdownConversion | undefined {
+  if (view.displayCurrency === BASE_CURRENCY) return undefined;
+  const rate = view.kind === 'receipt' ? view.effectiveRate : view.billedRate;
+  if (rate === null) return undefined;
+  return buildConversion(
+    view.sgdSplit.totalByPersonCents[personId] ?? 0,
+    rate,
+    view.displayCurrency,
+  );
 }
 
 interface BuildReceiptSectionInput {

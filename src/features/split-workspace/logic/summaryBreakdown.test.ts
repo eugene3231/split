@@ -81,6 +81,7 @@ describe('resolveSummaryBreakdown', () => {
       const nativeSplit = computeSplit({ people, ...receipt });
       const exchangeRates = { USD: 1.35 };
       const view = resolveSummaryView({
+        people,
         receipts: [receipt],
         splitByReceipt: [nativeSplit],
         consolidatedSplit: computeConsolidatedSplit([nativeSplit], people, ['USD'], exchangeRates),
@@ -100,6 +101,74 @@ describe('resolveSummaryBreakdown', () => {
       expect(conversions.map((conversion) => conversion?.amountCents)).toEqual([1352, 1351]);
     },
   );
+
+  it('totals a one-currency trip as billed, with the SGD amount underneath', () => {
+    const people = [alice, bob];
+    const makeUsdReceipt = (id: string) =>
+      makeReceipt({
+        id,
+        currency: 'USD',
+        items: people.map((person) =>
+          makeItem({
+            id: `${id}-${person.id}`,
+            amountInput: '10.00',
+            assignment: { mode: 'single', personId: person.id, personIds: [] },
+          }),
+        ),
+      });
+    const receipts = [makeUsdReceipt('r1'), makeUsdReceipt('r2')];
+    const splitByReceipt = receipts.map((receipt) => computeSplit({ people, ...receipt }));
+    const exchangeRates = { USD: 1.35 };
+    const view = resolveSummaryView({
+      people,
+      receipts,
+      splitByReceipt,
+      consolidatedSplit: computeConsolidatedSplit(
+        splitByReceipt,
+        people,
+        ['USD', 'USD'],
+        exchangeRates,
+      ),
+      fallbackSplit: splitByReceipt[0],
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+      exchangeRates,
+      activeTab: 'total',
+      showBaseCurrency: false,
+    });
+    const [aliceBreakdown] = resolveSummaryBreakdown({ people, view }).personBreakdowns;
+    expect(aliceBreakdown.currency).toBe('USD');
+    expect(aliceBreakdown.totalCents).toBe(2000);
+    expect(aliceBreakdown.conversion).toEqual({
+      amountCents: 2700,
+      rate: 1.35,
+      fromCurrency: 'USD',
+      toCurrency: 'SGD',
+    });
+  });
+
+  it('leaves out the header rate when the receipts convert at different rates', () => {
+    const view = resolveSummaryView({
+      people: [alice],
+      receipts: [
+        makeReceipt({ id: 'r1', currency: 'USD' }),
+        makeReceipt({ id: 'r2', currency: 'USD', exchangeRateOverride: 1.4 }),
+      ],
+      splitByReceipt: [split(), split()],
+      consolidatedSplit: split(),
+      fallbackSplit: split(),
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+      exchangeRates: { USD: 1.35 },
+      activeTab: 'total',
+      showBaseCurrency: false,
+    });
+    const [aliceBreakdown] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+    expect(aliceBreakdown.currency).toBe('USD');
+    expect(aliceBreakdown.conversion).toBeUndefined();
+  });
 
   it('resolves single-receipt person rows and charge rows', () => {
     const view: SummaryView = {
@@ -211,7 +280,8 @@ describe('resolveSummaryBreakdown', () => {
       gst: disabledCharge,
       sgdSplit: chargedSplit,
       hasAnyForeign: false,
-      foreignRates: [],
+      billedCurrencies: ['SGD'],
+      billedRate: null,
       receiptBreakdowns: [
         {
           name: 'Dinner',
@@ -255,7 +325,8 @@ describe('resolveSummaryBreakdown', () => {
       gst: disabledCharge,
       sgdSplit: split(),
       hasAnyForeign: true,
-      foreignRates: [],
+      billedCurrencies: ['JPY'],
+      billedRate: null,
       receiptBreakdowns: [
         {
           name: 'Ramen Shop',
@@ -336,7 +407,8 @@ describe('resolveSummaryBreakdown', () => {
       gst: disabledCharge,
       sgdSplit: split(),
       hasAnyForeign: false,
-      foreignRates: [],
+      billedCurrencies: ['SGD'],
+      billedRate: null,
       receiptBreakdowns: [],
     };
 
@@ -358,7 +430,8 @@ describe('resolveSummaryBreakdown', () => {
       gst: disabledCharge,
       sgdSplit: split(),
       hasAnyForeign: false,
-      foreignRates: [],
+      billedCurrencies: ['SGD'],
+      billedRate: null,
       receiptBreakdowns: [
         {
           name: 'Dinner',
