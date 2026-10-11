@@ -121,7 +121,7 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
 
-  it('marks the moment the last item gets assigned', () => {
+  it('clears the filter without inserting a completion message into the item list', () => {
     const { refresh } = renderStep('p2');
     expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
 
@@ -129,7 +129,7 @@ describe('AssignStep', () => {
     refresh();
 
     expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
-    expect(screen.getByTestId('claim-all-assigned')).toHaveTextContent('All assigned');
+    expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
   });
 
   it('ticks the active person on and off an item', () => {

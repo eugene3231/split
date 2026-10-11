@@ -122,7 +122,7 @@ export function BottomNav({
 }
 
 interface BottomNavStatusProps {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   className?: string;
 }
@@ -130,7 +130,9 @@ interface BottomNavStatusProps {
 export function BottomNavStatus({ label, value, className }: BottomNavStatusProps) {
   return (
     <div data-testid="wizard-status" className={cn('min-w-0', className)}>
-      <p className="truncate text-xs text-white/60">{label}</p>
+      <p aria-live="polite" className="h-4 truncate text-xs text-white/60">
+        {label}
+      </p>
       <p className="truncate text-xl leading-tight font-extrabold tabular-nums">{value}</p>
     </div>
   );

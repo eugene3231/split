@@ -82,13 +82,14 @@
   --animate-slide-in-back: slide-in-back 260ms var(--ease-out-quart) backwards;
   --animate-fade-in: fade-in 200ms ease-out backwards;
   --animate-rise-in: rise-in 180ms var(--ease-out-quart) backwards;
+  --animate-pop-out: pop-out 180ms ease-in forwards;
   --animate-pop-in: pop-in 200ms var(--ease-out-quart) backwards;
   --animate-step-pulse: step-pulse 2.4s ease-out infinite;
   --animate-person-in: person-in 280ms var(--ease-out-quart) backwards;
   --animate-shrink-out: shrink-out 240ms ease-in forwards;
   --animate-nudge: nudge 420ms var(--ease-out-quart);
   --animate-scan-sweep: scan-sweep 1.4s ease-in-out infinite;
-  --animate-done-out: done-out 1.6s ease-in forwards;
+  --animate-status-flash: status-flash 1.6s ease-in-out forwards;
 
   @keyframes slide-in-forward {
     from {
@@ -167,17 +168,21 @@
     }
   }
 
-  /* Holds the "All assigned" chip, then folds it away. */
-  @keyframes done-out {
+  @keyframes status-flash {
     0%,
-    70% {
-      max-height: 3rem;
+    100% {
+      opacity: 0;
+    }
+    12%,
+    80% {
       opacity: 1;
     }
-    100% {
-      max-height: 0;
-      margin-top: 0;
+  }
+
+  @keyframes pop-out {
+    to {
       opacity: 0;
+      transform: scale(0.5);
     }
   }
 

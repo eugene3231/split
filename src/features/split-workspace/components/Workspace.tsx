@@ -4,7 +4,8 @@ import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
-import { firstName } from '@features/split-workspace/logic/claim';
+import { useAllAssignedMoment } from '@features/split-workspace/hooks/useAllAssignedMoment';
+import { countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
@@ -104,6 +105,8 @@ export function Workspace() {
         onNext={withScrollToTop(handleNext)}
         status={
           <WorkspaceNavStatus
+            key={activeStep}
+            leftCount={countItemsLeft(receipts, people)}
             activeStep={activeStep}
             activePerson={activePerson}
             activePersonTotalCents={consolidated.split.totalByPersonCents[activePersonId] ?? 0}
@@ -119,6 +122,7 @@ export function Workspace() {
 }
 
 interface WorkspaceNavStatusProps {
+  leftCount: number;
   activeStep: WizardStep;
   activePerson: Person | undefined;
   activePersonTotalCents: number;
@@ -127,16 +131,33 @@ interface WorkspaceNavStatusProps {
 }
 
 function WorkspaceNavStatus({
+  leftCount,
   activeStep,
   activePerson,
   activePersonTotalCents,
   receiptTotalCents,
   receiptCurrency,
 }: WorkspaceNavStatusProps) {
+  const justFinished = useAllAssignedMoment(leftCount);
   if (activeStep === 'items' && activePerson) {
     return (
       <BottomNavStatus
-        label={`${firstName(activePerson.name)} owes`}
+        label={
+          justFinished ? (
+            <span
+              key="complete"
+              data-testid="claim-all-assigned"
+              className="inline-flex items-center gap-1 text-white motion-safe:animate-status-flash"
+            >
+              <span aria-hidden className="material-symbols-outlined text-sm">
+                check
+              </span>
+              All assigned
+            </span>
+          ) : (
+            `${firstName(activePerson.name)} owes`
+          )
+        }
         value={<CountUpAmount cents={activePersonTotalCents} currency={BASE_CURRENCY} />}
       />
     );

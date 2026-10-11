@@ -441,6 +441,34 @@ describe('ReceiptSplitterPage integration', () => {
       assignment: { mode: 'equal', personId: '', personIds: [] },
     };
 
+    it('shows completion inside the bottom status then restores the owes label', async () => {
+      await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
+      vi.useFakeTimers();
+      try {
+        fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
+        const message = screen.getByTestId('claim-all-assigned');
+        expect(screen.getByTestId('wizard-status')).toContainElement(message);
+        expect(screen.getByTestId('wizard-step-panel')).not.toContainElement(message);
+        expect(screen.getByTestId('wizard-status')).toHaveTextContent('$2.00');
+        act(() => vi.advanceTimersByTime(1600));
+        expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
+        expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$2.00');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('clears completion immediately if an item becomes unassigned again', async () => {
+      await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
+      expect(screen.getByTestId('wizard-status')).toContainElement(
+        screen.getByTestId('claim-all-assigned'),
+      );
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
+      expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$0.00');
+    });
+
     it('starts with the first person and shows who owes what in the bottom bar', async () => {
       await navigateToClaim();
 

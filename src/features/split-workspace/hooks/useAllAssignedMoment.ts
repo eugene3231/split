@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-/** True right after the last item left gets assigned, until the count changes again. */
 export function useAllAssignedMoment(leftCount: number): boolean {
   const [previous, setPrevious] = useState(leftCount);
   const [justFinished, setJustFinished] = useState(false);
@@ -9,6 +8,12 @@ export function useAllAssignedMoment(leftCount: number): boolean {
     setPrevious(leftCount);
     setJustFinished(previous > 0 && leftCount === 0);
   }
+
+  useEffect(() => {
+    if (!justFinished) return;
+    const timer = window.setTimeout(() => setJustFinished(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [justFinished]);
 
   return justFinished;
 }

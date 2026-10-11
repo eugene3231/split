@@ -13,7 +13,6 @@ import { StepHeader } from '@features/split-workspace/components/shared/StepHead
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
-import { useAllAssignedMoment } from './useAllAssignedMoment';
 
 interface Props {
   activePersonId: string;
@@ -46,7 +45,6 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
     }))
     .filter((section) => section.items.length > 0);
   const hasSeveralReceipts = view.sections.length > 1;
-  const justFinished = useAllAssignedMoment(view.leftCount);
   const personDirection = useSlideDirection(view.people.findIndex((person) => person.isActive));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
@@ -74,8 +72,8 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
               description="Tap everything they had. Shared items split automatically."
             />
           </SlideIn>
-          {view.leftCount > 0 && (
-            <div className="mt-4 flex">
+          <div className="mt-4 flex min-h-7">
+            {view.leftCount > 0 && (
               <Chip
                 testId="claim-left-filter"
                 pressed={filtering}
@@ -83,21 +81,8 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
               >
                 {formatItemCount(view.leftCount)} left
               </Chip>
-            </div>
-          )}
-          {justFinished && (
-            <div className="mt-4 flex overflow-hidden motion-safe:animate-done-out">
-              <span
-                data-testid="claim-all-assigned"
-                className="flex items-center gap-1 rounded-full bg-secondary-container px-3 py-1 text-xs font-semibold text-on-secondary-container motion-safe:animate-pop-in"
-              >
-                <span aria-hidden className="material-symbols-outlined text-sm">
-                  check
-                </span>
-                All assigned
-              </span>
-            </div>
-          )}
+            )}
+          </div>
         </header>
 
         {sections.map((section) => (

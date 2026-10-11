@@ -45,11 +45,16 @@ export function ClaimItemRow({
                 item.claimedByActive ? 'border-primary bg-primary' : 'border-outline-variant',
               )}
             >
-              {item.claimedByActive && (
-                <span className="material-symbols-outlined text-base text-on-primary motion-safe:animate-pop-in">
-                  check
-                </span>
-              )}
+              <span
+                className={cn(
+                  'material-symbols-outlined text-base text-on-primary motion-safe:transition-[transform,opacity] motion-safe:duration-180 motion-safe:ease-out',
+                  item.claimedByActive
+                    ? 'scale-100 opacity-100 motion-safe:animate-pop-in'
+                    : 'scale-50 opacity-0',
+                )}
+              >
+                check
+              </span>
             </span>
             <span className="min-w-0 font-semibold break-words">{item.name}</span>
           </button>

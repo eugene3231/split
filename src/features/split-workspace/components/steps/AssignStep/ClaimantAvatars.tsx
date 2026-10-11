@@ -1,6 +1,9 @@
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { ExitingClaimantAvatar } from './ExitingClaimantAvatar';
 import { HoverLabel } from './HoverLabel';
+import { useClaimantPresence } from './useClaimantPresence';
+import { cn } from '@shared/utils/cn';
 
 const MAX_AVATARS = 4;
 
@@ -12,28 +15,40 @@ interface Props {
 
 /** Who has an item, as overlapping avatars named on hover or long press. */
 export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
-  if (claimants.length === 0) return null;
+  const { visible, avatars, finishExit } = useClaimantPresence(claimants, MAX_AVATARS);
+  if (claimants.length === 0 && avatars.length === 0) return null;
 
-  const shown = claimants.length > MAX_AVATARS ? claimants.slice(0, MAX_AVATARS - 1) : claimants;
-  const hidden = claimants.slice(shown.length);
+  const hidden = claimants.slice(visible.length);
   const names = claimants.map((person) => person.name).join(', ');
 
   return (
     <span
       role="img"
+      aria-hidden={claimants.length === 0 || undefined}
       aria-label={leftLabel ? `${names}, ${leftLabel}` : names}
       data-testid={testId}
       className="flex items-center gap-2"
     >
       <span className="flex -space-x-1">
-        {shown.map((person) => (
-          <HoverLabel key={person.id} label={person.name} showOnTap>
-            <PersonAvatar
-              name={person.name}
-              colorIndex={person.colorIndex}
-              className="h-5 w-5 text-[10px] ring-2 ring-surface motion-safe:animate-pop-in"
-            />
-          </HoverLabel>
+        {avatars.map(({ person, isExiting }) => (
+          <span
+            key={person.id}
+            aria-hidden={isExiting || undefined}
+            data-testid={isExiting ? `claim-avatar-exiting-${person.id}` : undefined}
+            className={cn('flex', isExiting && 'pointer-events-none motion-safe:animate-pop-out')}
+          >
+            {isExiting ? (
+              <ExitingClaimantAvatar person={person} onExit={finishExit} />
+            ) : (
+              <HoverLabel label={person.name} showOnTap>
+                <PersonAvatar
+                  name={person.name}
+                  colorIndex={person.colorIndex}
+                  className="h-5 w-5 text-[10px] ring-2 ring-surface motion-safe:animate-pop-in"
+                />
+              </HoverLabel>
+            )}
+          </span>
         ))}
         {hidden.length > 0 && (
           <HoverLabel label={hidden.map((person) => person.name).join(', ')} showOnTap>
