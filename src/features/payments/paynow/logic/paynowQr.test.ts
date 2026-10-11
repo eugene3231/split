@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generatePaynowQrDataUrls } from './paynowQr';
 
 let shouldFailImageLoad = false;
@@ -53,6 +53,10 @@ describe('generatePaynowQrDataUrls', () => {
     );
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('returns empty object when payerMobile is invalid', async () => {
     const result = await generatePaynowQrDataUrls(
       makePeople(['Alice']),
@@ -103,5 +107,39 @@ describe('generatePaynowQrDataUrls', () => {
       '+6591234567',
     );
     expect(result.p1).toBe('');
+  });
+
+  it('writes who to pay and how much beside the code, not under it', async () => {
+    const { default: QRCode } = await import('qrcode');
+    (QRCode.toCanvas as ReturnType<typeof vi.fn>).mockImplementationOnce(
+      async (canvas: HTMLCanvasElement, _value: string, { width }: { width: number }) => {
+        canvas.width = width;
+        canvas.height = width;
+      },
+    );
+    const texts: { text: string; x: number }[] = [];
+    const sizes: { width: number; height: number }[] = [];
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockImplementation(function (
+      this: HTMLCanvasElement,
+    ) {
+      sizes.push({ width: this.width, height: this.height });
+      return 'data:image/png;base64,mockqr';
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      fillRect: vi.fn(),
+      drawImage: vi.fn(),
+      measureText: (text: string) => ({ width: text.length * 10 }),
+      fillText: (text: string, x: number) => texts.push({ text, x }),
+    } as unknown as CanvasRenderingContext2D);
+    await generatePaynowQrDataUrls(makePeople(['Alice']), makeSplit({ p1: 123450 }), '91234567');
+
+    expect(sizes).toEqual([{ width: 160 + 16 + 130 + 8, height: 160 }]);
+    expect(texts.map(({ text }) => text)).toEqual([
+      'Pay to',
+      '+65 9123 4567',
+      'Amount',
+      'SGD 1,234.50',
+    ]);
+    expect(texts.every(({ x }) => x > 160)).toBe(true);
   });
 });

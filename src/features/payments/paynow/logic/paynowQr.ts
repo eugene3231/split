@@ -1,4 +1,5 @@
 import type { Person, SplitResult } from '@shared/types';
+import { formatMoneyAmount } from '@shared/logic/core/money';
 import { renderQrCanvas } from '@features/payments/qr/logic/renderQrCanvas';
 import { buildPaynowString, normalizeMobile } from './paynow';
 
@@ -28,54 +29,66 @@ function overlayLogo(canvas: HTMLCanvasElement, logo: HTMLImageElement, canvasSi
   ctx.drawImage(logo, x + pad, y + pad, logoW, logoH);
 }
 
+const CAPTION_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+/** "+6591234567" reads as "+65 9123 4567". */
+function formatMobile(mobile: string): string {
+  return mobile.replace(/^(\+65)(\d{4})(\d{4})$/, '$1 $2 $3');
+}
+
+/**
+ * Puts "Pay to" and "Amount" beside the code rather than under it, so the image sits on
+ * one short row at the bottom of a card instead of a tall column with space either side.
+ */
 function appendCaption(
   qrCanvas: HTMLCanvasElement,
   mobile: string,
   amountCents: number,
   scale: number,
 ): HTMLCanvasElement {
-  // Stacked layout: small gray label on its own line, bold value below.
   // All pixel values are in canvas pixels (logical px × scale).
-  const labelSize = Math.round(12 * scale);
-  const valueSize = Math.round(16 * scale);
-  const labelLineH = Math.round(17 * scale);
-  const valueLineH = Math.round(23 * scale);
-  const groupGap = Math.round(8 * scale);
-  const padV = Math.round(10 * scale);
+  const labelSize = Math.round(13 * scale);
+  const valueSize = Math.round(20 * scale);
+  const labelLineH = Math.round(18 * scale);
+  const valueLineH = Math.round(28 * scale);
+  const groupGap = Math.round(12 * scale);
+  const gap = Math.round(16 * scale);
+  const padRight = Math.round(8 * scale);
 
   const fields = [
-    { label: 'Pay To', value: mobile },
-    { label: 'Amount', value: `SGD ${(amountCents / 100).toFixed(2)}` },
+    { label: 'Pay to', value: formatMobile(mobile) },
+    { label: 'Amount', value: `SGD ${formatMoneyAmount(amountCents, 'SGD')}` },
   ];
 
-  // padV + (labelLineH + valueLineH) per field + groupGap between fields + padV
-  const captionH =
-    padV + fields.length * (labelLineH + valueLineH) + (fields.length - 1) * groupGap + padV;
-  const totalH = qrCanvas.height + captionH;
-
   const out = document.createElement('canvas');
-  out.width = qrCanvas.width;
-  out.height = totalH;
-
   const ctx = out.getContext('2d');
   if (!ctx) return qrCanvas;
+
+  ctx.font = `bold ${valueSize}px ${CAPTION_FONT}`;
+  const textWidth = Math.max(...fields.map(({ value }) => ctx.measureText(value).width));
+  out.width = qrCanvas.width + gap + Math.ceil(textWidth) + padRight;
+  out.height = qrCanvas.height;
+
+  // Resizing reset the context, so the fill and fonts are set after it.
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, out.width, totalH);
+  ctx.fillRect(0, 0, out.width, out.height);
   ctx.drawImage(qrCanvas, 0, 0);
 
-  const centerX = out.width / 2;
-  ctx.textAlign = 'center';
-  let y = qrCanvas.height + padV;
+  const textH = fields.length * (labelLineH + valueLineH) + (fields.length - 1) * groupGap;
+  const x = qrCanvas.width + gap;
+  let y = (out.height - textH) / 2;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
 
   fields.forEach(({ label, value }, i) => {
     if (i > 0) y += groupGap;
-    ctx.font = `${labelSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-    ctx.fillStyle = '#888888';
-    ctx.fillText(label, centerX, y + labelSize);
+    ctx.font = `${labelSize}px ${CAPTION_FONT}`;
+    ctx.fillStyle = '#71717a';
+    ctx.fillText(label, x, y);
     y += labelLineH;
-    ctx.font = `bold ${valueSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+    ctx.font = `bold ${valueSize}px ${CAPTION_FONT}`;
     ctx.fillStyle = '#111111';
-    ctx.fillText(value, centerX, y + valueSize);
+    ctx.fillText(value, x, y);
     y += valueLineH;
   });
 
