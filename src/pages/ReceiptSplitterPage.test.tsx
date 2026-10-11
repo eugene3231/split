@@ -410,7 +410,7 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue(); // → receipt
       clickContinue(); // → items
       fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 
       expectActiveStepNav('items');
       expect(useReceiptStore.getState().receipts[0].items[0].assignment.personIds).toEqual([
