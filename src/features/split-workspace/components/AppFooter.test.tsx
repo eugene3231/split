@@ -6,8 +6,9 @@ describe('AppFooter', () => {
   it('credits the author and links to the source', () => {
     render(<AppFooter />);
 
-    expect(screen.getByRole('contentinfo')).toHaveTextContent(
-      `© ${new Date().getFullYear()} Eugene Chua`,
+    expect(screen.getByRole('link', { name: 'Made by Eugene' })).toHaveAttribute(
+      'href',
+      'https://github.com/eugene3231',
     );
     expect(screen.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute(
       'href',

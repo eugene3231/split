@@ -66,8 +66,8 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4">
           <StepHeader
-            title="Final Breakdown"
-            description="What everyone owes, by receipt."
+            title="What everyone owes"
+            description="Check the totals, then save or share the split."
             className="mb-6"
           />
           <ResetSplitAction onConfirm={onResetSplit} />

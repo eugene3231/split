@@ -59,7 +59,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
           <SlideIn key={activePerson.id} direction={personDirection} className="mt-6 lg:mt-0">
             <StepHeader
               title={`What did ${activePerson.firstName} have?`}
-              description="Tap everything they had. Shared items split automatically."
+              description="Select the items they had, including anything shared."
             />
           </SlideIn>
         </header>
