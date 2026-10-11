@@ -15,7 +15,10 @@ const { generatePaynowQrDataUrls } = vi.hoisted(() => ({
   generatePaynowQrDataUrls: vi.fn(),
 }));
 
-vi.mock('@features/payments', () => ({ generatePaynowQrDataUrls }));
+vi.mock('@features/payments', async (importActual) => ({
+  ...(await importActual<typeof import('@features/payments')>()),
+  generatePaynowQrDataUrls,
+}));
 
 beforeEach(() => {
   resetAllStores();
@@ -211,15 +214,66 @@ describe('useSummaryModel', () => {
     );
     await act(async () => first.resolve({ [alice.id]: 'data:r1' }));
     expect(result.current.summaryBreakdown.personBreakdowns[0].qrDataUrl).toBe('data:r1');
+    expect(result.current.payNowStatus).toBe('ready');
 
     rerender({ activeTab: 'r2' });
     expect(result.current.summaryBreakdown.personBreakdowns[0].qrDataUrl).toBeUndefined();
+    expect(result.current.payNowStatus).toBe('generating');
     await act(async () => second.resolve({ [alice.id]: 'data:r2' }));
     expect(result.current.summaryBreakdown.personBreakdowns[0].qrDataUrl).toBe('data:r2');
 
     act(() => useReceiptStore.getState().setPayerMobile('98765432'));
     expect(result.current.summaryBreakdown.personBreakdowns[0].qrDataUrl).toBeUndefined();
+    expect(result.current.payNowStatus).toBe('generating');
     await act(async () => third.resolve({ [alice.id]: 'data:new-mobile' }));
     expect(result.current.summaryBreakdown.personBreakdowns[0].qrDataUrl).toBe('data:new-mobile');
+  });
+  it('does not claim success when a person owing money has no generated QR', async () => {
+    const alice = makePerson('Alice');
+    const bob = makePerson('Bob');
+    seedStore(
+      [alice, bob],
+      [
+        makeReceipt({
+          items: [
+            makeItem({
+              amountInput: '10',
+              assignment: { mode: 'equal', personId: '', personIds: [alice.id, bob.id] },
+            }),
+          ],
+        }),
+      ],
+    );
+    useReceiptStore.getState().setPayerMobile('91234567');
+    generatePaynowQrDataUrls.mockResolvedValue({ [alice.id]: 'data:alice', [bob.id]: '' });
+    const { result } = renderHook(() =>
+      useSummaryModel({ activeTab: 'total', showBaseCurrency: false }),
+    );
+    await act(async () => {});
+    expect(result.current.payNowStatus).toBe('failed');
+  });
+
+  it('reports generation failure when QR generation rejects', async () => {
+    const alice = makePerson('Alice');
+    seedStore(
+      [alice],
+      [
+        makeReceipt({
+          items: [
+            makeItem({
+              amountInput: '10',
+              assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            }),
+          ],
+        }),
+      ],
+    );
+    useReceiptStore.getState().setPayerMobile('91234567');
+    generatePaynowQrDataUrls.mockRejectedValue(new Error('Canvas failed'));
+    const { result } = renderHook(() =>
+      useSummaryModel({ activeTab: 'total', showBaseCurrency: false }),
+    );
+    await act(async () => {});
+    expect(result.current.payNowStatus).toBe('failed');
   });
 });

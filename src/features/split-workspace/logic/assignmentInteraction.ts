@@ -1,5 +1,6 @@
 import type { EditableItem, Person } from '@shared/types';
 import { isItemAssigned } from '@features/split-workspace/logic/wizardValidation';
+import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import {
   setPersonShare,
   stepPersonShare,
@@ -68,6 +69,19 @@ export function togglePersonInAssignment(
       unassignedWeight: nextIds.length > 0 ? nextUnassigned : undefined,
     },
   };
+}
+
+/** Ticks or unticks one person on every priced item, the same as toggling each row. */
+export function setPersonOnEveryItem(
+  items: EditableItem[],
+  personId: string,
+  checked: boolean,
+): EditableItem[] {
+  return items.map((item) =>
+    resolveDiscountedAmountCents(item) === null
+      ? item
+      : togglePersonInAssignment(personId, checked, item),
+  );
 }
 
 /**

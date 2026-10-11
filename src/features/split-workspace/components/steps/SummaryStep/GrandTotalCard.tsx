@@ -5,8 +5,11 @@ import { ReceiptNameField } from '@features/split-workspace/components/shared/Re
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { cn } from '@shared/utils/cn';
 import { PayNowField } from './PayNowField';
+import type { PayNowStatus } from './useSummaryModel';
+import { CheckIcon } from '@features/split-workspace/components/shared/CheckIcon';
 
 interface Props {
+  payNowStatus: PayNowStatus;
   totalLabel: string;
   grandTotal: number;
   displayCurrency: string;
@@ -16,6 +19,7 @@ interface Props {
 }
 
 export function GrandTotalCard({
+  payNowStatus,
   totalLabel,
   grandTotal,
   displayCurrency,
@@ -24,6 +28,8 @@ export function GrandTotalCard({
   onRenameReceipt,
 }: Props) {
   const [showPayNow, setShowPayNow] = useState(false);
+  const statusMessage = getPayNowStatusMessage(payNowStatus);
+  const hasPayNowError = payNowStatus === 'invalid' || payNowStatus === 'failed';
   const hasPayNowNumber = useReceiptStore((s) => s.payerMobile.trim() !== '');
 
   return (
@@ -45,19 +51,48 @@ export function GrandTotalCard({
             totalLabel
           )}
         </span>
-        <button
-          type="button"
-          aria-expanded={showPayNow}
-          aria-controls={showPayNow ? 'payer-mobile' : undefined}
-          onClick={() => setShowPayNow((open) => !open)}
-          className={cn(
-            'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-colors',
-            showPayNow || hasPayNowNumber ? 'bg-white/25' : 'bg-white/10 hover:bg-white/20',
+        <div className="flex shrink-0 items-center gap-2">
+          {payNowStatus === 'ready' && (
+            <CheckIcon
+              role="img"
+              aria-label="PayNow QR codes ready"
+              strokeWidth="2.5"
+              className="h-5 w-5 shrink-0 text-secondary-container motion-safe:animate-pop-in"
+            />
           )}
-        >
-          <PayNowIcon />
-          PayNow
-        </button>
+          {hasPayNowError && (
+            <svg
+              key={payNowStatus}
+              role="img"
+              aria-label={
+                payNowStatus === 'invalid' ? 'PayNow number invalid' : 'PayNow QR generation failed'
+              }
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5 shrink-0 text-red-300"
+            >
+              <path d="m6 6 12 12M6 18 18 6" />
+            </svg>
+          )}
+          <button
+            type="button"
+            aria-expanded={showPayNow}
+            aria-describedby={statusMessage ? 'paynow-status' : undefined}
+            aria-controls={showPayNow ? 'payer-mobile' : undefined}
+            onClick={() => setShowPayNow((open) => !open)}
+            className={cn(
+              'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-colors',
+              showPayNow || hasPayNowNumber ? 'bg-white/25' : 'bg-white/10 hover:bg-white/20',
+            )}
+          >
+            <PayNowIcon />
+            PayNow
+          </button>
+        </div>
       </div>
       <div className="mb-5 flex items-baseline gap-1">
         <span className="text-xl font-semibold text-white/60">
@@ -68,7 +103,29 @@ export function GrandTotalCard({
         </span>
       </div>
 
-      {showPayNow && <PayNowField />}
+      {(showPayNow || statusMessage) && (
+        <div className="mb-4">
+          {showPayNow && <PayNowField invalid={payNowStatus === 'invalid'} />}
+          {(statusMessage || showPayNow) && (
+            <p
+              id="paynow-status"
+              role={statusMessage ? 'status' : undefined}
+              aria-atomic="true"
+              className={cn(
+                'mt-1.5 text-xs leading-relaxed',
+                hasPayNowError
+                  ? 'text-red-300'
+                  : payNowStatus === 'ready'
+                    ? 'text-secondary-container'
+                    : 'text-white/50',
+              )}
+            >
+              {statusMessage ??
+                "Enter the bill payer's number to add a PayNow QR code to each person's card."}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-2.5 border-t border-white/10 pt-4">
         <span
@@ -92,4 +149,21 @@ function PayNowIcon() {
       <path d="M3.25 3.25h1.5v1.5h-1.5zm8 0h1.5v1.5h-1.5zm-8 8h1.5v1.5h-1.5zM9 9h2v2H9zm2 2h2v2h-2zm2-2h2v2h-2zm-4 4h2v2H9zm4 0h2v2h-2z" />
     </svg>
   );
+}
+
+function getPayNowStatusMessage(status: PayNowStatus): string | null {
+  switch (status) {
+    case 'empty':
+      return null;
+    case 'invalid':
+      return 'Enter a valid SG mobile number, e.g. +65 9123 4567';
+    case 'generating':
+      return 'Generating PayNow QR codes…';
+    case 'ready':
+      return "PayNow QR codes are at the bottom of each person's card.";
+    case 'unavailable':
+      return 'No QR codes yet. No one has an amount to pay.';
+    case 'failed':
+      return "Couldn't generate all PayNow QR codes. Clear the number and enter it again.";
+  }
 }

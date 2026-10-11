@@ -56,8 +56,8 @@ export function ReceiptStep({ onAddReceipt }: Props) {
   return (
     <div>
       <StepHeader
-        title="Add Receipts"
-        description="Verify scanned items and add missing charges."
+        title="Add receipts"
+        description="Scan a receipt or enter the items and charges."
         className="mb-6"
       />
 

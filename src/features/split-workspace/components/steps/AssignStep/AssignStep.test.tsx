@@ -6,12 +6,14 @@ import {
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import type { EditableItem, ItemAssignment, Person, Receipt } from '@shared/types';
+import { setPersonOnEveryItem } from '@features/split-workspace/logic/assignmentInteraction';
 import { AssignStep } from './AssignStep';
 
 interface AssignStepStoreMock {
   receipts: Receipt[];
   people: Person[];
   splitReceiptEvenly: ReturnType<typeof vi.fn>;
+  setPersonOnReceiptItems: ReturnType<typeof vi.fn>;
   updateReceiptItem: ReturnType<typeof vi.fn>;
 }
 
@@ -66,6 +68,16 @@ function setStoreMock(receipts: Receipt[]) {
       { id: 'p2', name: 'Bob' },
     ],
     splitReceiptEvenly: vi.fn(),
+    setPersonOnReceiptItems: vi.fn((receiptId: string, personId: string, checked: boolean) => {
+      storeMock = {
+        ...storeMock,
+        receipts: storeMock.receipts.map((receipt) =>
+          receipt.id === receiptId
+            ? { ...receipt, items: setPersonOnEveryItem(receipt.items, personId, checked) }
+            : receipt,
+        ),
+      };
+    }),
     updateReceiptItem: vi.fn(
       (receiptId: string, itemId: string, updater: (item: EditableItem) => EditableItem) => {
         storeMock = {
@@ -139,7 +151,7 @@ describe('AssignStep', () => {
     fireEvent.click(toggle());
     refresh();
     expect(assignmentOf('open').personIds).toEqual(['p2']);
-    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle()).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent('1');
     expect(screen.getByTestId('claim-item-share-open-increase')).toBeDisabled();
     expect(screen.getByTestId('claim-item-share-open-decrease')).toBeEnabled();
@@ -264,6 +276,76 @@ describe('AssignStep', () => {
     expect(takeAlone()).toBeDisabled();
     expect(splitEvenly()).toBeEnabled();
     expect(screen.getByTestId('claim-item-amount-weighted')).toHaveTextContent('$12.00');
+  });
+
+  it('selects and deselects every item on one receipt for the active person', () => {
+    setStoreMock([
+      makeReceipt('r1', [makeItem('a'), makeItem('b', { personIds: ['p1'] })]),
+      makeReceipt('r2', [makeItem('c')]),
+    ]);
+    const { refresh } = renderStep('p2');
+    const selectAll = () =>
+      within(screen.getByTestId('claim-section-r1')).getByRole('checkbox', {
+        name: 'Select all items on Receipt r1',
+      });
+    expect(selectAll()).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(selectAll());
+    refresh();
+    expect(assignmentOf('a').personIds).toEqual(['p2']);
+    expect(assignmentOf('b').personIds).toEqual(['p1', 'p2']);
+    expect(assignmentOf('c').personIds).toEqual([]);
+    expect(selectAll()).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+
+    fireEvent.click(selectAll());
+    refresh();
+    expect(assignmentOf('a').personIds).toEqual([]);
+    expect(assignmentOf('b').personIds).toEqual(['p1']);
+    expect(selectAll()).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('shows a receipt as partly selected and selects the rest on tap', () => {
+    setStoreMock([makeReceipt('r1', [makeItem('a', { personIds: ['p2'] }), makeItem('b')])]);
+    const { refresh } = renderStep('p2');
+    const selectAll = () =>
+      screen.getByRole('checkbox', { name: 'Select all items on Receipt r1' });
+    expect(selectAll()).toHaveAttribute('aria-checked', 'mixed');
+
+    fireEvent.click(selectAll());
+    refresh();
+
+    expect(assignmentOf('b').personIds).toEqual(['p2']);
+    expect(selectAll()).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('asks before deselecting all when the person would lose a custom share', () => {
+    setStoreMock([
+      makeReceipt('r1', [
+        makeItem('a', { personIds: ['p2'] }),
+        makeItem('b', { personIds: ['p1', 'p2'], weights: { p1: 1, p2: 2 } }),
+      ]),
+    ]);
+    const { refresh } = renderStep('p2');
+    const selectAll = () =>
+      screen.getByRole('checkbox', { name: 'Select all items on Receipt r1' });
+
+    fireEvent.click(selectAll());
+    const dialog = within(screen.getByRole('alertdialog'));
+    expect(assignmentOf('a').personIds).toEqual(['p2']);
+
+    fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(assignmentOf('b').personIds).toEqual(['p1', 'p2']);
+
+    fireEvent.click(selectAll());
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Deselect all' }),
+    );
+    refresh();
+    expect(assignmentOf('a').personIds).toEqual([]);
+    expect(assignmentOf('b').personIds).toEqual(['p1']);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
   it('lists every receipt on one page with a heading per receipt', () => {

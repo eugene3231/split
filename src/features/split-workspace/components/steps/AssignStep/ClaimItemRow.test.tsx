@@ -118,7 +118,8 @@ describe('ClaimItemRow', () => {
     renderRow({ ...item, share: null, claimedByActive: false });
     expect(screen.queryByTestId('claim-item-amount-bread')).not.toBeInTheDocument();
     expect(screen.queryByTestId('claim-item-share-bread')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByText('$12.00')).toBeInTheDocument();
   });
 

@@ -10,6 +10,7 @@ import { StepHeader } from '@features/split-workspace/components/shared/StepHead
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
+import { ReceiptSelectAllAction } from './ReceiptSelectAllAction';
 import { ReceiptSharingAction } from './ReceiptSharingAction';
 
 interface Props {
@@ -59,7 +60,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
           <SlideIn key={activePerson.id} direction={personDirection} className="mt-6 lg:mt-0">
             <StepHeader
               title={`What did ${activePerson.firstName} have?`}
-              description="Tap everything they had. Shared items split automatically."
+              description="Select the items they had, including anything shared."
             />
           </SlideIn>
         </header>
@@ -71,6 +72,11 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             data-testid={`claim-section-${section.receiptId}`}
           >
             <div className="sticky top-(--app-bar-height) z-10 -mx-6 flex flex-wrap items-center justify-between gap-2 border-b border-surface-container-high bg-surface px-6 pt-4 pb-2 md:mx-0 md:px-1">
+              <ReceiptSelectAllAction
+                section={section}
+                personId={activePerson.id}
+                personName={activePerson.firstName}
+              />
               <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{section.name}</h2>
               <ReceiptSharingAction receiptId={section.receiptId} />
             </div>

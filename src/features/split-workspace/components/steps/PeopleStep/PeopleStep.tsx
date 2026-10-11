@@ -24,8 +24,8 @@ export function PeopleStep() {
   return (
     <div className="space-y-5">
       <StepHeader
-        title="Who's Splitting?"
-        description="Add everyone who's part of this bill."
+        title="Who's splitting the bill?"
+        description="Add everyone sharing the bill."
         className="mb-6"
       />
 

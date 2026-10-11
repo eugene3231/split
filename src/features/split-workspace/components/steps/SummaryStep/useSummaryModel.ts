@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Person, Receipt, SplitResult } from '@shared/types';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import { generatePaynowQrDataUrls } from '@features/payments';
+import { generatePaynowQrDataUrls, normalizeMobile } from '@features/payments';
 import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
 import type { SummaryBreakdown } from '@shared/types/summaryBreakdown';
 import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
@@ -20,11 +20,13 @@ import { computeReceiptTotals } from '@features/split-workspace/logic/reconcilia
 
 export type { SummaryView };
 
+export type PayNowStatus = 'empty' | 'invalid' | 'generating' | 'ready' | 'unavailable' | 'failed';
+
 function useQrDataUrls(
   people: Person[],
   sgdSplit: SplitResult,
   payerMobile: string,
-): Record<string, string> {
+): { urls: Record<string, string>; status: PayNowStatus } {
   const [qrResult, setQrResult] = useState<{
     key: string;
     urls: Record<string, string>;
@@ -39,15 +41,27 @@ function useQrDataUrls(
   useEffect(() => {
     if (completedQrKey === qrKey) return;
     let cancelled = false;
-    generatePaynowQrDataUrls(people, sgdSplit, payerMobile).then((urls) => {
-      if (!cancelled) setQrResult({ key: qrKey, urls });
-    });
+    generatePaynowQrDataUrls(people, sgdSplit, payerMobile).then(
+      (urls) => {
+        if (!cancelled) setQrResult({ key: qrKey, urls });
+      },
+      () => {
+        if (!cancelled) setQrResult({ key: qrKey, urls: {} });
+      },
+    );
     return () => {
       cancelled = true;
     };
   }, [completedQrKey, payerMobile, people, qrKey, sgdSplit]);
 
-  return qrResult?.key === qrKey ? qrResult.urls : {};
+  const completed = qrResult?.key === qrKey;
+  const urls = completed ? qrResult.urls : {};
+  const recipients = people.filter((person) => (sgdSplit.totalByPersonCents[person.id] ?? 0) > 0);
+  if (!payerMobile.trim()) return { urls, status: 'empty' };
+  if (!normalizeMobile(payerMobile)) return { urls, status: 'invalid' };
+  if (recipients.length === 0) return { urls, status: 'unavailable' };
+  if (!completed) return { urls, status: 'generating' };
+  return { urls, status: recipients.every((person) => urls[person.id]) ? 'ready' : 'failed' };
 }
 
 type UseSummaryModelProps = {
@@ -70,6 +84,7 @@ export type SummaryModel = {
   };
   view: SummaryView;
   qrDataUrls: Record<string, string>;
+  payNowStatus: PayNowStatus;
   summaryBreakdown: SummaryBreakdown;
   summaryOverview: SummaryOverview;
 };
@@ -119,7 +134,11 @@ export function useSummaryModel({
     showBaseCurrency,
   });
 
-  const qrDataUrls = useQrDataUrls(people, view.sgdSplit, payerMobile);
+  const { urls: qrDataUrls, status: payNowStatus } = useQrDataUrls(
+    people,
+    view.sgdSplit,
+    payerMobile,
+  );
   const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls, showAllItems });
   const summaryOverview = resolveSummaryOverview({ people, receipts, view });
 
@@ -137,6 +156,7 @@ export function useSummaryModel({
     },
     view,
     qrDataUrls,
+    payNowStatus,
     summaryBreakdown,
     summaryOverview,
   };

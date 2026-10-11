@@ -612,7 +612,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Alice have?');
       expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$5.00');
       expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Next: Bob');
-      expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('toggles the active person off an item and updates their total', async () => {
@@ -621,7 +621,7 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
 
       expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute(
-        'aria-pressed',
+        'aria-checked',
         'false',
       );
       expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveAccessibleName('Bob');
@@ -897,7 +897,7 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
-      expect(screen.getByLabelText('API Key')).toBeInTheDocument();
+      expect(screen.getByLabelText('API key')).toBeInTheDocument();
     });
 
     it('skip closes the modal without saving a key', async () => {
@@ -906,7 +906,7 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
       fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
-      expect(screen.queryByLabelText('API Key')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('API key')).not.toBeInTheDocument();
       expect(useGeminiStore.getState().geminiApiKeyInput).toBe('');
     });
 
@@ -915,9 +915,9 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
-      fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'my-gemini-key' } });
+      fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'my-gemini-key' } });
       fireEvent.click(screen.getByRole('button', { name: /Save/i }));
-      expect(screen.queryByLabelText('API Key')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('API key')).not.toBeInTheDocument();
       expect(useGeminiStore.getState().geminiApiKeyInput).toBe('my-gemini-key');
     });
 
@@ -931,7 +931,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByLabelText(/Model/i)).toHaveValue(GEMINI_MODELS[1]);
 
       fireEvent.change(screen.getByLabelText(/Model/i), { target: { value: GEMINI_MODELS[3] } });
-      fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'my-gemini-key' } });
+      fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'my-gemini-key' } });
       fireEvent.click(screen.getByRole('button', { name: /Save/i }));
 
       expect(useGeminiStore.getState().geminiModel).toBe(GEMINI_MODELS[3]);
@@ -946,7 +946,7 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
-      expect(screen.queryByLabelText('API Key')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('API key')).not.toBeInTheDocument();
     });
   });
 
@@ -1073,7 +1073,7 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue(); // → Bob
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
       expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute(
-        'aria-pressed',
+        'aria-checked',
         'false',
       );
 

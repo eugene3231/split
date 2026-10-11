@@ -692,6 +692,33 @@ describe('equal sharing on a chosen receipt', () => {
     expect(useReceiptStore.getState().receipts[1]).toEqual({ ...receipt, id: 'r2' });
   });
 
+  it('selects and deselects one person on every item of the named receipt only', () => {
+    const receipt = makeReceipt({
+      id: 'r1',
+      items: [
+        makeItem({ id: 'i1', assignment: { mode: 'equal', personId: '', personIds: [] } }),
+        makeItem({ id: 'i2', assignment: { mode: 'equal', personId: '', personIds: ['p1'] } }),
+      ],
+    });
+    useReceiptStore.setState({
+      people: [
+        { id: 'p1', name: 'Ana' },
+        { id: 'p2', name: 'Ben' },
+      ],
+      receipts: [receipt, { ...receipt, id: 'r2' }],
+      activeReceiptId: 'r2',
+    });
+    const personIdsOf = (index: number) =>
+      useReceiptStore.getState().receipts[index].items.map((item) => item.assignment.personIds);
+
+    useReceiptStore.getState().setPersonOnReceiptItems('r1', 'p2', true);
+    expect(personIdsOf(0)).toEqual([['p2'], ['p1', 'p2']]);
+    expect(personIdsOf(1)).toEqual([[], ['p1']]);
+
+    useReceiptStore.getState().setPersonOnReceiptItems('r1', 'p2', false);
+    expect(personIdsOf(0)).toEqual([[], ['p1']]);
+  });
+
   it('does not share any receipt when the active receipt no longer exists', () => {
     const receipt = makeReceipt({
       id: 'r1',

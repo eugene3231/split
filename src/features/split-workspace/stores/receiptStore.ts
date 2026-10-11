@@ -19,7 +19,10 @@ import {
   normalizeItemAssignments,
   syncItemsWithPeople,
 } from '@features/split-workspace/logic/simpleAssignments';
-import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
+import {
+  setPersonOnEveryItem,
+  splitUnassignedItemsEqually,
+} from '@features/split-workspace/logic/assignmentInteraction';
 import { assignEveryItemEqually, canSplitEvenly } from '@features/split-workspace/logic/evenSplit';
 import { buildReceiptOcrReplacement } from '@features/split-workspace/logic/applyOcrResultToReceipt';
 
@@ -85,6 +88,7 @@ type ReceiptStoreActions = {
   ) => void;
   splitUnassignedItemsEqually: () => void;
   splitReceiptEvenly: (receiptId: string) => void;
+  setPersonOnReceiptItems: (receiptId: string, personId: string, checked: boolean) => void;
   setDiscount: (next: ChargeState) => void;
   setServiceCharge: (next: ChargeState) => void;
   setGst: (next: ChargeState) => void;
@@ -285,6 +289,15 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           ...r,
           items: splitUnassignedItemsEqually(r.items, state.people),
         })),
+      }));
+    },
+    setPersonOnReceiptItems: (receiptId, personId, checked) => {
+      set((state) => ({
+        receipts: state.receipts.map((r) =>
+          r.id === receiptId
+            ? { ...r, items: setPersonOnEveryItem(r.items, personId, checked) }
+            : r,
+        ),
       }));
     },
     splitReceiptEvenly: (receiptId) => {

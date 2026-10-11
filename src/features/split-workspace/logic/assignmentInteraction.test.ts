@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { EditableItem, ItemAssignment, Person } from '@shared/types';
 import {
   applyAssignmentCommand,
+  setPersonOnEveryItem,
   splitUnassignedItemsEqually,
   togglePersonInAssignment,
 } from './assignmentInteraction';
@@ -183,5 +184,44 @@ describe('splitUnassignedItemsEqually', () => {
     const [result] = splitUnassignedItemsEqually([buildItem({ personIds: ['removed'] })], people);
 
     expect(result.assignment.personIds).toEqual(['p1', 'p2', 'p3']);
+  });
+});
+
+describe('setPersonOnEveryItem', () => {
+  it('adds the person to items they are not on and leaves the rest as they were', () => {
+    const open = buildItem({ personIds: [] }, { id: 'open' });
+    const theirs = buildItem({ personIds: ['p3', 'p1'] }, { id: 'theirs' });
+
+    const [nextOpen, nextTheirs] = setPersonOnEveryItem([open, theirs], 'p3', true);
+
+    expect(nextOpen.assignment.personIds).toEqual(['p3']);
+    expect(nextTheirs).toBe(theirs);
+  });
+
+  it('removes the person from every item and keeps the other people', () => {
+    const next = setPersonOnEveryItem(
+      [buildItem({ personIds: ['p1', 'p2'] }), buildItem({ personIds: ['p1'] }, { id: 'i2' })],
+      'p1',
+      false,
+    );
+
+    expect(next.map((item) => item.assignment.personIds)).toEqual([['p2'], []]);
+  });
+
+  it('takes the unassigned share of a part-assigned item', () => {
+    const [next] = setPersonOnEveryItem(
+      [buildItem({ personIds: ['p1'], weights: { p1: 1 }, unassignedWeight: 1 })],
+      'p2',
+      true,
+    );
+
+    expect(next.assignment.unassignedWeight).toBeUndefined();
+    expect(sharesOf(next)).toEqual({ p1: 600, p2: 600 });
+  });
+
+  it('skips items without a price, which the step does not list', () => {
+    const unpriced = buildItem({ personIds: [] }, { amountInput: '' });
+
+    expect(setPersonOnEveryItem([unpriced], 'p1', true)).toEqual([unpriced]);
   });
 });

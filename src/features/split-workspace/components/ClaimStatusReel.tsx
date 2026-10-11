@@ -1,6 +1,7 @@
 import { cn } from '@shared/utils/cn';
 import { BottomNavStatus } from './BottomNav';
 import { CountUpAmount } from './shared/CountUpAmount';
+import { CheckIcon } from './shared/CheckIcon';
 
 interface Props {
   label: string;
@@ -39,9 +40,7 @@ export function ClaimStatusReel({ label, cents, currency, complete }: Props) {
                 aria-hidden
                 className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary-container/15 text-secondary-container motion-safe:animate-pop-in motion-safe:[animation-delay:240ms] @min-[120px]:h-7 @min-[120px]:w-7"
               >
-                <span className="material-symbols-outlined text-base @min-[120px]:text-xl">
-                  check
-                </span>
+                <CheckIcon className="h-3 w-3 @min-[120px]:h-4 @min-[120px]:w-4" />
                 <span className="material-symbols-outlined absolute -top-1 -right-1 hidden text-xs motion-safe:block motion-safe:animate-status-sparkle">
                   auto_awesome
                 </span>

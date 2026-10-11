@@ -77,6 +77,36 @@ describe('resolveClaimView', () => {
     expect(result.people[2].totalCents).toBe(0);
   });
 
+  it('reports whether the active person is on none, some or all of a receipt', () => {
+    const receipts = [
+      makeReceipt('r1', [
+        makeItem('i1', '8.50', { personIds: ['p1'] }),
+        makeItem('i2', '4.00', { personIds: ['p1', 'p2'] }),
+      ]),
+      makeReceipt('r2', [makeItem('i3', '8.50', { personIds: ['p1'] }), makeItem('i4', '4.00')]),
+      makeReceipt('r3', [makeItem('i5', '8.50')]),
+    ];
+
+    expect(view(receipts).sections.map((section) => section.activeSelection)).toEqual([
+      'all',
+      'some',
+      'none',
+    ]);
+    expect(view(receipts, 'p2').sections[0].activeSelection).toBe('some');
+  });
+
+  it('flags a custom share only for an uneven or part-assigned item the active person is on', () => {
+    const custom = (assignment: Partial<ItemAssignment>, activePersonId = 'p1') =>
+      view([makeReceipt('r1', [makeItem('i1', '9.00', assignment)])], activePersonId).sections[0]
+        .activeHasCustomShare;
+
+    expect(custom({ personIds: ['p1', 'p2'] })).toBe(false);
+    expect(custom({ personIds: ['p1', 'p2'], weights: { p1: 1, p2: 1 } })).toBe(false);
+    expect(custom({ personIds: ['p1', 'p2'], weights: { p1: 2, p2: 1 } })).toBe(true);
+    expect(custom({ personIds: ['p1'], weights: { p1: 1 }, unassignedWeight: 1 })).toBe(true);
+    expect(custom({ personIds: ['p1', 'p2'], weights: { p1: 2, p2: 1 } }, 'p3')).toBe(false);
+  });
+
   it('falls back to the first person when the active person no longer exists', () => {
     const result = view([makeReceipt('r1', [makeItem('i1', '8.50')])], 'gone');
 
