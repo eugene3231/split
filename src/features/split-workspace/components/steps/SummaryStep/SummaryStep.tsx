@@ -73,30 +73,13 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
           <ResetSplitAction onConfirm={onResetSplit} />
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="min-w-0">
-            <SummaryTabs
-              receipts={receipts}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              onRenameReceipt={renameReceipt}
-            />
-          </div>
-          <button
-            type="button"
-            data-testid="summary-add-receipt-btn"
-            aria-label="Add receipt"
-            onClick={onAddReceipt}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-dashed border-outline-variant px-3 py-2.5 font-semibold text-on-surface-variant transition-colors hover:border-primary hover:text-primary md:px-5"
-          >
-            <span aria-hidden="true" className="material-symbols-outlined text-lg">
-              add
-            </span>
-            <span aria-hidden="true" className="hidden md:inline">
-              Add receipt
-            </span>
-          </button>
-        </div>
+        <SummaryTabs
+          receipts={receipts}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onRenameReceipt={renameReceipt}
+          onAddReceipt={onAddReceipt}
+        />
 
         <div className="mt-4">
           <SummaryModeToggle mode={mode} onModeChange={setMode} />
