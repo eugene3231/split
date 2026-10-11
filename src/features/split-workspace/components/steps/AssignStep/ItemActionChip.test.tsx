@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ItemActionChip } from './ItemActionChip';
 
 function renderChip(disabled = false) {
@@ -13,26 +13,46 @@ function renderChip(disabled = false) {
       testId="chip"
     />,
   );
-  return { onClick, button: screen.getByTestId('chip') };
+  return { onClick, button: screen.getByTestId('chip'), label: screen.getByTestId('chip-label') };
 }
 
 describe('ItemActionChip', () => {
-  it('shows its label on the button and clicks on a tap', () => {
-    const { onClick, button } = renderChip();
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('names the icon button for screen readers and clicks on a tap', () => {
+    const { onClick, button, label } = renderChip();
 
     expect(button).toHaveAccessibleName('Split evenly');
-    expect(button).toHaveTextContent('Split evenly');
+    fireEvent.pointerDown(button, { pointerType: 'touch' });
+    fireEvent.pointerUp(button, { pointerType: 'touch' });
     fireEvent.click(button);
 
     expect(onClick).toHaveBeenCalledOnce();
+    expect(label).not.toHaveClass('opacity-100');
   });
 
-  it('does nothing while disabled', () => {
-    const { onClick, button } = renderChip(true);
+  it('shows the label on a long press without clicking, then hides it', () => {
+    const { onClick, button, label } = renderChip();
 
-    expect(button).toBeDisabled();
+    fireEvent.pointerDown(button, { pointerType: 'touch' });
+    act(() => vi.advanceTimersByTime(500));
+    expect(label).toHaveClass('opacity-100');
+
+    fireEvent.pointerUp(button, { pointerType: 'touch' });
     fireEvent.click(button);
-
     expect(onClick).not.toHaveBeenCalled();
+
+    act(() => vi.advanceTimersByTime(2000));
+    expect(label).not.toHaveClass('opacity-100');
+  });
+
+  it('still shows the label on a disabled button', () => {
+    const { label } = renderChip(true);
+
+    fireEvent.pointerDown(label.parentElement!, { pointerType: 'touch' });
+    act(() => vi.advanceTimersByTime(500));
+
+    expect(label).toHaveClass('opacity-100');
   });
 });

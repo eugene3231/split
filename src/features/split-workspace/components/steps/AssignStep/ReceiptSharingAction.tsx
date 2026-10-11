@@ -19,7 +19,7 @@ export function ReceiptSharingAction({ receiptId }: Props) {
   const [confirming, setConfirming] = useState(false);
   if (!receipt) return null;
 
-  const share = () => {
+  const splitEvenly = () => {
     splitReceiptEvenly(receiptId);
     setConfirming(false);
   };
@@ -31,23 +31,23 @@ export function ReceiptSharingAction({ receiptId }: Props) {
         disabled={!canSplitEvenly(receipt.items, people)}
         onClick={() => {
           if (hasReceiptSelections(receipt.items)) setConfirming(true);
-          else share();
+          else splitEvenly();
         }}
         className="flex min-h-9 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
       >
         <span aria-hidden="true" className="material-symbols-outlined text-base">
           groups
         </span>
-        Share equally
+        Split all evenly
       </button>
       {confirming && (
         <ConfirmDialog
-          title="Share all items equally?"
-          confirmLabel="Share equally"
+          title="Split all items evenly?"
+          confirmLabel="Split evenly"
           onCancel={() => setConfirming(false)}
-          onConfirm={share}
+          onConfirm={splitEvenly}
         >
-          This shares all items on {receipt.name} equally among all {people.length} people.
+          This splits all items on {receipt.name} evenly among all {people.length} people.
         </ConfirmDialog>
       )}
     </>

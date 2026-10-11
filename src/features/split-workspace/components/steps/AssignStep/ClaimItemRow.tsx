@@ -90,7 +90,7 @@ export function ClaimItemRow({
           />
         </div>
         {share && (
-          <div className="flex min-w-0 flex-1 justify-end gap-1.5 motion-safe:animate-rise-in">
+          <div className="flex flex-1 justify-end gap-1 motion-safe:animate-rise-in">
             <ItemActionChip
               icon="groups"
               label="Split evenly"

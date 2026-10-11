@@ -93,17 +93,15 @@ describe('ClaimItemRow', () => {
     expect(toggle.querySelector('button, input')).toBeNull();
   });
 
-  it('shows split evenly and person-only as labelled buttons, not a menu', () => {
+  it('shows split evenly and person-only as direct icon buttons, not a menu', () => {
     const callbacks = renderRow({
       ...item,
       share: item.share && { ...item.share, canSplitEvenly: false },
     });
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'More share options' })).not.toBeInTheDocument();
-    expect(screen.getByTestId('claim-item-split-evenly-bread')).toHaveTextContent('Split evenly');
-    expect(screen.getByTestId('claim-item-split-evenly-bread')).toBeDisabled();
-    fireEvent.click(screen.getByTestId('claim-item-take-alone-bread'));
-    expect(screen.getByTestId('claim-item-take-alone-bread')).toHaveTextContent('Alice only');
+    expect(screen.getByRole('button', { name: 'Split evenly' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Alice only' }));
     expect(callbacks.onTakeAlone).toHaveBeenCalledOnce();
     expect(callbacks.onToggle).not.toHaveBeenCalled();
   });
