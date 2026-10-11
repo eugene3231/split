@@ -20,24 +20,26 @@ interface Props {
 export function PersonBreakdownCard({ breakdown, showDetails = false }: Props) {
   return (
     <div className="flex h-full flex-col rounded-2xl bg-surface-container-lowest p-4 sm:p-6">
-      {/* Wraps the total under the name rather than truncating the name when both don't fit.
-          React only: the PNG card is a fixed 760px wide, so its header always fits on one line. */}
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="mb-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 sm:gap-x-3">
+        <div className="contents">
           <PersonAvatar name={breakdown.person.name} colorIndex={breakdown.colorIndex} />
-          <h3 className="truncate text-xl font-bold text-primary sm:text-2xl">
+          <h3 className="text-lg leading-tight font-bold [overflow-wrap:anywhere] text-primary sm:text-2xl">
             {breakdown.person.name}
           </h3>
         </div>
-        <div className="ml-auto flex-shrink-0 text-right">
+        <div className="flex-shrink-0 text-right">
           <span className="mb-1 block text-[10px] leading-none font-semibold tracking-widest text-on-surface-variant uppercase">
             {breakdown.headerLabel}
           </span>
-          <p className="font-headline text-2xl leading-none font-semibold text-on-surface sm:text-3xl">
+          <p className="font-headline text-2xl leading-none font-semibold whitespace-nowrap text-on-surface sm:text-3xl">
             {formatCurrencyFromCents(breakdown.totalCents, breakdown.currency)}
           </p>
-          {breakdown.conversion && <ConversionLines conversion={breakdown.conversion} />}
         </div>
+        {breakdown.conversion && (
+          <div className="col-span-3 text-right">
+            <ConversionLines conversion={breakdown.conversion} />
+          </div>
+        )}
       </div>
 
       {breakdown.qrDataUrl && (

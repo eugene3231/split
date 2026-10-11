@@ -40,7 +40,7 @@ export function SummaryTabs({ receipts, activeTab, onTabChange, onRenameReceipt 
               : 'bg-surface-container-high font-semibold text-on-surface-variant hover:bg-surface-container-highest',
           )}
         >
-          Total ({receipts.length} receipts)
+          All receipts
         </button>
       )}
       {receipts.map((r, index) => (

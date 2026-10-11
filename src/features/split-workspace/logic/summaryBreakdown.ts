@@ -98,7 +98,7 @@ export function resolvePersonBreakdowns({
     return {
       person,
       colorIndex,
-      headerLabel: view.kind === 'total' ? 'Grand Total Due' : 'Total Due',
+      headerLabel: view.kind === 'total' ? 'Total owed' : 'Receipt share',
       totalCents,
       currency: view.displayCurrency,
       conversion: headerRate

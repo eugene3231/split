@@ -227,7 +227,7 @@ describe('resolveSummaryBreakdown', () => {
 
     expect(breakdown.personBreakdowns).toHaveLength(1);
     const person = breakdown.personBreakdowns[0];
-    expect(person.headerLabel).toBe('Total Due');
+    expect(person.headerLabel).toBe('Receipt share');
     expect(person.totalCents).toBe(1368);
     expect(person.sections[0].totalCents).toBe(1368);
     expect(person.qrDataUrl).toBe('data:image/png;base64,qr');
@@ -372,7 +372,7 @@ describe('resolveSummaryBreakdown', () => {
 
     const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
 
-    expect(person.headerLabel).toBe('Grand Total Due');
+    expect(person.headerLabel).toBe('Total owed');
     expect(person.collapsedReceiptTotals).toEqual([
       { id: '0:Ramen Shop', label: 'Ramen Shop', totalCents: 1200, currency: 'JPY' },
       { id: '1:Tea Stall', label: 'Tea Stall', totalCents: 300, currency: 'SGD' },

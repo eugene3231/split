@@ -1,3 +1,4 @@
+import { personHeaderLayout } from './personHeaderLayout';
 import type { SplitResult } from '@shared/types';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type {
@@ -46,8 +47,6 @@ const NOTICE_GAP = 24;
 
 const CARD_PAD = 28;
 const AVATAR_RADIUS = 24;
-const HEADER_H = 64;
-const HEADER_CONVERSION_H = 30;
 const BODY_GAP = 20;
 
 const SECTION_PAD = 20;
@@ -252,7 +251,7 @@ function measurePersonCard(
 ): number {
   return (
     CARD_PAD +
-    measureHeader(breakdown) +
+    measureHeader(ctx, breakdown) +
     BODY_GAP +
     measureBody(ctx, breakdown, includeItemDetails) +
     (hasQr ? QR_GAP + QR_SIZE : 0) +
@@ -260,8 +259,24 @@ function measurePersonCard(
   );
 }
 
-function measureHeader(breakdown: PersonBreakdown): number {
-  return HEADER_H + (breakdown.conversion ? HEADER_CONVERSION_H : 0);
+function headerLayout(ctx: CanvasRenderingContext2D, breakdown: PersonBreakdown) {
+  ctx.font = `500 18px ${FONT}`;
+  const labelWidth = ctx.measureText(breakdown.headerLabel).width;
+  ctx.font = `700 36px ${FONT}`;
+  const totalWidth = ctx.measureText(
+    formatCurrencyFromCents(breakdown.totalCents, breakdown.currency),
+  ).width;
+  ctx.font = `700 30px ${FONT}`;
+  return personHeaderLayout({
+    name: breakdown.person.name,
+    nameWidth: INNER_WIDTH - AVATAR_RADIUS * 2 - 14 - Math.max(labelWidth, totalWidth) - 20,
+    conversion: Boolean(breakdown.conversion),
+    measure: (text) => ctx.measureText(text).width,
+  });
+}
+
+function measureHeader(ctx: CanvasRenderingContext2D, breakdown: PersonBreakdown): number {
+  return headerLayout(ctx, breakdown).height;
 }
 
 function measureBody(
@@ -320,7 +335,7 @@ function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): vo
   const innerX = args.x + CARD_PAD;
   drawPersonHeader(ctx, breakdown, innerX, args.y + CARD_PAD);
 
-  let y = args.y + CARD_PAD + measureHeader(breakdown) + BODY_GAP;
+  let y = args.y + CARD_PAD + measureHeader(ctx, breakdown) + BODY_GAP;
   if (!args.includeItemDetails) {
     for (const total of breakdown.collapsedReceiptTotals) {
       drawAmountRow(ctx, {
@@ -356,6 +371,7 @@ function drawPersonHeader(
   x: number,
   y: number,
 ): void {
+  const layout = headerLayout(ctx, breakdown);
   const right = x + INNER_WIDTH;
   const total = formatCurrencyFromCents(breakdown.totalCents, breakdown.currency);
   const conversion = breakdown.conversion
@@ -366,19 +382,14 @@ function drawPersonHeader(
   ctx.fillStyle = MUTED;
   ctx.font = `500 18px ${FONT}`;
   ctx.fillText(breakdown.headerLabel, right, y + 18);
-  const labelWidth = ctx.measureText(breakdown.headerLabel).width;
-
   ctx.fillStyle = INK;
   ctx.font = `700 36px ${FONT}`;
   ctx.fillText(total, right, y + 56);
-  const totalWidth = ctx.measureText(total).width;
 
-  let conversionWidth = 0;
   if (conversion) {
     ctx.fillStyle = MUTED;
     ctx.font = `500 22px ${FONT}`;
-    ctx.fillText(conversion, right, y + 56 + HEADER_CONVERSION_H);
-    conversionWidth = ctx.measureText(conversion).width;
+    ctx.fillText(conversion, right, y + layout.mainHeight + 22);
   }
   ctx.textAlign = 'left';
 
@@ -391,10 +402,9 @@ function drawPersonHeader(
   });
 
   const nameX = x + AVATAR_RADIUS * 2 + 14;
-  const nameWidth = right - nameX - Math.max(labelWidth, totalWidth, conversionWidth) - 20;
   ctx.fillStyle = INK;
   ctx.font = `700 30px ${FONT}`;
-  ctx.fillText(ellipsizeText(ctx, breakdown.person.name, nameWidth), nameX, y + 45);
+  layout.lines.forEach((line, index) => ctx.fillText(line, nameX, y + 45 + index * 30));
 }
 
 function drawSection(

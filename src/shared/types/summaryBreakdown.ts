@@ -51,7 +51,7 @@ export interface ReceiptBreakdownSection {
 export interface PersonBreakdown {
   person: Person;
   colorIndex: number;
-  headerLabel: 'Total Due' | 'Grand Total Due';
+  headerLabel: 'Receipt share' | 'Total owed';
   totalCents: number;
   currency: string;
   conversion?: BreakdownConversion;
