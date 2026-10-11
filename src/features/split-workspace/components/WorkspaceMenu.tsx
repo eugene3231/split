@@ -102,7 +102,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
         <div
           role="menu"
           aria-label="Split menu"
-          className="absolute top-full right-0 z-50 mt-2 w-64 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-1.5 shadow-xl"
+          className="absolute top-full right-0 z-50 mt-2 w-64 origin-top-right rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-1.5 shadow-xl motion-safe:animate-rise-in"
         >
           {importFailed && (
             <p role="alert" className="px-3 py-2 text-xs font-medium text-error">

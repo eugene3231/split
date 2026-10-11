@@ -10,7 +10,12 @@ interface Props {
 }
 
 function scrollIntoRail(element: HTMLButtonElement | null) {
-  element?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  element?.scrollIntoView?.({
+    behavior: reduceMotion ? 'auto' : 'smooth',
+    block: 'nearest',
+    inline: 'center',
+  });
 }
 
 export function ClaimPeopleRail({ people, onSelect, layout, className }: Props) {

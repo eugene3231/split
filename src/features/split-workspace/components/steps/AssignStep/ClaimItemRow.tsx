@@ -46,7 +46,9 @@ export function ClaimItemRow({
               )}
             >
               {item.claimedByActive && (
-                <span className="material-symbols-outlined text-base text-on-primary">check</span>
+                <span className="material-symbols-outlined text-base text-on-primary motion-safe:animate-pop-in">
+                  check
+                </span>
               )}
             </span>
             <span className="min-w-0 font-semibold break-words">{item.name}</span>
@@ -75,7 +77,7 @@ export function ClaimItemRow({
       </div>
 
       {share && (
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 pl-9">
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 pl-9 motion-safe:animate-rise-in">
           <ItemActionChip
             icon="groups"
             label="Split evenly"

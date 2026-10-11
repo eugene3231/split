@@ -6,9 +6,11 @@ import type { AssignmentCommand } from '@features/split-workspace/logic/assignme
 import { formatItemCount, resolveClaimView } from '@features/split-workspace/logic/claim';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { BASE_CURRENCY } from '@shared/constants';
 import { cn } from '@shared/utils/cn';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
+import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
 
@@ -43,6 +45,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
     }))
     .filter((section) => section.items.length > 0);
   const hasSeveralReceipts = view.sections.length > 1;
+  const personDirection = useSlideDirection(view.people.findIndex((person) => person.isActive));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
     updateReceiptItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
@@ -66,11 +69,12 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             layout="row"
             className="-mx-6 mt-4 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
           />
-          <StepHeader
-            title={`What did ${activePerson.firstName} have?`}
-            description="Tap everything they had. Shared items split automatically."
-            className="mt-6"
-          />
+          <SlideIn key={activePerson.id} direction={personDirection} className="mt-6">
+            <StepHeader
+              title={`What did ${activePerson.firstName} have?`}
+              description="Tap everything they had. Shared items split automatically."
+            />
+          </SlideIn>
           {view.leftCount > 0 && (
             <div className="mt-4 flex">
               <Chip

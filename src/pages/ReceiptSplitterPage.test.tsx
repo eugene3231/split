@@ -249,6 +249,20 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByTestId('wizard-back-btn')).not.toBeInTheDocument();
     });
 
+    it('slides each step in from the side it was reached from', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      const panelDirection = () =>
+        screen.getByTestId('wizard-step-panel').getAttribute('data-direction');
+
+      expect(panelDirection()).toBe('none');
+      clickContinue(); // → receipt
+      expect(panelDirection()).toBe('forward');
+      clickBack(); // → people
+      expect(panelDirection()).toBe('back');
+    });
+
     it('jumps from summary directly back to people through the top nav', async () => {
       seedV2Draft({});
       render(<ReceiptSplitterPage />);

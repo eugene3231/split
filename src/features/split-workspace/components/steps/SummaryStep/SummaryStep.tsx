@@ -198,9 +198,14 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
           </div>
 
           {isOverview ? (
-            <OverviewTable overview={summaryOverview} />
+            <div key={`overview-${activeTab}`} className="motion-safe:animate-fade-in">
+              <OverviewTable overview={summaryOverview} />
+            </div>
           ) : (
-            <div className="flex flex-col gap-6">
+            <div
+              key={`by-person-${activeTab}`}
+              className="flex flex-col gap-6 motion-safe:animate-fade-in"
+            >
               {summaryBreakdown.personBreakdowns.map((breakdown) => (
                 <PersonBreakdownCard
                   key={breakdown.person.id}

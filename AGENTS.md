@@ -36,6 +36,8 @@ Examples, and the `useEffect` anti-patterns in full: [docs/REACT-TYPESCRIPT.md](
 
 Merge classes with `cn()`. Design tokens go in the `@theme` block in `src/index.css`; reach for `style={{}}` only where Tailwind cannot. Extract a component once a class list repeats or hides a real UI concept.
 
+Motion uses the `--animate-*` tokens in `src/index.css`, always behind `motion-safe:` so reduced motion turns it off. Step and person changes go through `SlideIn` with `useSlideDirection`.
+
 ## Tests
 
 Every feature and bug fix ships with tests: [docs/TESTING.md](docs/TESTING.md).

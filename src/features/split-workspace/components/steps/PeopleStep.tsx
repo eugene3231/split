@@ -71,7 +71,7 @@ export function PeopleStep() {
               type="button"
               data-testid={`person-chip-${person.id}`}
               onClick={() => removePerson(person.id)}
-              className="flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95"
+              className="flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95 motion-safe:animate-rise-in"
             >
               <PersonAvatar name={person.name} colorIndex={index} size="sm" />
               {person.name}
