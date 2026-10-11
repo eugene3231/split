@@ -198,7 +198,19 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
           </div>
 
           {isOverview ? (
-            <OverviewTable overview={summaryOverview} />
+            <OverviewTable
+              overview={summaryOverview}
+              actions={
+                <ExportActions
+                  appearance="icons"
+                  exportState={exportState}
+                  text={text}
+                  nativeShareSupported={nativeShareSupported}
+                  onDownload={download}
+                  onShare={share}
+                />
+              }
+            />
           ) : (
             <div className="flex flex-col gap-6">
               {summaryBreakdown.personBreakdowns.map((breakdown) => (
@@ -217,15 +229,8 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
           )}
         </div>
 
-        <div
-          className={cn(
-            'flex flex-col gap-4 lg:col-span-4',
-            // Overview gives the table the full width, so the buttons follow it.
-            isOverview ? 'lg:col-start-9' : 'order-1 lg:order-2',
-          )}
-        >
-          {/* The overview's Owes row already gives the total, and PayNow only feeds the cards' QR codes. */}
-          {!isOverview && (
+        {!isOverview && (
+          <div className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-4">
             <GrandTotalCard
               grandTotal={view.grandTotal}
               displayCurrency={view.displayCurrency}
@@ -233,16 +238,16 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
               people={people}
               onRenameReceipt={renameReceipt}
             />
-          )}
-          <ExportActions
-            exportState={exportState}
-            text={text}
-            nativeShareSupported={nativeShareSupported}
-            onDownload={download}
-            onShare={share}
-            onPreview={preview}
-          />
-        </div>
+            <ExportActions
+              exportState={exportState}
+              text={text}
+              nativeShareSupported={nativeShareSupported}
+              onDownload={download}
+              onShare={share}
+              onPreview={preview}
+            />
+          </div>
+        )}
       </div>
 
       {previewUrl && <ImagePreviewModal url={previewUrl} onClose={closePreview} />}

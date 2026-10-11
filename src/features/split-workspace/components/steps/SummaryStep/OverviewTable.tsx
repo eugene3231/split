@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useOverviewHeader } from './useOverviewHeader';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type { Person } from '@shared/types';
 import { cn } from '@shared/utils/cn';
@@ -13,19 +14,21 @@ import type {
 
 interface Props {
   overview: SummaryOverview;
+  actions?: ReactNode;
 }
 
 // `features/sharing/logic/overviewTableImage.ts` draws the same table for the PNG export.
-export function OverviewTable({ overview }: Props) {
+export function OverviewTable({ overview, actions }: Props) {
+  const { attachStickyHeader, attachScroller, attachTable, onScroll } = useOverviewHeader();
   const { people, sections } = overview;
   const showSectionHeadings = sections.length > 1;
 
   return (
     <section
       aria-labelledby="overview-heading"
-      className="min-w-0 overflow-hidden rounded-2xl bg-surface-container-lowest"
+      className="min-w-0 rounded-2xl bg-surface-container-lowest"
     >
-      <div className="flex items-center justify-between gap-3 px-4 pt-5 pb-3 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-5 pb-3 sm:px-6">
         <h2 id="overview-heading" className="text-lg font-bold text-on-surface">
           Who had what
         </h2>
@@ -34,9 +37,41 @@ export function OverviewTable({ overview }: Props) {
             {overview.unassignedItemCount} unassigned
           </span>
         )}
+        {actions && <div className="ml-auto max-w-full">{actions}</div>}
       </div>
-      <div data-testid="overview-table-scroll" className="relative overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+      {/* Document stickiness and export controls are UI-only; the PNG keeps its static table. */}
+      <div
+        ref={attachStickyHeader}
+        aria-hidden="true"
+        className="sticky z-20 overflow-hidden bg-surface-container-lowest text-xs text-on-surface-variant"
+        style={{ visibility: 'hidden', height: 0 }}
+      >
+        <div data-header-people className="flex w-max border-y border-outline-variant/40">
+          <div data-header-cell className="shrink-0" />
+          {people.map((person, index) => (
+            <div
+              key={person.id}
+              data-header-cell
+              className="flex shrink-0 items-center justify-center px-1 py-2 font-medium"
+            >
+              <PersonIdentity person={person} colorIndex={index} />
+            </div>
+          ))}
+        </div>
+        <div
+          data-header-item
+          className="absolute top-0 left-0 flex items-center border-y border-outline-variant/40 bg-surface-container-lowest px-4 font-medium shadow-[inset_-1px_0_0_var(--color-outline-variant)] sm:px-6"
+        >
+          Item
+        </div>
+      </div>
+      <div
+        ref={attachScroller}
+        onScroll={onScroll}
+        data-testid="overview-table-scroll"
+        className="relative overflow-x-auto"
+      >
+        <table ref={attachTable} className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-y border-outline-variant/40 text-xs text-on-surface-variant">
               <StickyCell as="th" className="py-2 font-medium">
@@ -108,13 +143,17 @@ function StickyCell({ as: Cell, scope, className, children }: StickyCellProps) {
 function PersonHeader({ person, colorIndex }: { person: Person; colorIndex: number }) {
   return (
     <th scope="col" title={person.name} className="px-1 py-2 font-medium">
-      <span className="flex flex-col items-center gap-1 text-on-surface">
-        <PersonAvatar name={person.name} colorIndex={colorIndex} size="sm" />
-        <span className="sr-only sm:not-sr-only sm:block sm:max-w-16 sm:truncate">
-          {person.name.trim().split(/\s+/)[0]}
-        </span>
-      </span>
+      <PersonIdentity person={person} colorIndex={colorIndex} />
     </th>
+  );
+}
+
+function PersonIdentity({ person, colorIndex }: { person: Person; colorIndex: number }) {
+  return (
+    <span className="flex flex-col items-center gap-1 text-on-surface">
+      <PersonAvatar name={person.name} colorIndex={colorIndex} size="sm" />
+      <span className="block max-w-16 truncate">{person.name.trim().split(/\s+/)[0]}</span>
+    </span>
   );
 }
 

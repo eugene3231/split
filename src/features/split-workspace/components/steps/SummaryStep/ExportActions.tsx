@@ -1,7 +1,9 @@
 import { useId, useRef } from 'react';
+import { cn } from '@shared/utils/cn';
 import type { SummaryExportState } from './useSummaryExport';
 
 interface Props {
+  appearance?: 'buttons' | 'icons';
   exportState: SummaryExportState;
   text: string;
   nativeShareSupported: boolean;
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export function ExportActions({
+  appearance = 'buttons',
   exportState,
   text,
   nativeShareSupported,
@@ -36,34 +39,46 @@ export function ExportActions({
         ? 'Share'
         : 'Copy Text';
 
+  const icons = appearance === 'icons';
+  const downloadLabel = busy === 'download' ? 'Generating…' : 'Save Image';
   return (
-    <div className="flex flex-col gap-2">
+    <div className={cn('flex gap-2', icons ? 'flex-wrap justify-end' : 'flex-col')}>
       <button
         type="button"
         data-testid="export-save-image-btn"
+        aria-label={downloadLabel}
+        title={downloadLabel}
         onClick={onDownload}
         disabled={busy !== null}
-        className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-on-primary transition-all hover:bg-primary-container disabled:opacity-60"
+        className={cn(
+          'flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-on-primary transition-all hover:bg-primary-container disabled:opacity-60',
+          icons ? 'p-2.5' : 'px-6 py-3',
+        )}
       >
         <span aria-hidden="true" className="material-symbols-outlined text-base">
-          image
+          {icons ? 'download' : 'image'}
         </span>
-        {busy === 'download' ? 'Generating…' : 'Save Image'}
+        <span className={icons ? 'sr-only' : undefined}>{downloadLabel}</span>
       </button>
       <button
         type="button"
         data-testid="export-copy-text-btn"
+        aria-label={shareLabel}
+        title={shareLabel}
         onClick={onShare}
         disabled={busy !== null}
         aria-live="polite"
-        className="flex items-center justify-center gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest px-6 py-3 text-sm font-bold text-primary transition-all hover:border-primary disabled:opacity-60"
+        className={cn(
+          'flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest text-sm font-bold text-primary transition-all hover:border-primary disabled:opacity-60',
+          icons ? 'p-2.5' : 'px-6 py-3',
+        )}
       >
         <span aria-hidden="true" className="material-symbols-outlined text-base">
           {textSuccess ? 'check' : nativeShareSupported ? 'share' : 'content_copy'}
         </span>
-        {shareLabel}
+        <span className={icons ? 'sr-only' : undefined}>{shareLabel}</span>
       </button>
-      {import.meta.env.DEV && onPreview && (
+      {!icons && import.meta.env.DEV && onPreview && (
         <button
           type="button"
           onClick={onPreview}
@@ -77,12 +92,12 @@ export function ExportActions({
         </button>
       )}
       {error && (
-        <p id={`${textId}-error`} role="alert" className="text-sm text-error">
+        <p id={`${textId}-error`} role="alert" className="w-full text-sm text-error">
           {error}
         </p>
       )}
       {exportState.kind === 'manual-copy' && (
-        <div className="space-y-2 rounded-xl border border-outline-variant/30 p-3">
+        <div className="w-full space-y-2 rounded-xl border border-outline-variant/30 p-3">
           <label htmlFor={textId} className="block text-sm font-semibold text-on-surface">
             Split text
           </label>
