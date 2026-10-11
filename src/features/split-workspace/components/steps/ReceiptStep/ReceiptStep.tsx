@@ -114,6 +114,8 @@ export function ReceiptStep({ onAddReceipt, onSplitEvenly }: Props) {
             </div>
           </div>
 
+          <EvenSplitCard onSplitEvenly={onSplitEvenly} />
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold tracking-widest text-on-surface-variant uppercase">
@@ -169,8 +171,6 @@ export function ReceiptStep({ onAddReceipt, onSplitEvenly }: Props) {
               </div>
             )}
           </div>
-
-          <EvenSplitCard onSplitEvenly={onSplitEvenly} />
         </div>
 
         <div className="lg:col-span-4">

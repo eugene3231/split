@@ -11,6 +11,7 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import type { OcrResponse, Person, Receipt } from '@shared/types';
+import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
 import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...';
@@ -652,5 +653,61 @@ describe('receiptStore additional coverage', () => {
     const state = useReceiptStore.getState();
     expect(state.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2']);
     expect(state.receipts[1].items[0].assignment.personIds).toEqual(['p1', 'p2']);
+  });
+});
+
+describe('equal sharing on the active receipt', () => {
+  it('preserves an existing claim even when sharing is called directly', () => {
+    const receipt = makeReceipt({
+      id: 'r1',
+      items: [
+        makeItem({
+          id: 'i1',
+          assignment: {
+            mode: 'equal',
+            personId: '',
+            personIds: ['p1'],
+            weights: { p1: 2 },
+            unassignedWeight: 1,
+          },
+        }),
+      ],
+    });
+    useReceiptStore.setState({
+      people: [
+        { id: 'p1', name: 'Ana' },
+        { id: 'p2', name: 'Ben' },
+      ],
+      receipts: [receipt],
+      activeReceiptId: 'r1',
+    });
+
+    useReceiptStore.getState().splitActiveReceiptEvenly();
+
+    expect(useReceiptStore.getState().receipts).toEqual([receipt]);
+  });
+
+  it('does not share any receipt when the active receipt no longer exists', () => {
+    const receipt = makeReceipt({
+      id: 'r1',
+      items: [
+        makeItem({
+          id: 'i1',
+          assignment: { mode: 'equal', personId: '', personIds: [] },
+        }),
+      ],
+    });
+    useReceiptStore.setState({
+      people: [
+        { id: 'p1', name: 'Ana' },
+        { id: 'p2', name: 'Ben' },
+      ],
+      receipts: [receipt],
+      activeReceiptId: 'missing',
+    });
+
+    useReceiptStore.getState().splitActiveReceiptEvenly();
+
+    expect(useReceiptStore.getState().receipts).toEqual([receipt]);
   });
 });

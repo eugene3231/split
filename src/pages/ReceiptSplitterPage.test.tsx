@@ -403,6 +403,81 @@ describe('ReceiptSplitterPage integration', () => {
       ]);
     });
 
+    it('shares only the active untouched receipt and preserves claims on other receipts', async () => {
+      seedV2Draft({
+        receipts: [
+          makeReceipt({
+            id: 'r1',
+            items: [
+              {
+                id: 'r1-i1',
+                name: 'Tea',
+                amountInput: '12',
+                discountPercentInput: '',
+                assignment: {
+                  mode: 'equal',
+                  personId: '',
+                  personIds: ['p1', 'p2'],
+                  weights: { p1: 2, p2: 1 },
+                },
+              },
+            ],
+          }),
+          makeReceipt({
+            id: 'r2',
+            items: [
+              {
+                id: 'r2-i1',
+                name: 'Dinner',
+                amountInput: '90',
+                discountPercentInput: '',
+                assignment: { mode: 'equal', personId: '', personIds: [] },
+              },
+            ],
+          }),
+        ],
+        activeReceiptId: 'r2',
+      });
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      clickContinue();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Share all items equally' }));
+
+      expectActiveStepNav('items');
+      expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual({
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+        weights: { p1: 2, p2: 1 },
+      });
+      expect(useReceiptStore.getState().receipts[1].items[0].assignment).toEqual({
+        mode: 'equal',
+        personId: '',
+        personIds: ['p1', 'p2'],
+      });
+    });
+
+    it('offers equal sharing on a new receipt even after the first receipt is assigned', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      clickContinue();
+      fireEvent.click(screen.getByRole('button', { name: /Add Receipt$/ }));
+      fireEvent.change(screen.getByLabelText('Price'), { target: { value: '15' } });
+
+      expect(screen.getByRole('button', { name: 'Share all items equally' })).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'Share all items equally' }));
+      expect(useReceiptStore.getState().receipts[1].items[0].assignment.personIds).toEqual([
+        'p1',
+        'p2',
+      ]);
+      clickStepNav('receipt');
+      expect(
+        screen.queryByRole('button', { name: 'Share all items equally' }),
+      ).not.toBeInTheDocument();
+    });
+
     it('is not offered once someone has claimed an item', async () => {
       seedV2Draft({});
       render(<ReceiptSplitterPage />);

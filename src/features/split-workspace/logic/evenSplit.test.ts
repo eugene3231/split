@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { EditableItem, Receipt } from '@shared/types';
+import type { EditableItem } from '@shared/types';
 import { assignEveryItemEqually, canSplitEvenly } from '@features/split-workspace/logic/evenSplit';
 
 const people = [
@@ -16,10 +16,6 @@ function item(id: string, amountInput: string, personIds: string[] = []): Editab
     discountPercentInput: '',
     assignment: { mode: 'equal', personId: '', personIds },
   };
-}
-
-function receipt(items: EditableItem[]): Receipt {
-  return { items } as Receipt;
 }
 
 describe('assignEveryItemEqually', () => {
@@ -52,20 +48,24 @@ describe('assignEveryItemEqually', () => {
 
 describe('canSplitEvenly', () => {
   it('is offered once two people share a priced item nobody has claimed', () => {
-    expect(canSplitEvenly([receipt([item('rice', '10')])], people)).toBe(true);
+    expect(canSplitEvenly([item('rice', '10')], people)).toBe(true);
   });
 
   it('is not offered for one person', () => {
-    expect(canSplitEvenly([receipt([item('rice', '10')])], people.slice(0, 1))).toBe(false);
+    expect(canSplitEvenly([item('rice', '10')], people.slice(0, 1))).toBe(false);
   });
 
   it('is not offered before any item has a price', () => {
-    expect(canSplitEvenly([receipt([item('rice', '')])], people)).toBe(false);
+    expect(canSplitEvenly([item('rice', '')], people)).toBe(false);
   });
 
-  it('is not offered once anyone has claimed an item on any receipt', () => {
-    const receipts = [receipt([item('rice', '10')]), receipt([item('tea', '2', ['p2'])])];
+  it('is not offered once anyone has claimed an item on this receipt', () => {
+    expect(canSplitEvenly([item('rice', '10'), item('tea', '2', ['p2'])], people)).toBe(false);
+  });
 
-    expect(canSplitEvenly(receipts, people)).toBe(false);
+  it('does not replace a single-person assignment', () => {
+    const claimed = item('tea', '2');
+    claimed.assignment = { mode: 'single', personId: 'p2', personIds: [] };
+    expect(canSplitEvenly([claimed], people)).toBe(false);
   });
 });
