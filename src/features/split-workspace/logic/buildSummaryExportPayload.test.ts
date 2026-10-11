@@ -98,7 +98,8 @@ describe('buildSummaryExportPayload', () => {
           gst: disabledChargeState,
           sgdSplit: split,
           hasAnyForeign: true,
-          foreignRates: [],
+          billedCurrencies: ['JPY'],
+          billedRate: null,
           receiptBreakdowns: [
             {
               name: 'Tokyo Lunch',

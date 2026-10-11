@@ -1,13 +1,10 @@
-import type { ChargeState, Receipt, SplitResult } from '@shared/types';
+import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
 import { BASE_CURRENCY } from '@shared/constants';
+import { computeConsolidatedSplit } from '@features/split-workspace/logic/split/split';
 import {
   convertSplitResult,
   getEffectiveRate,
-  getForeignReceiptRates,
 } from '@features/split-workspace/logic/exchangeRates';
-import type { ForeignCurrencyRate } from '@features/split-workspace/logic/exchangeRates';
-
-export type { ForeignCurrencyRate };
 
 interface BaseView {
   displaySplit: SplitResult;
@@ -23,7 +20,10 @@ interface BaseView {
 export interface TotalTabView extends BaseView {
   kind: 'total';
   hasAnyForeign: boolean;
-  foreignRates: ForeignCurrencyRate[];
+  /** Each currency the receipts were billed in, in receipt order. */
+  billedCurrencies: string[];
+  /** The one rate every receipt converts at when totals show in a foreign currency, else null. */
+  billedRate: number | null;
   /** Per-receipt split data consumed by summaryBreakdown on the consolidated tab. */
   receiptBreakdowns: {
     name: string;
@@ -48,6 +48,7 @@ export interface ReceiptTabView extends BaseView {
 export type SummaryView = TotalTabView | ReceiptTabView;
 
 export type ResolveSummaryViewInput = {
+  people: Person[];
   receipts: Receipt[];
   splitByReceipt: SplitResult[];
   consolidatedSplit: SplitResult;
@@ -66,6 +67,7 @@ function grandTotalOf(split: SplitResult): number {
 }
 
 function resolveTotalTab({
+  people,
   receipts,
   splitByReceipt,
   consolidatedSplit,
@@ -106,17 +108,38 @@ function resolveTotalTab({
     };
   });
 
+  const billedCurrencies = [...new Set(receipts.map((r) => r.currency ?? BASE_CURRENCY))];
+  // Totals can stay as billed only when every receipt shares one currency.
+  const totalCurrency =
+    !showBaseCurrency && billedCurrencies.length === 1 ? billedCurrencies[0] : BASE_CURRENCY;
+  const displaySplit =
+    totalCurrency === BASE_CURRENCY
+      ? consolidatedSplit
+      : computeConsolidatedSplit(
+          splitByReceipt,
+          people,
+          receipts.map((r) => r.currency),
+          exchangeRates,
+          receipts.map((r) => r.exchangeRateOverride),
+          totalCurrency,
+        );
+  const receiptRates = receipts.map((r) =>
+    getEffectiveRate(totalCurrency, exchangeRates, r.exchangeRateOverride ?? null),
+  );
+
   return {
     kind: 'total',
-    displaySplit: consolidatedSplit,
-    displayCurrency: BASE_CURRENCY,
-    grandTotal: grandTotalOf(consolidatedSplit),
+    displaySplit,
+    displayCurrency: totalCurrency,
+    grandTotal: grandTotalOf(displaySplit),
     discount,
     serviceCharge,
     gst,
     sgdSplit: consolidatedSplit,
     hasAnyForeign: receipts.some((r) => (r.currency ?? BASE_CURRENCY) !== BASE_CURRENCY),
-    foreignRates: getForeignReceiptRates(receipts, exchangeRates),
+    billedCurrencies,
+    billedRate:
+      totalCurrency !== BASE_CURRENCY && new Set(receiptRates).size === 1 ? receiptRates[0] : null,
     receiptBreakdowns,
   };
 }

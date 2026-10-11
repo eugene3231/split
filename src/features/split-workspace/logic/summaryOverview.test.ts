@@ -67,6 +67,7 @@ function resolve(receipts: Receipt[], activeTab: string, exchangeRates = {}, sho
     receipts.map((r) => r.exchangeRateOverride),
   );
   const view = resolveSummaryView({
+    people,
     receipts,
     splitByReceipt,
     consolidatedSplit,
