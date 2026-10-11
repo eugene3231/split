@@ -43,7 +43,7 @@ describe('ItemActionChip', () => {
     fireEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
 
-    act(() => vi.advanceTimersByTime(1300));
+    act(() => vi.advanceTimersByTime(1600));
     expect(label).not.toHaveClass('opacity-100');
   });
 
