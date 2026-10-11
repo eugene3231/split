@@ -43,6 +43,7 @@ function makeReceipt(id: string, itemIds: string[]): Receipt {
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
     receiptTotalInput: '',
+    roundingInput: '',
     currency: 'SGD',
     exchangeRateOverride: null,
   };

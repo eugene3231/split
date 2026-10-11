@@ -33,6 +33,7 @@ const makeReceipt = (id: string, name: string): Receipt =>
       detectedSource: null,
     },
     receiptTotalInput: '',
+    roundingInput: '',
     currency: 'SGD',
     exchangeRateOverride: null,
   }) as Receipt;

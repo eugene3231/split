@@ -120,13 +120,22 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                 </p>
               </div>
             </div>
-            {reconciliationCents < 0 && (
+            {reconciliationCents < 0 ? (
               <button
                 type="button"
                 onClick={model.reconciliation.applyCorrectiveDiscount}
                 className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
               >
                 Apply Corrective Discount
+              </button>
+            ) : (
+              <button
+                type="button"
+                data-testid="summary-add-rounding-btn"
+                onClick={model.reconciliation.addRounding}
+                className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
+              >
+                Add {formatCurrencyFromCents(reconciliationCents, nativeCurrency)} as rounding
               </button>
             )}
           </div>

@@ -3,10 +3,16 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 interface Props {
   reconciliationCents: number | null;
   onApplyDiscount?: () => void;
+  onAddRounding?: () => void;
   currency?: string;
 }
 
-export function ReconciliationNotice({ reconciliationCents, onApplyDiscount, currency }: Props) {
+export function ReconciliationNotice({
+  reconciliationCents,
+  onApplyDiscount,
+  onAddRounding,
+  currency,
+}: Props) {
   if (reconciliationCents === null) return null;
 
   const isMatch = reconciliationCents === 0;
@@ -65,6 +71,16 @@ export function ReconciliationNotice({ reconciliationCents, onApplyDiscount, cur
           className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
         >
           Resolve Difference (Apply Discount)
+        </button>
+      )}
+      {isOver && onAddRounding && (
+        <button
+          type="button"
+          data-testid="add-rounding-reconcile-btn"
+          onClick={onAddRounding}
+          className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
+        >
+          Add {formatCurrencyFromCents(reconciliationCents, currency)} as rounding
         </button>
       )}
     </div>

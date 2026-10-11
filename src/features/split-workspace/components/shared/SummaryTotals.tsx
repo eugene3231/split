@@ -8,9 +8,17 @@ interface Props {
   serviceCharge: ChargeState;
   gst: ChargeState;
   currency?: string;
+  onRemoveRounding: () => void;
 }
 
-export function SummaryTotals({ split, discount, serviceCharge, gst, currency }: Props) {
+export function SummaryTotals({
+  split,
+  discount,
+  serviceCharge,
+  gst,
+  currency,
+  onRemoveRounding,
+}: Props) {
   return (
     <div className="mb-8 space-y-4 border-t border-surface-container-high pt-6">
       <div className="flex items-center justify-between text-sm">
@@ -46,6 +54,27 @@ export function SummaryTotals({ split, discount, serviceCharge, gst, currency }:
           </span>
           <span className="font-bold text-primary">
             +{formatCurrencyFromCents(split.gstCents, currency)}
+          </span>
+        </div>
+      )}
+      {split.roundingCents !== 0 && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="flex items-center gap-1 font-medium text-on-surface-variant">
+            <button
+              type="button"
+              data-testid="remove-rounding-btn"
+              aria-label="Remove rounding"
+              onClick={onRemoveRounding}
+              className="-ml-0.5 flex items-center rounded-full p-0.5 transition-colors hover:text-error"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined !text-base">
+                close
+              </span>
+            </button>
+            Rounding
+          </span>
+          <span className="font-bold text-primary">
+            +{formatCurrencyFromCents(split.roundingCents, currency)}
           </span>
         </div>
       )}
