@@ -232,6 +232,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
           {/* The overview's Owes row already gives the total, and PayNow only feeds the cards' QR codes. */}
           {!isOverview && (
             <GrandTotalCard
+              totalLabel={summaryBreakdown.totalLabel}
               grandTotal={view.grandTotal}
               displayCurrency={view.displayCurrency}
               currentReceipt={receiptForExport}

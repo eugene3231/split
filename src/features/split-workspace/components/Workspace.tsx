@@ -4,7 +4,7 @@ import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
-import { countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
+import { firstName } from '@features/split-workspace/logic/claim';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
@@ -72,7 +72,6 @@ export function Workspace() {
     >
       <TopAppBar
         activeStep={activeStep}
-        itemsLeftCount={countItemsLeft(receipts, people)}
         stepReachability={stepReachability}
         onStepSelect={withScrollToTop(handleStepSelect)}
         actions={<WorkspaceMenu onLoadWorkspace={withScrollToTop(handleLoadWorkspace)} />}
