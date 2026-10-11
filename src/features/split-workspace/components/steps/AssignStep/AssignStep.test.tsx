@@ -120,17 +120,15 @@ describe('AssignStep', () => {
     expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveTextContent('$4.50');
     expect(screen.getAllByTestId('claim-person-p2')[0]).not.toHaveTextContent(/\d+ items?/);
     expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
 
-  it('clears the filter without inserting a completion message into the item list', () => {
+  it('does not insert a completion message into the item list', () => {
     const { refresh } = renderStep('p2');
     expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('claim-item-toggle-open'));
     refresh();
 
-    expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
     expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
   });
 
@@ -204,7 +202,6 @@ describe('AssignStep', () => {
     expect(screen.getByTestId('claim-item-claimants-bread')).toHaveAccessibleName(
       'Alice Tan, 1/2 left',
     );
-    expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
   });
 
   it('takes a typed amount or percent from the price and splits the rest', () => {
@@ -286,29 +283,10 @@ describe('AssignStep', () => {
     expect(assignmentOf('b').personIds).toEqual(['p2', 'p1']);
   });
 
-  it('filters down to the items left across receipts and back', () => {
-    setStoreMock([
-      makeReceipt('r1', [makeItem('a'), makeItem('done', { personIds: ['p1'] })]),
-      makeReceipt('r2', [makeItem('b', { personIds: ['p2'] })]),
-    ]);
-    renderStep();
-
-    fireEvent.click(screen.getByTestId('claim-left-filter'));
-
-    expect(screen.getByTestId('claim-left-filter')).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('claim-item-a')).toBeInTheDocument();
-    expect(screen.queryByTestId('claim-item-done')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('claim-section-r2')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('claim-left-filter'));
-    expect(screen.getByTestId('claim-item-done')).toBeInTheDocument();
-  });
-
-  it('shows a single receipt heading and hides the left chip when everything is assigned', () => {
+  it('shows a single receipt heading when everything is assigned', () => {
     setStoreMock([makeReceipt('r1', [makeItem('a', { personIds: ['p1'] })])]);
     renderStep();
 
     expect(screen.getByRole('heading', { level: 2, name: /Receipt r1/ })).toBeVisible();
-    expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
   });
 });

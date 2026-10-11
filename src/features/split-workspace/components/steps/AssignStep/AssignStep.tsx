@@ -1,14 +1,11 @@
-import { useState } from 'react';
-import type { ReactNode } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { applyAssignmentCommand } from '@features/split-workspace/logic/assignmentInteraction';
 import type { AssignmentCommand } from '@features/split-workspace/logic/assignmentInteraction';
-import { formatItemCount, resolveClaimView } from '@features/split-workspace/logic/claim';
+import { resolveClaimView } from '@features/split-workspace/logic/claim';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { BASE_CURRENCY } from '@shared/constants';
-import { cn } from '@shared/utils/cn';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimItemRow } from './ClaimItemRow';
@@ -29,7 +26,6 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
     })),
   );
   const { consolidated } = useReceiptSplit();
-  const [showLeftOnly, setShowLeftOnly] = useState(false);
 
   const view = resolveClaimView({
     receipts,
@@ -38,13 +34,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
     totalByPersonCents: consolidated.split.totalByPersonCents,
     totalsCurrency: BASE_CURRENCY,
   });
-  const filtering = showLeftOnly && view.leftCount > 0;
-  const sections = view.sections
-    .map((section) => ({
-      ...section,
-      items: filtering ? section.items.filter((item) => item.isLeft) : section.items,
-    }))
-    .filter((section) => section.items.length > 0);
+  const sections = view.sections.filter((section) => section.items.length > 0);
   const personDirection = useSlideDirection(view.people.findIndex((person) => person.isActive));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
@@ -58,7 +48,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
   return (
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
       <div className="min-w-0">
-        <header className="-mx-6 -mt-4 bg-surface-container-low px-6 pt-5 pb-6 md:mx-0 md:mt-0 md:rounded-3xl md:px-8 md:pt-6 md:pb-7">
+        <header className="-mx-6 -mt-4 bg-surface-container-low px-6 pt-5 pb-5 md:mx-0 md:mt-0 md:rounded-3xl md:px-8 md:pt-6 md:pb-6">
           <ClaimPeopleRail
             people={view.people}
             onSelect={onActivePersonChange}
@@ -72,17 +62,6 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
               description="Tap everything they had. Shared items split automatically."
             />
           </SlideIn>
-          <div className="mt-4 flex min-h-7">
-            {view.leftCount > 0 && (
-              <Chip
-                testId="claim-left-filter"
-                pressed={filtering}
-                onClick={() => setShowLeftOnly(!filtering)}
-              >
-                {formatItemCount(view.leftCount)} left
-              </Chip>
-            )}
-          </div>
         </header>
 
         {sections.map((section) => (
@@ -154,31 +133,5 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
         />
       </aside>
     </div>
-  );
-}
-
-interface ChipProps {
-  testId: string;
-  pressed?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}
-
-function Chip({ testId, pressed, onClick, children }: ChipProps) {
-  return (
-    <button
-      type="button"
-      data-testid={testId}
-      aria-pressed={pressed}
-      onClick={onClick}
-      className={cn(
-        'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
-        pressed
-          ? 'border-primary bg-primary text-on-primary'
-          : 'border-outline-variant bg-surface-container-lowest hover:bg-surface-container',
-      )}
-    >
-      {children}
-    </button>
   );
 }

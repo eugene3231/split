@@ -409,7 +409,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       clickContinue(); // → receipt
       clickContinue(); // → items
-      fireEvent.click(screen.getByRole('button', { name: 'Share equally' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
       expectActiveStepNav('items');
@@ -461,7 +461,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       fireEvent.click(
         within(screen.getByTestId('claim-section-r2')).getByRole('button', {
-          name: 'Share equally',
+          name: 'Split all evenly',
         }),
       );
 
@@ -490,21 +490,21 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
-      expect(screen.queryByRole('button', { name: 'Share equally' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Split all evenly' })).not.toBeInTheDocument();
       clickContinue();
-      expect(screen.getByRole('button', { name: 'Share equally' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Split all evenly' })).toBeDisabled();
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
       const original = useReceiptStore.getState().receipts;
-      fireEvent.click(screen.getByRole('button', { name: 'Share equally' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
       fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
       expect(useReceiptStore.getState().receipts).toEqual(original);
-      fireEvent.click(screen.getByRole('button', { name: 'Share equally' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
       fireEvent.click(
-        within(screen.getByRole('dialog')).getByRole('button', { name: 'Share equally' }),
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Split evenly' }),
       );
-      expect(screen.getByRole('button', { name: 'Share equally' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Split all evenly' })).toBeDisabled();
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
-      expect(screen.getByRole('button', { name: 'Share equally' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Split all evenly' })).toBeEnabled();
       vi.restoreAllMocks();
     });
   });
@@ -701,7 +701,6 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.change(input, { target: { value: '50%' } });
       fireEvent.blur(input);
       expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$3.00');
-      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
 
       clickContinue(); // → Bob
       expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveAccessibleName(
@@ -722,7 +721,6 @@ describe('ReceiptSplitterPage integration', () => {
         makeReceipt({ id: 'r2', items: [{ ...unclaimedItem, id: 'r2-i1' }] }),
       ]);
 
-      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
       expect(screen.getByTestId('claim-item-r1-i1')).toBeInTheDocument();
       expect(screen.getByTestId('claim-item-r2-i1')).toBeInTheDocument();
 
@@ -730,7 +728,6 @@ describe('ReceiptSplitterPage integration', () => {
 
       const [, r2] = useReceiptStore.getState().receipts;
       expect(r2.items[0].assignment.personIds).toEqual(['p1']);
-      expect(screen.queryByTestId('claim-left-filter')).not.toBeInTheDocument();
     });
   });
 
@@ -1001,7 +998,6 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('export-save-image-btn')).not.toBeInTheDocument();
       });
-      expect(screen.getByTestId('claim-left-filter')).toHaveTextContent('1 item left');
     });
   });
 
