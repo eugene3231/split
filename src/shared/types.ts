@@ -58,11 +58,13 @@ export type SplitResult = {
   discountByPersonCents: Record<string, number>;
   serviceByPersonCents: Record<string, number>;
   gstByPersonCents: Record<string, number>;
+  roundingByPersonCents: Record<string, number>;
   totalByPersonCents: Record<string, number>;
   subtotalCents: number;
   discountCents: number;
   serviceChargeCents: number;
   gstCents: number;
+  roundingCents: number;
   grandTotalCents: number;
   unassignedItemCount: number;
 };
@@ -87,6 +89,8 @@ export type Receipt = {
   serviceCharge: ChargeState;
   gst: ChargeState;
   receiptTotalInput: string;
+  /** A fixed amount the store added to reach its printed total, split evenly and never taxed. */
+  roundingInput: string;
   receiptFile?: File | null;
   currency: string;
   exchangeRateOverride: number | null;

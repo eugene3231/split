@@ -43,6 +43,7 @@ function receipt(overrides: Partial<Receipt> & Pick<Receipt, 'id' | 'items'>): R
     serviceCharge: offCharge,
     gst: offCharge,
     receiptTotalInput: '',
+    roundingInput: '',
     currency: 'SGD',
     exchangeRateOverride: null,
     ...overrides,
@@ -57,6 +58,7 @@ function resolve(receipts: Receipt[], activeTab: string, exchangeRates = {}, sho
       discount: r.discount,
       serviceCharge: r.serviceCharge,
       gst: r.gst,
+      roundingInput: r.roundingInput,
     }),
   );
   const consolidatedSplit = computeConsolidatedSplit(
@@ -97,6 +99,20 @@ const dinner = receipt({
 });
 
 describe('resolveSummaryOverview', () => {
+  it('lists rounding last, with the same per-person shares as each card', () => {
+    const { overview, breakdown } = resolve([{ ...dinner, roundingInput: '0.05' }], 'dinner');
+
+    const rounding = overview.sections[0].chargeRows.at(-1);
+    expect(rounding).toMatchObject({ kind: 'rounding', label: 'Rounding', totalCents: 5 });
+    expect(rounding?.sharesByPerson).toEqual({ alice: 2, bob: 2, cara: 1 });
+    expect(
+      breakdown.personBreakdowns.map(
+        (person) =>
+          person.sections[0].chargeRows.find((row) => row.kind === 'rounding')?.amountCents,
+      ),
+    ).toEqual([2, 2, 1]);
+  });
+
   it('splits each item into shares that add up to its price', () => {
     const { overview } = resolve([dinner], 'dinner');
 

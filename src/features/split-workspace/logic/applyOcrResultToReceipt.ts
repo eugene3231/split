@@ -9,7 +9,7 @@ import {
 
 export type ReceiptOcrReplacement = Pick<
   Receipt,
-  'items' | 'discount' | 'serviceCharge' | 'gst' | 'receiptTotalInput'
+  'items' | 'discount' | 'serviceCharge' | 'gst' | 'receiptTotalInput' | 'roundingInput'
 >;
 
 export function buildReceiptOcrReplacement(payload: OcrResponse): ReceiptOcrReplacement {
@@ -19,5 +19,6 @@ export function buildReceiptOcrReplacement(payload: OcrResponse): ReceiptOcrRepl
     serviceCharge: applyChargeDetection(defaultServiceChargeState, payload.detected.serviceCharge),
     gst: applyChargeDetection(defaultGstState, payload.detected.gst),
     receiptTotalInput: payload.total !== null ? payload.total.toFixed(2) : '',
+    roundingInput: '',
   };
 }

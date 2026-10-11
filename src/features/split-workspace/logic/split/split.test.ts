@@ -584,4 +584,69 @@ describe('computeSplit', () => {
     expect(split.subtotalByPersonCents.bob).toBe(333);
     expect(split.subtotalByPersonCents.alice + split.subtotalByPersonCents.bob).toBe(1000);
   });
+
+  it('adds rounding after tax, split evenly between everyone on the receipt', () => {
+    const people: Person[] = [
+      { id: 'alice', name: 'Alice' },
+      { id: 'bob', name: 'Bob' },
+      { id: 'cara', name: 'Cara' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'steak',
+        name: 'Steak',
+        amountInput: '30.00',
+        discountPercentInput: '',
+        assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+      },
+      {
+        id: 'salad',
+        name: 'Salad',
+        amountInput: '10.00',
+        discountPercentInput: '',
+        assignment: { mode: 'single', personId: 'bob', personIds: ['bob'] },
+      },
+    ];
+
+    const split = computeSplit({
+      people,
+      items,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: { ...disabledCharge, enabled: true, percentInput: '9' },
+      roundingInput: '0.41',
+    });
+
+    expect(split.gstCents).toBe(360);
+    expect(split.roundingCents).toBe(41);
+    expect(split.roundingByPersonCents).toEqual({ alice: 21, bob: 20, cara: 0 });
+    expect(split.grandTotalCents).toBe(4401);
+    expect(split.totalByPersonCents).toEqual({ alice: 3291, bob: 1110, cara: 0 });
+  });
+
+  it('keeps rounding as its own line through currency conversion', () => {
+    const people: Person[] = [{ id: 'alice', name: 'Alice' }];
+    const split = computeSplit({
+      people,
+      items: [
+        {
+          id: 'meal',
+          name: 'Meal',
+          amountInput: '10.00',
+          discountPercentInput: '',
+          assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+        },
+      ],
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+      roundingInput: '1.00',
+    });
+
+    const converted = convertSplitResult(split, 'USD', 'SGD', { USD: 1.35 });
+
+    expect(converted.roundingCents).toBe(135);
+    expect(converted.roundingByPersonCents.alice).toBe(135);
+    expect(converted.grandTotalCents).toBe(1485);
+  });
 });

@@ -1,10 +1,10 @@
-import { render, screen } from '@testing-library/react';
-import { expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { expect, it, vi } from 'vitest';
 import { computeSplit } from '@features/split-workspace/logic/split/split';
 import { disabledCharge } from '../../../../tests/integration/testHelpers';
 import { GlobalChargesPanel } from './GlobalChargesPanel';
 
-function renderPanel() {
+function renderPanel(onAddRounding = () => {}) {
   return render(
     <GlobalChargesPanel
       split={computeSplit({
@@ -20,6 +20,8 @@ function renderPanel() {
       reconciliationCents={100}
       receiptTotalInput="1.00"
       onApplyDiscount={() => {}}
+      onAddRounding={onAddRounding}
+      onRemoveRounding={() => {}}
       onDiscountChange={() => {}}
       onServiceChargeChange={() => {}}
       onGstChange={() => {}}
@@ -43,4 +45,13 @@ it('lists the charge toggles in the order they are applied', () => {
     'Service Charge',
     'GST / Tax',
   ]);
+});
+
+it('offers to add a short receipt total as rounding', () => {
+  const onAddRounding = vi.fn();
+  renderPanel(onAddRounding);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Add ¥1 as rounding' }));
+
+  expect(onAddRounding).toHaveBeenCalledOnce();
 });

@@ -15,7 +15,7 @@ export interface OverviewItemRow {
 }
 
 export interface OverviewChargeRow {
-  kind: 'discount' | 'service' | 'gst';
+  kind: 'discount' | 'service' | 'gst' | 'rounding';
   label: string;
   sign: 'minus' | 'plus';
   totalCents: number;
@@ -203,6 +203,13 @@ function buildChargeRows(people: Person[], source: SectionSource): OverviewCharg
       sign: 'plus',
       totalCents: split.gstCents,
       sharesByPerson: nonZeroShares(people, split.gstByPersonCents),
+    },
+    {
+      kind: 'rounding',
+      label: 'Rounding',
+      sign: 'plus',
+      totalCents: split.roundingCents,
+      sharesByPerson: nonZeroShares(people, split.roundingByPersonCents),
     },
   ];
   return candidates.filter((row) => row.totalCents > 0);

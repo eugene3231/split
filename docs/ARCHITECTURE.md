@@ -35,4 +35,4 @@ Editing is keyed by `activeReceiptId`, but summary rendering follows `activeTab`
 
 `shared/types/summaryBreakdown.ts` defines the breakdown consumed by both the workspace UI and the sharing canvas. The workspace derives this data from canonical state. The sharing feature consumes the contract without importing workspace hooks or logic. Both renderers use the shared person-color palette.
 
-Corrective discounts use `logic/reconciliation.ts` to search for the closest total after rounded service charge and tax. The solver and the split engine share the charge evaluator in `logic/split/charges.ts`.
+Corrective discounts use `logic/reconciliation.ts` to search for the closest total after rounded service charge and tax. The solver and the split engine share the charge evaluator in `logic/split/charges.ts`. When a receipt's printed total is higher than its items and charges, the gap can be added as the receipt's `roundingInput`, which the split adds after tax.
