@@ -40,7 +40,7 @@ export function GlobalChargesPanel({
   currency = BASE_CURRENCY,
 }: Props) {
   return (
-    <div className="sticky top-24 rounded-3xl border border-surface-container-highest bg-surface-container-lowest p-6 shadow-lg md:p-8">
+    <div className="sticky top-[calc(var(--app-bar-height)+1.5rem)] rounded-3xl border border-surface-container-highest bg-surface-container-lowest p-6 shadow-lg md:p-8">
       <h3 className="mb-6 border-b border-surface-container-high pb-4 font-headline text-xl font-bold text-primary">
         Global Charges
       </h3>

@@ -170,7 +170,7 @@ describe('resolveClaimView', () => {
       ['r2', 2],
     ]);
     expect(result.leftCount).toBe(3);
-    expect(result.activeItemCount).toBe(1);
+    expect(result.people.map((person) => person.itemCount)).toEqual([1, 0, 0]);
   });
 });
 
