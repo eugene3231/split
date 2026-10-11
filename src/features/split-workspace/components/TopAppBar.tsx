@@ -32,7 +32,7 @@ export function TopAppBar({
 
   return (
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-3 border-b border-surface-container-highest px-6 py-3 md:gap-6 md:px-8 md:py-4">
+      <div className="mx-auto flex h-(--app-bar-height) w-full max-w-7xl items-center gap-3 border-b border-surface-container-highest px-6 md:gap-6 md:px-8">
         {/* Logo */}
         <div className="shrink-0 font-headline text-2xl font-bold tracking-tight text-primary">
           Split
