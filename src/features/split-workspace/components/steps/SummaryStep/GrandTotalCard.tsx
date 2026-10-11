@@ -7,6 +7,7 @@ import { cn } from '@shared/utils/cn';
 import { PayNowField } from './PayNowField';
 
 interface Props {
+  totalLabel: string;
   grandTotal: number;
   displayCurrency: string;
   currentReceipt: Receipt | null;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function GrandTotalCard({
+  totalLabel,
   grandTotal,
   displayCurrency,
   currentReceipt,
@@ -25,7 +27,10 @@ export function GrandTotalCard({
   const hasPayNowNumber = useReceiptStore((s) => s.payerMobile.trim() !== '');
 
   return (
-    <div className="rounded-3xl bg-primary p-6 text-left text-on-primary shadow-md">
+    <div
+      data-testid="grand-total-card"
+      className="rounded-3xl bg-primary p-6 text-left text-on-primary shadow-md"
+    >
       <div className="mb-4 flex items-center justify-between gap-2">
         <span className="min-w-0 flex-1 text-sm font-bold tracking-widest text-white uppercase">
           {currentReceipt ? (
@@ -37,7 +42,7 @@ export function GrandTotalCard({
               iconClassName="text-white"
             />
           ) : (
-            'Grand Total'
+            totalLabel
           )}
         </span>
         <button

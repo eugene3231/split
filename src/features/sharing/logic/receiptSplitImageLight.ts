@@ -201,7 +201,7 @@ function drawGrandTotalBand(ctx: CanvasRenderingContext2D, args: GrandTotalBandA
 
   ctx.fillStyle = 'rgba(255,255,255,0.70)';
   ctx.font = `700 18px ${FONT}`;
-  ctx.fillText('GRAND TOTAL', PAD + CARD_PAD, args.y + 38);
+  ctx.fillText(args.summaryBreakdown.totalLabel.toUpperCase(), PAD + CARD_PAD, args.y + 38);
 
   ctx.fillStyle = '#ffffff';
   ctx.font = `800 48px ${FONT}`;

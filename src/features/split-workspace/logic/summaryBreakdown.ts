@@ -1,7 +1,7 @@
 import { BASE_CURRENCY } from '@shared/constants';
 import type { ChargeState, Person, PersonReceiptLineItem } from '@shared/types';
 import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
-import type { SummaryView } from '@features/split-workspace/logic/summaryView';
+import type { SummaryView, TotalTabView } from '@features/split-workspace/logic/summaryView';
 
 import type {
   BreakdownConversion,
@@ -28,6 +28,7 @@ export function resolveSummaryBreakdown({
   showAllItems = false,
 }: ResolveSummaryBreakdownInput): SummaryBreakdown {
   return {
+    totalLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'Total',
     personBreakdowns: resolvePersonBreakdowns({ people, view, qrDataUrls, showAllItems }),
     exchangeRate: resolveHeaderRate(view),
     emptyPeopleMessage: people.length === 0 ? 'Add people to see the breakdown.' : undefined,
@@ -98,7 +99,7 @@ export function resolvePersonBreakdowns({
     return {
       person,
       colorIndex,
-      headerLabel: view.kind === 'total' ? 'Grand Total Due' : 'Total Due',
+      headerLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'Total · this receipt',
       totalCents,
       currency: view.displayCurrency,
       conversion: headerRate
@@ -118,6 +119,10 @@ export function resolvePersonBreakdowns({
       emptyMessage: sections.length === 0 ? 'No items assigned.' : undefined,
     };
   });
+}
+
+function allReceiptsLabel(view: TotalTabView): string {
+  return `Total · ${view.receiptBreakdowns.length} receipts`;
 }
 
 function resolveHeaderRate(view: SummaryView): BreakdownExchangeRate | undefined {
