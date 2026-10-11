@@ -225,9 +225,10 @@ describe('resolveSummaryBreakdown', () => {
       qrDataUrls: { alice: 'data:image/png;base64,qr' },
     });
 
+    expect(breakdown.totalLabel).toBe('Total');
     expect(breakdown.personBreakdowns).toHaveLength(1);
     const person = breakdown.personBreakdowns[0];
-    expect(person.headerLabel).toBe('Total Due');
+    expect(person.headerLabel).toBe('This receipt');
     expect(person.totalCents).toBe(1368);
     expect(person.sections[0].totalCents).toBe(1368);
     expect(person.qrDataUrl).toBe('data:image/png;base64,qr');
@@ -370,9 +371,11 @@ describe('resolveSummaryBreakdown', () => {
       ],
     };
 
-    const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+    const breakdown = resolveSummaryBreakdown({ people: [alice], view });
+    const [person] = breakdown.personBreakdowns;
 
-    expect(person.headerLabel).toBe('Grand Total Due');
+    expect(breakdown.totalLabel).toBe('All 2 receipts');
+    expect(person.headerLabel).toBe('All 2 receipts');
     expect(person.collapsedReceiptTotals).toEqual([
       { id: '0:Ramen Shop', label: 'Ramen Shop', totalCents: 1200, currency: 'JPY' },
       { id: '1:Tea Stall', label: 'Tea Stall', totalCents: 300, currency: 'SGD' },

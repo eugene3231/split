@@ -51,7 +51,8 @@ export interface ReceiptBreakdownSection {
 export interface PersonBreakdown {
   person: Person;
   colorIndex: number;
-  headerLabel: 'Total Due' | 'Grand Total Due';
+  /** Which receipts the person's total covers: "All 3 receipts" or "This receipt". */
+  headerLabel: string;
   totalCents: number;
   currency: string;
   conversion?: BreakdownConversion;
@@ -62,6 +63,8 @@ export interface PersonBreakdown {
 }
 
 export interface SummaryBreakdown {
+  /** Names the grand total: "All 3 receipts" on the combined tab, else "Total". */
+  totalLabel: string;
   personBreakdowns: PersonBreakdown[];
   /** The one rate every person's header converts at, when there is one. */
   exchangeRate?: BreakdownExchangeRate;

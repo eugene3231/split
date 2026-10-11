@@ -46,6 +46,7 @@ const receipts: Receipt[] = [
 ];
 
 const summaryBreakdown: SummaryBreakdown = {
+  totalLabel: 'Total',
   personBreakdowns: [],
   unassignedItemCount: 0,
 };
