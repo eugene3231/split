@@ -17,6 +17,7 @@ import { SummaryModeToggle } from './SummaryModeToggle';
 import type { SummaryMode } from './SummaryModeToggle';
 import { OverviewTable } from './OverviewTable';
 import { MixedCurrencyNote } from './MixedCurrencyNote';
+import { cn } from '@shared/utils/cn';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
@@ -56,6 +57,29 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
 
   const nativeShareSupported = getShareSupport() === 'native';
   const isOverview = mode === 'overview';
+
+  const currencyControls = showCurrencyControls ? (
+    <div className="flex flex-wrap items-center gap-4">
+      <CurrencyToggle
+        showBaseCurrency={showBaseCurrency}
+        onToggle={setShowBaseCurrency}
+        activeTab={activeTab}
+        currentCurrency={nativeCurrency}
+      />
+      {view.kind === 'total' && !showBaseCurrency && view.displayCurrency === BASE_CURRENCY ? (
+        <MixedCurrencyNote currencies={view.billedCurrencies} />
+      ) : view.kind === 'receipt' && view.effectiveRate ? (
+        <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+          <span className="material-symbols-outlined text-sm">currency_exchange</span>
+          <span>
+            1 {BASE_CURRENCY} = {parseFloat((1 / view.effectiveRate).toFixed(5))}{' '}
+            {view.nativeCurrency}
+            {view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}
+          </span>
+        </div>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <div>
@@ -133,36 +157,14 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
         </div>
       )}
 
+      {/* Above both columns so the export buttons line up with the table. */}
+      {isOverview && currencyControls && <div className="mb-3">{currencyControls}</div>}
+
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="order-2 lg:order-1 lg:col-span-8">
-          <div className="mb-3 flex items-center justify-between">
-            {showCurrencyControls ? (
-              <div className="flex flex-wrap items-center gap-4">
-                <CurrencyToggle
-                  showBaseCurrency={showBaseCurrency}
-                  onToggle={setShowBaseCurrency}
-                  activeTab={activeTab}
-                  currentCurrency={nativeCurrency}
-                />
-                {view.kind === 'total' &&
-                !showBaseCurrency &&
-                view.displayCurrency === BASE_CURRENCY ? (
-                  <MixedCurrencyNote currencies={view.billedCurrencies} />
-                ) : view.kind === 'receipt' && view.effectiveRate ? (
-                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                    <span className="material-symbols-outlined text-sm">currency_exchange</span>
-                    <span>
-                      1 {BASE_CURRENCY} = {parseFloat((1 / view.effectiveRate).toFixed(5))}{' '}
-                      {view.nativeCurrency}
-                      {view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <span />
-            )}
-            {!isOverview && (
+        <div className={cn('lg:order-1 lg:col-span-8', isOverview ? 'order-1' : 'order-2')}>
+          {!isOverview && (
+            <div className="mb-3 flex items-center justify-between">
+              {currencyControls ?? <span />}
               <button
                 type="button"
                 data-testid="summary-show-details-btn"
@@ -174,8 +176,8 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                 </span>
                 {showDetails ? 'Hide details' : 'Show details'}
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {isOverview ? (
             <OverviewTable overview={summaryOverview} />
@@ -197,7 +199,12 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
           )}
         </div>
 
-        <div className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-4">
+        <div
+          className={cn(
+            'flex flex-col gap-4 lg:order-2 lg:col-span-4',
+            isOverview ? 'order-2' : 'order-1',
+          )}
+        >
           {/* The overview's Owes row already gives the total, and PayNow only feeds the cards' QR codes. */}
           {!isOverview && (
             <GrandTotalCard
