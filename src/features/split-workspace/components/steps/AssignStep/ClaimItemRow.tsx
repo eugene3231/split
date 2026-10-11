@@ -1,7 +1,8 @@
-import { cn } from '@shared/utils/cn';
+import { Checkbox } from 'radix-ui';
 import type { ClaimItem } from '@features/split-workspace/logic/claim';
 import type { ShareInput, ShareStep } from '@features/split-workspace/logic/itemShare';
 import { ClaimantAvatars } from './ClaimantAvatars';
+import { ClaimCheckMark } from './ClaimCheckMark';
 import { ItemActionChip } from './ItemActionChip';
 import { ShareAmountField } from './ShareAmountField';
 import { ShareStepper } from './ShareStepper';
@@ -30,34 +31,16 @@ export function ClaimItemRow({
   return (
     <li data-testid={`claim-item-${item.id}`} className="py-2">
       <div className="flex items-center gap-2 md:gap-3">
-        <button
-          type="button"
+        <Checkbox.Root
           aria-label={item.name}
-          aria-pressed={item.claimedByActive}
+          checked={item.claimedByActive}
           data-testid={`claim-item-toggle-${item.id}`}
-          onClick={onToggle}
+          onCheckedChange={onToggle}
           className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
         >
-          <span
-            aria-hidden
-            className={cn(
-              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-              item.claimedByActive ? 'border-primary bg-primary' : 'border-outline-variant',
-            )}
-          >
-            <span
-              className={cn(
-                'material-symbols-outlined text-base text-on-primary motion-safe:transition-[transform,opacity] motion-safe:duration-180 motion-safe:ease-out',
-                item.claimedByActive
-                  ? 'scale-100 opacity-100 motion-safe:animate-pop-in'
-                  : 'scale-50 opacity-0',
-              )}
-            >
-              check
-            </span>
-          </span>
+          <ClaimCheckMark checked={item.claimedByActive} />
           <span className="min-w-0 font-semibold break-words">{item.name}</span>
-        </button>
+        </Checkbox.Root>
         {share && (
           <span className="motion-safe:animate-pop-in">
             <ShareStepper

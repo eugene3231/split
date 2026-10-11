@@ -48,6 +48,10 @@ export interface ClaimSection {
   name: string;
   currency: string;
   items: ClaimItem[];
+  /** How many of the receipt's items the active person is on. */
+  activeSelection: 'none' | 'some' | 'all';
+  /** True when the active person has an uneven share on one of the receipt's items. */
+  activeHasCustomShare: boolean;
 }
 
 export interface ClaimView {
@@ -108,6 +112,8 @@ export function resolveClaimView(args: {
       name: receipt.name,
       currency: receipt.currency,
       items,
+      activeSelection: resolveSelection(items),
+      activeHasCustomShare: receipt.items.some((item) => hasCustomShare(item, activePersonId)),
     };
   });
   return {
@@ -181,6 +187,20 @@ function resolveClaimItem(
       canTakeAlone: claimedIds.size > 1 || Boolean(unassignedWeight),
     },
   };
+}
+
+function resolveSelection(items: ClaimItem[]): ClaimSection['activeSelection'] {
+  const claimed = items.filter((item) => item.claimedByActive).length;
+  if (claimed === 0) return 'none';
+  return claimed === items.length ? 'all' : 'some';
+}
+
+/** A share other than an equal split of the whole item, which reselecting would not restore. */
+function hasCustomShare(item: EditableItem, personId: string): boolean {
+  const { personIds, weights, unassignedWeight } = item.assignment;
+  if (!personIds.includes(personId) || resolveDiscountedAmountCents(item) === null) return false;
+  if (unassignedWeight) return true;
+  return Boolean(weights) && new Set(personIds.map((id) => weights?.[id] ?? 1)).size > 1;
 }
 
 function describeLeftShare(item: EditableItem, claimants: ClaimPerson[]): string | null {

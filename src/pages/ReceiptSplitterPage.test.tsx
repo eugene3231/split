@@ -612,7 +612,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Alice have?');
       expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$5.00');
       expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Next: Bob');
-      expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('toggles the active person off an item and updates their total', async () => {
@@ -621,7 +621,7 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
 
       expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute(
-        'aria-pressed',
+        'aria-checked',
         'false',
       );
       expect(screen.getByTestId('claim-item-claimants-r1-i1')).toHaveAccessibleName('Bob');
@@ -1073,7 +1073,7 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue(); // → Bob
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
       expect(screen.getByTestId('claim-item-toggle-r1-i1')).toHaveAttribute(
-        'aria-pressed',
+        'aria-checked',
         'false',
       );
 
