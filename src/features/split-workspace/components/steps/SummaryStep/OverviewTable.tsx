@@ -4,6 +4,7 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type { Person } from '@shared/types';
 import { cn } from '@shared/utils/cn';
 import { personColor } from '@shared/utils/personColors';
+import { usePinnedSectionTitle } from './usePinnedSectionTitle';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import type {
   OverviewChargeRow,
@@ -27,6 +28,8 @@ export function OverviewTable({ overview }: Props) {
   const { people, sections } = overview;
   const showSectionHeadings = sections.length > 1;
   const headerRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const pinnedSectionTitle = usePinnedSectionTitle(tableRef, headerRef);
 
   return (
     <section
@@ -44,33 +47,41 @@ export function OverviewTable({ overview }: Props) {
           </span>
         )}
       </div>
-      {/* The people row pins under the app bar while the page scrolls. It sits outside the table
-          because a sticky row can't escape the table's sideways scroll box, so it follows that
-          box's scroll instead. React only: the PNG shows the whole table at once. */}
-      <div
-        ref={headerRef}
-        aria-hidden="true"
-        className="sticky top-(--app-bar-height) z-20 overflow-hidden border-y border-outline-variant/40 bg-surface-container-lowest text-xs text-on-surface-variant"
-      >
-        <div className={cn('flex', TABLE_WIDTH)}>
-          <div
-            className={cn(
-              ITEM_COLUMN,
-              'sticky left-0 flex shrink-0 items-center bg-surface-container-lowest px-4 font-medium shadow-[inset_-1px_0_0_var(--color-outline-variant)] sm:px-6 sm:shadow-none',
-            )}
-          >
-            Item
-          </div>
-          {people.map((person, index) => (
+      {/* The people row, and the receipt being scrolled through, pin under the app bar while the
+          page scrolls. They sit outside the table because a sticky row can't escape the table's
+          sideways scroll box, so the people row follows that box's scroll instead.
+          React only: the PNG shows the whole table at once. */}
+      <div aria-hidden="true" className="sticky top-(--app-bar-height) z-20">
+        <div
+          ref={headerRef}
+          data-testid="overview-pinned-people"
+          className="overflow-hidden border-y border-outline-variant/40 bg-surface-container-lowest text-xs text-on-surface-variant"
+        >
+          <div className={cn('flex', TABLE_WIDTH)}>
             <div
-              key={person.id}
-              title={person.name}
-              className="flex min-w-0 flex-1 basis-0 justify-center px-1 py-2 font-medium last:pr-3 sm:last:pr-5"
+              className={cn(
+                ITEM_COLUMN,
+                'sticky left-0 flex shrink-0 items-center bg-surface-container-lowest px-4 font-medium shadow-[inset_-1px_0_0_var(--color-outline-variant)] sm:px-6 sm:shadow-none',
+              )}
             >
-              <PersonIdentity person={person} colorIndex={index} />
+              Item
             </div>
-          ))}
+            {people.map((person, index) => (
+              <div
+                key={person.id}
+                title={person.name}
+                className="flex min-w-0 flex-1 basis-0 justify-center px-1 py-2 font-medium last:pr-3 sm:last:pr-5"
+              >
+                <PersonIdentity person={person} colorIndex={index} />
+              </div>
+            ))}
+          </div>
         </div>
+        {pinnedSectionTitle && (
+          <SectionTitle className="absolute inset-x-0 top-full border-b border-outline-variant/40 bg-surface-container-low">
+            {pinnedSectionTitle}
+          </SectionTitle>
+        )}
       </div>
       <div
         data-testid="overview-table-scroll"
@@ -79,7 +90,7 @@ export function OverviewTable({ overview }: Props) {
           if (headerRef.current) headerRef.current.scrollLeft = event.currentTarget.scrollLeft;
         }}
       >
-        <table className={cn('table-fixed border-collapse text-sm', TABLE_WIDTH)}>
+        <table ref={tableRef} className={cn('table-fixed border-collapse text-sm', TABLE_WIDTH)}>
           <colgroup>
             <col className={ITEM_COLUMN} />
             {people.map((person) => (
@@ -171,13 +182,24 @@ function SectionHeading({
   columnCount: number;
 }) {
   return (
-    <tr className="bg-surface-container-low">
+    <tr data-section-title={section.title} className="bg-surface-container-low">
       <th scope="rowgroup" colSpan={columnCount} className="p-0 text-left">
-        <span className="sticky left-0 inline-block px-4 py-2 text-xs font-bold tracking-widest text-on-surface-variant uppercase sm:px-6">
-          {section.title}
-        </span>
+        <SectionTitle className="sticky left-0 inline-block">{section.title}</SectionTitle>
       </th>
     </tr>
+  );
+}
+
+function SectionTitle({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'px-4 py-2 text-xs font-bold tracking-widest text-on-surface-variant uppercase sm:px-6',
+        className,
+      )}
+    >
+      {children}
+    </span>
   );
 }
 
