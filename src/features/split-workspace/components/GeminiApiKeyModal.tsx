@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { Dialog } from 'radix-ui';
-import { GEMINI_MODELS } from '@features/receipt-scanner/constants';
+import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from '@features/receipt-scanner/constants';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
+import { cn } from '@shared/utils/cn';
 
 export function GeminiApiKeyModal() {
   const isOpen = useGeminiStore((state) => state.showApiKeyModal);
@@ -44,6 +45,7 @@ function GeminiApiKeyModalContent({
 }: GeminiApiKeyModalContentProps) {
   const [localKey, setLocalKey] = useState(initialKey);
   const [localModel, setLocalModel] = useState(initialModel);
+  const [isKeyVisible, setIsKeyVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => onSave(localKey.trim(), localModel);
@@ -57,69 +59,91 @@ function GeminiApiKeyModalContent({
             event.preventDefault();
             inputRef.current?.focus();
           }}
-          className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-surface-container-highest bg-surface-container-lowest/90 shadow-[0_8px_24px_rgba(25,28,29,0.12)] backdrop-blur-[20px] motion-safe:animate-rise-in"
+          className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-surface-container-highest bg-surface-container-lowest/90 shadow-[0_8px_24px_rgba(25,28,29,0.12)] backdrop-blur-[20px] motion-safe:animate-rise-in"
         >
-          {/* Header */}
           <div className="px-7 pt-7 pb-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <Dialog.Title className="font-headline text-xl font-extrabold tracking-tight text-primary">
-                  Gemini API Key
-                </Dialog.Title>
-                <Dialog.Description className="mt-1 font-body text-sm text-on-surface-variant">
-                  Required for AI-powered receipt scanning
-                </Dialog.Description>
-              </div>
+            <div className="flex items-center justify-between gap-4">
+              <Dialog.Title className="font-headline text-xl font-extrabold tracking-tight text-primary">
+                Gemini API key
+              </Dialog.Title>
               <Dialog.Close
                 aria-label="Close"
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                className="-mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-on-surface-variant transition-colors hover:bg-surface-container-low"
               >
                 <span aria-hidden="true" className="material-symbols-outlined text-xl">
                   close
                 </span>
               </Dialog.Close>
             </div>
+            <Dialog.Description className="mt-2 font-body text-sm text-on-surface-variant">
+              Gemini reads the items, prices and charges from your receipt photo. Skip this to add
+              items yourself.
+            </Dialog.Description>
           </div>
 
-          {/* Info block + input — unified px-7 section */}
           <div className="space-y-5 px-7 pb-7">
-            <div className="rounded-2xl bg-surface-container-low px-5 py-4">
-              <p className="font-body text-xs leading-relaxed text-on-surface-variant">
-                This app uses <span className="font-semibold text-on-surface">Google Gemini</span>{' '}
-                to extract line items, prices, and charges from your receipt photo. Your key is
-                stored in this browser session only and used solely to call the Gemini API.
-              </p>
-            </div>
-
             <div className="space-y-2">
-              <label
-                htmlFor="new-modal-gemini-api-key"
-                className="block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
-              >
-                API Key
-              </label>
-              <input
-                ref={inputRef}
-                id="new-modal-gemini-api-key"
-                type="password"
-                value={localKey}
-                onChange={(e) => setLocalKey(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSave();
-                }}
-                placeholder="AIza…"
-                className="w-full rounded-2xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 font-body text-sm text-on-surface transition-all outline-none placeholder:text-outline focus:border-primary/20"
-              />
-              <p className="font-body text-xs text-outline">
-                Get your free key at{' '}
+              <div className="flex items-center justify-between gap-3">
+                <label
+                  htmlFor="new-modal-gemini-api-key"
+                  className="block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
+                >
+                  API key
+                </label>
                 <a
                   href="https://aistudio.google.com/app/api-keys"
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold text-primary underline underline-offset-2 transition-opacity hover:opacity-70"
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full bg-secondary-container px-3 py-1 font-body text-xs font-bold text-on-secondary-fixed-variant transition-opacity hover:opacity-80',
+                    !initialKey && 'motion-safe:animate-nudge motion-safe:[animation-delay:400ms]',
+                  )}
                 >
-                  Google AI Studio ↗
+                  Get a free key
+                  <span
+                    aria-hidden="true"
+                    className="material-symbols-outlined text-sm! leading-none!"
+                  >
+                    open_in_new
+                  </span>
+                  <span className="sr-only">(opens Google AI Studio in a new tab)</span>
                 </a>
+              </div>
+              <div className="relative">
+                <input
+                  ref={inputRef}
+                  id="new-modal-gemini-api-key"
+                  type={isKeyVisible ? 'text' : 'password'}
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={localKey}
+                  onChange={(e) => setLocalKey(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSave();
+                  }}
+                  placeholder="AIza…"
+                  className="w-full rounded-xl border-2 border-transparent bg-surface-container-high py-2.5 pr-12 pl-5 font-body text-sm text-on-surface transition-all outline-none placeholder:text-outline focus:border-primary/20"
+                />
+                <button
+                  type="button"
+                  aria-label={isKeyVisible ? 'Hide key' : 'Show key'}
+                  aria-pressed={isKeyVisible}
+                  onClick={() => setIsKeyVisible((visible) => !visible)}
+                  className="absolute top-1/2 right-2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                >
+                  <span aria-hidden="true" className="material-symbols-outlined text-xl!">
+                    {isKeyVisible ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
+              </div>
+              <p className="flex items-start gap-1 font-body text-xs text-pretty text-on-surface-variant">
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined mt-px -ml-px text-sm! leading-none!"
+                >
+                  lock
+                </span>
+                Your key stays in this tab and goes only to Google.
               </p>
             </div>
 
@@ -134,35 +158,30 @@ function GeminiApiKeyModalContent({
                 id="new-modal-gemini-model"
                 value={localModel}
                 onChange={(e) => setLocalModel(e.target.value)}
-                className="w-full cursor-pointer rounded-2xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 font-body text-sm text-on-surface transition-all outline-none focus:border-primary/20"
+                className="w-full cursor-pointer rounded-xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 font-body text-sm text-on-surface transition-all outline-none focus:border-primary/20"
               >
                 {GEMINI_MODELS.map((model) => (
                   <option key={model} value={model}>
-                    {model}
+                    {model === DEFAULT_GEMINI_MODEL ? `${model} (default)` : model}
                   </option>
                 ))}
               </select>
-              <p className="font-body text-xs text-outline">
-                Choose which Gemini model to use for receipt extraction.
-              </p>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleSave}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-label text-sm font-bold text-on-primary shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
-              >
-                Save &amp; Continue
-                <span className="material-symbols-outlined text-base">arrow_forward</span>
-              </button>
+            <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl px-4 py-3 font-label text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+                className="rounded-xl px-5 py-3 font-label text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
               >
                 Skip
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="rounded-xl bg-primary px-6 py-3 font-label text-sm font-bold text-on-primary shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
+              >
+                Save
               </button>
             </div>
           </div>
