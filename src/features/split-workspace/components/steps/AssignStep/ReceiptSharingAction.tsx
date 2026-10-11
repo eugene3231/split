@@ -38,7 +38,7 @@ export function ReceiptSharingAction({ receiptId }: Props) {
         <span aria-hidden="true" className="material-symbols-outlined text-lg">
           groups
         </span>
-        Share all equally
+        Share equally
       </button>
       {confirming && (
         <ConfirmDialog
