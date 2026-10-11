@@ -14,10 +14,6 @@ vi.mock('@features/split-workspace/components/shared/GlobalChargesPanel', () => 
   GlobalChargesPanel: () => <div data-testid="global-charges-panel" />,
 }));
 
-vi.mock('@features/split-workspace/components/shared/ReceiptTabs', () => ({
-  ReceiptTabs: () => <div data-testid="receipt-tabs" />,
-}));
-
 vi.mock('@features/split-workspace/components/shared/ReceiptNameField', () => ({
   ReceiptNameField: () => <div data-testid="receipt-name-field" />,
 }));
@@ -122,7 +118,7 @@ describe('ReceiptStep', () => {
     render(<ReceiptStep onAddReceipt={vi.fn()} />);
 
     expect(screen.getByTestId('receipt-import-actions')).toBeInTheDocument();
-    expect(screen.getByTestId('receipt-tabs')).toBeInTheDocument();
+    expect(screen.getByRole('tablist', { name: 'Receipts' })).toBeInTheDocument();
     expect(screen.getByTestId('global-charges-panel')).toBeInTheDocument();
   });
 
