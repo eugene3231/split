@@ -47,7 +47,7 @@ export function ReceiptSharingAction({ receiptId }: Props) {
           onCancel={() => setConfirming(false)}
           onConfirm={share}
         >
-          This replaces all selections and custom shares for {receipt.name}.
+          This shares all items on {receipt.name} equally among all {people.length} people.
         </ConfirmDialog>
       )}
     </>
