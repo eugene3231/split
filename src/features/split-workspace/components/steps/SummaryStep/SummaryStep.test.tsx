@@ -75,6 +75,36 @@ describe('SummaryStep', () => {
     expect(screen.queryByText('Satay')).toBeNull();
   });
 
+  it("shows each person's receipt amount on Totals when the split has one receipt", () => {
+    const alice = makePerson('Alice');
+    const bob = makePerson('Bob');
+    seedStore(
+      [alice, bob],
+      [
+        makeReceipt({
+          name: 'Dinner',
+          items: [
+            makeItem({
+              amountInput: '10.00',
+              assignment: { mode: 'single', personId: alice.id, personIds: [] },
+            }),
+            makeItem({
+              amountInput: '6.00',
+              assignment: { mode: 'single', personId: bob.id, personIds: [] },
+            }),
+          ],
+        }),
+      ],
+    );
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Totals' }));
+
+    // Each card shows its header total plus the receipt's row underneath.
+    expect(screen.getAllByText('$10.00')).toHaveLength(2);
+    expect(screen.getAllByText('$6.00')).toHaveLength(2);
+  });
+
   it('reports the successful native share as shared', async () => {
     seedDinner();
     vi.stubGlobal('navigator', { share: vi.fn().mockResolvedValue(undefined) });
