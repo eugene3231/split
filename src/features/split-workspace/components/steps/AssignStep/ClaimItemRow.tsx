@@ -1,4 +1,3 @@
-import { useId } from 'react';
 import { cn } from '@shared/utils/cn';
 import type { ClaimItem } from '@features/split-workspace/logic/claim';
 import type { ShareInput, ShareStep } from '@features/split-workspace/logic/itemShare';
@@ -6,7 +5,6 @@ import { ClaimantAvatars } from './ClaimantAvatars';
 import { ItemActionChip } from './ItemActionChip';
 import { ShareAmountField } from './ShareAmountField';
 import { ShareStepper } from './ShareStepper';
-import { useDesktopPopover } from './useDesktopPopover';
 
 interface Props {
   item: ClaimItem;
@@ -28,12 +26,13 @@ export function ClaimItemRow({
   onTakeAlone,
 }: Props) {
   const { share } = item;
-  const controlsId = useId();
-  useDesktopPopover(controlsId);
 
   return (
-    <li data-testid={`claim-item-${item.id}`} className="flex items-center gap-1 py-3 md:gap-3">
-      <div className="min-w-0 flex-1">
+    <li
+      data-testid={`claim-item-${item.id}`}
+      className="flex items-center gap-2 py-2 md:gap-3 md:py-3"
+    >
+      <div className="grid min-w-0 flex-1 grid-cols-[4.25rem_minmax(0,1fr)] gap-x-1 md:grid-cols-[minmax(0,1fr)_6rem] md:gap-x-3">
         <button
           type="button"
           aria-label={item.name}
@@ -41,25 +40,35 @@ export function ClaimItemRow({
           aria-pressed={item.claimedByActive}
           data-testid={`claim-item-toggle-${item.id}`}
           onClick={onToggle}
-          className="flex h-12 w-full items-center gap-1 text-left md:gap-3"
+          className="col-span-2 flex min-h-12 w-full items-center gap-2 text-left md:col-span-1 md:gap-3"
         >
-          <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center">
-            <span
-              className={cn(
-                'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors',
-                item.claimedByActive ? 'border-primary bg-primary' : 'border-outline-variant',
-              )}
-            >
-              {item.claimedByActive && (
-                <span className="material-symbols-outlined text-base text-on-primary">check</span>
-              )}
-            </span>
+          <span
+            aria-hidden
+            className={cn(
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+              item.claimedByActive ? 'border-primary bg-primary' : 'border-outline-variant',
+            )}
+          >
+            {item.claimedByActive && (
+              <span className="material-symbols-outlined text-base text-on-primary">check</span>
+            )}
           </span>
-          <span className="line-clamp-2 min-w-0 leading-6 font-semibold break-words">
-            {item.name}
-          </span>
+          <span className="min-w-0 leading-6 font-semibold break-words">{item.name}</span>
         </button>
-        <div className="h-5 min-w-0 pl-12 md:pl-14">
+        <div className="col-start-2 row-start-2 flex h-11 min-w-0 items-center self-center md:row-span-2 md:row-start-1">
+          {share ? (
+            <ShareAmountField
+              label={share.amountLabel}
+              onCommit={onSetShare}
+              testId={`claim-item-amount-${item.id}`}
+            />
+          ) : (
+            <span className="block w-full overflow-x-auto text-right text-sm whitespace-nowrap text-on-surface-variant tabular-nums">
+              {item.priceLabel}
+            </span>
+          )}
+        </div>
+        <div className="col-start-1 row-start-2 h-5 min-w-0 self-center md:pl-9">
           <ClaimantAvatars
             claimants={item.claimants}
             leftLabel={item.leftLabel}
@@ -67,74 +76,32 @@ export function ClaimItemRow({
           />
         </div>
       </div>
-      {share ? (
-        <ShareAmountField
-          label={share.amountLabel}
-          onCommit={onSetShare}
-          testId={`claim-item-amount-${item.id}`}
-        />
-      ) : (
-        <span
-          title={item.priceLabel}
-          className="flex h-11 w-16 shrink-0 items-center justify-end text-right text-sm text-on-surface-variant tabular-nums md:w-24"
-        >
-          <span className="truncate">{item.priceLabel}</span>
-        </span>
-      )}
-      <div className="w-11 shrink-0 md:hidden">
-        <button
-          type="button"
-          popoverTarget={controlsId}
-          aria-label={
-            share
-              ? `Adjust share for ${item.name}, ${share.label}`
-              : `Item details for ${item.name}`
-          }
-          data-testid={`claim-item-${share ? 'controls' : 'details'}-${item.id}`}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant text-sm font-bold tabular-nums"
-        >
-          {share ? (
-            share.label
-          ) : (
-            <span aria-hidden className="material-symbols-outlined">
-              more_horiz
-            </span>
-          )}
-        </button>
-      </div>
-      <div className="w-0 shrink-0 md:w-60">
-        <div
-          id={controlsId}
-          popover="auto"
-          className="fixed inset-auto right-6 bottom-6 m-0 max-w-[calc(100vw-3rem)] flex-col gap-3 rounded-2xl border border-outline-variant bg-surface p-4 text-on-surface shadow-xl md:static md:flex md:w-60 md:flex-row md:items-center md:gap-2 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none [&:popover-open]:flex"
-        >
-          <p className="max-w-64 font-semibold break-words md:hidden">{item.name}</p>
-          <p className="break-words md:hidden">Item total: {item.priceLabel}</p>
-          {share && <p className="break-words md:hidden">Your share: {share.amountLabel}</p>}
-          {share && (
-            <>
-              <ItemActionChip
-                icon="groups"
-                label="Split evenly"
-                disabled={!share.canSplitEvenly}
-                testId={`claim-item-split-evenly-${item.id}`}
-                onClick={onSplitEvenly}
-              />
-              <ItemActionChip
-                icon="person"
-                label={`${personName} only`}
-                disabled={!share.canTakeAlone}
-                testId={`claim-item-take-alone-${item.id}`}
-                onClick={onTakeAlone}
-              />
+      <div className="grid h-24 w-32 shrink-0 grid-cols-2 justify-items-center gap-y-1 md:flex md:h-11 md:w-60 md:items-center md:gap-2">
+        {share && (
+          <>
+            <div className="col-span-2 md:order-last">
               <ShareStepper
                 share={share}
                 onStep={onStepShare}
                 testId={`claim-item-share-${item.id}`}
               />
-            </>
-          )}
-        </div>
+            </div>
+            <ItemActionChip
+              icon="groups"
+              label="Split evenly"
+              disabled={!share.canSplitEvenly}
+              testId={`claim-item-split-evenly-${item.id}`}
+              onClick={onSplitEvenly}
+            />
+            <ItemActionChip
+              icon="person"
+              label={`${personName} only`}
+              disabled={!share.canTakeAlone}
+              testId={`claim-item-take-alone-${item.id}`}
+              onClick={onTakeAlone}
+            />
+          </>
+        )}
       </div>
     </li>
   );

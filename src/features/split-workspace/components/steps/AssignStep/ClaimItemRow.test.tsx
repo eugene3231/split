@@ -40,28 +40,42 @@ function renderRow(value = item) {
 }
 
 describe('ClaimItemRow', () => {
-  it('exposes the fraction and full item name through one mobile controls trigger', () => {
-    renderRow();
-    const trigger = screen.getByTestId('claim-item-controls-bread');
-    expect(trigger).toHaveTextContent('1/2');
-    expect(trigger).toHaveAccessibleName(`Adjust share for ${item.name}, 1/2`);
-    expect(trigger).toHaveAttribute('popovertarget');
-    expect(document.getElementById(trigger.getAttribute('popovertarget') ?? '')).toHaveAttribute(
-      'popover',
-      'auto',
-    );
-    expect(screen.getAllByTestId('claim-item-share-bread-increase')).toHaveLength(1);
+  it('makes share controls available without opening another control', () => {
+    const callbacks = renderRow();
+    expect(screen.getByTestId('claim-item-share-bread')).toHaveTextContent('1/2');
+    expect(screen.getByRole('button', { name: 'Take a smaller share' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Take a bigger share' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Split evenly' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Alice only' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Take a bigger share' }));
+    expect(callbacks.onStepShare).toHaveBeenCalledWith('increase');
   });
 
-  it('exposes full item and selected-share amounts in mobile details', () => {
-    renderRow({
-      ...item,
-      priceLabel: '$123,456,789.00',
-      share: item.share && { ...item.share, amountLabel: '$61,728,394.50' },
-    });
-    expect(screen.getByText('Item total: $123,456,789.00')).toBeInTheDocument();
-    expect(screen.getByText('Your share: $61,728,394.50')).toBeInTheDocument();
-    expect(screen.getAllByText(item.name)).toHaveLength(2);
+  it('renders the full amount directly for selected and unselected items', () => {
+    const { rerender } = render(
+      <ClaimItemRow
+        item={{ ...item, share: null, priceLabel: '$123,456,789.00' }}
+        personName="Alice"
+        onToggle={vi.fn()}
+        onStepShare={vi.fn()}
+        onSetShare={vi.fn()}
+        onSplitEvenly={vi.fn()}
+        onTakeAlone={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('$123,456,789.00')).toBeInTheDocument();
+    rerender(
+      <ClaimItemRow
+        item={{ ...item, share: item.share && { ...item.share, amountLabel: '$61,728,394.50' } }}
+        personName="Alice"
+        onToggle={vi.fn()}
+        onStepShare={vi.fn()}
+        onSetShare={vi.fn()}
+        onSplitEvenly={vi.fn()}
+        onTakeAlone={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('claim-item-amount-bread')).toHaveTextContent('$61,728,394.50');
   });
 
   it('keeps selection separate from every share action', () => {
@@ -81,15 +95,10 @@ describe('ClaimItemRow', () => {
 
   it('offers no share controls for an unclaimed item', () => {
     renderRow({ ...item, share: null, claimedByActive: false });
-    expect(screen.queryByTestId('claim-item-controls-bread')).not.toBeInTheDocument();
     expect(screen.queryByTestId('claim-item-amount-bread')).not.toBeInTheDocument();
     expect(screen.queryByTestId('claim-item-share-bread')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button')).toHaveLength(2);
-    expect(screen.getByTestId('claim-item-details-bread')).toHaveAccessibleName(
-      `Item details for ${item.name}`,
-    );
-    expect(screen.getByText('Item total: $12.00')).toBeInTheDocument();
-    expect(screen.queryByText(/Your share:/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByText('$12.00')).toBeInTheDocument();
   });
 
   it('commits a typed fraction without selecting the item', () => {
