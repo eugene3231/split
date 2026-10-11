@@ -10,6 +10,7 @@ interface Props {
   testId: string;
 }
 
+/** Who has an item, as overlapping avatars named on hover or long press. */
 export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
   if (claimants.length === 0) return null;
 

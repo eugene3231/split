@@ -12,6 +12,7 @@ function focusOnMount(element: HTMLInputElement | null) {
   element?.focus();
 }
 
+/** The active person's share: tap it to type an amount ("8.50") or a percent ("40%"). */
 export function ShareAmountField({ label, onCommit, testId }: Props) {
   const [draft, setDraft] = useState<string | null>(null);
 
@@ -22,8 +23,7 @@ export function ShareAmountField({ label, onCommit, testId }: Props) {
         aria-label={`Your share ${label}, tap to type an amount or percent`}
         data-testid={testId}
         onClick={() => setDraft('')}
-        title={label}
-        className="h-11 w-full min-w-0 overflow-x-auto text-right text-sm font-bold whitespace-nowrap tabular-nums underline decoration-outline-variant decoration-dotted underline-offset-4 md:w-24"
+        className="h-11 text-right font-bold whitespace-nowrap tabular-nums underline decoration-outline-variant decoration-dotted underline-offset-4"
       >
         {label}
       </button>
@@ -51,7 +51,7 @@ export function ShareAmountField({ label, onCommit, testId }: Props) {
         if (event.key === 'Enter') event.currentTarget.blur();
         if (event.key === 'Escape') setDraft(null);
       }}
-      className="h-11 w-full min-w-0 rounded-lg border-2 border-primary bg-surface-container-lowest px-2 py-1 text-right text-sm font-bold tabular-nums outline-none md:w-24 md:text-right"
+      className="h-11 w-28 rounded-lg border-2 border-primary bg-surface-container-lowest px-2 py-1 text-right font-bold tabular-nums outline-none"
     />
   );
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ClaimItem } from '@features/split-workspace/logic/claim';
 import { ClaimItemRow } from './ClaimItemRow';
@@ -91,6 +91,20 @@ describe('ClaimItemRow', () => {
     const toggle = screen.getByTestId('claim-item-toggle-bread');
     expect(toggle).toHaveAccessibleName(item.name);
     expect(toggle.querySelector('button, input')).toBeNull();
+  });
+
+  it('offers the rarer share actions from one menu on narrow screens', () => {
+    const callbacks = renderRow({
+      ...item,
+      share: item.share && { ...item.share, canSplitEvenly: false },
+    });
+    fireEvent.click(screen.getByTestId('claim-item-more-bread'));
+    const menu = within(screen.getByRole('menu'));
+    expect(menu.getByRole('menuitem', { name: /Split evenly/ })).toBeDisabled();
+    fireEvent.click(menu.getByRole('menuitem', { name: /Alice only/ }));
+    expect(callbacks.onTakeAlone).toHaveBeenCalledOnce();
+    expect(callbacks.onToggle).not.toHaveBeenCalled();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
   it('offers no share controls for an unclaimed item', () => {

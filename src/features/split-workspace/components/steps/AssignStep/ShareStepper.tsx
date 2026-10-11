@@ -6,6 +6,7 @@ interface Props {
   testId: string;
 }
 
+/** Fixed width so the steppers and prices line up down the list, whatever the label. */
 export function ShareStepper({ share, onStep, testId }: Props) {
   return (
     <span className="flex w-32 shrink-0 items-center rounded-full border border-outline-variant">
