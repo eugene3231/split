@@ -73,14 +73,10 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                   </div>
                   <span
                     className={cn(
-                      'text-xs font-bold tracking-widest uppercase',
-                      disabled
-                        ? 'text-on-surface-variant'
-                        : completed
-                          ? 'text-on-surface'
-                          : isCurrent
-                            ? 'text-primary'
-                            : 'text-on-surface-variant',
+                      'text-sm',
+                      isCurrent
+                        ? 'font-semibold text-on-surface'
+                        : 'font-medium text-on-surface-variant',
                     )}
                   >
                     {STEP_LABELS[step]}
@@ -155,7 +151,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
 
         {/* Right: step count on desktop */}
         <div data-testid="wizard-step-context" className="hidden w-44 shrink-0 text-right lg:block">
-          <p className="truncate text-xs font-bold tracking-widest text-primary uppercase">
+          <p className="truncate text-xs font-medium text-on-surface-variant">
             Step {stepNumber} of {WIZARD_STEPS.length}
           </p>
         </div>
