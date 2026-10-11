@@ -93,18 +93,27 @@ describe('ClaimItemRow', () => {
     expect(toggle.querySelector('button, input')).toBeNull();
   });
 
-  it('offers the rarer share actions from one menu on narrow screens', () => {
+  it('shows split evenly and person-only as labelled buttons, not a menu', () => {
     const callbacks = renderRow({
       ...item,
       share: item.share && { ...item.share, canSplitEvenly: false },
     });
-    fireEvent.click(screen.getByTestId('claim-item-more-bread'));
-    const menu = within(screen.getByRole('menu'));
-    expect(menu.getByRole('menuitem', { name: /Split evenly/ })).toBeDisabled();
-    fireEvent.click(menu.getByRole('menuitem', { name: /Alice only/ }));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More share options' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('claim-item-split-evenly-bread')).toHaveTextContent('Split evenly');
+    expect(screen.getByTestId('claim-item-split-evenly-bread')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('claim-item-take-alone-bread'));
+    expect(screen.getByTestId('claim-item-take-alone-bread')).toHaveTextContent('Alice only');
     expect(callbacks.onTakeAlone).toHaveBeenCalledOnce();
     expect(callbacks.onToggle).not.toHaveBeenCalled();
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('puts the share stepper on the same line as the item name and price', () => {
+    renderRow();
+    const nameLine = screen.getByTestId('claim-item-toggle-bread').parentElement!;
+    expect(within(nameLine).getByTestId('claim-item-share-bread')).toHaveTextContent('1/2');
+    expect(within(nameLine).getByTestId('claim-item-amount-bread')).toBeInTheDocument();
+    expect(within(nameLine).queryByTestId('claim-item-split-evenly-bread')).not.toBeInTheDocument();
   });
 
   it('offers no share controls for an unclaimed item', () => {

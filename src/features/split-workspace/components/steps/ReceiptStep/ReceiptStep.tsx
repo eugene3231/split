@@ -2,7 +2,11 @@ import { ReceiptImportActions } from './ReceiptImportActions';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { LineItemCard } from '@features/split-workspace/components/shared/LineItemCard';
 import { GlobalChargesPanel } from '@features/split-workspace/components/shared/GlobalChargesPanel';
-import { ReceiptTabs } from '@features/split-workspace/components/shared/ReceiptTabs';
+import {
+  AddReceiptButton,
+  ReceiptTab,
+  ReceiptTabs,
+} from '@features/split-workspace/components/shared/ReceiptTabs';
 import { ReceiptNameField } from '@features/split-workspace/components/shared/ReceiptNameField';
 import { CurrencySelector } from '@features/split-workspace/components/shared/CurrencySelector';
 import { ExchangeRateDisplay } from '@features/split-workspace/components/shared/ExchangeRateDisplay';
@@ -58,18 +62,20 @@ export function ReceiptStep({ onAddReceipt }: Props) {
       />
 
       <ReceiptTabs
-        receipts={receipts}
-        activeReceiptId={activeReceiptId}
-        onSelect={setActiveReceiptId}
-        onRemove={removeReceipt}
-        onRename={renameReceipt}
-        appendTab={{
-          icon: 'add',
-          label: 'Add Receipt',
-          isActive: false,
-          onClick: onAddReceipt,
-        }}
-      />
+        className="mb-8"
+        action={<AddReceiptButton data-testid="receipt-add-receipt-btn" onClick={onAddReceipt} />}
+      >
+        {receipts.map((receipt) => (
+          <ReceiptTab
+            key={receipt.id}
+            label={receipt.name}
+            isActive={receipt.id === activeReceiptId}
+            onSelect={() => setActiveReceiptId(receipt.id)}
+            onRename={(name) => renameReceipt(receipt.id, name)}
+            onRemove={receipts.length > 1 ? () => removeReceipt(receipt.id) : undefined}
+          />
+        ))}
+      </ReceiptTabs>
 
       <div className="mb-6">
         <ReceiptImportActions

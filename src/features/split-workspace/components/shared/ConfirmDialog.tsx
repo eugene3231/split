@@ -49,7 +49,7 @@ export function ConfirmDialog({
         event.preventDefault();
         handleCancel();
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 text-on-surface shadow-xl backdrop:bg-on-surface/40"
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 text-on-surface shadow-xl backdrop:bg-on-surface/40 motion-safe:animate-rise-in motion-safe:backdrop:animate-fade-in"
     >
       <h2 id={titleId} className="font-headline text-xl font-bold">
         {title}

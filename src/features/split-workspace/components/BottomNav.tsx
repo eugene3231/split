@@ -96,7 +96,12 @@ export function BottomNav({
 
         {!isFinalStep && (
           <>
-            <div className="flex min-w-0 flex-1 flex-col justify-center pl-1 md:pl-3">{status}</div>
+            <div
+              data-testid="wizard-status"
+              className="flex min-w-0 flex-1 flex-col justify-center pl-1 md:pl-3"
+            >
+              {status}
+            </div>
             <button
               type="button"
               data-testid="wizard-continue-btn"
@@ -109,7 +114,9 @@ export function BottomNav({
                   : 'cursor-not-allowed bg-white/15 text-white/50',
               )}
             >
-              <span className="truncate">{continueLabel}</span>
+              <span key={continueLabel} className="block truncate motion-safe:animate-nudge">
+                {continueLabel}
+              </span>
               <span className="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
           </>
@@ -120,15 +127,17 @@ export function BottomNav({
 }
 
 interface BottomNavStatusProps {
-  label: string;
-  value: string;
+  label: ReactNode;
+  value: ReactNode;
   className?: string;
 }
 
 export function BottomNavStatus({ label, value, className }: BottomNavStatusProps) {
   return (
-    <div data-testid="wizard-status" className={cn('min-w-0', className)}>
-      <p className="truncate text-xs text-white/60">{label}</p>
+    <div className={cn('min-w-0', className)}>
+      <p aria-live="polite" className="h-4 truncate text-xs text-white/60">
+        {label}
+      </p>
       <p className="truncate text-xl leading-tight font-extrabold tabular-nums">{value}</p>
     </div>
   );

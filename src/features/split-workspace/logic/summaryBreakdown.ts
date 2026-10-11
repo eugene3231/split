@@ -106,15 +106,14 @@ export function resolvePersonBreakdowns({
         ? buildConversion(view.sgdSplit.totalByPersonCents[person.id] ?? 0, headerRate, true)
         : undefined,
       qrDataUrl: qrDataUrls[person.id],
-      collapsedReceiptTotals:
-        view.kind === 'total'
-          ? sections.map((section) => ({
-              id: section.id,
-              label: section.title,
-              totalCents: section.totalCents,
-              currency: section.currency,
-            }))
-          : [],
+      collapsedReceiptTotals: sections
+        .filter((section) => !section.emptyMessage)
+        .map((section) => ({
+          id: section.id,
+          label: section.title,
+          totalCents: section.totalCents,
+          currency: section.currency,
+        })),
       sections,
       emptyMessage: sections.length === 0 ? 'No items assigned.' : undefined,
     };

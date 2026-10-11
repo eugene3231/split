@@ -6,11 +6,14 @@ import type { AssignmentCommand } from '@features/split-workspace/logic/assignme
 import { formatItemCount, resolveClaimView } from '@features/split-workspace/logic/claim';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { BASE_CURRENCY } from '@shared/constants';
 import { cn } from '@shared/utils/cn';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
+import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
+import { ReceiptSharingAction } from './ReceiptSharingAction';
 
 interface Props {
   activePersonId: string;
@@ -42,7 +45,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
       items: filtering ? section.items.filter((item) => item.isLeft) : section.items,
     }))
     .filter((section) => section.items.length > 0);
-  const hasSeveralReceipts = view.sections.length > 1;
+  const personDirection = useSlideDirection(view.people.findIndex((person) => person.isActive));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
     updateReceiptItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
@@ -56,23 +59,21 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
       <div className="min-w-0">
         <header className="-mx-6 -mt-4 bg-surface-container-low px-6 pt-5 pb-6 md:mx-0 md:mt-0 md:rounded-3xl md:px-8 md:pt-6 md:pb-7">
-          <p data-testid="claim-person-summary" className="text-sm font-semibold">
-            {activePerson.firstName} · {formatItemCount(view.activeItemCount)} ·{' '}
-            {activePerson.totalLabel}
-          </p>
           <ClaimPeopleRail
             people={view.people}
             onSelect={onActivePersonChange}
             layout="row"
-            className="-mx-6 mt-4 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
+            currency={view.totalsCurrency}
+            className="-mx-6 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
           />
-          <StepHeader
-            title={`What did ${activePerson.firstName} have?`}
-            description="Tap everything they had. Shared items split automatically."
-            className="mt-6"
-          />
-          {view.leftCount > 0 && (
-            <div className="mt-4 flex">
+          <SlideIn key={activePerson.id} direction={personDirection} className="mt-6 lg:mt-0">
+            <StepHeader
+              title={`What did ${activePerson.firstName} have?`}
+              description="Tap everything they had. Shared items split automatically."
+            />
+          </SlideIn>
+          <div className="mt-4 flex min-h-7">
+            {view.leftCount > 0 && (
               <Chip
                 testId="claim-left-filter"
                 pressed={filtering}
@@ -80,8 +81,8 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
               >
                 {formatItemCount(view.leftCount)} left
               </Chip>
-            </div>
-          )}
+            )}
+          </div>
         </header>
 
         {sections.map((section) => (
@@ -90,11 +91,10 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             aria-label={section.name}
             data-testid={`claim-section-${section.receiptId}`}
           >
-            {hasSeveralReceipts && (
-              <h2 className="sticky top-15 z-10 -mx-6 truncate border-b border-surface-container-high bg-surface px-6 pt-6 pb-2 text-lg font-bold md:top-22 md:mx-0 md:px-1">
-                {section.name}
-              </h2>
-            )}
+            <div className="sticky top-(--app-bar-height) z-10 -mx-6 flex flex-wrap items-center justify-between gap-2 border-b border-surface-container-high bg-surface px-6 pt-4 pb-2 md:mx-0 md:px-1">
+              <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{section.name}</h2>
+              <ReceiptSharingAction receiptId={section.receiptId} />
+            </div>
             <ul className="divide-y divide-surface-container-high">
               {section.items.map((item) => (
                 <ClaimItemRow
@@ -141,7 +141,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
         ))}
       </div>
 
-      <aside className="hidden lg:sticky lg:top-24 lg:block lg:self-start">
+      <aside className="hidden lg:sticky lg:top-[calc(var(--app-bar-height)+1.5rem)] lg:block lg:self-start">
         <h2 className="mb-3 text-xs font-bold tracking-widest text-on-surface-variant uppercase">
           Who had what
         </h2>
@@ -149,6 +149,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
           people={view.people}
           onSelect={onActivePersonChange}
           layout="column"
+          currency={view.totalsCurrency}
           className="max-h-[calc(100vh-17rem)] overflow-y-auto p-1"
         />
       </aside>

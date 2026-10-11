@@ -1,16 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import { create } from 'zustand';
 import type { MouseEvent, PointerEvent } from 'react';
 
 const PRESS_MS = 450;
-const LONG_PRESS_LINGER_MS = 1500;
-const TAP_LINGER_MS = 3000;
+const LABEL_LINGER_MS = 2000;
+
+interface ActiveLabelState {
+  activeId: string | null;
+}
+
+const useActiveLabelStore = create<ActiveLabelState>(() => ({ activeId: null }));
+
+function hideLabel(id: string) {
+  if (useActiveLabelStore.getState().activeId === id) {
+    useActiveLabelStore.setState({ activeId: null });
+  }
+}
 
 /**
  * Shows a label while a touch is held down, and swallows the click that ends a long press.
- * Mouse hover is left to CSS.
+ * Only one label is visible, for at most two seconds after an interaction.
  */
 export function useLongPress() {
-  const [pressed, setPressed] = useState(false);
+  const id = useId();
+  const pressed = useActiveLabelStore((state) => state.activeId === id);
   const pressTimer = useRef<number | undefined>(undefined);
   const hideTimer = useRef<number | undefined>(undefined);
   const longPressed = useRef(false);
@@ -19,44 +32,51 @@ export function useLongPress() {
     () => () => {
       window.clearTimeout(pressTimer.current);
       window.clearTimeout(hideTimer.current);
+      hideLabel(id);
     },
-    [],
+    [id],
   );
 
-  const show = (lingerMs: number) => {
+  const show = () => {
     window.clearTimeout(hideTimer.current);
-    setPressed(true);
-    hideTimer.current = window.setTimeout(() => setPressed(false), lingerMs);
+    useActiveLabelStore.setState({ activeId: id });
+    hideTimer.current = window.setTimeout(() => hideLabel(id), LABEL_LINGER_MS);
   };
 
   const hide = () => {
     window.clearTimeout(hideTimer.current);
-    setPressed(false);
+    hideLabel(id);
   };
 
   const release = () => {
     window.clearTimeout(pressTimer.current);
-    if (longPressed.current) show(LONG_PRESS_LINGER_MS);
+    if (longPressed.current && useActiveLabelStore.getState().activeId === id) show();
   };
 
   /** Toggles the label on a tap, for something that does nothing else when tapped. */
-  const toggle = () => (pressed ? hide() : show(TAP_LINGER_MS));
+  const toggle = () => (pressed ? hide() : show());
 
   return {
     pressed,
     toggle,
     handlers: {
+      onPointerEnter: (event: PointerEvent) => {
+        if (event.pointerType === 'mouse') show();
+      },
       onPointerDown: (event: PointerEvent) => {
         longPressed.current = false;
         if (event.pointerType !== 'touch') return;
         window.clearTimeout(pressTimer.current);
         pressTimer.current = window.setTimeout(() => {
           longPressed.current = true;
-          show(LONG_PRESS_LINGER_MS);
+          show();
         }, PRESS_MS);
       },
       onPointerUp: release,
-      onPointerLeave: release,
+      onPointerLeave: (event: PointerEvent) => {
+        if (event.pointerType === 'mouse') hide();
+        else release();
+      },
       onPointerCancel: release,
       onContextMenu: (event: MouseEvent) => event.preventDefault(),
       onClickCapture: (event: MouseEvent) => {

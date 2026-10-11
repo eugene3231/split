@@ -60,6 +60,7 @@ const fakeCanvasCtx = {
   fillRect: () => {},
   drawImage: () => {},
   fillText: () => {},
+  measureText: () => ({ width: 0 }),
 } as unknown as CanvasRenderingContext2D;
 
 HTMLCanvasElement.prototype.getContext = (() =>

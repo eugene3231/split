@@ -1,19 +1,26 @@
 import { cn } from '@shared/utils/cn';
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
+import { prefersMotion } from '@features/split-workspace/components/shared/motion';
 
 interface Props {
   people: ClaimPerson[];
   onSelect: (personId: string) => void;
   layout: 'row' | 'column';
+  currency: string;
   className?: string;
 }
 
 function scrollIntoRail(element: HTMLButtonElement | null) {
-  element?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  element?.scrollIntoView?.({
+    behavior: prefersMotion() ? 'smooth' : 'auto',
+    block: 'nearest',
+    inline: 'center',
+  });
 }
 
-export function ClaimPeopleRail({ people, onSelect, layout, className }: Props) {
+export function ClaimPeopleRail({ people, onSelect, layout, currency, className }: Props) {
   return (
     <div
       role="group"
@@ -30,7 +37,7 @@ export function ClaimPeopleRail({ people, onSelect, layout, className }: Props) 
           data-testid={`claim-person-${person.id}`}
           onClick={() => onSelect(person.id)}
           className={cn(
-            'flex shrink-0 items-center gap-2 rounded-2xl border-2 bg-surface-container-lowest py-1.5 pr-3.5 pl-1.5 text-left transition-all',
+            'flex shrink-0 items-center gap-3 rounded-2xl border-2 bg-surface-container-lowest py-1.5 pr-3.5 pl-1.5 text-left transition-all',
             layout === 'column' && 'w-full',
             person.isActive
               ? 'border-primary shadow-md'
@@ -44,9 +51,11 @@ export function ClaimPeopleRail({ people, onSelect, layout, className }: Props) 
             >
               {layout === 'row' ? person.firstName : person.name}
             </span>
-            <span className="block text-xs text-on-surface-variant tabular-nums">
-              {person.totalLabel}
-            </span>
+            <CountUpAmount
+              cents={person.totalCents}
+              currency={currency}
+              className="block text-xs text-on-surface-variant tabular-nums"
+            />
           </span>
         </button>
       ))}
