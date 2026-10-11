@@ -31,7 +31,7 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
             <PersonAvatar
               name={person.name}
               colorIndex={person.colorIndex}
-              className="h-5 w-5 text-[10px] ring-2 ring-surface"
+              className="h-5 w-5 text-[10px] ring-2 ring-surface motion-safe:animate-pop-in"
             />
           </HoverLabel>
         ))}

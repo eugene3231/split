@@ -71,7 +71,7 @@ export function TopAppBar({
                         : completed
                           ? 'bg-primary text-on-primary'
                           : isCurrent
-                            ? 'bg-primary text-on-primary ring-4 ring-primary/15'
+                            ? 'bg-primary text-on-primary ring-4 ring-primary/15 motion-safe:animate-step-pulse'
                             : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >
@@ -147,7 +147,7 @@ export function TopAppBar({
                         : completed
                           ? 'bg-primary text-on-primary'
                           : isCurrent
-                            ? 'bg-primary text-on-primary ring-4 ring-primary/15'
+                            ? 'bg-primary text-on-primary ring-4 ring-primary/15 motion-safe:animate-step-pulse'
                             : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >
