@@ -13,6 +13,8 @@ interface Props {
   reconciliationCents: number | null;
   receiptTotalInput: string;
   onApplyDiscount: () => void;
+  onAddRounding: () => void;
+  onRemoveRounding: () => void;
   onDiscountChange: (discount: ChargeState) => void;
   onServiceChargeChange: (serviceCharge: ChargeState) => void;
   onGstChange: (gst: ChargeState) => void;
@@ -28,6 +30,8 @@ export function GlobalChargesPanel({
   reconciliationCents,
   receiptTotalInput,
   onApplyDiscount,
+  onAddRounding,
+  onRemoveRounding,
   onDiscountChange,
   onServiceChargeChange,
   onGstChange,
@@ -56,6 +60,7 @@ export function GlobalChargesPanel({
         serviceCharge={serviceCharge}
         gst={gst}
         currency={currency}
+        onRemoveRounding={onRemoveRounding}
       />
 
       <div className="space-y-4">
@@ -86,6 +91,7 @@ export function GlobalChargesPanel({
         <ReconciliationNotice
           reconciliationCents={reconciliationCents}
           onApplyDiscount={onApplyDiscount}
+          onAddRounding={onAddRounding}
           currency={currency}
         />
       </div>

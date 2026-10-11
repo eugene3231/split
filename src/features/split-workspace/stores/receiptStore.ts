@@ -40,6 +40,7 @@ function createBlankReceipt(name: string): Receipt {
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
     receiptTotalInput: '',
+    roundingInput: '',
     currency: BASE_CURRENCY,
     exchangeRateOverride: null,
   };
@@ -84,6 +85,7 @@ type ReceiptStoreActions = {
   setServiceCharge: (next: ChargeState) => void;
   setGst: (next: ChargeState) => void;
   setReceiptTotalInput: (value: string) => void;
+  setRoundingInput: (value: string) => void;
   normalizeItems: () => void;
   handleReceiptFileSelected: (file: File | null) => void;
   applyReceiptScan: (args: ApplyReceiptScanArgs) => ReceiptScanCommit;
@@ -287,6 +289,13 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
       set((state) => ({
         receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, {
           receiptTotalInput: value,
+        }),
+      }));
+    },
+    setRoundingInput: (value) => {
+      set((state) => ({
+        receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, {
+          roundingInput: value,
         }),
       }));
     },

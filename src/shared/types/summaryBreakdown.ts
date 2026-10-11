@@ -16,7 +16,7 @@ export interface BreakdownItemRow {
 }
 
 export interface BreakdownChargeRow {
-  kind: 'discount' | 'service' | 'gst';
+  kind: 'discount' | 'service' | 'gst' | 'rounding';
   label: string;
   amountCents: number;
   sign: 'minus' | 'plus';

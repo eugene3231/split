@@ -11,7 +11,7 @@ export interface OverviewItemRow {
 }
 
 export interface OverviewChargeRow {
-  kind: 'discount' | 'service' | 'gst';
+  kind: 'discount' | 'service' | 'gst' | 'rounding';
   label: string;
   sign: 'minus' | 'plus';
   totalCents: number;

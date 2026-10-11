@@ -33,12 +33,14 @@ export function computeSplit({
   discount,
   serviceCharge,
   gst,
+  roundingInput = '',
 }: {
   people: Person[];
   items: EditableItem[];
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  roundingInput?: string;
 }): SplitResult {
   const personIds = people.map((person) => person.id);
   const validPeopleSet = new Set(personIds);
@@ -163,12 +165,26 @@ export function computeSplit({
   const gstWeights = weightsFromBase(gstWeightSeed, personIds);
   const gstByPersonCents = allocateCents(gstCents, personIds, gstWeights);
 
+  // Rounding comes after tax and is split evenly between everyone with something on the receipt.
+  const roundedPersonIds = personIds.filter((personId) => involvedCountByPerson[personId] > 0);
+  const roundingCents =
+    roundedPersonIds.length > 0 ? (parseCurrencyToCents(roundingInput) ?? 0) : 0;
+  const roundingByPersonCents = {
+    ...initializeCentsMap(personIds),
+    ...allocateCents(
+      roundingCents,
+      roundedPersonIds,
+      Object.fromEntries(roundedPersonIds.map((personId) => [personId, 1])),
+    ),
+  };
+
   const totalByPersonCents = initializeCentsMap(personIds);
   for (const personId of personIds) {
     totalByPersonCents[personId] =
       discountedSubtotalByPersonCents[personId] +
       serviceByPersonCents[personId] +
-      gstByPersonCents[personId];
+      gstByPersonCents[personId] +
+      roundingByPersonCents[personId];
   }
 
   const grandTotalCents = sumMapValues(totalByPersonCents);
@@ -180,11 +196,13 @@ export function computeSplit({
     discountByPersonCents,
     serviceByPersonCents,
     gstByPersonCents,
+    roundingByPersonCents,
     totalByPersonCents,
     subtotalCents,
     discountCents,
     serviceChargeCents,
     gstCents,
+    roundingCents,
     grandTotalCents,
     unassignedItemCount,
   };
@@ -205,12 +223,14 @@ export function computeConsolidatedSplit(
   const discountByPersonCents = initializeCentsMap(personIds);
   const serviceByPersonCents = initializeCentsMap(personIds);
   const gstByPersonCents = initializeCentsMap(personIds);
+  const roundingByPersonCents = initializeCentsMap(personIds);
   const totalByPersonCents = initializeCentsMap(personIds);
 
   let subtotalCents = 0;
   let discountCents = 0;
   let serviceChargeCents = 0;
   let gstCents = 0;
+  let roundingCents = 0;
   let grandTotalCents = 0;
   let unassignedItemCount = 0;
 
@@ -230,12 +250,14 @@ export function computeConsolidatedSplit(
       discountByPersonCents[personId] += result.discountByPersonCents[personId] ?? 0;
       serviceByPersonCents[personId] += result.serviceByPersonCents[personId] ?? 0;
       gstByPersonCents[personId] += result.gstByPersonCents[personId] ?? 0;
+      roundingByPersonCents[personId] += result.roundingByPersonCents[personId] ?? 0;
       totalByPersonCents[personId] += result.totalByPersonCents[personId] ?? 0;
     }
     subtotalCents += result.subtotalCents;
     discountCents += result.discountCents;
     serviceChargeCents += result.serviceChargeCents;
     gstCents += result.gstCents;
+    roundingCents += result.roundingCents;
     grandTotalCents += result.grandTotalCents;
     unassignedItemCount += result.unassignedItemCount;
   }
@@ -247,11 +269,13 @@ export function computeConsolidatedSplit(
     discountByPersonCents,
     serviceByPersonCents,
     gstByPersonCents,
+    roundingByPersonCents,
     totalByPersonCents,
     subtotalCents,
     discountCents,
     serviceChargeCents,
     gstCents,
+    roundingCents,
     grandTotalCents,
     unassignedItemCount,
   };

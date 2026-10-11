@@ -173,6 +173,13 @@ function buildChargeRows(people: Person[], source: SectionSource): OverviewCharg
       totalCents: split.gstCents,
       sharesByPerson: nonZeroShares(people, split.gstByPersonCents),
     },
+    {
+      kind: 'rounding',
+      label: 'Rounding',
+      sign: 'plus',
+      totalCents: split.roundingCents,
+      sharesByPerson: nonZeroShares(people, split.roundingByPersonCents),
+    },
   ];
   return candidates.filter((row) => row.totalCents > 0);
 }
