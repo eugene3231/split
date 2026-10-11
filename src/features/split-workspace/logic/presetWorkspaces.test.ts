@@ -73,8 +73,8 @@ describe('PRESET_WORKSPACES', () => {
     const draft = bali.build();
     expect(draft.receipts.map((receipt) => [receipt.name, receipt.currency])).toEqual([
       ['Woods pererenan', 'IDR'],
-      ['Receipt 2', 'IDR'],
-      ['Receipt 3', 'IDR'],
+      ['Alchemy Cafe', 'IDR'],
+      ['Ulekan Berawa', 'IDR'],
     ]);
     expect(draft.receipts[0].serviceCharge).toMatchObject({
       enabled: true,
