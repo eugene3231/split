@@ -231,6 +231,9 @@ describe('resolveSummaryBreakdown', () => {
     expect(person.headerLabel).toBe('Total · this receipt');
     expect(person.totalCents).toBe(1368);
     expect(person.sections[0].totalCents).toBe(1368);
+    expect(person.collapsedReceiptTotals).toEqual([
+      { id: 'r1', label: 'Dinner', totalCents: 1368, currency: 'SGD' },
+    ]);
     expect(person.qrDataUrl).toBe('data:image/png;base64,qr');
     expect(person.sections[0].itemRows).toMatchObject([
       { label: 'Noodles', amountCents: 1200, involved: true, currency: 'SGD' },
@@ -510,5 +513,26 @@ describe('resolveSummaryBreakdown', () => {
 
     expect(person.sections).toEqual([]);
     expect(person.emptyMessage).toBe('No items assigned.');
+  });
+
+  it('leaves out the receipt total for a person with nothing on a single receipt', () => {
+    const view: SummaryView = {
+      kind: 'receipt',
+      receipt: null,
+      displaySplit: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
+      displayCurrency: 'SGD',
+      grandTotal: 0,
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst: disabledCharge,
+      sgdSplit: split(),
+      nativeCurrency: 'SGD',
+      isForeign: false,
+      effectiveRate: null,
+    };
+
+    const [person] = resolveSummaryBreakdown({ people: [bob], view }).personBreakdowns;
+
+    expect(person.collapsedReceiptTotals).toEqual([]);
   });
 });

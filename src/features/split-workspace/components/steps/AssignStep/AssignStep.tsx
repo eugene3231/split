@@ -6,9 +6,11 @@ import type { AssignmentCommand } from '@features/split-workspace/logic/assignme
 import { formatItemCount, resolveClaimView } from '@features/split-workspace/logic/claim';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { BASE_CURRENCY } from '@shared/constants';
 import { cn } from '@shared/utils/cn';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
+import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimItemRow } from './ClaimItemRow';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
 import { ReceiptSharingAction } from './ReceiptSharingAction';
@@ -43,6 +45,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
       items: filtering ? section.items.filter((item) => item.isLeft) : section.items,
     }))
     .filter((section) => section.items.length > 0);
+  const personDirection = useSlideDirection(view.people.findIndex((person) => person.isActive));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
     updateReceiptItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
@@ -60,15 +63,17 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             people={view.people}
             onSelect={onActivePersonChange}
             layout="row"
+            currency={view.totalsCurrency}
             className="-mx-6 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
           />
-          <StepHeader
-            title={`What did ${activePerson.firstName} have?`}
-            description="Tap everything they had. Shared items split automatically."
-            className="mt-6 lg:mt-0"
-          />
-          {view.leftCount > 0 && (
-            <div className="mt-4 flex">
+          <SlideIn key={activePerson.id} direction={personDirection} className="mt-6 lg:mt-0">
+            <StepHeader
+              title={`What did ${activePerson.firstName} have?`}
+              description="Tap everything they had. Shared items split automatically."
+            />
+          </SlideIn>
+          <div className="mt-4 flex min-h-7">
+            {view.leftCount > 0 && (
               <Chip
                 testId="claim-left-filter"
                 pressed={filtering}
@@ -76,8 +81,8 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
               >
                 {formatItemCount(view.leftCount)} left
               </Chip>
-            </div>
-          )}
+            )}
+          </div>
         </header>
 
         {sections.map((section) => (
@@ -144,6 +149,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
           people={view.people}
           onSelect={onActivePersonChange}
           layout="column"
+          currency={view.totalsCurrency}
           className="max-h-[calc(100vh-17rem)] overflow-y-auto p-1"
         />
       </aside>

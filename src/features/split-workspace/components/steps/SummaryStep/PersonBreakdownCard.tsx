@@ -40,31 +40,6 @@ export function PersonBreakdownCard({ breakdown, showDetails = false }: Props) {
         </div>
       </div>
 
-      {breakdown.qrDataUrl && (
-        <div className="mb-4 flex flex-col items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              const a = document.createElement('a');
-              a.href = breakdown.qrDataUrl ?? '';
-              a.download = buildDownloadFilename('paynow', breakdown.person.name);
-              a.click();
-            }}
-            className="flex cursor-pointer flex-col items-center gap-1.5"
-          >
-            <img
-              src={breakdown.qrDataUrl}
-              alt={`PayNow QR for ${breakdown.person.name}`}
-              className="h-auto w-40 rounded-xl border border-outline-variant/20"
-            />
-            <span className="flex items-center gap-1 text-xs text-on-surface-variant">
-              <span className="material-symbols-outlined text-sm">download</span>
-              Click to download
-            </span>
-          </button>
-        </div>
-      )}
-
       {!showDetails && breakdown.collapsedReceiptTotals.length > 0 && (
         <div className="mt-2 space-y-1.5">
           {breakdown.collapsedReceiptTotals.map((total) => (
@@ -86,6 +61,38 @@ export function PersonBreakdownCard({ breakdown, showDetails = false }: Props) {
           )}
         </div>
       )}
+
+      {breakdown.qrDataUrl && (
+        <PayNowQr qrDataUrl={breakdown.qrDataUrl} personName={breakdown.person.name} />
+      )}
+    </div>
+  );
+}
+
+// Last in the card, as in the PNG, so paying comes after checking the items.
+function PayNowQr({ qrDataUrl, personName }: { qrDataUrl: string; personName: string }) {
+  return (
+    <div className="mt-auto pt-4">
+      <button
+        type="button"
+        onClick={() => {
+          const a = document.createElement('a');
+          a.href = qrDataUrl;
+          a.download = buildDownloadFilename('paynow', personName);
+          a.click();
+        }}
+        className="flex max-w-full cursor-pointer flex-col items-start gap-1.5"
+      >
+        <img
+          src={qrDataUrl}
+          alt={`PayNow QR for ${personName}`}
+          className="h-auto max-h-40 w-auto max-w-full"
+        />
+        <span className="flex items-center gap-1 text-xs text-on-surface-variant">
+          <span className="material-symbols-outlined text-sm">download</span>
+          Click to download
+        </span>
+      </button>
     </div>
   );
 }

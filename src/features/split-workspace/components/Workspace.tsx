@@ -2,12 +2,16 @@ import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
+import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
-import { firstName } from '@features/split-workspace/logic/claim';
+import { useAllAssignedMoment } from '@features/split-workspace/hooks/useAllAssignedMoment';
+import { countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
+import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
+import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatusReel';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
@@ -15,7 +19,7 @@ import { SummaryStep } from '@features/split-workspace/components/steps/SummaryS
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { BASE_CURRENCY } from '@shared/constants';
 import type { Person } from '@shared/types';
-import type { WizardStep } from '@features/split-workspace/types';
+import { WIZARD_STEPS, type WizardStep } from '@features/split-workspace/types';
 
 export function Workspace() {
   useReceiptSplitterController();
@@ -49,6 +53,7 @@ export function Workspace() {
   } = useWizard(items, people, normalizeItems, receipts);
 
   const activePerson = people.find((person) => person.id === activePersonId);
+  const stepDirection = useSlideDirection(WIZARD_STEPS.indexOf(activeStep));
 
   const withScrollToTop =
     <Args extends unknown[]>(action: (...args: Args) => void) =>
@@ -63,7 +68,7 @@ export function Workspace() {
 
   return (
     <div
-      className="flex min-h-dvh flex-col bg-surface font-body text-on-surface"
+      className="flex min-h-dvh flex-col overflow-x-clip bg-surface font-body text-on-surface"
       data-testid="workspace"
     >
       <TopAppBar
@@ -74,20 +79,22 @@ export function Workspace() {
       />
 
       <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-6 md:px-8 md:pt-10 md:pb-10">
-        {activeStep === 'people' && <PeopleStep />}
+        <SlideIn key={activeStep} direction={stepDirection} data-testid="wizard-step-panel">
+          {activeStep === 'people' && <PeopleStep />}
 
-        {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
+          {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
 
-        {activeStep === 'items' && (
-          <AssignStep activePersonId={activePersonId} onActivePersonChange={setActivePersonId} />
-        )}
+          {activeStep === 'items' && (
+            <AssignStep activePersonId={activePersonId} onActivePersonChange={setActivePersonId} />
+          )}
 
-        {activeStep === 'final' && (
-          <SummaryStep
-            onAddReceipt={handleAddReceipt}
-            onResetSplit={withScrollToTop(handleResetSplit)}
-          />
-        )}
+          {activeStep === 'final' && (
+            <SummaryStep
+              onAddReceipt={handleAddReceipt}
+              onResetSplit={withScrollToTop(handleResetSplit)}
+            />
+          )}
+        </SlideIn>
       </main>
 
       <BottomNav
@@ -98,12 +105,11 @@ export function Workspace() {
         onNext={withScrollToTop(handleNext)}
         status={
           <WorkspaceNavStatus
+            key={activeStep}
+            leftCount={countItemsLeft(receipts, people)}
             activeStep={activeStep}
             activePerson={activePerson}
-            activePersonTotal={formatCurrencyFromCents(
-              consolidated.split.totalByPersonCents[activePersonId] ?? 0,
-              BASE_CURRENCY,
-            )}
+            activePersonTotalCents={consolidated.split.totalByPersonCents[activePersonId] ?? 0}
             receiptTotalCents={active.receiptTotals.grandTotalCents}
             receiptCurrency={activeReceipt.currency}
           />
@@ -116,23 +122,31 @@ export function Workspace() {
 }
 
 interface WorkspaceNavStatusProps {
+  leftCount: number;
   activeStep: WizardStep;
   activePerson: Person | undefined;
-  activePersonTotal: string;
+  activePersonTotalCents: number;
   receiptTotalCents: number;
   receiptCurrency: string;
 }
 
 function WorkspaceNavStatus({
+  leftCount,
   activeStep,
   activePerson,
-  activePersonTotal,
+  activePersonTotalCents,
   receiptTotalCents,
   receiptCurrency,
 }: WorkspaceNavStatusProps) {
+  const justFinished = useAllAssignedMoment(leftCount);
   if (activeStep === 'items' && activePerson) {
     return (
-      <BottomNavStatus label={`${firstName(activePerson.name)} owes`} value={activePersonTotal} />
+      <ClaimStatusReel
+        label={`${firstName(activePerson.name)} owes`}
+        cents={activePersonTotalCents}
+        currency={BASE_CURRENCY}
+        complete={justFinished}
+      />
     );
   }
 

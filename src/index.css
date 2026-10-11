@@ -74,6 +74,140 @@
   --font-headline: var(--font-sans);
   --font-body: var(--font-sans);
   --font-label: var(--font-sans);
+
+  /* Motion: always apply with motion-safe: so reduced motion skips it. Fill
+     backwards only, so no transform lingers to trap fixed or sticky children. */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --animate-slide-in-forward: slide-in-forward 260ms var(--ease-out-quart) backwards;
+  --animate-slide-in-back: slide-in-back 260ms var(--ease-out-quart) backwards;
+  --animate-fade-in: fade-in 200ms ease-out backwards;
+  --animate-rise-in: rise-in 180ms var(--ease-out-quart) backwards;
+  --animate-pop-out: pop-out 180ms ease-in forwards;
+  --animate-pop-in: pop-in 200ms var(--ease-out-quart) backwards;
+  --animate-step-pulse: step-pulse 2.4s ease-out infinite;
+  --animate-person-in: person-in 280ms var(--ease-out-quart) backwards;
+  --animate-shrink-out: shrink-out 240ms ease-in forwards;
+  --animate-nudge: nudge 420ms var(--ease-out-quart);
+  --animate-scan-sweep: scan-sweep 1.4s ease-in-out infinite;
+  --animate-status-reel: status-reel 1.6s var(--ease-out-quart) backwards;
+  --animate-status-sparkle: status-sparkle 700ms ease-out 240ms both;
+
+  @keyframes slide-in-forward {
+    from {
+      opacity: 0;
+      transform: translateX(1.5rem);
+    }
+  }
+
+  @keyframes slide-in-back {
+    from {
+      opacity: 0;
+      transform: translateX(-1.5rem);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.375rem) scale(0.98);
+    }
+  }
+
+  @keyframes step-pulse {
+    0% {
+      box-shadow: 0 0 0 0 --alpha(var(--color-primary) / 30%);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 0.5rem --alpha(var(--color-primary) / 0%);
+    }
+  }
+
+  @keyframes person-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.625rem) scale(0.85);
+    }
+    70% {
+      opacity: 1;
+      transform: translateY(-0.0625rem) scale(1.04);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes shrink-out {
+    to {
+      opacity: 0;
+      transform: translateY(-0.5rem) scale(0.6);
+    }
+  }
+
+  @keyframes nudge {
+    40% {
+      transform: scale(1.08);
+    }
+    70% {
+      transform: scale(0.98);
+    }
+  }
+
+  @keyframes scan-sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes status-reel {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    18%,
+    80% {
+      transform: translateY(-50%);
+    }
+  }
+
+  @keyframes status-sparkle {
+    from {
+      opacity: 0;
+      transform: scale(0.3) rotate(-20deg);
+    }
+    35% {
+      opacity: 1;
+      transform: scale(1.15) rotate(10deg);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.75) rotate(20deg);
+    }
+  }
+
+  @keyframes pop-out {
+    to {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+  }
+
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+  }
 }
 
 html,

@@ -249,6 +249,20 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByTestId('wizard-back-btn')).not.toBeInTheDocument();
     });
 
+    it('slides each step in from the side it was reached from', async () => {
+      seedV2Draft({});
+      render(<ReceiptSplitterPage />);
+      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      const panelDirection = () =>
+        screen.getByTestId('wizard-step-panel').getAttribute('data-direction');
+
+      expect(panelDirection()).toBe('none');
+      clickContinue(); // → receipt
+      expect(panelDirection()).toBe('forward');
+      clickBack(); // → people
+      expect(panelDirection()).toBe('back');
+    });
+
     it('jumps from summary directly back to people through the top nav', async () => {
       seedV2Draft({});
       render(<ReceiptSplitterPage />);
@@ -549,6 +563,52 @@ describe('ReceiptSplitterPage integration', () => {
       discountPercentInput: '',
       assignment: { mode: 'equal', personId: '', personIds: [] },
     };
+
+    it('shows completion inside the bottom status then restores the owes label', async () => {
+      await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
+      vi.useFakeTimers();
+      try {
+        fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
+        const message = screen.getByTestId('claim-all-assigned');
+        expect(screen.getByTestId('wizard-status')).toContainElement(message);
+        expect(screen.getByTestId('claim-owes-panel')).toHaveAttribute('aria-hidden', 'true');
+        expect(screen.getByRole('status')).toHaveTextContent('All assigned');
+        expect(screen.getByTestId('wizard-step-panel')).not.toContainElement(message);
+        expect(screen.getByTestId('wizard-status')).toHaveTextContent('$2.00');
+        act(() => vi.advanceTimersByTime(1600));
+        expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
+        expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$2.00');
+        expect(screen.getByTestId('claim-owes-panel')).toHaveAttribute('aria-hidden', 'false');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('returns from completion to the currently selected person and amount', async () => {
+      await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
+      vi.useFakeTimers();
+      try {
+        fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
+        fireEvent.click(screen.getAllByTestId('claim-person-p2')[0]);
+        expect(screen.getByRole('status')).toHaveTextContent('All assigned');
+        act(() => vi.advanceTimersByTime(1600));
+        expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
+        expect(screen.getByTestId('wizard-status')).toHaveTextContent('Bob owes$0.00');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('clears completion immediately if an item becomes unassigned again', async () => {
+      await navigateToClaim([makeReceipt({ id: 'r1', items: [unclaimedItem] })]);
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
+      expect(screen.getByTestId('wizard-status')).toContainElement(
+        screen.getByTestId('claim-all-assigned'),
+      );
+      fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i2'));
+      expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Alice owes$0.00');
+    });
 
     it('starts with the first person and shows who owes what in the bottom bar', async () => {
       await navigateToClaim();
@@ -1043,4 +1103,20 @@ describe('ReceiptSplitterPage integration', () => {
       });
     });
   });
+});
+
+it('completes a person removal when navigating away before the exit finishes', () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }));
+  try {
+    render(<ReceiptSplitterPage />);
+    addPeople('Alice, Bob');
+    const alice = useReceiptStore.getState().people.find((person) => person.name === 'Alice');
+    if (!alice) throw new Error('Alice was not added');
+    fireEvent.click(screen.getByTestId(`person-chip-${alice.id}`));
+    clickContinue();
+    clickBack();
+    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });
