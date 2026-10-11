@@ -73,6 +73,7 @@ type ReceiptStoreActions = {
   addPeopleFromInput: (rawInput: string) => void;
   addPeople: (names: string[]) => void;
   removePerson: (personId: string) => void;
+  removeAllPeople: () => void;
   addItem: () => void;
   removeItem: (itemId: string) => void;
   updateItem: (itemId: string, updater: (item: EditableItem) => EditableItem) => void;
@@ -212,6 +213,18 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
           })),
         };
       });
+    },
+    removeAllPeople: () => {
+      set((state) => ({
+        people: [],
+        receipts: state.receipts.map((receipt) => ({
+          ...receipt,
+          items: receipt.items.map((item) => ({
+            ...item,
+            assignment: { mode: 'equal', personId: '', personIds: [] },
+          })),
+        })),
+      }));
     },
     removePerson: (personId) => {
       set((state) => {
