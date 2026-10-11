@@ -60,18 +60,18 @@ export function SummaryTotals({
       {split.roundingCents !== 0 && (
         <div className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-1 font-medium text-on-surface-variant">
-            Rounding
             <button
               type="button"
               data-testid="remove-rounding-btn"
               aria-label="Remove rounding"
               onClick={onRemoveRounding}
-              className="flex items-center rounded-full p-0.5 transition-colors hover:text-error"
+              className="-ml-0.5 flex items-center rounded-full p-0.5 transition-colors hover:text-error"
             >
-              <span aria-hidden="true" className="material-symbols-outlined text-base">
+              <span aria-hidden="true" className="material-symbols-outlined !text-base">
                 close
               </span>
             </button>
+            Rounding
           </span>
           <span className="font-bold text-primary">
             +{formatCurrencyFromCents(split.roundingCents, currency)}
