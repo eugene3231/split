@@ -4,6 +4,8 @@ import {
   formatCurrencyFromCents,
   formatExchangeRate,
   formatMoneyAmount,
+  formatMoneyInput,
+  formatPercentInput,
   getCurrencySymbol,
   toNullableNumber,
 } from '@shared/logic/core/money';
@@ -65,6 +67,44 @@ describe('formatMoneyAmount', () => {
   it('formats the amount without a symbol', () => {
     expect(formatMoneyAmount(22660, 'SGD')).toBe('226.60');
     expect(formatMoneyAmount(120642500, 'IDR')).toBe('1,206,425');
+  });
+});
+
+describe('formatMoneyInput', () => {
+  it('groups rupiah without decimals', () => {
+    expect(formatMoneyInput('71750.00', 'IDR')).toBe('71,750');
+  });
+
+  it('pads dollars to cents and groups thousands', () => {
+    expect(formatMoneyInput('1234.5', 'SGD')).toBe('1,234.50');
+  });
+
+  it('keeps cents typed into a whole-unit currency', () => {
+    expect(formatMoneyInput('71750.5', 'IDR')).toBe('71,750.5');
+  });
+
+  it('reads an amount that is already grouped', () => {
+    expect(formatMoneyInput('1,206,500', 'IDR')).toBe('1,206,500');
+  });
+
+  it('leaves empty and non-numeric input alone', () => {
+    expect(formatMoneyInput('', 'SGD')).toBe('');
+    expect(formatMoneyInput('abc', 'SGD')).toBe('abc');
+  });
+});
+
+describe('formatPercentInput', () => {
+  it('drops trailing zeros', () => {
+    expect(formatPercentInput('9.00')).toBe('9');
+    expect(formatPercentInput('10.50')).toBe('10.5');
+  });
+
+  it('rounds to two decimals', () => {
+    expect(formatPercentInput('8.125')).toBe('8.13');
+  });
+
+  it('leaves empty input alone', () => {
+    expect(formatPercentInput('')).toBe('');
   });
 });
 

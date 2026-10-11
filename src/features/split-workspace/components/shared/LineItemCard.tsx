@@ -1,6 +1,13 @@
 import { useRef, useState } from 'react';
 import type { ChargeState, EditableItem } from '@shared/types';
-import { CURRENCY_SYMBOLS, BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY } from '@shared/constants';
+import {
+  formatMoneyAmount,
+  formatMoneyInput,
+  formatPercentInput,
+  getCurrencySymbol,
+} from '@shared/logic/core/money';
+import { FormattedNumberInput } from '@features/split-workspace/components/shared/FormattedNumberInput';
 
 interface Props {
   item: EditableItem;
@@ -17,7 +24,8 @@ export function LineItemCard({
   onUpdate,
   onRemove,
 }: Props) {
-  const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency;
+  const formatPrice = (input: string) => formatMoneyInput(input, currency);
+  const priceWidth = Math.max(formatPrice(item.amountInput).length, item.amountInput.length);
   const [showDiscount, setShowDiscount] = useState(!!item.discountPercentInput);
   const discountInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,15 +54,17 @@ export function LineItemCard({
         />
         <div className="flex flex-shrink-0 items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg bg-surface-container px-2 py-1">
-            <span className="text-xs font-bold text-on-surface-variant">{currencySymbol}</span>
-            <input
-              type="text"
-              inputMode="decimal"
+            <span className="text-xs font-bold text-on-surface-variant">
+              {getCurrencySymbol(currency)}
+            </span>
+            <FormattedNumberInput
+              aria-label="Price"
               value={item.amountInput}
-              onChange={(e) => onUpdate((current) => ({ ...current, amountInput: e.target.value }))}
-              placeholder="0.00"
-              // Grows with the typed price so rupiah amounts fit; Tailwind has no content-width utility that Safari and Firefox both support.
-              style={{ width: `${Math.min(Math.max(item.amountInput.length, 4), 11) + 1}ch` }}
+              format={formatPrice}
+              onValueChange={(amountInput) => onUpdate((current) => ({ ...current, amountInput }))}
+              placeholder={formatMoneyAmount(0, currency)}
+              // Grows with the price so rupiah amounts fit; Tailwind has no content-width utility that Safari and Firefox both support.
+              style={{ width: `${Math.min(Math.max(priceWidth, 4), 11) + 1}ch` }}
               className="border-none bg-transparent p-0 text-right text-base font-bold text-primary outline-none placeholder:text-outline focus:ring-0"
             />
           </div>
@@ -78,13 +88,13 @@ export function LineItemCard({
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center rounded border border-secondary-container/50 bg-surface-container px-1.5 py-0.5">
-              <input
+              <FormattedNumberInput
                 ref={discountInputRef}
-                type="text"
-                inputMode="decimal"
+                aria-label="Discount percent"
                 value={item.discountPercentInput}
-                onChange={(e) =>
-                  onUpdate((current) => ({ ...current, discountPercentInput: e.target.value }))
+                format={formatPercentInput}
+                onValueChange={(discountPercentInput) =>
+                  onUpdate((current) => ({ ...current, discountPercentInput }))
                 }
                 placeholder="0"
                 className="w-8 border-none bg-transparent p-0 text-right text-xs font-bold text-secondary outline-none focus:ring-0"
@@ -118,7 +128,7 @@ export function LineItemCard({
         {discount.enabled && (
           <span className="ml-auto text-xs text-on-surface-variant italic">
             {discount.mode === 'percent'
-              ? `${discount.percentInput || '0'}% bill discount`
+              ? `${formatPercentInput(discount.percentInput) || '0'}% bill discount`
               : 'Bill discount'}{' '}
             applied
           </span>
