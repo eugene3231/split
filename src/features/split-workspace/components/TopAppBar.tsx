@@ -57,7 +57,7 @@ export function TopAppBar({
                   disabled={disabled}
                   aria-current={isCurrent ? 'step' : undefined}
                   className={cn(
-                    'group flex flex-col items-center gap-1 rounded-xl px-2 py-1 transition-all',
+                    'group flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all',
                     disabled
                       ? 'cursor-not-allowed opacity-45'
                       : 'hover:bg-surface-container-low active:scale-95',
@@ -65,7 +65,7 @@ export function TopAppBar({
                 >
                   <div
                     className={cn(
-                      'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all',
+                      'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all',
                       disabled
                         ? 'bg-surface-container-highest text-on-surface-variant'
                         : completed
@@ -104,7 +104,7 @@ export function TopAppBar({
                 {i < WIZARD_STEPS.length - 1 && (
                   <div
                     className={cn(
-                      'mx-2 mb-4 h-0.5 w-12',
+                      'mx-1 h-0.5 w-4 lg:w-12',
                       completed ? 'bg-primary' : 'bg-surface-container-highest',
                     )}
                   />
@@ -169,7 +169,7 @@ export function TopAppBar({
         </nav>
 
         {/* Right: step count on desktop */}
-        <div data-testid="wizard-step-context" className="hidden w-44 shrink-0 text-right md:block">
+        <div data-testid="wizard-step-context" className="hidden w-44 shrink-0 text-right lg:block">
           <p className="truncate text-xs font-bold tracking-widest text-primary uppercase">
             Step {stepNumber} of {WIZARD_STEPS.length}
           </p>

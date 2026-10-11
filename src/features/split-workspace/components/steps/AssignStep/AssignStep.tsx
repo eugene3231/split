@@ -91,7 +91,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
             data-testid={`claim-section-${section.receiptId}`}
           >
             {hasSeveralReceipts && (
-              <h2 className="sticky top-15 z-10 -mx-6 truncate border-b border-surface-container-high bg-surface px-6 pt-6 pb-2 text-lg font-bold md:top-22 md:mx-0 md:px-1">
+              <h2 className="sticky top-(--app-bar-height) z-10 -mx-6 truncate border-b border-surface-container-high bg-surface px-6 pt-6 pb-2 text-lg font-bold md:mx-0 md:px-1">
                 {section.name}
               </h2>
             )}
@@ -141,7 +141,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
         ))}
       </div>
 
-      <aside className="hidden lg:sticky lg:top-24 lg:block lg:self-start">
+      <aside className="hidden lg:sticky lg:top-[calc(var(--app-bar-height)+1.5rem)] lg:block lg:self-start">
         <h2 className="mb-3 text-xs font-bold tracking-widest text-on-surface-variant uppercase">
           Who had what
         </h2>
