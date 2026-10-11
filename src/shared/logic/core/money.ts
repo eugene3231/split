@@ -71,6 +71,29 @@ export function formatMoneyAmount(cents: number, currency = 'SGD'): string {
   }).format(cents / 100);
 }
 
+/**
+ * A typed amount regrouped the way the currency is written, keeping up to two decimals that were
+ * typed: 71,750 for rupiah, 12.50 for dollars. Text that isn't a number comes back unchanged.
+ */
+export function formatMoneyInput(input: string, currency = 'SGD'): string {
+  const parsed = parseNumber(input);
+  if (parsed === null) return input;
+  const digits = fractionDigitsFor(currency);
+  return new Intl.NumberFormat('en', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: Math.max(digits, 2),
+  }).format(parsed);
+}
+
+/** A typed percent to at most two decimals, without trailing zeros: 9 or 10.5. */
+export function formatPercentInput(input: string): string {
+  const parsed = parseNumber(input);
+  if (parsed === null) return input;
+  return new Intl.NumberFormat('en', { maximumFractionDigits: 2, useGrouping: false }).format(
+    parsed,
+  );
+}
+
 export function formatCurrencyFromCents(cents: number, currency = 'SGD'): string {
   return `${getCurrencySymbol(currency)}${formatMoneyAmount(cents, currency)}`;
 }

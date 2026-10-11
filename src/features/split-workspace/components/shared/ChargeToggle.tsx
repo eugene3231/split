@@ -1,14 +1,24 @@
 import { cn } from '@shared/utils/cn';
+import {
+  formatMoneyAmount,
+  formatMoneyInput,
+  formatPercentInput,
+  getCurrencySymbol,
+} from '@shared/logic/core/money';
+import { FormattedNumberInput } from '@features/split-workspace/components/shared/FormattedNumberInput';
 import type { ChargeMode, ChargeState } from '@shared/types';
 
 interface Props {
   label: string;
   value: ChargeState;
   onChange: (next: ChargeState) => void;
+  currency: string;
 }
 
-export function ChargeToggle({ label, value, onChange }: Props) {
+export function ChargeToggle({ label, value, onChange, currency }: Props) {
   const isEnabled = value.enabled;
+  const isAmount = value.mode === 'amount';
+  const currencySymbol = getCurrencySymbol(currency);
 
   return (
     <div className="space-y-3">
@@ -43,7 +53,7 @@ export function ChargeToggle({ label, value, onChange }: Props) {
           </span>
         </div>
 
-        {/* $/% mode toggle */}
+        {/* amount/% mode toggle */}
         <div
           className={cn(
             'flex items-center rounded-lg bg-surface-container-low p-1',
@@ -52,22 +62,26 @@ export function ChargeToggle({ label, value, onChange }: Props) {
         >
           <button
             type="button"
+            aria-label={`${label} as an amount`}
+            aria-pressed={isAmount}
             onClick={() => isEnabled && onChange({ ...value, mode: 'amount' as ChargeMode })}
             className={cn(
               'rounded-md px-2 py-0.5 text-xs font-extrabold transition-all',
-              value.mode === 'amount'
+              isAmount
                 ? 'bg-surface-container-lowest text-primary shadow-sm'
                 : 'text-on-surface-variant',
             )}
           >
-            $
+            {currencySymbol}
           </button>
           <button
             type="button"
+            aria-label={`${label} as a percent`}
+            aria-pressed={!isAmount}
             onClick={() => isEnabled && onChange({ ...value, mode: 'percent' as ChargeMode })}
             className={cn(
               'rounded-md px-2 py-0.5 text-xs font-extrabold transition-all',
-              value.mode === 'percent'
+              !isAmount
                 ? 'bg-surface-container-lowest text-primary shadow-sm'
                 : 'text-on-surface-variant',
             )}
@@ -78,24 +92,21 @@ export function ChargeToggle({ label, value, onChange }: Props) {
       </div>
 
       {isEnabled && (
-        <div className="relative">
-          <span className="absolute top-1/2 left-3 -translate-y-1/2 text-xs font-bold text-primary">
-            {value.mode === 'amount' ? '$' : '%'}
-          </span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={value.mode === 'amount' ? value.amountInput : value.percentInput}
-            onChange={(e) =>
+        <div className="flex items-center gap-1 rounded-xl bg-surface-container-low px-3 focus-within:ring-1 focus-within:ring-primary/20">
+          {isAmount && <span className="text-xs font-bold text-primary">{currencySymbol}</span>}
+          <FormattedNumberInput
+            aria-label={isAmount ? `${label} amount` : `${label} percent`}
+            value={isAmount ? value.amountInput : value.percentInput}
+            format={isAmount ? (input) => formatMoneyInput(input, currency) : formatPercentInput}
+            onValueChange={(input) =>
               onChange(
-                value.mode === 'amount'
-                  ? { ...value, amountInput: e.target.value }
-                  : { ...value, percentInput: e.target.value },
+                isAmount ? { ...value, amountInput: input } : { ...value, percentInput: input },
               )
             }
-            placeholder={value.mode === 'amount' ? '0.00' : '0'}
-            className="w-full rounded-xl border-none bg-surface-container-low py-3 pr-3 pl-7 text-base font-bold text-primary outline-none focus:ring-1 focus:ring-primary/20"
+            placeholder={isAmount ? formatMoneyAmount(0, currency) : '0'}
+            className="min-w-0 flex-1 border-none bg-transparent py-3 text-base font-bold text-primary outline-none placeholder:text-outline"
           />
+          {!isAmount && <span className="text-xs font-bold text-primary">%</span>}
         </div>
       )}
 
