@@ -59,17 +59,17 @@ describe('SummaryStep', () => {
     expect(screen.getAllByText('Laksa')).toHaveLength(1);
     expect(screen.getAllByText('Satay')).toHaveLength(1);
 
-    expect(screen.getByRole('button', { name: 'Their items' })).toHaveAttribute(
-      'aria-pressed',
+    expect(screen.getByRole('radio', { name: 'Their items' })).toHaveAttribute(
+      'aria-checked',
       'true',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'All items' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'All items' }));
 
     expect(screen.getAllByText('Laksa')).toHaveLength(2);
     expect(screen.getAllByText('Satay')).toHaveLength(2);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Totals' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Totals' }));
 
     expect(screen.queryByText('Laksa')).toBeNull();
     expect(screen.queryByText('Satay')).toBeNull();
@@ -98,7 +98,7 @@ describe('SummaryStep', () => {
     );
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Totals' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Totals' }));
 
     // Each card shows its header total plus the receipt's row underneath.
     expect(screen.getAllByText('$10.00')).toHaveLength(2);
@@ -188,7 +188,7 @@ describe('SummaryStep', () => {
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
     expect(screen.queryByText('Reconciliation Discrepancy')).toBeNull();
-    fireEvent.click(screen.getByTestId('summary-tab-receipt-1'));
+    fireEvent.mouseDown(screen.getByTestId('summary-tab-receipt-1'));
     expect(screen.getByText(/The sum of individual shares/)).toHaveTextContent(
       'US$1.00 off from the receipt total.',
     );
@@ -310,14 +310,14 @@ describe('SummaryStep', () => {
     );
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
-    const byPerson = screen.getByRole('button', { name: 'By person' });
-    const overviewToggle = screen.getByRole('button', { name: 'Overview' });
-    expect(byPerson).toHaveAttribute('aria-pressed', 'true');
+    const byPerson = screen.getByRole('radio', { name: 'By person' });
+    const overviewToggle = screen.getByRole('radio', { name: 'Overview' });
+    expect(byPerson).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('region', { name: 'Who had what' })).toBeNull();
 
     fireEvent.click(overviewToggle);
 
-    expect(overviewToggle).toHaveAttribute('aria-pressed', 'true');
+    expect(overviewToggle).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('group', { name: 'Show on each card' })).toBeNull();
     const table = within(screen.getByRole('region', { name: 'Who had what' }));
     expect(table.getByRole('rowheader', { name: /Laksa/ })).toHaveTextContent('$10.00');

@@ -410,7 +410,7 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue(); // → receipt
       clickContinue(); // → items
       fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 
       expectActiveStepNav('items');
       expect(useReceiptStore.getState().receipts[0].items[0].assignment.personIds).toEqual([
@@ -480,12 +480,6 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('confirms replacement, preserves selections on cancel, and disables after sharing', async () => {
-      HTMLDialogElement.prototype.showModal = function () {
-        this.open = true;
-      };
-      HTMLDialogElement.prototype.close = function () {
-        this.open = false;
-      };
       seedV2Draft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
@@ -496,11 +490,13 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
       const original = useReceiptStore.getState().receipts;
       fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
-      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(
+        within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }),
+      );
       expect(useReceiptStore.getState().receipts).toEqual(original);
       fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
       fireEvent.click(
-        within(screen.getByRole('dialog')).getByRole('button', { name: 'Split evenly' }),
+        within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Split evenly' }),
       );
       expect(screen.getByRole('button', { name: 'Split all evenly' })).toBeDisabled();
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
@@ -901,7 +897,7 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
-      expect(screen.getByLabelText(/API Key/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('API Key')).toBeInTheDocument();
     });
 
     it('skip closes the modal without saving a key', async () => {
@@ -910,7 +906,7 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
       fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
-      expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('API Key')).not.toBeInTheDocument();
       expect(useGeminiStore.getState().geminiApiKeyInput).toBe('');
     });
 
@@ -919,9 +915,9 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
-      fireEvent.change(screen.getByLabelText(/API Key/i), { target: { value: 'my-gemini-key' } });
+      fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'my-gemini-key' } });
       fireEvent.click(screen.getByRole('button', { name: /Save/i }));
-      expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('API Key')).not.toBeInTheDocument();
       expect(useGeminiStore.getState().geminiApiKeyInput).toBe('my-gemini-key');
     });
 
@@ -935,7 +931,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByLabelText(/Model/i)).toHaveValue(GEMINI_MODELS[1]);
 
       fireEvent.change(screen.getByLabelText(/Model/i), { target: { value: GEMINI_MODELS[3] } });
-      fireEvent.change(screen.getByLabelText(/API Key/i), { target: { value: 'my-gemini-key' } });
+      fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'my-gemini-key' } });
       fireEvent.click(screen.getByRole('button', { name: /Save/i }));
 
       expect(useGeminiStore.getState().geminiModel).toBe(GEMINI_MODELS[3]);
@@ -950,7 +946,7 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
-      expect(screen.queryByLabelText(/API Key/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('API Key')).not.toBeInTheDocument();
     });
   });
 
@@ -1005,7 +1001,7 @@ describe('ReceiptSplitterPage integration', () => {
     it('loads a test split on an empty workspace straight into Items', () => {
       render(<ReceiptSplitterPage />);
 
-      fireEvent.click(screen.getByTestId('workspace-menu-btn'));
+      fireEvent.keyDown(screen.getByTestId('workspace-menu-btn'), { key: 'Enter' });
       fireEvent.click(screen.getByTestId('workspace-preset-dinner-for-twelve'));
 
       expectActiveStepNav('items');
@@ -1017,7 +1013,7 @@ describe('ReceiptSplitterPage integration', () => {
       seedV2Draft({});
       render(<ReceiptSplitterPage />);
 
-      fireEvent.click(screen.getByTestId('workspace-menu-btn'));
+      fireEvent.keyDown(screen.getByTestId('workspace-menu-btn'), { key: 'Enter' });
       fireEvent.click(screen.getByTestId('workspace-export-btn'));
 
       const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;

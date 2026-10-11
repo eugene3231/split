@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { ToggleGroup } from 'radix-ui';
 import type { ReactNode } from 'react';
 import { HoverLabel } from '@features/split-workspace/components/shared/HoverLabel';
 import { cn } from '@shared/utils/cn';
@@ -26,28 +27,22 @@ export function PillToggle<T extends string>({
   className,
 }: Props<T>) {
   return (
-    <div
-      role="group"
+    <ToggleGroup.Root
+      type="single"
       aria-label={label}
+      value={value}
+      onValueChange={(next: T | '') => next && onChange(next)}
       className={cn(
         'flex items-center gap-1 rounded-full bg-surface-container p-0.5 text-xs font-semibold',
         className,
       )}
     >
       {options.map((option) => {
-        const pressed = option.value === value;
-        const button = (
-          <button
-            type="button"
-            aria-pressed={pressed}
+        const item = (
+          <ToggleGroup.Item
+            value={option.value}
             aria-label={option.icon ? option.label : undefined}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              'flex flex-1 items-center justify-center rounded-full px-3 py-1.5 whitespace-nowrap transition-all',
-              pressed
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface',
-            )}
+            className="flex flex-1 items-center justify-center rounded-full px-3 py-1.5 whitespace-nowrap text-on-surface-variant transition-all hover:text-on-surface data-[state=on]:bg-primary data-[state=on]:text-on-primary data-[state=on]:shadow-sm"
           >
             {option.icon ? (
               <>
@@ -63,17 +58,17 @@ export function PillToggle<T extends string>({
             ) : (
               option.label
             )}
-          </button>
+          </ToggleGroup.Item>
         );
 
-        if (!option.icon) return <Fragment key={option.value}>{button}</Fragment>;
+        if (!option.icon) return <Fragment key={option.value}>{item}</Fragment>;
 
         return (
           <HoverLabel key={option.value} label={option.label} showOnTap labelClassName="sm:hidden">
-            {button}
+            {item}
           </HoverLabel>
         );
       })}
-    </div>
+    </ToggleGroup.Root>
   );
 }

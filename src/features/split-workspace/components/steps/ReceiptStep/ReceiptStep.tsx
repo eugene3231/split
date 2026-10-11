@@ -62,15 +62,16 @@ export function ReceiptStep({ onAddReceipt }: Props) {
       />
 
       <ReceiptTabs
+        value={activeReceiptId}
+        onValueChange={setActiveReceiptId}
         className="mb-8"
         action={<AddReceiptButton data-testid="receipt-add-receipt-btn" onClick={onAddReceipt} />}
       >
         {receipts.map((receipt) => (
           <ReceiptTab
             key={receipt.id}
+            value={receipt.id}
             label={receipt.name}
-            isActive={receipt.id === activeReceiptId}
-            onSelect={() => setActiveReceiptId(receipt.id)}
             onRename={(name) => renameReceipt(receipt.id, name)}
             onRemove={receipts.length > 1 ? () => removeReceipt(receipt.id) : undefined}
           />

@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useScanStore, getScanState } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
+import { Dialog } from 'radix-ui';
 import { cn } from '@shared/utils/cn';
 
 interface Props {
@@ -49,15 +50,6 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
     setIsFullscreen(false);
     onReceiptFileSelected(file);
   };
-
-  useEffect(() => {
-    if (!isFullscreen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsFullscreen(false);
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isFullscreen]);
 
   return (
     <div
@@ -200,30 +192,33 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
         </div>
       )}
 
-      {isFullscreen && previewUrl && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Receipt image preview"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-          onClick={() => setIsFullscreen(false)}
-        >
-          <button
-            type="button"
-            autoFocus
-            onClick={() => setIsFullscreen(false)}
-            className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
-            aria-label="Close preview"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-          <img
-            src={previewUrl}
-            alt="Receipt fullscreen"
-            className="max-h-screen max-w-screen object-contain p-4"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+      {previewUrl && (
+        <Dialog.Root open={isFullscreen} onOpenChange={setIsFullscreen}>
+          <Dialog.Portal>
+            <Dialog.Content
+              aria-describedby={undefined}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+              onClick={() => setIsFullscreen(false)}
+            >
+              <Dialog.Title className="sr-only">Receipt image preview</Dialog.Title>
+              <Dialog.Close
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
+                aria-label="Close preview"
+              >
+                <span aria-hidden="true" className="material-symbols-outlined">
+                  close
+                </span>
+              </Dialog.Close>
+              <img
+                src={previewUrl}
+                alt="Receipt fullscreen"
+                className="max-h-screen max-w-screen object-contain p-4"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       )}
     </div>
   );

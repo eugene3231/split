@@ -81,7 +81,7 @@ describe('SummaryTabs', () => {
       />,
     );
 
-    fireEvent.click(screen.getByTestId('summary-tab-receipt-0'));
+    fireEvent.mouseDown(screen.getByTestId('summary-tab-receipt-0'));
     expect(onTabChange).toHaveBeenCalledWith('r1');
   });
 
@@ -113,7 +113,7 @@ describe('SummaryTabs', () => {
       />,
     );
 
-    fireEvent.click(screen.getByTestId('summary-tab-total'));
+    fireEvent.mouseDown(screen.getByTestId('summary-tab-total'));
     expect(onTabChange).toHaveBeenCalledWith('total');
   });
 
@@ -129,7 +129,7 @@ describe('SummaryTabs', () => {
     );
 
     const receiptTab = screen.getByTestId('summary-tab-receipt-0');
-    expect(receiptTab).toHaveAttribute('data-active', 'true');
+    expect(receiptTab).toHaveAttribute('aria-selected', 'true');
   });
 
   describe('rename', () => {

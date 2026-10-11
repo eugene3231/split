@@ -22,6 +22,8 @@ export function SummaryTabs({
 }: Props) {
   return (
     <ReceiptTabs
+      value={activeTab}
+      onValueChange={onTabChange}
       action={
         onAddReceipt && (
           <AddReceiptButton data-testid="summary-add-receipt-btn" onClick={onAddReceipt} />
@@ -30,18 +32,16 @@ export function SummaryTabs({
     >
       {receipts.length > 1 && (
         <ReceiptTab
+          value="total"
           label={`Total · ${receipts.length} receipts`}
-          isActive={activeTab === 'total'}
-          onSelect={() => onTabChange('total')}
           data-testid="summary-tab-total"
         />
       )}
       {receipts.map((receipt, index) => (
         <ReceiptTab
           key={receipt.id}
+          value={receipt.id}
           label={receipt.name || `Receipt ${index + 1}`}
-          isActive={activeTab === receipt.id}
-          onSelect={() => onTabChange(receipt.id)}
           onRename={(name) => onRenameReceipt(receipt.id, name)}
           data-testid={`summary-tab-receipt-${index}`}
         />
