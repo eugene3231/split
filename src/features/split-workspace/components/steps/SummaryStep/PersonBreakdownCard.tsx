@@ -10,6 +10,7 @@ import type {
 } from '@shared/types/summaryBreakdown';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import { buildDownloadFilename } from '@features/sharing/logic/shareSplit';
+import { cn } from '@shared/utils/cn';
 
 interface Props {
   breakdown: PersonBreakdown;
@@ -18,13 +19,13 @@ interface Props {
 
 export function PersonBreakdownCard({ breakdown, showDetails = false }: Props) {
   return (
-    <div className="flex h-full flex-col rounded-2xl bg-surface-container-lowest p-6">
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center gap-3">
+    <div className="flex h-full flex-col rounded-2xl bg-surface-container-lowest p-4 sm:p-6">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <PersonAvatar name={breakdown.person.name} colorIndex={breakdown.colorIndex} />
-          <h3 className="text-2xl font-bold text-primary">{breakdown.person.name}</h3>
+          <h3 className="truncate text-2xl font-bold text-primary">{breakdown.person.name}</h3>
         </div>
-        <div className="text-right">
+        <div className="flex-shrink-0 text-right">
           <span className="mb-1 block text-[10px] leading-none font-semibold tracking-widest text-on-surface-variant uppercase">
             {breakdown.headerLabel}
           </span>
@@ -98,10 +99,10 @@ function CollapsedReceiptTotal({ total }: { total: ReceiptBreakdownTotal }) {
 
 function ReceiptSection({ section }: { section: ReceiptBreakdownSection }) {
   return (
-    <div className="rounded-xl bg-surface-container-low p-5">
-      <div className="mb-4 flex items-start justify-between">
-        <span className="text-base font-bold text-on-surface">{section.title}</span>
-        <div className="text-right">
+    <div className="rounded-xl bg-surface-container-low p-3 sm:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <span className="min-w-0 text-base font-bold text-on-surface">{section.title}</span>
+        <div className="flex-shrink-0 text-right">
           <span className="block text-base font-bold text-on-surface">
             {formatCurrencyFromCents(section.totalCents, section.currency)}
           </span>
@@ -127,12 +128,18 @@ function ReceiptSection({ section }: { section: ReceiptBreakdownSection }) {
   );
 }
 
+// Names wrap rather than truncate, so two similar items stay tellable apart on a phone.
 function ItemRow({ row }: { row: BreakdownItemRow }) {
   return (
-    <div className="flex justify-between pl-4 text-base text-on-surface-variant">
-      <span className="truncate pr-4">{row.label}</span>
+    <div
+      className={cn(
+        'flex justify-between gap-4 text-base text-on-surface-variant sm:pl-4',
+        !row.involved && 'text-on-surface-variant/40 italic',
+      )}
+    >
+      <span className="min-w-0 break-words">{row.label}</span>
       <span className="flex-shrink-0">
-        {formatCurrencyFromCents(row.amountCents, row.currency)}
+        {row.amountCents !== null ? formatCurrencyFromCents(row.amountCents, row.currency) : '—'}
       </span>
     </div>
   );
@@ -140,7 +147,7 @@ function ItemRow({ row }: { row: BreakdownItemRow }) {
 
 function ChargeRow({ row }: { row: BreakdownChargeRow }) {
   return (
-    <div className="flex justify-between pl-4 text-base">
+    <div className="flex justify-between gap-4 text-base sm:pl-4">
       <span className="text-on-surface-variant italic">{row.label}</span>
       <span className="text-on-surface-variant italic">
         {row.sign === 'minus' ? '−' : '+'}

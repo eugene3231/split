@@ -1,26 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { chooseMasonryLayout, layoutMasonry } from './receiptSplitImageLayout';
+import { chooseGridLayout, layoutGrid } from './receiptSplitImageLayout';
 
-describe('layoutMasonry', () => {
-  it('puts each card under the shortest column', () => {
-    const layout = layoutMasonry([500, 200, 200, 200], 2, 10);
+describe('layoutGrid', () => {
+  it('fills rows left to right and lines each row up to its tallest card', () => {
+    const layout = layoutGrid([500, 200, 300, 400], 2, 10);
     expect(layout.placements).toEqual([
-      { column: 0, y: 0 },
-      { column: 1, y: 0 },
-      { column: 1, y: 210 },
-      { column: 1, y: 420 },
+      { column: 0, y: 0, height: 500 },
+      { column: 1, y: 0, height: 500 },
+      { column: 0, y: 510, height: 400 },
+      { column: 1, y: 510, height: 400 },
     ]);
-    expect(layout.height).toBe(620);
+    expect(layout.height).toBe(910);
+  });
+
+  it('leaves the last row short when the cards run out', () => {
+    const layout = layoutGrid([300, 300, 300], 2, 10);
+    expect(layout.placements[2]).toEqual({ column: 0, y: 310, height: 300 });
   });
 
   it('has no height without cards', () => {
-    expect(layoutMasonry([], 1, 10).height).toBe(0);
+    expect(layoutGrid([], 1, 10).height).toBe(0);
   });
 });
 
-describe('chooseMasonryLayout', () => {
+describe('chooseGridLayout', () => {
   const choose = (heights: number[]) =>
-    chooseMasonryLayout({
+    chooseGridLayout({
       heights,
       maxColumns: 4,
       gap: 0,
@@ -33,10 +38,8 @@ describe('chooseMasonryLayout', () => {
   });
 
   it('spreads twelve people across more columns than five', () => {
-    const five = choose(Array.from({ length: 5 }, () => 1000));
-    const twelve = choose(Array.from({ length: 12 }, () => 1000));
-    expect(five.columns).toBe(3);
-    expect(twelve.columns).toBe(4);
+    expect(choose(Array.from({ length: 5 }, () => 1000)).columns).toBe(3);
+    expect(choose(Array.from({ length: 12 }, () => 1000)).columns).toBe(4);
   });
 
   it('never uses more columns than there are people', () => {

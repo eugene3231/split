@@ -232,7 +232,7 @@ describe('resolveSummaryBreakdown', () => {
     expect(person.sections[0].totalCents).toBe(1368);
     expect(person.qrDataUrl).toBe('data:image/png;base64,qr');
     expect(person.sections[0].itemRows).toMatchObject([
-      { label: 'Noodles', amountCents: 1200, currency: 'SGD' },
+      { label: 'Noodles', amountCents: 1200, involved: true, currency: 'SGD' },
     ]);
     expect(person.sections[0].chargeRows).toEqual([
       {
@@ -441,6 +441,17 @@ describe('resolveSummaryBreakdown', () => {
 
     expect(person.sections.map((section) => section.title)).toEqual(['Dinner']);
     expect(person.sections[0].itemRows.map((row) => row.label)).toEqual(['Noodles']);
+
+    const [everything] = resolveSummaryBreakdown({
+      people: [alice],
+      view,
+      showAllItems: true,
+    }).personBreakdowns;
+    expect(everything.sections.map((section) => section.title)).toEqual(['Dinner', 'Drinks']);
+    expect(everything.sections[0].itemRows).toMatchObject([
+      { label: 'Noodles', amountCents: 1200, involved: true },
+      { label: 'Tea', amountCents: null, involved: false },
+    ]);
   });
 
   it('returns empty state metadata when no people are present', () => {

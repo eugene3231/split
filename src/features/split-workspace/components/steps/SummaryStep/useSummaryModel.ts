@@ -53,6 +53,7 @@ function useQrDataUrls(
 type UseSummaryModelProps = {
   activeTab: string;
   showBaseCurrency: boolean;
+  showAllItems?: boolean;
 };
 
 export type SummaryModel = {
@@ -73,7 +74,11 @@ export type SummaryModel = {
   summaryOverview: SummaryOverview;
 };
 
-export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModelProps) {
+export function useSummaryModel({
+  activeTab,
+  showBaseCurrency,
+  showAllItems = false,
+}: UseSummaryModelProps) {
   const people = useReceiptStore((s) => s.people);
   const receipts = useReceiptStore((s) => s.receipts);
   const renameReceipt = useReceiptStore((s) => s.renameReceipt);
@@ -115,7 +120,7 @@ export function useSummaryModel({ activeTab, showBaseCurrency }: UseSummaryModel
   });
 
   const qrDataUrls = useQrDataUrls(people, view.sgdSplit, payerMobile);
-  const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls });
+  const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls, showAllItems });
   const summaryOverview = resolveSummaryOverview({ people, receipts, view });
 
   return {

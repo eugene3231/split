@@ -17,15 +17,18 @@ export interface ResolveSummaryBreakdownInput {
   people: Person[];
   view: SummaryView;
   qrDataUrls?: Record<string, string>;
+  /** Also list the items each person had no share of. */
+  showAllItems?: boolean;
 }
 
 export function resolveSummaryBreakdown({
   people,
   view,
   qrDataUrls = {},
+  showAllItems = false,
 }: ResolveSummaryBreakdownInput): SummaryBreakdown {
   return {
-    personBreakdowns: resolvePersonBreakdowns({ people, view, qrDataUrls }),
+    personBreakdowns: resolvePersonBreakdowns({ people, view, qrDataUrls, showAllItems }),
     exchangeRate: resolveHeaderRate(view),
     emptyPeopleMessage: people.length === 0 ? 'Add people to see the breakdown.' : undefined,
     unassignedItemCount: view.displaySplit.unassignedItemCount,
@@ -36,6 +39,7 @@ export function resolvePersonBreakdowns({
   people,
   view,
   qrDataUrls = {},
+  showAllItems = false,
 }: ResolveSummaryBreakdownInput): PersonBreakdown[] {
   const headerRate = resolveHeaderRate(view);
   return people.map((person, colorIndex) => {
@@ -47,6 +51,7 @@ export function resolvePersonBreakdowns({
               const itemRows = buildItemRows(
                 entry.split.lineItemsByPerson[person.id] ?? [],
                 entry.currency,
+                showAllItems,
               );
               if (itemRows.length === 0) {
                 return null;
@@ -85,6 +90,7 @@ export function resolvePersonBreakdowns({
               itemRows: buildItemRows(
                 view.displaySplit.lineItemsByPerson[person.id] ?? [],
                 view.displayCurrency,
+                showAllItems,
               ),
             }),
           ];
@@ -176,15 +182,19 @@ function buildReceiptSection({
   };
 }
 
-// The Overview shows who had what across everyone, so a person's breakdown lists only their own items.
-function buildItemRows(lines: PersonReceiptLineItem[], currency: string): BreakdownItemRow[] {
+function buildItemRows(
+  lines: PersonReceiptLineItem[],
+  currency: string,
+  showAllItems: boolean,
+): BreakdownItemRow[] {
   return lines.flatMap((line, index) =>
-    line.involved
+    line.involved || showAllItems
       ? [
           {
             id: `${line.itemId}:${index}`,
             label: line.name,
-            amountCents: line.assignedAmountCents,
+            amountCents: line.involved ? line.assignedAmountCents : null,
+            involved: line.involved,
             currency,
           },
         ]

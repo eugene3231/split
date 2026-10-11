@@ -18,7 +18,7 @@ import {
   formatRateLine,
   wrapText,
 } from '@features/sharing/logic/receiptSplitImageLightHelpers';
-import { chooseMasonryLayout } from '@features/sharing/logic/receiptSplitImageLayout';
+import { chooseGridLayout } from '@features/sharing/logic/receiptSplitImageLayout';
 
 type GenerateReceiptSplitImageLightOptions = {
   summaryBreakdown: SummaryBreakdown;
@@ -88,7 +88,7 @@ export async function generateReceiptSplitImageLight(
   const bodyTop = PAD + TITLE_H + BAND_H + BAND_AFTER_GAP;
   const noticesH = summaryBreakdown.unassignedItemCount > 0 ? NOTICE_GAP + NOTICE_H : 0;
   const heightFor = (bodyHeight: number) => bodyTop + bodyHeight + noticesH + PAD;
-  const layout = chooseMasonryLayout({
+  const layout = chooseGridLayout({
     heights: cardHeights,
     maxColumns: MAX_COLUMNS,
     gap: COLUMN_GAP,
@@ -129,7 +129,7 @@ export async function generateReceiptSplitImageLight(
       drawPersonCard(ctx, {
         x: PAD + placement.column * (COLUMN_WIDTH + COLUMN_GAP),
         y: bodyTop + placement.y,
-        height: cardHeights[index],
+        height: placement.height,
         breakdown,
         includeItemDetails,
         qrImage: qrImages.get(breakdown.person.id),
@@ -299,7 +299,7 @@ function measureItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow): n
 /** Long item names wrap onto a second line rather than losing the part that tells items apart. */
 function itemLabelLines(ctx: CanvasRenderingContext2D, row: BreakdownItemRow): string[] {
   ctx.font = `500 22px ${FONT}`;
-  const valueWidth = ctx.measureText(formatCurrencyFromCents(row.amountCents, row.currency)).width;
+  const valueWidth = ctx.measureText(formatItemAmount(row)).width;
   ctx.font = `400 22px ${FONT}`;
   return wrapText(ctx, row.label, SECTION_INNER_WIDTH - valueWidth - 24, ITEM_MAX_LINES);
 }
@@ -457,20 +457,23 @@ function drawSection(
   }
 }
 
+function formatItemAmount(row: BreakdownItemRow): string {
+  return row.amountCents !== null ? formatCurrencyFromCents(row.amountCents, row.currency) : '—';
+}
+
 function drawItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow, x: number, y: number) {
   const lines = itemLabelLines(ctx, row);
+  const style = row.involved ? '' : 'italic ';
+  ctx.save();
+  if (!row.involved) ctx.globalAlpha = 0.4;
   ctx.fillStyle = INK;
-  ctx.font = `400 22px ${FONT}`;
+  ctx.font = `${style}400 22px ${FONT}`;
   lines.forEach((line, index) => ctx.fillText(line, x, y + 27 + index * ITEM_WRAP_H));
 
-  ctx.font = `500 22px ${FONT}`;
+  ctx.font = `${style}500 22px ${FONT}`;
   ctx.textAlign = 'right';
-  ctx.fillText(
-    formatCurrencyFromCents(row.amountCents, row.currency),
-    x + SECTION_INNER_WIDTH,
-    y + 27,
-  );
-  ctx.textAlign = 'left';
+  ctx.fillText(formatItemAmount(row), x + SECTION_INNER_WIDTH, y + 27);
+  ctx.restore();
 }
 
 function drawChargeRow(

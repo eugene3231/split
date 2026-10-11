@@ -12,11 +12,13 @@ export interface BreakdownConversion extends BreakdownExchangeRate {
   showRate: boolean;
 }
 
-/** An item the person had a share of; items they had no part in are left out. */
+/** An item on the receipt; `involved` is false for one the person had no share of. */
 export interface BreakdownItemRow {
   id: string;
   label: string;
-  amountCents: number;
+  /** Null when the person was not involved. */
+  amountCents: number | null;
+  involved: boolean;
   currency: string;
 }
 
