@@ -46,6 +46,21 @@ function ensureStorage(name: 'localStorage' | 'sessionStorage') {
   });
 }
 
+Object.defineProperty(window, 'matchMedia', {
+  configurable: true,
+  writable: true,
+  value: (query: string): MediaQueryList => ({
+    media: query,
+    matches: false,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => true,
+  }),
+});
+
 // jsdom doesn't implement scrollTo
 window.scrollTo = () => {};
 

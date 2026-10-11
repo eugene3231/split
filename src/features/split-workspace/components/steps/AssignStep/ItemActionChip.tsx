@@ -17,11 +17,12 @@ export function ItemActionChip({ icon, label, disabled, onClick, testId }: Props
         data-testid={testId}
         disabled={disabled}
         onClick={onClick}
-        className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-outline-variant text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-30 disabled:hover:bg-transparent"
+        className="flex h-11 items-center justify-center gap-2 rounded-full border border-outline-variant px-3 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-30 disabled:hover:bg-transparent md:w-11 md:px-0"
       >
         <span aria-hidden className="material-symbols-outlined text-lg">
           {icon}
         </span>
+        <span className="text-sm font-semibold md:hidden">{label}</span>
       </button>
     </HoverLabel>
   );

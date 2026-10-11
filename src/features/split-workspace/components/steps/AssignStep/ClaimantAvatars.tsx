@@ -10,7 +10,6 @@ interface Props {
   testId: string;
 }
 
-/** Who has an item, as overlapping avatars named on hover or long press. */
 export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
   if (claimants.length === 0) return null;
 
@@ -23,9 +22,9 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
       role="img"
       aria-label={leftLabel ? `${names}, ${leftLabel}` : names}
       data-testid={testId}
-      className="flex items-center gap-2"
+      className="flex min-w-0 items-center gap-1"
     >
-      <span className="flex -space-x-1">
+      <span className="flex shrink-0 -space-x-1">
         {shown.map((person) => (
           <HoverLabel key={person.id} label={person.name} showOnTap>
             <PersonAvatar
@@ -43,7 +42,7 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
           </HoverLabel>
         )}
       </span>
-      {leftLabel && <span className="text-xs text-on-surface-variant">{leftLabel}</span>}
+      {leftLabel && <span className="truncate text-xs text-on-surface-variant">{leftLabel}</span>}
     </span>
   );
 }

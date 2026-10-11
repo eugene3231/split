@@ -6,10 +6,9 @@ interface Props {
   testId: string;
 }
 
-/** Fixed width so the steppers and prices line up down the list, whatever the label. */
 export function ShareStepper({ share, onStep, testId }: Props) {
   return (
-    <span className="flex w-23 shrink-0 items-center rounded-full border border-outline-variant">
+    <span className="flex w-32 shrink-0 items-center rounded-full border border-outline-variant">
       <StepButton
         icon="remove"
         label="Take a smaller share"
@@ -47,7 +46,7 @@ function StepButton({ icon, label, disabled, onClick, testId }: StepButtonProps)
       data-testid={testId}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-8 w-7 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-30"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-30"
     >
       <span className="material-symbols-outlined text-lg">{icon}</span>
     </button>
