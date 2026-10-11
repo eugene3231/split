@@ -1,15 +1,22 @@
 import type { Person } from '@shared/types';
 
-export interface BreakdownConversion {
-  amountCents: number;
+export interface BreakdownExchangeRate {
   rate: number;
   fromCurrency: string;
   toCurrency: string;
 }
 
+export interface BreakdownConversion extends BreakdownExchangeRate {
+  amountCents: number;
+  /** False on a receipt section whose rate the person's header already shows. */
+  showRate: boolean;
+}
+
+/** An item on the receipt; `involved` is false for one the person had no share of. */
 export interface BreakdownItemRow {
   id: string;
   label: string;
+  /** Null when the person was not involved. */
   amountCents: number | null;
   involved: boolean;
   currency: string;
@@ -56,6 +63,8 @@ export interface PersonBreakdown {
 
 export interface SummaryBreakdown {
   personBreakdowns: PersonBreakdown[];
+  /** The one rate every person's header converts at, when there is one. */
+  exchangeRate?: BreakdownExchangeRate;
   emptyPeopleMessage?: string;
   unassignedItemCount: number;
 }

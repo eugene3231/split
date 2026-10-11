@@ -1,57 +1,5 @@
 // Shared canvas drawing utilities for receipt split image generators
 
-export const CANVAS_WIDTH = 1800;
-export const SCRATCH_HEIGHT = 24000;
-
-export function drawCardShell(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): number {
-  context.fillStyle = '#0b1220';
-  context.fillRect(x, y, width, height);
-  context.strokeStyle = '#1e293b';
-  context.lineWidth = 2;
-  context.strokeRect(x, y, width, height);
-  return y + height;
-}
-
-export type TwoColumnRowArgs = {
-  x: number;
-  y: number;
-  width: number;
-  label: string;
-  value: string;
-  emphasized: boolean;
-  valueColor: string;
-  size: number;
-  italic?: boolean;
-};
-
-export function drawTwoColumnRow(context: CanvasRenderingContext2D, args: TwoColumnRowArgs): void {
-  const style = args.italic ? 'italic ' : '';
-  const valueFont = `${style}${args.emphasized ? 700 : 600} ${args.size}px system-ui, -apple-system, sans-serif`;
-  const labelFont = `${style}500 ${Math.max(15, args.size - 2)}px system-ui, -apple-system, sans-serif`;
-
-  context.font = valueFont;
-  const valueWidth = context.measureText(args.value).width;
-
-  const valueX = args.x + args.width;
-  const labelMaxWidth = Math.max(80, args.width - valueWidth - 16);
-
-  context.font = labelFont;
-  context.fillStyle = '#94a3b8';
-  context.fillText(ellipsizeText(context, args.label, labelMaxWidth), args.x, args.y);
-
-  context.font = valueFont;
-  context.fillStyle = args.valueColor;
-  context.textAlign = 'right';
-  context.fillText(args.value, valueX, args.y);
-  context.textAlign = 'left';
-}
-
 export function ellipsizeText(
   context: CanvasRenderingContext2D,
   text: string,
@@ -68,6 +16,43 @@ export function ellipsizeText(
   }
 
   return `${value}${ellipsis}`;
+}
+
+/**
+ * Breaks text into lines no wider than maxWidth, at spaces where it can.
+ * Anything past maxLines is cut short with an ellipsis on the last line.
+ */
+export function wrapText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines: number,
+): string[] {
+  const lines: string[] = [];
+  let rest = text.trim();
+  while (rest && lines.length < maxLines - 1) {
+    if (context.measureText(rest).width <= maxWidth) break;
+    const words = rest.split(' ');
+    let line = words[0];
+    let taken = 1;
+    while (
+      taken < words.length &&
+      context.measureText(`${line} ${words[taken]}`).width <= maxWidth
+    ) {
+      line = `${line} ${words[taken]}`;
+      taken += 1;
+    }
+    if (context.measureText(line).width > maxWidth) {
+      line = ellipsizeText(context, line, maxWidth).slice(0, -3);
+      if (!line) break;
+      rest = rest.slice(line.length).trim();
+    } else {
+      rest = words.slice(taken).join(' ');
+    }
+    lines.push(line);
+  }
+  if (rest) lines.push(ellipsizeText(context, rest, maxWidth));
+  return lines;
 }
 
 export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -90,8 +75,4 @@ export function formatGeneratedAt(date: Date): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-export function formatPercent(value: number): string {
-  return value.toFixed(2).replace(/\.?0+$/, '');
 }

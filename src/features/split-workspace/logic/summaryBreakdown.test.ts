@@ -147,6 +147,16 @@ describe('resolveSummaryBreakdown', () => {
       rate: 1.35,
       fromCurrency: 'USD',
       toCurrency: 'SGD',
+      showRate: true,
+    });
+    expect(aliceBreakdown.sections.map((section) => section.conversion?.showRate)).toEqual([
+      false,
+      false,
+    ]);
+    expect(resolveSummaryBreakdown({ people, view }).exchangeRate).toEqual({
+      rate: 1.35,
+      fromCurrency: 'USD',
+      toCurrency: 'SGD',
     });
   });
 
@@ -170,6 +180,10 @@ describe('resolveSummaryBreakdown', () => {
     const [aliceBreakdown] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
     expect(aliceBreakdown.currency).toBe('USD');
     expect(aliceBreakdown.conversion).toBeUndefined();
+    expect(aliceBreakdown.sections.map((section) => section.conversion?.showRate)).toEqual([
+      true,
+      true,
+    ]);
   });
 
   it('resolves single-receipt person rows and charge rows', () => {
@@ -369,36 +383,75 @@ describe('resolveSummaryBreakdown', () => {
       rate: 0.009,
       fromCurrency: 'JPY',
       toCurrency: 'SGD',
+      showRate: true,
     });
   });
 
-  it('keeps uninvolved item rows semantic instead of formatting them', () => {
+  it('lists only the items a person had, and drops a receipt they had nothing on', () => {
+    const dinner = split({
+      lineItemsByPerson: {
+        alice: [
+          line({ itemId: 'noodles', name: 'Noodles' }),
+          line({ itemId: 'tea', name: 'Tea', involved: false, assignedAmountCents: 0 }),
+        ],
+      },
+      totalByPersonCents: { alice: 1200 },
+    });
+    const drinks = split({
+      lineItemsByPerson: {
+        alice: [line({ itemId: 'beer', name: 'Beer', involved: false, assignedAmountCents: 0 })],
+      },
+      totalByPersonCents: { alice: 0 },
+    });
     const view: SummaryView = {
-      kind: 'receipt',
-      receipt: null,
-      displaySplit: split({
-        lineItemsByPerson: {
-          alice: [line({ involved: false, assignedAmountCents: 0 })],
-        },
-        totalByPersonCents: { alice: 0 },
-      }),
+      kind: 'total',
+      displaySplit: dinner,
       displayCurrency: 'SGD',
-      grandTotal: 0,
+      grandTotal: 1200,
       discount: disabledCharge,
       serviceCharge: disabledCharge,
       gst: disabledCharge,
-      sgdSplit: split(),
-      nativeCurrency: 'SGD',
-      isForeign: false,
-      effectiveRate: null,
+      sgdSplit: dinner,
+      hasAnyForeign: false,
+      billedCurrencies: ['SGD'],
+      billedRate: null,
+      receiptBreakdowns: [
+        {
+          name: 'Dinner',
+          split: dinner,
+          sgdSplit: dinner,
+          currency: 'SGD',
+          discount: disabledCharge,
+          serviceCharge: disabledCharge,
+          gst: disabledCharge,
+        },
+        {
+          name: 'Drinks',
+          split: drinks,
+          sgdSplit: drinks,
+          currency: 'SGD',
+          discount: disabledCharge,
+          serviceCharge: disabledCharge,
+          gst: disabledCharge,
+        },
+      ],
     };
 
     const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
 
-    expect(person.sections[0].itemRows[0]).toMatchObject({
-      amountCents: null,
-      involved: false,
-    });
+    expect(person.sections.map((section) => section.title)).toEqual(['Dinner']);
+    expect(person.sections[0].itemRows.map((row) => row.label)).toEqual(['Noodles']);
+
+    const [everything] = resolveSummaryBreakdown({
+      people: [alice],
+      view,
+      showAllItems: true,
+    }).personBreakdowns;
+    expect(everything.sections.map((section) => section.title)).toEqual(['Dinner', 'Drinks']);
+    expect(everything.sections[0].itemRows).toMatchObject([
+      { label: 'Noodles', amountCents: 1200, involved: true },
+      { label: 'Tea', amountCents: null, involved: false },
+    ]);
   });
 
   it('returns empty state metadata when no people are present', () => {

@@ -31,6 +31,40 @@ function seedDinner() {
 }
 
 describe('SummaryStep', () => {
+  it("lists only each person's own items until all items are asked for", () => {
+    const alice = makePerson('Alice');
+    const bob = makePerson('Bob');
+    seedStore(
+      [alice, bob],
+      [
+        makeReceipt({
+          name: 'Dinner',
+          items: [
+            makeItem({
+              name: 'Laksa',
+              amountInput: '10.00',
+              assignment: { mode: 'single', personId: alice.id, personIds: [] },
+            }),
+            makeItem({
+              name: 'Satay',
+              amountInput: '6.00',
+              assignment: { mode: 'single', personId: bob.id, personIds: [] },
+            }),
+          ],
+        }),
+      ],
+    );
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+
+    expect(screen.getAllByText('Laksa')).toHaveLength(1);
+    expect(screen.getAllByText('Satay')).toHaveLength(1);
+
+    fireEvent.click(screen.getByTestId('summary-show-all-items-btn'));
+
+    expect(screen.getAllByText('Laksa')).toHaveLength(2);
+    expect(screen.getAllByText('Satay')).toHaveLength(2);
+  });
+
   it('reports the successful native share as shared', async () => {
     seedDinner();
     vi.stubGlobal('navigator', { share: vi.fn().mockResolvedValue(undefined) });

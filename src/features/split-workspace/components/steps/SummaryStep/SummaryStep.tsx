@@ -18,6 +18,7 @@ import type { SummaryMode } from './SummaryModeToggle';
 import { OverviewTable } from './OverviewTable';
 import { MixedCurrencyNote } from './MixedCurrencyNote';
 import { cn } from '@shared/utils/cn';
+import { SummaryTextToggle } from './SummaryTextToggle';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
@@ -30,12 +31,14 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
     return receipts.length > 1 ? 'total' : (receipts[0]?.id ?? 'total');
   });
   const [showDetails, setShowDetails] = useState(true);
+  const [showAllItems, setShowAllItems] = useState(false);
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
   const [mode, setMode] = useState<SummaryMode>('by-person');
 
   const model = useSummaryModel({
     activeTab,
     showBaseCurrency,
+    showAllItems,
   });
   const { people, receipts, renameReceipt, view, summaryBreakdown, summaryOverview } = model;
   const reconciliationCents = model.reconciliation.cents;
@@ -173,17 +176,24 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
               <span />
             )}
             {!isOverview && (
-              <button
-                type="button"
-                data-testid="summary-show-details-btn"
-                onClick={() => setShowDetails((v) => !v)}
-                className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
-              >
-                <span className="material-symbols-outlined text-base">
-                  {showDetails ? 'expand_less' : 'expand_more'}
-                </span>
-                {showDetails ? 'Hide details' : 'Show details'}
-              </button>
+              <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+                {showDetails && (
+                  <SummaryTextToggle
+                    data-testid="summary-show-all-items-btn"
+                    icon={showAllItems ? 'visibility_off' : 'visibility'}
+                    onClick={() => setShowAllItems((v) => !v)}
+                  >
+                    {showAllItems ? 'Only their items' : 'Show all items'}
+                  </SummaryTextToggle>
+                )}
+                <SummaryTextToggle
+                  data-testid="summary-show-details-btn"
+                  icon={showDetails ? 'expand_less' : 'expand_more'}
+                  onClick={() => setShowDetails((v) => !v)}
+                >
+                  {showDetails ? 'Hide details' : 'Show details'}
+                </SummaryTextToggle>
+              </div>
             )}
           </div>
 

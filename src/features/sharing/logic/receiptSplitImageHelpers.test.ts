@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ellipsizeText,
   formatGeneratedAt,
-  formatPercent,
+  wrapText,
 } from '@features/sharing/logic/receiptSplitImageHelpers';
 
 function makeContext(charWidth: number): CanvasRenderingContext2D {
@@ -39,18 +39,31 @@ describe('formatGeneratedAt', () => {
   });
 });
 
-describe('formatPercent', () => {
-  it('strips trailing zeros from whole numbers', () => {
-    expect(formatPercent(10)).toBe('10');
-    expect(formatPercent(9)).toBe('9');
+describe('wrapText', () => {
+  const ctx = makeContext(10);
+
+  it('keeps text that fits on one line', () => {
+    expect(wrapText(ctx, 'Nasi goreng', 200, 2)).toEqual(['Nasi goreng']);
   });
 
-  it('strips trailing zeros from decimals', () => {
-    expect(formatPercent(10.1)).toBe('10.1');
-    expect(formatPercent(10.5)).toBe('10.5');
+  it('breaks a long name at a space onto a second line', () => {
+    expect(wrapText(ctx, 'Grilled Eggplant with Garlic', 160, 2)).toEqual([
+      'Grilled Eggplant',
+      'with Garlic',
+    ]);
   });
 
-  it('keeps significant decimal digits', () => {
-    expect(formatPercent(9.99)).toBe('9.99');
+  it('cuts the last allowed line short with an ellipsis', () => {
+    const lines = wrapText(ctx, 'Charcoal Grilled Scallops with Garlic Butter and Lime', 160, 2);
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toBe('Charcoal Grilled');
+    expect(lines[1]).toMatch(/\.\.\.$/);
+    expect(lines[1].length * 10).toBeLessThanOrEqual(160);
+  });
+
+  it('splits a single word wider than the line', () => {
+    const lines = wrapText(ctx, 'Supercalifragilisticexpialidocious', 100, 2);
+    expect(lines).toHaveLength(2);
+    expect(lines.every((line) => line.length * 10 <= 100)).toBe(true);
   });
 });
