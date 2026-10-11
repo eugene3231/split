@@ -395,7 +395,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       clickContinue(); // → receipt
       clickContinue(); // → items
-      fireEvent.click(screen.getByRole('button', { name: 'Share all items equally' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Share all equally' }));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
       expectActiveStepNav('items');
@@ -447,7 +447,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       fireEvent.click(
         within(screen.getByTestId('claim-section-r2')).getByRole('button', {
-          name: 'Share all items equally',
+          name: 'Share all equally',
         }),
       );
 
@@ -476,23 +476,21 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
-      expect(
-        screen.queryByRole('button', { name: 'Share all items equally' }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Share all equally' })).not.toBeInTheDocument();
       clickContinue();
-      expect(screen.getByRole('button', { name: 'Share all items equally' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Share all equally' })).toBeDisabled();
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
       const original = useReceiptStore.getState().receipts;
-      fireEvent.click(screen.getByRole('button', { name: 'Share all items equally' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Share all equally' }));
       fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
       expect(useReceiptStore.getState().receipts).toEqual(original);
-      fireEvent.click(screen.getByRole('button', { name: 'Share all items equally' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Share all equally' }));
       fireEvent.click(
         within(screen.getByRole('dialog')).getByRole('button', { name: 'Share equally' }),
       );
-      expect(screen.getByRole('button', { name: 'Share all items equally' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Share all equally' })).toBeDisabled();
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
-      expect(screen.getByRole('button', { name: 'Share all items equally' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Share all equally' })).toBeEnabled();
       vi.restoreAllMocks();
     });
   });
