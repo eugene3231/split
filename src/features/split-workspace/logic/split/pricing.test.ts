@@ -4,6 +4,7 @@ import {
   parseDiscountPercent,
   resolveDiscountedAmountCents,
 } from '@features/split-workspace/logic/split/pricing';
+import { NOBODY } from '@features/split-workspace/logic/assignment';
 
 function buildItem(overrides: Partial<EditableItem> = {}): EditableItem {
   return {
@@ -11,11 +12,7 @@ function buildItem(overrides: Partial<EditableItem> = {}): EditableItem {
     name: 'Item',
     amountInput: '10.00',
     discountPercentInput: '',
-    assignment: {
-      mode: 'single',
-      personId: '',
-      personIds: [],
-    },
+    assignment: NOBODY,
     ...overrides,
   };
 }

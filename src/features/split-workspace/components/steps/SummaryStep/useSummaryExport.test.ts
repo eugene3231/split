@@ -13,6 +13,7 @@ import {
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
 import type { SummaryMode } from './SummaryModeToggle';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 vi.mock('@features/sharing/logic/receiptSplitImageLight', () => ({
   generateReceiptSplitImageLight: vi.fn(),
@@ -28,9 +29,7 @@ vi.mock('@features/payments', () => ({
 
 function seedReceipts() {
   const alice = makePerson('Alice');
-  const assignment = { mode: 'equal', personId: '', personIds: [alice.id] } satisfies Parameters<
-    typeof makeItem
-  >[0]['assignment'];
+  const assignment = equalShares([alice.id]) satisfies Parameters<typeof makeItem>[0]['assignment'];
   seedStore(
     [alice],
     [

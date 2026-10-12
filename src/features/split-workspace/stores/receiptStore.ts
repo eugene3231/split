@@ -15,9 +15,8 @@ import type { SessionDraft } from '@features/split-workspace/types';
 import {
   buildInitialItems,
   createDefaultItem,
-  normalizeItemAssignments,
   syncItemsWithPeople,
-} from '@features/split-workspace/logic/simpleAssignments';
+} from '@features/split-workspace/logic/assignment';
 import {
   setPersonOnEveryItem,
   splitUnassignedItemsEqually,
@@ -223,10 +222,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         people: [],
         receipts: state.receipts.map((receipt) => ({
           ...receipt,
-          items: receipt.items.map((item) => ({
-            ...item,
-            assignment: { mode: 'equal', personId: '', personIds: [] },
-          })),
+          items: syncItemsWithPeople(receipt.items, []),
         })),
       }));
     },
@@ -346,7 +342,7 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
         if (!active) return state;
         return {
           receipts: updateActiveReceipt(state.receipts, state.activeReceiptId, {
-            items: normalizeItemAssignments(active.items, state.people),
+            items: syncItemsWithPeople(active.items, state.people),
           }),
         };
       });

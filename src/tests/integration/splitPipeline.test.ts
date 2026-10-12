@@ -14,6 +14,7 @@ import {
   seedStore,
   sumValues,
 } from './testHelpers';
+import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 beforeEach(resetAllStores);
 
@@ -31,11 +32,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
       });
@@ -57,7 +58,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'equal', personId: '', personIds: [p1.id, p2.id, p3.id] },
+            assignment: equalShares([p1.id, p2.id, p3.id]),
           }),
         ],
       });
@@ -79,11 +80,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         serviceCharge: percentCharge('10'),
@@ -107,11 +108,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         discount: amountCharge('4.00'),
@@ -134,11 +135,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         discount: percentCharge('20'),
@@ -161,11 +162,11 @@ describe('Split pipeline integration', () => {
           makeItem({
             amountInput: '10.00',
             discountPercentInput: '50',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
       });
@@ -188,11 +189,11 @@ describe('Split pipeline integration', () => {
           makeItem({
             amountInput: '10.00',
             discountPercentInput: '50',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
       });
@@ -205,11 +206,11 @@ describe('Split pipeline integration', () => {
           makeItem({
             amountInput: '10.00',
             discountPercentInput: '50',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         discount: amountCharge('2.00'),
@@ -234,11 +235,11 @@ describe('Split pipeline integration', () => {
           makeItem({
             amountInput: '10.00',
             discountPercentInput: '50',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         serviceCharge: percentCharge('10'),
@@ -264,7 +265,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
       });
@@ -272,7 +273,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
       });
@@ -296,7 +297,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         serviceCharge: percentCharge('10'),
@@ -306,7 +307,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         serviceCharge: { ...disabledCharge },
@@ -338,7 +339,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         currency: 'SGD',
@@ -347,7 +348,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         currency: 'USD',
@@ -374,7 +375,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         currency: 'SGD',
@@ -383,7 +384,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         currency: 'USD',
@@ -410,7 +411,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '15.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
       });
@@ -430,7 +431,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
       });
@@ -451,7 +452,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: 'nonexistent', personIds: [] },
+            assignment: equalShares(['nonexistent']),
           }),
         ],
       });
@@ -473,11 +474,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '0',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
       });
@@ -498,11 +499,11 @@ describe('Split pipeline integration', () => {
           makeItem({
             amountInput: '5.00',
             discountPercentInput: '100',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
       });
@@ -525,7 +526,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         receiptTotalInput: '8.00',
@@ -550,7 +551,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         receiptTotalInput: '10.00',
@@ -569,7 +570,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         receiptTotalInput: '',
@@ -588,11 +589,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         serviceCharge: amountCharge('5.00'),
@@ -614,11 +615,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         serviceCharge: { ...defaultServiceChargeState, enabled: false },
@@ -641,11 +642,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+            assignment: equalShares([bob.id]),
           }),
         ],
         serviceCharge: percentCharge('10'),
@@ -668,12 +669,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '30.00',
-            assignment: {
-              mode: 'equal',
-              personId: '',
-              personIds: [alice.id, bob.id],
-              weights: { [alice.id]: 2, [bob.id]: 1 },
-            },
+            assignment: makeAssignment({ [alice.id]: 2, [bob.id]: 1 }),
           }),
         ],
       });
@@ -694,12 +690,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '30.00',
-            assignment: {
-              mode: 'equal',
-              personId: '',
-              personIds: [alice.id, bob.id],
-              weights: { [alice.id]: 2, [bob.id]: 1 },
-            },
+            assignment: makeAssignment({ [alice.id]: 2, [bob.id]: 1 }),
           }),
         ],
         serviceCharge: percentCharge('10'),
@@ -733,12 +724,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '30.00',
-            assignment: {
-              mode: 'equal',
-              personId: '',
-              personIds: [alice.id, bob.id],
-              weights: { [alice.id]: 60, [bob.id]: 40 },
-            },
+            assignment: makeAssignment({ [alice.id]: 60, [bob.id]: 40 }),
           }),
         ],
       });
@@ -751,12 +737,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '30.00',
-            assignment: {
-              mode: 'equal',
-              personId: '',
-              personIds: [alice.id, bob.id],
-              weights: { [alice.id]: 3, [bob.id]: 2 },
-            },
+            assignment: makeAssignment({ [alice.id]: 3, [bob.id]: 2 }),
           }),
         ],
       });
@@ -775,7 +756,7 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '5.00',
-            assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         discount: amountCharge('10.00'),
@@ -798,11 +779,11 @@ describe('Split pipeline integration', () => {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'equal', personId: '', personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
           makeItem({
             amountInput: '20.00',
-            assignment: { mode: 'equal', personId: '', personIds: [] },
+            assignment: NOBODY,
           }),
         ],
         receiptTotalInput: '30.00',

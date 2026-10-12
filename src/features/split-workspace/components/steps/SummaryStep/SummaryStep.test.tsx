@@ -9,6 +9,7 @@ import {
   resetAllStores,
   seedStore,
 } from '../../../../../tests/integration/testHelpers';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 const { generatePaynowQrDataUrls } = vi.hoisted(() => ({ generatePaynowQrDataUrls: vi.fn() }));
 vi.mock('@features/payments', async (importActual) => ({
@@ -31,7 +32,7 @@ function seedDinner() {
         items: [
           makeItem({
             amountInput: '10.00',
-            assignment: { mode: 'equal', personId: '', personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
       }),
@@ -52,12 +53,12 @@ describe('SummaryStep', () => {
             makeItem({
               name: 'Laksa',
               amountInput: '10.00',
-              assignment: { mode: 'single', personId: alice.id, personIds: [] },
+              assignment: equalShares([alice.id]),
             }),
             makeItem({
               name: 'Satay',
               amountInput: '6.00',
-              assignment: { mode: 'single', personId: bob.id, personIds: [] },
+              assignment: equalShares([bob.id]),
             }),
           ],
         }),
@@ -95,11 +96,11 @@ describe('SummaryStep', () => {
           items: [
             makeItem({
               amountInput: '10.00',
-              assignment: { mode: 'single', personId: alice.id, personIds: [] },
+              assignment: equalShares([alice.id]),
             }),
             makeItem({
               amountInput: '6.00',
-              assignment: { mode: 'single', personId: bob.id, personIds: [] },
+              assignment: equalShares([bob.id]),
             }),
           ],
         }),
@@ -149,7 +150,7 @@ describe('SummaryStep', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
     });
@@ -159,7 +160,7 @@ describe('SummaryStep', () => {
       items: [
         makeItem({
           amountInput: '5.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
     });
@@ -177,7 +178,7 @@ describe('SummaryStep', () => {
 
   it('shows the selected foreign receipt discrepancy in its native currency', () => {
     const alice = makePerson('Alice');
-    const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+    const assignment = equalShares([alice.id]);
     const receipt1 = makeReceipt({
       id: 'r1',
       items: [makeItem({ amountInput: '10.00', assignment })],
@@ -205,7 +206,7 @@ describe('SummaryStep', () => {
 
   it('rounds the foreign receipt rate beside the currency switch like the cards do', () => {
     const alice = makePerson('Alice');
-    const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+    const assignment = equalShares([alice.id]);
     seedStore(
       [alice],
       [makeReceipt({ currency: 'IDR', items: [makeItem({ amountInput: '50000', assignment })] })],
@@ -230,7 +231,7 @@ describe('SummaryStep', () => {
           items: [
             makeItem({
               amountInput: '10.00',
-              assignment: { mode: 'equal', personId: '', personIds: [alice.id, bob.id] },
+              assignment: equalShares([alice.id, bob.id]),
             }),
           ],
           receiptTotalInput: '10.40',
@@ -252,7 +253,7 @@ describe('SummaryStep', () => {
     'totals %j receipts as billed only when they share one currency',
     (currencies, totalsAsBilled) => {
       const alice = makePerson('Alice');
-      const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+      const assignment = equalShares([alice.id]);
       const receipts = currencies.map((currency, index) =>
         makeReceipt({
           id: `r${index}`,
@@ -306,12 +307,12 @@ describe('SummaryStep', () => {
             makeItem({
               name: 'Laksa',
               amountInput: '10.00',
-              assignment: { mode: 'equal', personId: '', personIds: [alice.id, bob.id] },
+              assignment: equalShares([alice.id, bob.id]),
             }),
             makeItem({
               name: 'Kopi',
               amountInput: '2.20',
-              assignment: { mode: 'equal', personId: '', personIds: [bob.id] },
+              assignment: equalShares([bob.id]),
             }),
           ],
         }),

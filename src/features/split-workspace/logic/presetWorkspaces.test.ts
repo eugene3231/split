@@ -42,15 +42,15 @@ describe('PRESET_WORKSPACES', () => {
     const nameOf = (id: string) => draft.people.find((person) => person.id === id)?.name;
     const shares = receipt.items.map((item) => ({
       name: item.name,
-      people: item.assignment.personIds.map(nameOf),
-      weights: item.assignment.weights ? Object.values(item.assignment.weights) : undefined,
+      people: Object.keys(item.assignment.shares).map(nameOf),
+      weights: Object.values(item.assignment.shares),
     }));
 
     expect(shares).toEqual([
-      { name: 'Chicken Rice', people: ['Alice'], weights: undefined },
-      { name: 'Iced Lemon Tea', people: ['Bob'], weights: undefined },
+      { name: 'Chicken Rice', people: ['Alice'], weights: [1] },
+      { name: 'Iced Lemon Tea', people: ['Bob'], weights: [1] },
       { name: 'Pasta Alfredo', people: ['Bob', 'Charlie'], weights: [2, 1] },
-      { name: 'Truffle Fries', people: ['Alice', 'Bob', 'Charlie'], weights: undefined },
+      { name: 'Truffle Fries', people: ['Alice', 'Bob', 'Charlie'], weights: [1, 1, 1] },
     ]);
   });
 

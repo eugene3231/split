@@ -16,7 +16,7 @@ import { allocateItemShares } from '@features/split-workspace/logic/itemShare';
 interface ResolvedItem {
   itemId: string;
   name: string;
-  assignedPersonIds: Set<string>;
+  /** Only the people on the item have an entry. */
   netByPerson: Record<string, number>;
 }
 
@@ -49,30 +49,19 @@ export function computeSplit({
 
     const name = item.name.trim() || 'Untitled item';
 
-    let assignedPersonIds: Set<string>;
-    let netByPerson: Record<string, number>;
-
-    if (item.assignment.mode === 'single') {
-      if (!validPeopleSet.has(item.assignment.personId)) {
-        unassignedItemCount += 1;
-        continue;
-      }
-      assignedPersonIds = new Set([item.assignment.personId]);
-      netByPerson = { [item.assignment.personId]: netAmountCents };
-    } else {
-      const selectedIds = Array.from(
-        new Set(item.assignment.personIds.filter((id) => validPeopleSet.has(id))),
-      );
-      if (selectedIds.length === 0) {
-        unassignedItemCount += 1;
-        continue;
-      }
-      const { weights, unassignedWeight } = item.assignment;
-      netByPerson = allocateItemShares(netAmountCents, selectedIds, weights, unassignedWeight);
-      assignedPersonIds = new Set(selectedIds);
+    const shares = Object.fromEntries(
+      Object.entries(item.assignment.shares).filter(([id]) => validPeopleSet.has(id)),
+    );
+    if (Object.keys(shares).length === 0) {
+      unassignedItemCount += 1;
+      continue;
     }
 
-    resolvedItems.push({ itemId: item.id, name, assignedPersonIds, netByPerson });
+    resolvedItems.push({
+      itemId: item.id,
+      name,
+      netByPerson: allocateItemShares(netAmountCents, { ...item.assignment, shares }),
+    });
   }
 
   const lineItemsByPerson = initializeLineItemMap(personIds);
@@ -80,7 +69,7 @@ export function computeSplit({
 
   for (const personId of personIds) {
     for (const resolved of resolvedItems) {
-      const involved = resolved.assignedPersonIds.has(personId);
+      const involved = Object.hasOwn(resolved.netByPerson, personId);
       const assignedAmountCents = involved ? resolved.netByPerson[personId] : 0;
       if (involved) {
         subtotalByPersonCents[personId] += assignedAmountCents;

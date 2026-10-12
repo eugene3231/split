@@ -13,6 +13,7 @@ import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import type { OcrResponse, Person, Receipt } from '@shared/types';
 import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
 import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
+import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...';
 const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...';
@@ -564,7 +565,7 @@ describe('receiptStore additional coverage', () => {
             name: 'Unassigned',
             amountInput: '10.00',
             discountPercentInput: '',
-            assignment: { mode: 'equal', personId: '', personIds: [] },
+            assignment: NOBODY,
           },
         ],
         discount: { ...defaultDiscountState },
@@ -584,7 +585,7 @@ describe('receiptStore additional coverage', () => {
             name: 'Other receipt item',
             amountInput: '12.00',
             discountPercentInput: '',
-            assignment: { mode: 'equal', personId: '', personIds: [] },
+            assignment: NOBODY,
           },
         ],
         discount: { ...defaultDiscountState },
@@ -606,8 +607,8 @@ describe('receiptStore additional coverage', () => {
     useReceiptStore.getState().splitUnassignedItemsEqually();
 
     const state = useReceiptStore.getState();
-    expect(state.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2']);
-    expect(state.receipts[1].items[0].assignment.personIds).toEqual(['p1', 'p2']);
+    expect(state.receipts[0].items[0].assignment).toEqual(equalShares(['p1', 'p2']));
+    expect(state.receipts[1].items[0].assignment).toEqual(equalShares(['p1', 'p2']));
   });
 });
 
@@ -618,13 +619,7 @@ describe('equal sharing on a chosen receipt', () => {
       items: [
         makeItem({
           id: 'i1',
-          assignment: {
-            mode: 'equal',
-            personId: '',
-            personIds: ['p1'],
-            weights: { p1: 2 },
-            unassignedWeight: 1,
-          },
+          assignment: makeAssignment({ p1: 2 }, 1),
         }),
       ],
     });
@@ -639,11 +634,9 @@ describe('equal sharing on a chosen receipt', () => {
 
     useReceiptStore.getState().splitReceiptEvenly('r1');
 
-    expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual({
-      mode: 'equal',
-      personId: '',
-      personIds: ['p1', 'p2'],
-    });
+    expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual(
+      equalShares(['p1', 'p2']),
+    );
     expect(useReceiptStore.getState().receipts[1]).toEqual({ ...receipt, id: 'r2' });
   });
 
@@ -651,8 +644,8 @@ describe('equal sharing on a chosen receipt', () => {
     const receipt = makeReceipt({
       id: 'r1',
       items: [
-        makeItem({ id: 'i1', assignment: { mode: 'equal', personId: '', personIds: [] } }),
-        makeItem({ id: 'i2', assignment: { mode: 'equal', personId: '', personIds: ['p1'] } }),
+        makeItem({ id: 'i1', assignment: NOBODY }),
+        makeItem({ id: 'i2', assignment: equalShares(['p1']) }),
       ],
     });
     useReceiptStore.setState({
@@ -664,7 +657,9 @@ describe('equal sharing on a chosen receipt', () => {
       activeReceiptId: 'r2',
     });
     const personIdsOf = (index: number) =>
-      useReceiptStore.getState().receipts[index].items.map((item) => item.assignment.personIds);
+      useReceiptStore
+        .getState()
+        .receipts[index].items.map((item) => Object.keys(item.assignment.shares));
 
     useReceiptStore.getState().setPersonOnReceiptItems('r1', 'p2', true);
     expect(personIdsOf(0)).toEqual([['p2'], ['p1', 'p2']]);
@@ -680,7 +675,7 @@ describe('equal sharing on a chosen receipt', () => {
       items: [
         makeItem({
           id: 'i1',
-          assignment: { mode: 'equal', personId: '', personIds: [] },
+          assignment: NOBODY,
         }),
       ],
     });

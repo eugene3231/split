@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EditableItem } from '@shared/types';
 import { assignEveryItemEqually, canSplitEvenly } from '@features/split-workspace/logic/evenSplit';
+import { equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 const people = [
   { id: 'p1', name: 'Ana' },
@@ -14,28 +15,22 @@ function item(id: string, amountInput: string, personIds: string[] = []): Editab
     name: id,
     amountInput,
     discountPercentInput: '',
-    assignment: { mode: 'equal', personId: '', personIds },
+    assignment: equalShares(personIds),
   };
 }
 
 describe('assignEveryItemEqually', () => {
-  it('gives every item to everyone in equal shares, replacing weights', () => {
+  it('gives every item to everyone in equal shares, replacing what was there', () => {
     const weighted: EditableItem = {
-      ...item('beer', '12', ['p1']),
-      assignment: {
-        mode: 'equal',
-        personId: '',
-        personIds: ['p1'],
-        weights: { p1: 1 },
-        unassignedWeight: 1,
-      },
+      ...item('beer', '12'),
+      assignment: makeAssignment({ p1: 1 }, 1),
     };
 
     const result = assignEveryItemEqually([item('rice', '10'), weighted], people);
 
     expect(result.map((entry) => entry.assignment)).toEqual([
-      { mode: 'equal', personId: '', personIds: ['p1', 'p2', 'p3'] },
-      { mode: 'equal', personId: '', personIds: ['p1', 'p2', 'p3'] },
+      equalShares(['p1', 'p2', 'p3']),
+      equalShares(['p1', 'p2', 'p3']),
     ]);
   });
 
@@ -48,15 +43,13 @@ describe('assignEveryItemEqually', () => {
 
 describe('canSplitEvenly', () => {
   it('disables sharing only when every item is already equal among everyone', () => {
-    const shared = item('tea', '2', ['p3', 'p1', 'p2']);
-    expect(canSplitEvenly([shared], people)).toBe(false);
-    shared.assignment.weights = { p1: 2, p2: 2, p3: 2 };
-    expect(canSplitEvenly([shared], people)).toBe(false);
-    shared.assignment.weights.p1 = 3;
-    expect(canSplitEvenly([shared], people)).toBe(true);
-    shared.assignment.weights.p1 = 2;
-    shared.assignment.unassignedWeight = 1;
-    expect(canSplitEvenly([shared], people)).toBe(true);
+    const tea = (shares: Record<string, number>, unassignedShare = 0) => [
+      { ...item('tea', '2'), assignment: makeAssignment(shares, unassignedShare) },
+    ];
+    expect(canSplitEvenly(tea({ p3: 1, p1: 1, p2: 1 }), people)).toBe(false);
+    expect(canSplitEvenly(tea({ p1: 2, p2: 2, p3: 2 }), people)).toBe(false);
+    expect(canSplitEvenly(tea({ p1: 3, p2: 2, p3: 2 }), people)).toBe(true);
+    expect(canSplitEvenly(tea({ p1: 2, p2: 2, p3: 2 }, 1), people)).toBe(true);
   });
 
   it('is offered once two people share a priced item nobody has claimed', () => {
@@ -75,9 +68,7 @@ describe('canSplitEvenly', () => {
     expect(canSplitEvenly([item('rice', '10'), item('tea', '2', ['p2'])], people)).toBe(true);
   });
 
-  it('can replace a single-person assignment', () => {
-    const claimed = item('tea', '2');
-    claimed.assignment = { mode: 'single', personId: 'p2', personIds: [] };
-    expect(canSplitEvenly([claimed], people)).toBe(true);
+  it('can replace an item one person has to themselves', () => {
+    expect(canSplitEvenly([item('tea', '2', ['p2'])], people)).toBe(true);
   });
 });

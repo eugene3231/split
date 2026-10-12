@@ -7,6 +7,7 @@ import {
 } from '@features/split-workspace/constants';
 import type { EditableItem, ItemAssignment, Person, Receipt } from '@shared/types';
 import { setPersonOnEveryItem } from '@features/split-workspace/logic/assignmentInteraction';
+import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 import { AssignStep } from './AssignStep';
 
 interface AssignStepStoreMock {
@@ -35,13 +36,13 @@ vi.mock('@features/split-workspace/hooks/useReceiptSplit', () => ({
   }),
 }));
 
-function makeItem(id: string, assignment: Partial<ItemAssignment> = {}): EditableItem {
+function makeItem(id: string, assignment: ItemAssignment = NOBODY): EditableItem {
   return {
     id,
     name: `Item ${id}`,
     amountInput: '12.00',
     discountPercentInput: '',
-    assignment: { mode: 'equal', personId: '', personIds: [], ...assignment },
+    assignment,
   };
 }
 
@@ -119,8 +120,8 @@ describe('AssignStep', () => {
     setStoreMock([
       makeReceipt('r1', [
         makeItem('open'),
-        makeItem('shared', { personIds: ['p1', 'p2'] }),
-        makeItem('weighted', { personIds: ['p1', 'p2'], weights: { p1: 2, p2: 1 } }),
+        makeItem('shared', equalShares(['p1', 'p2'])),
+        makeItem('weighted', makeAssignment({ p1: 2, p2: 1 })),
       ]),
     ]);
   });
@@ -150,7 +151,7 @@ describe('AssignStep', () => {
 
     fireEvent.click(toggle());
     refresh();
-    expect(assignmentOf('open').personIds).toEqual(['p2']);
+    expect(Object.keys(assignmentOf('open').shares)).toEqual(['p2']);
     expect(toggle()).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent('1');
     expect(screen.getByTestId('claim-item-share-open-increase')).toBeDisabled();
@@ -159,7 +160,7 @@ describe('AssignStep', () => {
 
     fireEvent.click(toggle());
     refresh();
-    expect(assignmentOf('open').personIds).toEqual([]);
+    expect(Object.keys(assignmentOf('open').shares)).toEqual([]);
     expect(screen.queryByTestId('claim-item-share-open')).not.toBeInTheDocument();
   });
 
@@ -183,15 +184,14 @@ describe('AssignStep', () => {
   });
 
   it('steps a shared item up to half and down to a third in the row', () => {
-    setStoreMock([makeReceipt('r1', [makeItem('w', { personIds: ['p1', 'p2'] })])]);
+    setStoreMock([makeReceipt('r1', [makeItem('w', equalShares(['p1', 'p2', 'p3']))])]);
     storeMock.people.push({ id: 'p3', name: 'Cara' });
-    storeMock.receipts[0].items[0].assignment.personIds.push('p3');
     const { refresh } = renderStep();
     expect(screen.getByTestId('claim-item-share-w')).toHaveTextContent('1/3');
 
     fireEvent.click(screen.getByTestId('claim-item-share-w-increase'));
     refresh();
-    expect(assignmentOf('w').weights).toEqual({ p1: 2, p2: 1, p3: 1 });
+    expect(assignmentOf('w').shares).toEqual({ p1: 2, p2: 1, p3: 1 });
     expect(screen.getByTestId('claim-item-share-w')).toHaveTextContent('1/2');
     expect(screen.getByTestId('claim-item-amount-w')).toHaveTextContent('$6.00');
 
@@ -201,7 +201,7 @@ describe('AssignStep', () => {
   });
 
   it('halves a solo item by typing 1/2 and shows the other half as left', () => {
-    setStoreMock([makeReceipt('r1', [makeItem('bread', { personIds: ['p1'] })])]);
+    setStoreMock([makeReceipt('r1', [makeItem('bread', equalShares(['p1']))])]);
     const { refresh } = renderStep();
 
     fireEvent.click(screen.getByTestId('claim-item-amount-bread'));
@@ -210,7 +210,7 @@ describe('AssignStep', () => {
     fireEvent.blur(input);
     refresh();
 
-    expect(assignmentOf('bread').unassignedWeight).toBe(1);
+    expect(assignmentOf('bread').unassignedShare).toBe(1);
     expect(screen.getByTestId('claim-item-claimants-bread')).toHaveAccessibleName(
       'Alice Tan, 1/2 left',
     );
@@ -263,16 +263,12 @@ describe('AssignStep', () => {
 
     fireEvent.click(splitEvenly());
     refresh();
-    expect(assignmentOf('weighted')).toEqual({
-      mode: 'equal',
-      personId: '',
-      personIds: ['p1', 'p2'],
-    });
+    expect(assignmentOf('weighted')).toEqual(equalShares(['p1', 'p2']));
     expect(splitEvenly()).toBeDisabled();
 
     fireEvent.click(takeAlone());
     refresh();
-    expect(assignmentOf('weighted').personIds).toEqual(['p1']);
+    expect(Object.keys(assignmentOf('weighted').shares)).toEqual(['p1']);
     expect(takeAlone()).toBeDisabled();
     expect(splitEvenly()).toBeEnabled();
     expect(screen.getByTestId('claim-item-amount-weighted')).toHaveTextContent('$12.00');
@@ -280,7 +276,7 @@ describe('AssignStep', () => {
 
   it('selects and deselects every item on one receipt for the active person', () => {
     setStoreMock([
-      makeReceipt('r1', [makeItem('a'), makeItem('b', { personIds: ['p1'] })]),
+      makeReceipt('r1', [makeItem('a'), makeItem('b', equalShares(['p1']))]),
       makeReceipt('r2', [makeItem('c')]),
     ]);
     const { refresh } = renderStep('p2');
@@ -292,21 +288,21 @@ describe('AssignStep', () => {
 
     fireEvent.click(selectAll());
     refresh();
-    expect(assignmentOf('a').personIds).toEqual(['p2']);
-    expect(assignmentOf('b').personIds).toEqual(['p1', 'p2']);
-    expect(assignmentOf('c').personIds).toEqual([]);
+    expect(Object.keys(assignmentOf('a').shares)).toEqual(['p2']);
+    expect(Object.keys(assignmentOf('b').shares)).toEqual(['p1', 'p2']);
+    expect(Object.keys(assignmentOf('c').shares)).toEqual([]);
     expect(selectAll()).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 
     fireEvent.click(selectAll());
     refresh();
-    expect(assignmentOf('a').personIds).toEqual([]);
-    expect(assignmentOf('b').personIds).toEqual(['p1']);
+    expect(Object.keys(assignmentOf('a').shares)).toEqual([]);
+    expect(Object.keys(assignmentOf('b').shares)).toEqual(['p1']);
     expect(selectAll()).toHaveAttribute('aria-checked', 'false');
   });
 
   it('shows a receipt as partly selected and selects the rest on tap', () => {
-    setStoreMock([makeReceipt('r1', [makeItem('a', { personIds: ['p2'] }), makeItem('b')])]);
+    setStoreMock([makeReceipt('r1', [makeItem('a', equalShares(['p2'])), makeItem('b')])]);
     const { refresh } = renderStep('p2');
     const selectAll = () =>
       screen.getByRole('checkbox', { name: 'Select all items on Receipt r1' });
@@ -315,15 +311,15 @@ describe('AssignStep', () => {
     fireEvent.click(selectAll());
     refresh();
 
-    expect(assignmentOf('b').personIds).toEqual(['p2']);
+    expect(Object.keys(assignmentOf('b').shares)).toEqual(['p2']);
     expect(selectAll()).toHaveAttribute('aria-checked', 'true');
   });
 
   it('asks before deselecting all when the person would lose a custom share', () => {
     setStoreMock([
       makeReceipt('r1', [
-        makeItem('a', { personIds: ['p2'] }),
-        makeItem('b', { personIds: ['p1', 'p2'], weights: { p1: 1, p2: 2 } }),
+        makeItem('a', equalShares(['p2'])),
+        makeItem('b', makeAssignment({ p1: 1, p2: 2 })),
       ]),
     ]);
     const { refresh } = renderStep('p2');
@@ -332,26 +328,26 @@ describe('AssignStep', () => {
 
     fireEvent.click(selectAll());
     const dialog = within(screen.getByRole('alertdialog'));
-    expect(assignmentOf('a').personIds).toEqual(['p2']);
+    expect(Object.keys(assignmentOf('a').shares)).toEqual(['p2']);
 
     fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-    expect(assignmentOf('b').personIds).toEqual(['p1', 'p2']);
+    expect(Object.keys(assignmentOf('b').shares)).toEqual(['p1', 'p2']);
 
     fireEvent.click(selectAll());
     fireEvent.click(
       within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Deselect all' }),
     );
     refresh();
-    expect(assignmentOf('a').personIds).toEqual([]);
-    expect(assignmentOf('b').personIds).toEqual(['p1']);
+    expect(Object.keys(assignmentOf('a').shares)).toEqual([]);
+    expect(Object.keys(assignmentOf('b').shares)).toEqual(['p1']);
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
   it('lists every receipt on one page with a heading per receipt', () => {
     setStoreMock([
       makeReceipt('r1', [makeItem('a')]),
-      makeReceipt('r2', [makeItem('b', { personIds: ['p2'] })]),
+      makeReceipt('r2', [makeItem('b', equalShares(['p2']))]),
     ]);
     const { refresh } = renderStep();
 
@@ -362,11 +358,11 @@ describe('AssignStep', () => {
 
     fireEvent.click(within(second).getByTestId('claim-item-toggle-b'));
     refresh();
-    expect(assignmentOf('b').personIds).toEqual(['p2', 'p1']);
+    expect(Object.keys(assignmentOf('b').shares)).toEqual(['p2', 'p1']);
   });
 
   it('shows a single receipt heading when everything is assigned', () => {
-    setStoreMock([makeReceipt('r1', [makeItem('a', { personIds: ['p1'] })])]);
+    setStoreMock([makeReceipt('r1', [makeItem('a', equalShares(['p1']))])]);
     renderStep();
 
     expect(screen.getByRole('heading', { level: 2, name: /Receipt r1/ })).toBeVisible();

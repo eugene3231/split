@@ -6,6 +6,7 @@ import {
   hasAnyValidReceiptItem,
   isStepValid,
 } from './wizardValidation';
+import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },
@@ -18,11 +19,7 @@ function buildItem(overrides: Partial<EditableItem> = {}): EditableItem {
     name: 'Item',
     amountInput: '10.00',
     discountPercentInput: '',
-    assignment: {
-      mode: 'equal',
-      personId: '',
-      personIds: ['p1', 'p2'],
-    },
+    assignment: equalShares(['p1', 'p2']),
     ...overrides,
   };
 }
@@ -35,11 +32,11 @@ describe('wizardValidation', () => {
     expect(getDetectedItemsCount(items)).toBe(1);
   });
 
-  it('counts assigned items in equal mode only', () => {
+  it('counts an item as assigned only when all of it has gone to someone', () => {
     const items = [
-      buildItem({ id: 'i1', assignment: { mode: 'equal', personId: '', personIds: ['p1'] } }),
-      buildItem({ id: 'i2', assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] } }),
-      buildItem({ id: 'i3', assignment: { mode: 'equal', personId: '', personIds: [] } }),
+      buildItem({ id: 'i1', assignment: equalShares(['p1']) }),
+      buildItem({ id: 'i2', assignment: makeAssignment({ p1: 1 }, 1) }),
+      buildItem({ id: 'i3', assignment: NOBODY }),
     ];
 
     expect(getAssignedItemsCount(items, people)).toBe(1);
@@ -55,20 +52,14 @@ describe('wizardValidation', () => {
   it.each(['', 'bad'])(
     'does not let an assigned invalid row %j hide an unassigned item',
     (amountInput) => {
-      const items = [
-        buildItem({ assignment: { mode: 'equal', personId: '', personIds: [] } }),
-        buildItem({ id: 'i2', amountInput }),
-      ];
+      const items = [buildItem({ assignment: NOBODY }), buildItem({ id: 'i2', amountInput })];
 
       expect(isStepValid('items', { items, people })).toBe(false);
       expect(getAssignedItemsCount(items, people)).toBe(0);
     },
   );
   it('requires assignment for the priced row when a blank row is already assigned', () => {
-    const items = [
-      buildItem({ assignment: { mode: 'equal', personId: '', personIds: [] } }),
-      buildItem({ id: 'blank', amountInput: '' }),
-    ];
+    const items = [buildItem({ assignment: NOBODY }), buildItem({ id: 'blank', amountInput: '' })];
 
     expect(getDetectedItemsCount(items)).toBe(1);
     expect(getAssignedItemsCount(items, people)).toBe(0);
@@ -76,9 +67,7 @@ describe('wizardValidation', () => {
   });
 
   it('requires a current person even when an amount is valid', () => {
-    const items = [
-      buildItem({ assignment: { mode: 'equal', personId: '', personIds: ['removed'] } }),
-    ];
+    const items = [buildItem({ assignment: equalShares(['removed']) })];
 
     expect(getAssignedItemsCount(items, people)).toBe(0);
     expect(isStepValid('items', { items, people })).toBe(false);
@@ -108,7 +97,7 @@ describe('wizardValidation', () => {
     expect(isStepValid('items', { items: validItems, people })).toBe(true);
     expect(
       isStepValid('items', {
-        items: [buildItem({ assignment: { mode: 'equal', personId: '', personIds: [] } })],
+        items: [buildItem({ assignment: NOBODY })],
         people,
       }),
     ).toBe(false);

@@ -6,6 +6,7 @@ import {
 } from '@features/split-workspace/constants';
 import { BASE_CURRENCY } from '@shared/constants';
 import { createId } from '@shared/logic/core/id';
+import { equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 
 /** One person's name, several names sharing equally, or names mapped to share weights. */
@@ -213,19 +214,11 @@ function buildAssignment(
     return id;
   };
 
-  if (typeof claim === 'string') {
-    return { mode: 'equal', personId: '', personIds: [toId(claim)] };
-  }
-  if (Array.isArray(claim)) {
-    return { mode: 'equal', personId: '', personIds: claim.map(toId) };
-  }
-  const entries = Object.entries(claim).map(([name, weight]) => [toId(name), weight] as const);
-  return {
-    mode: 'equal',
-    personId: '',
-    personIds: entries.map(([id]) => id),
-    weights: Object.fromEntries(entries),
-  };
+  if (typeof claim === 'string') return equalShares([toId(claim)]);
+  if (Array.isArray(claim)) return equalShares(claim.map(toId));
+  return makeAssignment(
+    Object.fromEntries(Object.entries(claim).map(([name, weight]) => [toId(name), weight])),
+  );
 }
 
 function buildPresetDraft(definition: PresetDefinition): SessionDraft {
@@ -252,7 +245,7 @@ function buildPresetDraft(definition: PresetDefinition): SessionDraft {
   }));
 
   return {
-    version: 2,
+    version: 3,
     people,
     receipts,
     activeReceiptId: receipts[0].id,

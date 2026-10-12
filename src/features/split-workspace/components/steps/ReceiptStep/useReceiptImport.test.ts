@@ -14,6 +14,7 @@ import {
 } from '../../../../../tests/integration/testHelpers';
 import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
 import { useReceiptImport } from './useReceiptImport';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 vi.mock('@features/receipt-scanner/api/geminiApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@features/receipt-scanner/api/geminiApi')>();
@@ -50,7 +51,7 @@ function seedReceiptWithFile(file: File) {
         id: 'i1',
         name: 'Old item',
         amountInput: '5.00',
-        assignment: { mode: 'equal', personId: '', personIds: [alice.id] },
+        assignment: equalShares([alice.id]),
       }),
     ],
   });

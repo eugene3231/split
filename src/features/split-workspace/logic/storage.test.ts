@@ -35,11 +35,12 @@ describe('draft storage', () => {
   });
 
   it('returns null for unsupported draft version', () => {
-    window.localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, JSON.stringify({ version: 3 }));
+    const draft = JSON.parse(exportDraftToJson(minimalDraftState));
+    window.localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, JSON.stringify({ ...draft, version: 4 }));
     expect(loadPersistedDraft()).toBeNull();
   });
 
-  it('loads a valid v2 draft', () => {
+  it('loads a version 2 draft and brings it up to version 3', () => {
     window.localStorage.setItem(
       LOCAL_STORAGE_DRAFT_KEY,
       JSON.stringify({
@@ -71,7 +72,7 @@ describe('draft storage', () => {
     );
 
     const draft = loadPersistedDraft();
-    expect(draft?.version).toBe(2);
+    expect(draft?.version).toBe(3);
     expect(draft?.people).toEqual([{ id: 'p1', name: 'Alice' }]);
     expect(draft?.receipts).toHaveLength(1);
     expect(draft?.receipts[0].name).toBe('Receipt 1');
@@ -254,7 +255,7 @@ const receipt1 = {
       name: 'Noodles',
       amountInput: '8.00',
       discountPercentInput: '',
-      assignment: { mode: 'single' as const, personId: 'p1', personIds: ['p1'] },
+      assignment: { shares: { p1: 1 }, unassignedShare: 0 },
     },
   ],
   discount: defaultDiscountState,
@@ -277,7 +278,7 @@ describe('exportDraftToJson', () => {
   it('produces valid JSON with all required fields', () => {
     const json = exportDraftToJson(minimalDraftState);
     const parsed = JSON.parse(json);
-    expect(parsed.version).toBe(2);
+    expect(parsed.version).toBe(3);
     expect(parsed.people).toEqual(minimalDraftState.people);
     expect(parsed.receipts).toHaveLength(1);
     expect(parsed.receipts[0].name).toBe('Dinner');
@@ -301,14 +302,21 @@ describe('importDraftFromJson', () => {
   });
 
   it('returns null for wrong version', () => {
-    expect(importDraftFromJson(JSON.stringify({ version: 3 }))).toBeNull();
+    const draft = JSON.parse(exportDraftToJson(minimalDraftState));
+    expect(importDraftFromJson(JSON.stringify({ ...draft, version: 1 }))).toBeNull();
   });
 
-  it('round-trips a valid v2 draft', () => {
-    const json = exportDraftToJson(minimalDraftState);
+  it('round-trips a draft, shares and unassigned share included', () => {
+    const half = { shares: { p1: 2, p2: 1 }, unassignedShare: 3 };
+    const [item] = receipt1.items;
+    const json = exportDraftToJson({
+      ...minimalDraftState,
+      receipts: [{ ...receipt1, items: [{ ...item, assignment: half }] }],
+    });
     const imported = importDraftFromJson(json);
     expect(imported).not.toBeNull();
-    expect(imported?.version).toBe(2);
+    expect(imported?.version).toBe(3);
+    expect(imported?.receipts[0].items[0].assignment).toEqual(half);
     expect(imported?.people).toEqual([{ id: 'p1', name: 'Alice' }]);
     expect(imported?.receipts[0].items[0].name).toBe('Noodles');
     expect(imported?.receipts[0].receiptTotalInput).toBe('8.00');
@@ -384,7 +392,7 @@ describe('importDraftFromJson', () => {
     expect(imported?.receipts[0].items[0].name).toBe('');
   });
 
-  it('deduplicates personIds in assignment', () => {
+  it('lists a person once when a version 2 item names them twice', () => {
     const json = JSON.stringify({
       version: 2,
       people: [
@@ -415,7 +423,10 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    expect(imported?.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2']);
+    expect(imported?.receipts[0].items[0].assignment).toEqual({
+      shares: { p1: 1, p2: 1 },
+      unassignedShare: 0,
+    });
   });
 
   it('skips people entries with empty id or name', () => {
@@ -470,7 +481,7 @@ describe('importDraftFromJson', () => {
     expect(imported?.receipts[0].gst).toEqual(defaultGstState);
   });
 
-  it('provides a default assignment when item assignment is null', () => {
+  it('shares an item between everyone when its assignment cannot be read', () => {
     const json = JSON.stringify({
       version: 2,
       people: [{ id: 'p1', name: 'Alice' }],
@@ -498,13 +509,30 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    const item = imported?.receipts[0].items[0];
-    expect(item?.assignment.mode).toBe('single');
-    expect(item?.assignment.personId).toBe('p1');
-    expect(item?.assignment.personIds).toEqual(['p1']);
+    expect(imported?.receipts[0].items[0].assignment).toEqual({
+      shares: { p1: 1 },
+      unassignedShare: 0,
+    });
   });
 
-  it('round-trips weights through import', () => {
+  it('shares a version 2 single-mode item between everyone, whoever it named', () => {
+    const draft = JSON.parse(exportDraftToJson(minimalDraftState));
+    draft.version = 2;
+    draft.people = [
+      { id: 'p1', name: 'Alice' },
+      { id: 'p2', name: 'Bob' },
+    ];
+    draft.receipts[0].items[0].assignment = { mode: 'single', personId: 'p1', personIds: ['p1'] };
+
+    const imported = importDraftFromJson(JSON.stringify(draft));
+
+    expect(imported?.receipts[0].items[0].assignment).toEqual({
+      shares: { p1: 1, p2: 1 },
+      unassignedShare: 0,
+    });
+  });
+
+  it('reads version 2 weights as shares', () => {
     const json = JSON.stringify({
       version: 2,
       people: [
@@ -541,10 +569,10 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 2, p2: 1 });
+    expect(imported?.receipts[0].items[0].assignment.shares).toEqual({ p1: 2, p2: 1 });
   });
 
-  it('keeps saved weights and drops the retired weightsInputMode field', () => {
+  it('keeps version 2 weights and nothing else from the old shape', () => {
     const json = JSON.stringify({
       version: 2,
       people: [
@@ -581,13 +609,7 @@ describe('importDraftFromJson', () => {
     });
     const imported = importDraftFromJson(json);
     const assignment = imported?.receipts[0].items[0].assignment;
-    expect(assignment).toEqual({
-      mode: 'equal',
-      personId: '',
-      personIds: ['p1', 'p2'],
-      weights: { p1: 2, p2: 1 },
-      unassignedWeight: undefined,
-    });
+    expect(assignment).toEqual({ shares: { p1: 2, p2: 1 }, unassignedShare: 0 });
   });
 
   it('round-trips the unassigned share of a half-claimed item', () => {
@@ -624,7 +646,10 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    expect(imported?.receipts[0].items[0].assignment.unassignedWeight).toBe(1);
+    expect(imported?.receipts[0].items[0].assignment).toEqual({
+      shares: { p1: 1 },
+      unassignedShare: 1,
+    });
   });
 
   it('ignores a non-positive unassigned share', () => {
@@ -661,7 +686,7 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    expect(imported?.receipts[0].items[0].assignment.unassignedWeight).toBe(undefined);
+    expect(imported?.receipts[0].items[0].assignment.unassignedShare).toBe(0);
   });
 
   it('drops invalid weight entries (zero, negative, non-number, Infinity)', () => {
@@ -681,7 +706,7 @@ describe('importDraftFromJson', () => {
               assignment: {
                 mode: 'equal',
                 personId: '',
-                personIds: ['p1'],
+                personIds: ['p1', 'p2', 'bad1', 'bad2', 'bad3'],
                 weights: { p1: 2, bad1: 0, bad2: -1, bad3: 'string', bad4: Infinity },
               },
             },
@@ -697,10 +722,17 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 2 });
+    // An entry that is not a positive number reads as a missing weight, which is 1.
+    expect(imported?.receipts[0].items[0].assignment.shares).toEqual({
+      p1: 2,
+      p2: 1,
+      bad1: 1,
+      bad2: 1,
+      bad3: 1,
+    });
   });
 
-  it('leaves weights undefined when weights field is absent', () => {
+  it('gives each person a share of 1 when version 2 saved no weights', () => {
     const json = JSON.stringify({
       version: 2,
       people: [{ id: 'p1', name: 'Alice' }],
@@ -728,7 +760,7 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    expect(imported?.receipts[0].items[0].assignment.weights).toBeUndefined();
+    expect(imported?.receipts[0].items[0].assignment.shares).toEqual({ p1: 1 });
   });
 
   it('rounds fractional imported weights to nearest integer', () => {
@@ -767,7 +799,7 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 3, p2: 1 });
+    expect(imported?.receipts[0].items[0].assignment.shares).toEqual({ p1: 3, p2: 1 });
   });
 
   it('allows imported weights greater than 9', () => {
@@ -806,7 +838,7 @@ describe('importDraftFromJson', () => {
       savedAt: '',
     });
     const imported = importDraftFromJson(json);
-    expect(imported?.receipts[0].items[0].assignment.weights).toEqual({ p1: 15, p2: 1 });
+    expect(imported?.receipts[0].items[0].assignment.shares).toEqual({ p1: 15, p2: 1 });
   });
 
   it('replaces non-array items with a single empty item', () => {
@@ -844,7 +876,7 @@ describe('storage availability failures', () => {
     expect(loadPersistedOcrSettings()).toBeNull();
     expect(() =>
       savePersistedDraft({
-        version: 2,
+        version: 3,
         people: [],
         receipts: [],
         activeReceiptId: '',

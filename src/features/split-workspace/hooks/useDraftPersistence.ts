@@ -20,7 +20,7 @@ export function useDraftPersistence({
   useEffect(() => {
     if (!initialized) return;
     savePersistedDraft({
-      version: 2,
+      version: 3,
       people,
       receipts,
       activeReceiptId,

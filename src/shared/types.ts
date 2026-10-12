@@ -1,4 +1,3 @@
-export type AssignmentMode = 'single' | 'equal';
 export type ChargeMode = 'amount' | 'percent';
 
 export type Person = {
@@ -6,13 +5,11 @@ export type Person = {
   name: string;
 };
 
+/** Share weights for the people on an item. A person missing from `shares` is not on it. */
 export type ItemAssignment = {
-  mode: AssignmentMode;
-  personId: string;
-  personIds: string[];
-  weights?: Record<string, number>;
-  /** Share weight nobody has taken yet, on the same scale as `weights`. */
-  unassignedWeight?: number;
+  shares: Record<string, number>;
+  /** Share weight nobody has taken yet, on the same scale as `shares`. */
+  unassignedShare: number;
 };
 
 export type EditableItem = {

@@ -4,6 +4,7 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
+import { NOBODY } from '@features/split-workspace/logic/assignment';
 
 export const disabledCharge: ChargeState = {
   enabled: false,
@@ -49,11 +50,7 @@ export function makeItem(overrides: Partial<EditableItem> & { id?: string }): Ed
     name: overrides.name ?? 'Item',
     amountInput: overrides.amountInput ?? '10.00',
     discountPercentInput: overrides.discountPercentInput ?? '',
-    assignment: overrides.assignment ?? {
-      mode: 'single',
-      personId: '',
-      personIds: [],
-    },
+    assignment: overrides.assignment ?? NOBODY,
   };
 }
 

@@ -7,6 +7,7 @@ import {
   convertSplitResult,
   getEffectiveRate,
 } from '@features/split-workspace/logic/exchangeRates';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 const rates: Record<string, number> = {
   SGD: 1,
@@ -144,7 +145,7 @@ describe('convertSplitResult', () => {
           makeItem({
             id,
             amountInput: amount,
-            assignment: { mode: 'single', personId: id, personIds: [id] },
+            assignment: equalShares([id]),
           }),
         ),
         discount: amountCharge(discount),
@@ -187,7 +188,7 @@ describe('convertSplitResult', () => {
         makeItem({
           id,
           amountInput: '0.01',
-          assignment: { mode: 'single', personId: id, personIds: [id] },
+          assignment: equalShares([id]),
         }),
       ),
       discount: amountCharge('0.05'),

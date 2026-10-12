@@ -12,6 +12,7 @@ import {
   makeReceipt,
   sumValues,
 } from './testHelpers';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 beforeEach(resetAllStores);
 
@@ -23,11 +24,11 @@ describe('Export and sharing integration', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
         makeItem({
           amountInput: '20.00',
-          assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+          assignment: equalShares([bob.id]),
         }),
       ],
       serviceCharge: percentCharge('10'),
@@ -58,11 +59,11 @@ describe('Export and sharing integration', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
         makeItem({
           amountInput: '20.00',
-          assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+          assignment: equalShares([bob.id]),
         }),
       ],
     });
@@ -92,7 +93,7 @@ describe('Export and sharing integration', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
       currency: 'SGD',
@@ -101,7 +102,7 @@ describe('Export and sharing integration', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+          assignment: equalShares([bob.id]),
         }),
       ],
       currency: 'USD',

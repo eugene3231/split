@@ -10,6 +10,7 @@ import {
   resetAllStores,
   seedStore,
 } from '../../../../../tests/integration/testHelpers';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 const { generatePaynowQrDataUrls } = vi.hoisted(() => ({
   generatePaynowQrDataUrls: vi.fn(),
@@ -43,7 +44,7 @@ describe('useSummaryModel', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
       discount: {
@@ -61,7 +62,7 @@ describe('useSummaryModel', () => {
       items: [
         makeItem({
           amountInput: '20.00',
-          assignment: { mode: 'single', personId: bob.id, personIds: [bob.id] },
+          assignment: equalShares([bob.id]),
         }),
       ],
       discount: {
@@ -91,7 +92,7 @@ describe('useSummaryModel', () => {
 
   it('reconciles and corrects the selected receipt in its native currency', () => {
     const alice = makePerson('Alice');
-    const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+    const assignment = equalShares([alice.id]);
     const receipt1 = makeReceipt({
       id: 'r1',
       items: [makeItem({ amountInput: '10.00', assignment })],
@@ -128,7 +129,7 @@ describe('useSummaryModel', () => {
 
   it('uses selected receipt taxes for correction while another receipt is active', () => {
     const alice = makePerson('Alice');
-    const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+    const assignment = equalShares([alice.id]);
     const editor = makeReceipt({
       id: 'editor',
       items: [makeItem({ amountInput: '20.00', assignment })],
@@ -168,7 +169,7 @@ describe('useSummaryModel', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
       receiptTotalInput: '8.00',
@@ -186,7 +187,7 @@ describe('useSummaryModel', () => {
 
   it('hides old QR URLs while receipt amounts or payer mobile change', async () => {
     const alice = makePerson('Alice');
-    const assignment = { mode: 'single' as const, personId: alice.id, personIds: [alice.id] };
+    const assignment = equalShares([alice.id]);
     const receipt1 = makeReceipt({
       id: 'r1',
       items: [makeItem({ amountInput: '10.00', assignment })],
@@ -235,7 +236,7 @@ describe('useSummaryModel', () => {
           items: [
             makeItem({
               amountInput: '10',
-              assignment: { mode: 'equal', personId: '', personIds: [alice.id, bob.id] },
+              assignment: equalShares([alice.id, bob.id]),
             }),
           ],
         }),
@@ -259,7 +260,7 @@ describe('useSummaryModel', () => {
           items: [
             makeItem({
               amountInput: '10',
-              assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+              assignment: equalShares([alice.id]),
             }),
           ],
         }),

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChargeState, EditableItem, Person } from '@shared/types';
 import { computeSplit } from '@features/split-workspace/logic/split/split';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
+import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 const disabledCharge: ChargeState = {
   enabled: false,
@@ -21,7 +22,7 @@ describe('computeSplit', () => {
         name: 'Meal',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+        assignment: equalShares(['alice']),
       },
     ];
     const discount: ChargeState = {
@@ -58,13 +59,7 @@ describe('computeSplit', () => {
         name: 'Garlic bread',
         amountInput: '6.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: ['alice'],
-          weights: { alice: 1 },
-          unassignedWeight: 1,
-        },
+        assignment: makeAssignment({ alice: 1 }, 1),
       },
     ];
 
@@ -92,11 +87,7 @@ describe('computeSplit', () => {
         name: 'Shared fries',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: ['p1', 'p2', 'p3'],
-        },
+        assignment: equalShares(['p1', 'p2', 'p3']),
       },
     ];
 
@@ -137,14 +128,14 @@ describe('computeSplit', () => {
         name: 'Alice dish',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+        assignment: equalShares(['alice']),
       },
       {
         id: 'i2',
         name: 'Bob dish',
         amountInput: '20.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'bob', personIds: ['bob'] },
+        assignment: equalShares(['bob']),
       },
     ];
     const serviceCharge: ChargeState = {
@@ -189,14 +180,14 @@ describe('computeSplit', () => {
         name: 'Alice dish',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+        assignment: equalShares(['alice']),
       },
       {
         id: 'i2',
         name: 'Bob dish',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'bob', personIds: ['bob'] },
+        assignment: equalShares(['bob']),
       },
     ];
     const discount: ChargeState = {
@@ -231,7 +222,7 @@ describe('computeSplit', () => {
         name: '   ',
         amountInput: '5.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
+        assignment: equalShares(['p1']),
       },
     ];
 
@@ -254,14 +245,14 @@ describe('computeSplit', () => {
         name: 'Free item',
         amountInput: '5.00',
         discountPercentInput: '100',
-        assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
+        assignment: equalShares(['p1']),
       },
       {
         id: 'i2',
         name: 'Paid item',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'p1', personIds: ['p1'] },
+        assignment: equalShares(['p1']),
       },
     ];
 
@@ -289,7 +280,7 @@ describe('computeSplit', () => {
         name: 'Alice only',
         amountInput: '12.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+        assignment: equalShares(['alice']),
       },
     ];
 
@@ -316,44 +307,28 @@ describe('computeSplit', () => {
         name: 'Assigned',
         amountInput: '5.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'single',
-          personId: 'p1',
-          personIds: ['p1'],
-        },
+        assignment: equalShares(['p1']),
       },
       {
         id: 'item-2',
         name: 'Invalid single assignee',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'single',
-          personId: 'missing',
-          personIds: [],
-        },
+        assignment: equalShares(['missing']),
       },
       {
         id: 'item-3',
         name: 'Empty equal split',
         amountInput: '2.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: [],
-        },
+        assignment: NOBODY,
       },
       {
         id: 'item-4',
         name: 'Invalid amount',
         amountInput: '',
         discountPercentInput: '',
-        assignment: {
-          mode: 'single',
-          personId: 'missing',
-          personIds: [],
-        },
+        assignment: equalShares(['missing']),
       },
     ];
 
@@ -384,22 +359,14 @@ describe('computeSplit', () => {
         name: 'Free item',
         amountInput: '0',
         discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: ['p1', 'p2'],
-        },
+        assignment: equalShares(['p1', 'p2']),
       },
       {
         id: 'item-2',
         name: 'Paid item',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'single',
-          personId: 'p1',
-          personIds: ['p1'],
-        },
+        assignment: equalShares(['p1']),
       },
     ];
 
@@ -429,11 +396,7 @@ describe('computeSplit', () => {
         name: 'Expensive',
         amountInput: '100.01',
         discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: ['p1', 'p2', 'p3'],
-        },
+        assignment: equalShares(['p1', 'p2', 'p3']),
       },
     ];
 
@@ -493,12 +456,7 @@ describe('computeSplit', () => {
         name: 'Wine bottle',
         amountInput: '30.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: ['alice', 'bob'],
-          weights: { alice: 2, bob: 1 },
-        },
+        assignment: makeAssignment({ alice: 2, bob: 1 }),
       },
     ];
 
@@ -528,12 +486,7 @@ describe('computeSplit', () => {
         name: 'Shared dish',
         amountInput: '20.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: ['alice', 'bob'],
-          weights: { alice: 1, bob: 1 },
-        },
+        assignment: makeAssignment({ alice: 1, bob: 1 }),
       },
     ];
 
@@ -560,12 +513,7 @@ describe('computeSplit', () => {
         name: 'Odd amount',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: {
-          mode: 'equal',
-          personId: '',
-          personIds: ['alice', 'bob'],
-          weights: { alice: 2, bob: 1 },
-        },
+        assignment: makeAssignment({ alice: 2, bob: 1 }),
       },
     ];
 
@@ -595,14 +543,14 @@ describe('computeSplit', () => {
         name: 'Steak',
         amountInput: '30.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+        assignment: equalShares(['alice']),
       },
       {
         id: 'salad',
         name: 'Salad',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: { mode: 'single', personId: 'bob', personIds: ['bob'] },
+        assignment: equalShares(['bob']),
       },
     ];
 
@@ -632,7 +580,7 @@ describe('computeSplit', () => {
           name: 'Meal',
           amountInput: '10.00',
           discountPercentInput: '',
-          assignment: { mode: 'single', personId: 'alice', personIds: ['alice'] },
+          assignment: equalShares(['alice']),
         },
       ],
       discount: disabledCharge,

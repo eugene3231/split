@@ -7,6 +7,7 @@ import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
 import { resolveSummaryOverview } from './summaryOverview';
 import { resolveSummaryView } from './summaryView';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 const offCharge: ChargeState = {
   enabled: false,
@@ -32,7 +33,7 @@ function item(id: string, amountInput: string, personIds: string[]): EditableIte
     name: id,
     amountInput,
     discountPercentInput: '',
-    assignment: { mode: 'equal', personId: '', personIds },
+    assignment: equalShares(personIds),
   };
 }
 

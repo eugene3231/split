@@ -8,6 +8,7 @@ import {
   percentCharge,
 } from '../../../../tests/integration/testHelpers';
 import { SummaryTotals } from './SummaryTotals';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 it('lists each charge once and ends on the computed total', () => {
   const person = makePerson('Alex');
@@ -18,7 +19,7 @@ it('lists each charge once and ends on the computed total', () => {
     items: [
       makeItem({
         amountInput: '100.00',
-        assignment: { mode: 'single', personId: person.id, personIds: [person.id] },
+        assignment: equalShares([person.id]),
       }),
     ],
     discount: disabledCharge,
@@ -51,7 +52,7 @@ it('shows rounding after tax with a way to remove it', () => {
     items: [
       makeItem({
         amountInput: '10.00',
-        assignment: { mode: 'single', personId: person.id, personIds: [person.id] },
+        assignment: equalShares([person.id]),
       }),
     ],
     discount: disabledCharge,

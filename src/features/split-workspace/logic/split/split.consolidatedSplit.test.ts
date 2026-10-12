@@ -5,6 +5,7 @@ import {
   computeConsolidatedSplit,
 } from '@features/split-workspace/logic/split/split';
 import { BASE_CURRENCY } from '@shared/constants';
+import { NOBODY, equalShares } from '@features/split-workspace/logic/assignment';
 
 const disabled: ChargeState = {
   enabled: false,
@@ -26,7 +27,7 @@ function makeItem(id: string, amount: string, personId: string): EditableItem {
     name: `Item ${id}`,
     amountInput: amount,
     discountPercentInput: '',
-    assignment: { mode: 'single', personId, personIds: [personId] },
+    assignment: equalShares([personId]),
   };
 }
 
@@ -275,7 +276,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
           name: 'Unassigned',
           amountInput: '5.00',
           discountPercentInput: '',
-          assignment: { mode: 'single', personId: '', personIds: [] },
+          assignment: NOBODY,
         },
       ],
       discount: disabled,
@@ -290,7 +291,7 @@ describe('computeConsolidatedSplit — multi-currency', () => {
           name: 'Also unassigned',
           amountInput: '5.00',
           discountPercentInput: '',
-          assignment: { mode: 'single', personId: '', personIds: [] },
+          assignment: NOBODY,
         },
       ],
       discount: disabled,

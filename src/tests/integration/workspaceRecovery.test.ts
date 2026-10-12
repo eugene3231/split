@@ -13,6 +13,7 @@ import { loadWizardState, saveWizardState } from '@features/split-workspace/logi
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { makeItem, makePerson, makeReceipt, resetAllStores, seedStore } from './testHelpers';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 vi.mock('@features/receipt-scanner/api/geminiApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@features/receipt-scanner/api/geminiApi')>();
@@ -34,7 +35,7 @@ function seedSavedBill() {
             id: 'meal-a',
             name: 'Dinner A meal',
             amountInput: '5.00',
-            assignment: { mode: 'equal', personId: '', personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         receiptTotalInput: '5.00',
@@ -169,7 +170,7 @@ describe('workspace recovery', () => {
         ...item,
         name: 'Dinner B meal',
         amountInput: '20.00',
-        assignment: { mode: 'equal', personId: '', personIds: [state.people[0].id] },
+        assignment: equalShares([state.people[0].id]),
       }));
     });
     expect(result.current.split.active.split.grandTotalCents).toBe(2398);

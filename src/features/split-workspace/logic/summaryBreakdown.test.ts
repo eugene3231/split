@@ -4,6 +4,7 @@ import { resolveSummaryBreakdown } from './summaryBreakdown';
 import { resolveSummaryView, type SummaryView } from './summaryView';
 import { computeSplit, computeConsolidatedSplit } from './split/split';
 import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 const disabledCharge: ChargeState = {
   enabled: false,
@@ -70,7 +71,7 @@ describe('resolveSummaryBreakdown', () => {
           makeItem({
             id: person.id,
             amountInput: '10.01',
-            assignment: { mode: 'single', personId: person.id, personIds: [] },
+            assignment: equalShares([person.id]),
           }),
         ),
       });
@@ -104,7 +105,7 @@ describe('resolveSummaryBreakdown', () => {
           makeItem({
             id: `${id}-${person.id}`,
             amountInput: '10.00',
-            assignment: { mode: 'single', personId: person.id, personIds: [] },
+            assignment: equalShares([person.id]),
           }),
         ),
       });

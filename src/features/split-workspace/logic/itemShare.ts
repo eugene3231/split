@@ -1,7 +1,12 @@
 import { parseCurrencyToCents } from '@shared/logic/core/money';
 import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 import { redistributeOnChange } from '@features/split-workspace/logic/weightRedistribution';
-import type { EditableItem } from '@shared/types';
+import {
+  equalShares,
+  makeAssignment,
+  totalShare,
+} from '@features/split-workspace/logic/assignment';
+import type { EditableItem, ItemAssignment } from '@shared/types';
 
 // Larger denominators read better as a percent, unless the share is a plain 1/n.
 const MAX_LABEL_DENOMINATOR = 10;
@@ -23,29 +28,21 @@ export interface PersonShare {
   canDecrease: boolean;
 }
 
-interface ShareParts {
-  personIds: string[];
-  weights: Record<string, number>;
-  unassignedWeight: number;
-}
-
 /**
  * Splits an item's price between its people and the unassigned share, so a
  * half-claimed item charges its one claimant only their half.
  */
 export function allocateItemShares(
   priceCents: number,
-  personIds: string[],
-  weights: Record<string, number> | undefined,
-  unassignedWeight: number | undefined,
+  { shares, unassignedShare }: ItemAssignment,
 ): Record<string, number> {
-  const keys = unassignedWeight ? [...personIds, UNASSIGNED_KEY] : personIds;
-  const rawWeights: Record<string, number> = Object.fromEntries(
-    personIds.map((id) => [id, weights?.[id] ?? 1]),
-  );
-  if (unassignedWeight) rawWeights[UNASSIGNED_KEY] = unassignedWeight;
+  const personIds = Object.keys(shares);
+  if (unassignedShare === 0) return allocateCents(priceCents, personIds, shares);
 
-  const allocation = allocateCents(priceCents, keys, rawWeights);
+  const allocation = allocateCents(priceCents, [...personIds, UNASSIGNED_KEY], {
+    ...shares,
+    [UNASSIGNED_KEY]: unassignedShare,
+  });
   delete allocation[UNASSIGNED_KEY];
   return allocation;
 }
@@ -55,19 +52,14 @@ export function resolvePersonShare(
   personId: string,
   priceCents: number,
 ): PersonShare | null {
-  const parts = readShareParts(item);
-  if (!parts.personIds.includes(personId)) return null;
+  const { assignment } = item;
+  if (!Object.hasOwn(assignment.shares, personId)) return null;
 
-  const amountCents =
-    allocateItemShares(priceCents, parts.personIds, parts.weights, parts.unassignedWeight)[
-      personId
-    ] ?? 0;
-
-  const smallerDivisor = stepTarget(parts, personId, 'decrease');
+  const smallerDivisor = stepTarget(assignment, personId, 'decrease');
   return {
-    label: formatShareFraction(parts.weights[personId], totalWeight(parts)),
-    amountCents,
-    canIncrease: stepTarget(parts, personId, 'increase') !== null,
+    label: formatShareFraction(assignment.shares[personId], totalShare(assignment)),
+    amountCents: allocateItemShares(priceCents, assignment)[personId],
+    canIncrease: stepTarget(assignment, personId, 'increase') !== null,
     // Stop before a slice worth less than a cent.
     canDecrease: smallerDivisor !== null && smallerDivisor <= priceCents,
   };
@@ -79,11 +71,10 @@ export function stepPersonShare(
   personId: string,
   step: ShareStep,
 ): EditableItem {
-  const parts = readShareParts(item);
-  if (!parts.personIds.includes(personId)) return item;
+  if (!Object.hasOwn(item.assignment.shares, personId)) return item;
 
-  const divisor = stepTarget(parts, personId, step);
-  return divisor === null ? item : setShareFraction(item, parts, personId, divisor);
+  const divisor = stepTarget(item.assignment, personId, step);
+  return divisor === null ? item : setShareFraction(item, personId, divisor);
 }
 
 export function setPersonShare(
@@ -91,12 +82,11 @@ export function setPersonShare(
   personId: string,
   input: ShareInput,
 ): EditableItem {
-  const parts = readShareParts(item);
-  if (!parts.personIds.includes(personId)) return item;
+  if (!Object.hasOwn(item.assignment.shares, personId)) return item;
 
   if (input.kind === 'fraction') {
     const divisor = Math.round(input.divisor);
-    return divisor >= 1 ? setShareFraction(item, parts, personId, divisor) : item;
+    return divisor >= 1 ? setShareFraction(item, personId, divisor) : item;
   }
 
   const priceCents = parseCurrencyToCents(item.amountInput);
@@ -104,7 +94,7 @@ export function setPersonShare(
 
   const cents =
     input.kind === 'amount' ? input.cents : Math.round((priceCents * input.value) / 100);
-  return setShareAmount(item, parts, personId, cents, priceCents);
+  return setShareAmount(item, personId, cents, priceCents);
 }
 
 /** Reads "8.50", "$8.50", "40%" or "1/3"; anything else is null. */
@@ -134,28 +124,10 @@ export function formatShareFraction(part: number, total: number): string {
   return `${Math.round((part / total) * 100)}%`;
 }
 
-function readShareParts(item: EditableItem): ShareParts {
-  const { personIds, weights, unassignedWeight } = item.assignment;
-  return {
-    personIds,
-    weights: Object.fromEntries(personIds.map((id) => [id, weights?.[id] ?? 1])),
-    unassignedWeight: unassignedWeight ?? 0,
-  };
-}
-
-function totalWeight(parts: ShareParts): number {
-  return parts.personIds.reduce((sum, id) => sum + parts.weights[id], parts.unassignedWeight);
-}
-
-/** n when this person holds exactly 1/n of the item, otherwise null. */
-function currentDivisor(parts: ShareParts, personId: string): number | null {
-  const divisor = totalWeight(parts) / parts.weights[personId];
-  return Number.isInteger(divisor) ? divisor : null;
-}
-
-function stepTarget(parts: ShareParts, personId: string, step: ShareStep): number | null {
-  const exact = totalWeight(parts) / parts.weights[personId];
-  const current = currentDivisor(parts, personId);
+function stepTarget(assignment: ItemAssignment, personId: string, step: ShareStep): number | null {
+  const exact = totalShare(assignment) / assignment.shares[personId];
+  // n when this person holds exactly 1/n of the item, otherwise null.
+  const current = Number.isInteger(exact) ? exact : null;
   const target =
     step === 'decrease'
       ? (current ?? Math.floor(exact)) + 1
@@ -170,25 +142,25 @@ function stepTarget(parts: ShareParts, personId: string, step: ShareStep): numbe
  * Gives this person 1/divisor; everyone else, and any unassigned share, keep their ratio of the rest.
  * Taking the whole item takes everyone else off it.
  */
-function setShareFraction(
-  item: EditableItem,
-  parts: ShareParts,
-  personId: string,
-  divisor: number,
-): EditableItem {
-  const others = parts.personIds.filter((id) => id !== personId);
-  const rest = totalWeight(parts) - parts.weights[personId];
+function setShareFraction(item: EditableItem, personId: string, divisor: number): EditableItem {
+  const { shares, unassignedShare } = item.assignment;
+  const rest = totalShare(item.assignment) - shares[personId];
 
   if (divisor === 1) {
-    return withShares(item, [personId], { [personId]: 1 }, 0);
+    return { ...item, assignment: equalShares([personId]) };
   }
   if (rest === 0) {
-    return withShares(item, parts.personIds, { [personId]: 1 }, divisor - 1);
+    return { ...item, assignment: makeAssignment({ [personId]: 1 }, divisor - 1) };
   }
 
-  const weights: Record<string, number> = { [personId]: rest };
-  for (const id of others) weights[id] = parts.weights[id] * (divisor - 1);
-  return withShares(item, parts.personIds, weights, parts.unassignedWeight * (divisor - 1));
+  const scaled = Object.entries(shares).map(([id, weight]) => [
+    id,
+    id === personId ? rest : weight * (divisor - 1),
+  ]);
+  return {
+    ...item,
+    assignment: makeAssignment(Object.fromEntries(scaled), unassignedShare * (divisor - 1)),
+  };
 }
 
 /**
@@ -198,52 +170,26 @@ function setShareFraction(
  */
 function setShareAmount(
   item: EditableItem,
-  parts: ShareParts,
   personId: string,
   cents: number,
   priceCents: number,
 ): EditableItem {
-  const keys = [...parts.personIds, UNASSIGNED_KEY];
-  const weights = { ...parts.weights, [UNASSIGNED_KEY]: parts.unassignedWeight };
-  const previous = allocateCents(priceCents, keys, weights);
-  const next = redistributeOnChange(previous, personId, cents, priceCents, keys);
-
-  const survivors = parts.personIds.filter((id) => next[id] > 0);
-  return withShares(
-    item,
-    survivors,
-    Object.fromEntries(survivors.map((id) => [id, next[id]])),
-    next[UNASSIGNED_KEY] ?? 0,
+  const { shares, unassignedShare } = item.assignment;
+  const keys = [...Object.keys(shares), UNASSIGNED_KEY];
+  const previous = allocateCents(priceCents, keys, {
+    ...shares,
+    [UNASSIGNED_KEY]: unassignedShare,
+  });
+  const { [UNASSIGNED_KEY]: unassignedCents, ...centsByPerson } = redistributeOnChange(
+    previous,
+    personId,
+    cents,
+    priceCents,
+    keys,
   );
-}
 
-function withShares(
-  item: EditableItem,
-  personIds: string[],
-  weights: Record<string, number>,
-  unassignedWeight: number,
-): EditableItem {
-  const divisor = [...personIds.map((id) => weights[id] ?? 1), unassignedWeight]
-    .filter((weight) => weight > 0)
-    .reduce(gcd, 0);
-  const reduced = Object.fromEntries(
-    personIds.map((id) => [id, (weights[id] ?? 1) / (divisor || 1)]),
-  );
-  const reducedUnassigned = unassignedWeight / (divisor || 1);
-  const isEqual =
-    reducedUnassigned === 0 && personIds.every((id) => reduced[id] === reduced[personIds[0]]);
-
-  return {
-    ...item,
-    assignment: {
-      mode: 'equal',
-      personId: '',
-      personIds,
-      weights: personIds.length === 0 || isEqual ? undefined : reduced,
-      unassignedWeight:
-        personIds.length === 0 || reducedUnassigned === 0 ? undefined : reducedUnassigned,
-    },
-  };
+  // The cents become the new weights; anyone typed down to nothing drops off the item.
+  return { ...item, assignment: makeAssignment(centsByPerson, unassignedCents) };
 }
 
 function gcd(a: number, b: number): number {

@@ -12,6 +12,7 @@ import { computeSplit } from '@features/split-workspace/logic/split/split';
 import { makeItem, percentCharge } from '../../../tests/integration/testHelpers';
 import { useReconciliation } from './useReconciliation';
 import type { ChargeState, SplitResult } from '@shared/types';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 const disabledCharge: ChargeState = {
   enabled: false,
@@ -47,7 +48,7 @@ describe('useReconciliation', () => {
       items: [
         makeItem({
           amountInput: '100.00',
-          assignment: { mode: 'single', personId: 'a', personIds: ['a'] },
+          assignment: equalShares(['a']),
         }),
       ],
       discount: disabledCharge,
@@ -192,7 +193,7 @@ describe('receipt correction state flow', () => {
       items: [
         makeItem({
           amountInput: '100.00',
-          assignment: { mode: 'single', personId: 'a', personIds: ['a'] },
+          assignment: equalShares(['a']),
         }),
       ],
       discount: percentCharge('5'),
@@ -218,7 +219,7 @@ describe('receipt correction state flow', () => {
       items: [
         makeItem({
           amountInput: '1.00',
-          assignment: { mode: 'single', personId: 'a', personIds: ['a'] },
+          assignment: equalShares(['a']),
         }),
       ],
       serviceCharge: amountCharge('0.50'),
