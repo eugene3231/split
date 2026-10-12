@@ -1,4 +1,4 @@
-import type { Person } from '@shared/types';
+import type { ChargeKind, Person } from '@shared/types';
 
 export interface OverviewItemRow {
   id: string;
@@ -10,7 +10,7 @@ export interface OverviewItemRow {
 }
 
 export interface OverviewChargeRow {
-  kind: 'discount' | 'service' | 'gst' | 'rounding';
+  kind: ChargeKind;
   label: string;
   sign: 'minus' | 'plus';
   totalCents: number;

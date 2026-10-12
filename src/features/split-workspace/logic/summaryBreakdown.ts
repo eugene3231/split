@@ -1,6 +1,11 @@
 import { BASE_CURRENCY } from '@shared/constants';
-import type { ChargeState, Person, PersonReceiptLineItem } from '@shared/types';
-import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
+import { CHARGE_KINDS } from '@shared/types';
+import type { Person, PersonSplit, SplitLine } from '@shared/types';
+import {
+  resolveChargeLabel,
+  type ReceiptCharges,
+} from '@features/split-workspace/logic/chargeLabels';
+import { CHARGE_SIGN } from '@features/split-workspace/logic/split/amounts';
 import type { SummaryView, TotalTabView } from '@features/split-workspace/logic/summaryView';
 
 import type {
@@ -29,7 +34,7 @@ export function resolveSummaryBreakdown({
 }: ResolveSummaryBreakdownInput): SummaryBreakdown {
   return {
     totalLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'Total',
-    totalCents: view.grandTotal,
+    totalCents: view.displaySplit.totals.totalCents,
     currency: view.displayCurrency,
     personBreakdowns: resolvePersonBreakdowns({ people, view, qrDataUrls, showAllItems }),
     exchangeRate: resolveHeaderRate(view),
@@ -44,52 +49,41 @@ function resolvePersonBreakdowns({
 }: Required<ResolveSummaryBreakdownInput>): PersonBreakdown[] {
   const headerRate = resolveHeaderRate(view);
   return people.map((person, colorIndex) => {
-    const totalCents = view.displaySplit.totalByPersonCents[person.id] ?? 0;
     const sections =
       view.kind === 'total'
-        ? view.receiptBreakdowns
-            .map((entry) => {
-              const itemRows = buildItemRows(
-                entry.split.lineItemsByPerson[person.id] ?? [],
-                entry.currency,
-                showAllItems,
-              );
-              if (itemRows.length === 0) {
-                return null;
-              }
-              return buildReceiptSection({
-                id: entry.id,
-                title: entry.name,
-                personId: person.id,
-                currency: entry.currency,
-                split: entry.split,
-                discount: entry.discount,
-                serviceCharge: entry.serviceCharge,
-                gst: entry.gst,
-                conversion:
-                  entry.effectiveRate !== undefined
-                    ? buildConversion(
-                        entry.sgdSplit.totalByPersonCents[person.id] ?? 0,
-                        { rate: entry.effectiveRate, fromCurrency: entry.currency },
-                        !isSameRate(headerRate, entry.effectiveRate, entry.currency),
-                      )
-                    : undefined,
-                itemRows,
-              });
-            })
-            .filter((section): section is ReceiptBreakdownSection => section !== null)
+        ? view.receiptBreakdowns.flatMap((entry) => {
+            const itemRows = buildItemRows(
+              entry.split.byPerson[person.id].lines,
+              entry.currency,
+              showAllItems,
+            );
+            if (itemRows.length === 0) return [];
+            return buildReceiptSection({
+              id: entry.receipt.id,
+              title: entry.name,
+              charges: entry.receipt,
+              person: entry.split.byPerson[person.id],
+              currency: entry.currency,
+              conversion:
+                entry.effectiveRate !== undefined
+                  ? buildConversion(
+                      entry.baseSplit.byPerson[person.id].totalCents,
+                      { rate: entry.effectiveRate, fromCurrency: entry.currency },
+                      !isSameRate(headerRate, entry.effectiveRate, entry.currency),
+                    )
+                  : undefined,
+              itemRows,
+            });
+          })
         : [
             buildReceiptSection({
               id: view.receipt.id,
               title: view.receipt.name,
-              personId: person.id,
+              charges: view.receipt,
+              person: view.displaySplit.byPerson[person.id],
               currency: view.displayCurrency,
-              split: view.displaySplit,
-              discount: view.receipt.discount,
-              serviceCharge: view.receipt.serviceCharge,
-              gst: view.receipt.gst,
               itemRows: buildItemRows(
-                view.displaySplit.lineItemsByPerson[person.id] ?? [],
+                view.displaySplit.byPerson[person.id].lines,
                 view.displayCurrency,
                 showAllItems,
               ),
@@ -100,10 +94,10 @@ function resolvePersonBreakdowns({
       person,
       colorIndex,
       headerLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'Total · this receipt',
-      totalCents,
+      totalCents: view.displaySplit.byPerson[person.id].totalCents,
       currency: view.displayCurrency,
       conversion: headerRate
-        ? buildConversion(view.sgdSplit.totalByPersonCents[person.id] ?? 0, headerRate, true)
+        ? buildConversion(view.baseSplit.byPerson[person.id].totalCents, headerRate, true)
         : undefined,
       qrDataUrl: qrDataUrls[person.id],
       collapsedReceiptTotals: sections
@@ -142,12 +136,10 @@ function isSameRate(
 interface BuildReceiptSectionInput {
   id: string;
   title: string;
-  personId: string;
+  charges: ReceiptCharges;
+  /** The person's part of the receipt, in the section's currency. */
+  person: PersonSplit;
   currency: string;
-  split: SummaryView['displaySplit'];
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
   conversion?: BreakdownConversion;
   itemRows: BreakdownItemRow[];
 }
@@ -155,50 +147,37 @@ interface BuildReceiptSectionInput {
 function buildReceiptSection({
   id,
   title,
-  personId,
+  charges,
+  person,
   currency,
-  split,
-  discount,
-  serviceCharge,
-  gst,
   conversion,
   itemRows,
 }: BuildReceiptSectionInput): ReceiptBreakdownSection {
-  const totalCents = split.totalByPersonCents[personId] ?? 0;
   return {
     id,
     title,
-    totalCents,
+    totalCents: person.totalCents,
     currency,
     conversion,
     itemRows,
-    chargeRows: buildChargeRows({
-      currency,
-      discount,
-      serviceCharge,
-      gst,
-      discountCents: split.discountByPersonCents[personId] ?? 0,
-      serviceCents: split.serviceByPersonCents[personId] ?? 0,
-      gstCents: split.gstByPersonCents[personId] ?? 0,
-      roundingCents: split.roundingByPersonCents[personId] ?? 0,
-    }),
+    chargeRows: buildChargeRows(person, charges, currency),
     emptyMessage: itemRows.length === 0 ? 'No items assigned.' : undefined,
   };
 }
 
 function buildItemRows(
-  lines: PersonReceiptLineItem[],
+  lines: SplitLine[],
   currency: string,
   showAllItems: boolean,
 ): BreakdownItemRow[] {
   return lines.flatMap((line, index) =>
-    line.involved || showAllItems
+    line.amountCents !== null || showAllItems
       ? [
           {
             id: `${line.itemId}:${index}`,
             label: line.name,
-            amountCents: line.involved ? line.assignedAmountCents : null,
-            involved: line.involved,
+            amountCents: line.amountCents,
+            involved: line.amountCents !== null,
             currency,
           },
         ]
@@ -206,65 +185,19 @@ function buildItemRows(
   );
 }
 
-interface BuildChargeRowsInput {
-  currency: string;
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
-  discountCents: number;
-  serviceCents: number;
-  gstCents: number;
-  roundingCents: number;
-}
-
-function buildChargeRows({
-  currency,
-  discount,
-  serviceCharge,
-  gst,
-  discountCents,
-  serviceCents,
-  gstCents,
-  roundingCents,
-}: BuildChargeRowsInput): BreakdownChargeRow[] {
-  const rows: BreakdownChargeRow[] = [];
-  if (discountCents > 0) {
-    rows.push({
-      kind: 'discount',
-      label: buildChargeLabel('Discount', discount),
-      amountCents: discountCents,
-      sign: 'minus',
-      currency,
-    });
-  }
-  if (serviceCents > 0) {
-    rows.push({
-      kind: 'service',
-      label: buildChargeLabel('Service Charge', serviceCharge),
-      amountCents: serviceCents,
-      sign: 'plus',
-      currency,
-    });
-  }
-  if (gstCents > 0) {
-    rows.push({
-      kind: 'gst',
-      label: buildChargeLabel('GST / Tax', gst),
-      amountCents: gstCents,
-      sign: 'plus',
-      currency,
-    });
-  }
-  if (roundingCents > 0) {
-    rows.push({
-      kind: 'rounding',
-      label: 'Rounding',
-      amountCents: roundingCents,
-      sign: 'plus',
-      currency,
-    });
-  }
-  return rows;
+/** A charge gets a row only when it costs this person something. */
+function buildChargeRows(
+  person: PersonSplit,
+  charges: ReceiptCharges,
+  currency: string,
+): BreakdownChargeRow[] {
+  return CHARGE_KINDS.filter((kind) => person.chargeCents[kind] > 0).map((kind) => ({
+    kind,
+    label: resolveChargeLabel(kind, charges),
+    amountCents: person.chargeCents[kind],
+    sign: CHARGE_SIGN[kind],
+    currency,
+  }));
 }
 
 function buildConversion(

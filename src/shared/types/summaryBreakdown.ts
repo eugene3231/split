@@ -1,4 +1,4 @@
-import type { Person } from '@shared/types';
+import type { ChargeKind, Person } from '@shared/types';
 
 export interface BreakdownExchangeRate {
   rate: number;
@@ -23,7 +23,7 @@ export interface BreakdownItemRow {
 }
 
 export interface BreakdownChargeRow {
-  kind: 'discount' | 'service' | 'gst' | 'rounding';
+  kind: ChargeKind;
   label: string;
   amountCents: number;
   sign: 'minus' | 'plus';

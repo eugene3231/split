@@ -1,4 +1,4 @@
-import type { Person, SplitResult } from '@shared/types';
+import type { Person } from '@shared/types';
 import { formatMoneyAmount } from '@shared/logic/core/money';
 import { renderQrCanvas } from '@features/payments/qr/logic/renderQrCanvas';
 import { buildPaynowString, normalizeMobile } from './paynow';
@@ -95,9 +95,10 @@ function appendCaption(
   return out;
 }
 
+/** A code for everyone who owes something; `amountCentsByPerson` is in SGD. */
 export async function generatePaynowQrDataUrls(
   people: Person[],
-  split: SplitResult,
+  amountCentsByPerson: Record<string, number>,
   payerMobile: string,
   qrSize = 160,
 ): Promise<Record<string, string>> {
@@ -108,7 +109,7 @@ export async function generatePaynowQrDataUrls(
 
   const entries = await Promise.all(
     people.map(async (person) => {
-      const amountCents = split.totalByPersonCents[person.id] ?? 0;
+      const amountCents = amountCentsByPerson[person.id] ?? 0;
       if (amountCents <= 0) return [person.id, ''] as const;
       try {
         const paynowStr = buildPaynowString(normalised, amountCents);

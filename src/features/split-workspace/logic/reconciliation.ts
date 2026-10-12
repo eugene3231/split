@@ -1,27 +1,16 @@
-import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
+import type { Amounts, ChargeState, Person, Receipt } from '@shared/types';
 import { parseCurrencyToCents, parseNumber } from '@shared/logic/core/money';
 import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
-import { computeSplit } from '@features/split-workspace/logic/split/split';
+import { computeSplit, type ReceiptPricing } from '@features/split-workspace/logic/split/split';
 import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
-
-type ReceiptPricing = Pick<
-  Receipt,
-  'items' | 'discount' | 'serviceCharge' | 'gst' | 'roundingInput'
->;
 
 /**
  * Prices the whole receipt for checking against its printed total. Anything still unclaimed
  * counts as shared, so the result doesn't move as people claim items.
  */
-export function computeReceiptTotals(receipt: ReceiptPricing, people: Person[]): SplitResult {
-  return computeSplit({
-    people,
-    items: splitUnassignedItemsEqually(receipt.items, people),
-    discount: receipt.discount,
-    serviceCharge: receipt.serviceCharge,
-    gst: receipt.gst,
-    roundingInput: receipt.roundingInput,
-  });
+export function computeReceiptTotals(receipt: ReceiptPricing, people: Person[]): Amounts {
+  const items = splitUnassignedItemsEqually(receipt.items, people);
+  return computeSplit({ ...receipt, items }, people).totals;
 }
 
 /** A receipt patch that brings the computed total to the printed one. */
@@ -46,19 +35,22 @@ export function resolveReconciliation(
   if (receiptTotalCents === null) return { cents: null, fix: null };
 
   const totals = computeReceiptTotals(receipt, people);
-  const cents = receiptTotalCents - totals.grandTotalCents;
+  const cents = receiptTotalCents - totals.totalCents;
   if (cents === 0) return { cents, fix: null };
   if (cents > 0) {
-    return { cents, fix: { roundingInput: ((totals.roundingCents + cents) / 100).toFixed(2) } };
+    return {
+      cents,
+      fix: { roundingInput: ((totals.chargeCents.rounding + cents) / 100).toFixed(2) },
+    };
   }
 
   const discountCents = findReconciliationDiscount({
     subtotalCents: totals.subtotalCents,
-    currentDiscountCents: totals.discountCents,
+    currentDiscountCents: totals.chargeCents.discount,
     serviceCharge: receipt.serviceCharge,
     gst: receipt.gst,
     // Rounding sits outside the charges the discount search recomputes.
-    targetTotalCents: receiptTotalCents - totals.roundingCents,
+    targetTotalCents: receiptTotalCents - totals.chargeCents.rounding,
   });
   if (discountCents === null) return { cents, fix: null };
   return {

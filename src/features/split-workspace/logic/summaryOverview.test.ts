@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  computeConsolidatedSplit,
-  computeSplit,
-} from '@features/split-workspace/logic/split/split';
+import { deriveSplits } from '@features/split-workspace/logic/split/deriveSplits';
+import type { NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
 import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
 import { resolveSummaryOverview } from './summaryOverview';
@@ -51,29 +49,14 @@ function receipt(overrides: Partial<Receipt> & Pick<Receipt, 'id' | 'items'>): R
   };
 }
 
-function resolve(receipts: Receipt[], activeTab: string, exchangeRates = {}, showBase = false) {
-  const splitByReceipt = receipts.map((r) =>
-    computeSplit({
-      people,
-      items: r.items,
-      discount: r.discount,
-      serviceCharge: r.serviceCharge,
-      gst: r.gst,
-      roundingInput: r.roundingInput,
-    }),
-  );
-  const consolidatedSplit = computeConsolidatedSplit(
-    splitByReceipt,
-    people,
-    receipts.map((r) => r.currency),
-    exchangeRates,
-    receipts.map((r) => r.exchangeRateOverride),
-  );
+function resolve(
+  receipts: NonEmptyArray<Receipt>,
+  activeTab: string,
+  exchangeRates = {},
+  showBase = false,
+) {
   const view = resolveSummaryView({
-    people,
-    receipts,
-    splitByReceipt,
-    consolidatedSplit,
+    ...deriveSplits(people, receipts, exchangeRates),
     exchangeRates,
     activeTab,
     showBaseCurrency: showBase,

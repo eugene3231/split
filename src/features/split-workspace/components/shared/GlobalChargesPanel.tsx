@@ -47,10 +47,8 @@ export function GlobalChargesPanel({ receipt }: Props) {
       </div>
 
       <SummaryTotals
-        split={computeReceiptTotals(receipt, people)}
-        discount={discount}
-        serviceCharge={serviceCharge}
-        gst={gst}
+        totals={computeReceiptTotals(receipt, people)}
+        charges={receipt}
         currency={currency}
         onRemoveRounding={() => patchReceipt(id, { roundingInput: '' })}
       />

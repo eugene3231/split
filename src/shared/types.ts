@@ -48,30 +48,36 @@ export type OcrResponse = {
   warnings: string[];
 };
 
-export type SplitResult = {
-  lineItemsByPerson: Record<string, PersonReceiptLineItem[]>;
-  subtotalByPersonCents: Record<string, number>;
-  discountByPersonCents: Record<string, number>;
-  serviceByPersonCents: Record<string, number>;
-  gstByPersonCents: Record<string, number>;
-  roundingByPersonCents: Record<string, number>;
-  totalByPersonCents: Record<string, number>;
-  subtotalCents: number;
-  discountCents: number;
-  serviceChargeCents: number;
-  gstCents: number;
-  roundingCents: number;
-  grandTotalCents: number;
-  unassignedItemCount: number;
-};
+export const CHARGE_KINDS = ['discount', 'service', 'gst', 'rounding'] as const;
 
-export type PersonReceiptLineItem = {
+/** What changes a subtotal into a total, in the order it is applied. */
+export type ChargeKind = (typeof CHARGE_KINDS)[number];
+
+/** What a receipt, or one person's part of it, comes to. */
+export interface Amounts {
+  subtotalCents: number;
+  /** The discount comes off the subtotal; the other charges are added to it. */
+  chargeCents: Record<ChargeKind, number>;
+  totalCents: number;
+}
+
+export interface SplitLine {
   itemId: string;
   name: string;
-  /** The person's share of the item after its own discount. Zero when they had none of it. */
-  assignedAmountCents: number;
-  involved: boolean;
-};
+  /** The person's share of the item after its own discount. Null when they had none of it. */
+  amountCents: number | null;
+}
+
+export interface PersonSplit extends Amounts {
+  /** Every item on the receipt that somebody has, in receipt order. */
+  lines: SplitLine[];
+}
+
+export interface SplitResult {
+  /** The sum of everyone's amounts. */
+  totals: Amounts;
+  byPerson: Record<string, PersonSplit>;
+}
 
 export type Receipt = {
   id: string;
@@ -87,3 +93,9 @@ export type Receipt = {
   currency: string;
   exchangeRateOverride: number | null;
 };
+
+/** A receipt with its split, so the two never have to be matched up by position. */
+export interface ReceiptSplit {
+  receipt: Receipt;
+  split: SplitResult;
+}

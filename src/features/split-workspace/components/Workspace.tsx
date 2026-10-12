@@ -3,12 +3,13 @@ import {
   selectActiveReceipt,
   useReceiptStore,
 } from '@features/split-workspace/stores/receiptStore';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
 import { useAllAssignedMoment } from '@features/split-workspace/hooks/useAllAssignedMoment';
 import { countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
+import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
@@ -31,7 +32,7 @@ export function Workspace() {
     useShallow((state) => ({ people: state.people, receipts: state.receipts })),
   );
   const activeReceipt = useReceiptStore(selectActiveReceipt);
-  const { active, consolidated } = useReceiptSplit();
+  const { consolidated } = useSplits();
 
   const {
     activeStep,
@@ -101,8 +102,10 @@ export function Workspace() {
             leftCount={countItemsLeft(receipts, people)}
             activeStep={activeStep}
             activePerson={activePerson}
-            activePersonTotalCents={consolidated.split.totalByPersonCents[activePersonId] ?? 0}
-            receiptTotalCents={active.receiptTotals.grandTotalCents}
+            activePersonTotalCents={
+              activePerson ? consolidated.byPerson[activePerson.id].totalCents : 0
+            }
+            receiptTotalCents={computeReceiptTotals(activeReceipt, people).totalCents}
             receiptCurrency={activeReceipt.currency}
           />
         }

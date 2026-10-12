@@ -1,5 +1,10 @@
-import type { ChargeState, Person, SplitResult } from '@shared/types';
-import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
+import { CHARGE_KINDS } from '@shared/types';
+import type { Person, SplitResult } from '@shared/types';
+import {
+  resolveChargeLabel,
+  type ReceiptCharges,
+} from '@features/split-workspace/logic/chargeLabels';
+import { CHARGE_SIGN, centsByPerson } from '@features/split-workspace/logic/split/amounts';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 import type {
   OverviewChargeRow,
@@ -18,9 +23,7 @@ interface SectionSource {
   title: string;
   currency: string;
   split: SplitResult;
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
+  charges: ReceiptCharges;
 }
 
 export function resolveSummaryOverview({
@@ -33,10 +36,8 @@ export function resolveSummaryOverview({
     people,
     sections,
     currency: view.displayCurrency,
-    totalCents: view.grandTotal,
-    totalByPersonCents: Object.fromEntries(
-      people.map((person) => [person.id, view.displaySplit.totalByPersonCents[person.id] ?? 0]),
-    ),
+    totalCents: view.displaySplit.totals.totalCents,
+    totalByPersonCents: centsByPerson(view.displaySplit, 'total'),
   };
 }
 
@@ -48,21 +49,17 @@ function resolveSectionSources(view: SummaryView): SectionSource[] {
         title: view.receipt.name || 'Receipt',
         currency: view.displayCurrency,
         split: view.displaySplit,
-        discount: view.receipt.discount,
-        serviceCharge: view.receipt.serviceCharge,
-        gst: view.receipt.gst,
+        charges: view.receipt,
       },
     ];
   }
 
   return view.receiptBreakdowns.map((entry) => ({
-    id: entry.id,
+    id: entry.receipt.id,
     title: entry.name,
     currency: entry.currency,
     split: entry.split,
-    discount: entry.discount,
-    serviceCharge: entry.serviceCharge,
-    gst: entry.gst,
+    charges: entry.receipt,
   }));
 }
 
@@ -72,11 +69,9 @@ function buildSection(people: Person[], source: SectionSource): OverviewReceiptS
     title: source.title,
     currency: source.currency,
     itemRows: buildItemRows(people, source),
-    chargeRows: buildChargeRows(people, source),
-    totalCents: source.split.grandTotalCents,
-    totalByPersonCents: Object.fromEntries(
-      people.map((person) => [person.id, source.split.totalByPersonCents[person.id] ?? 0]),
-    ),
+    chargeRows: buildChargeRows(source),
+    totalCents: source.split.totals.totalCents,
+    totalByPersonCents: centsByPerson(source.split, 'total'),
   };
 }
 
@@ -87,7 +82,7 @@ function buildSection(people: Person[], source: SectionSource): OverviewReceiptS
 function buildItemRows(people: Person[], { split, currency }: SectionSource): OverviewItemRow[] {
   const rows = new Map<string, OverviewItemRow>();
   for (const person of people) {
-    for (const line of split.lineItemsByPerson[person.id] ?? []) {
+    for (const line of split.byPerson[person.id].lines) {
       const row = rows.get(line.itemId) ?? {
         id: line.itemId,
         name: line.name,
@@ -95,9 +90,9 @@ function buildItemRows(people: Person[], { split, currency }: SectionSource): Ov
         currency,
         sharesByPerson: {},
       };
-      if (line.involved) {
-        row.sharesByPerson[person.id] = line.assignedAmountCents;
-        row.priceCents += line.assignedAmountCents;
+      if (line.amountCents !== null) {
+        row.sharesByPerson[person.id] = line.amountCents;
+        row.priceCents += line.amountCents;
       }
       rows.set(line.itemId, row);
     }
@@ -105,48 +100,15 @@ function buildItemRows(people: Person[], { split, currency }: SectionSource): Ov
   return Array.from(rows.values());
 }
 
-function buildChargeRows(people: Person[], source: SectionSource): OverviewChargeRow[] {
-  const { split } = source;
-  const candidates: OverviewChargeRow[] = [
-    {
-      kind: 'discount',
-      label: buildChargeLabel('Discount', source.discount),
-      sign: 'minus',
-      totalCents: split.discountCents,
-      sharesByPerson: nonZeroShares(people, split.discountByPersonCents),
-    },
-    {
-      kind: 'service',
-      label: buildChargeLabel('Service Charge', source.serviceCharge),
-      sign: 'plus',
-      totalCents: split.serviceChargeCents,
-      sharesByPerson: nonZeroShares(people, split.serviceByPersonCents),
-    },
-    {
-      kind: 'gst',
-      label: buildChargeLabel('GST / Tax', source.gst),
-      sign: 'plus',
-      totalCents: split.gstCents,
-      sharesByPerson: nonZeroShares(people, split.gstByPersonCents),
-    },
-    {
-      kind: 'rounding',
-      label: 'Rounding',
-      sign: 'plus',
-      totalCents: split.roundingCents,
-      sharesByPerson: nonZeroShares(people, split.roundingByPersonCents),
-    },
-  ];
-  return candidates.filter((row) => row.totalCents > 0);
-}
-
-function nonZeroShares(
-  people: Person[],
-  byPersonCents: Record<string, number>,
-): Record<string, number> {
-  return Object.fromEntries(
-    people
-      .map((person) => [person.id, byPersonCents[person.id] ?? 0] as const)
-      .filter(([, cents]) => cents !== 0),
-  );
+/** A charge gets a row when the receipt has any of it, listing only the people it touched. */
+function buildChargeRows({ split, charges }: SectionSource): OverviewChargeRow[] {
+  return CHARGE_KINDS.filter((kind) => split.totals.chargeCents[kind] > 0).map((kind) => ({
+    kind,
+    label: resolveChargeLabel(kind, charges),
+    sign: CHARGE_SIGN[kind],
+    totalCents: split.totals.chargeCents[kind],
+    sharesByPerson: Object.fromEntries(
+      Object.entries(centsByPerson(split, kind)).filter(([, cents]) => cents !== 0),
+    ),
+  }));
 }

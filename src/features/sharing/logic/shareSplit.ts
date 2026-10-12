@@ -9,15 +9,15 @@ export function buildSplitShareText(args: {
   people: Person[];
   receiptName: string;
   split: SplitResult;
-  currency?: string;
+  currency: string;
 }): string {
   const lines = [
-    `${args.receiptName} total: ${formatCurrencyFromCents(args.split.grandTotalCents, args.currency)}\n`,
+    `${args.receiptName} total: ${formatCurrencyFromCents(args.split.totals.totalCents, args.currency)}\n`,
   ];
 
   for (const person of args.people) {
     lines.push(
-      `${person.name}: ${formatCurrencyFromCents(args.split.totalByPersonCents[person.id] ?? 0, args.currency)}`,
+      `${person.name}: ${formatCurrencyFromCents(args.split.byPerson[person.id].totalCents, args.currency)}`,
     );
   }
 

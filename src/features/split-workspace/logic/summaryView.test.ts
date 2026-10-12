@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChargeState, Receipt, SplitResult } from '@shared/types';
 import { resolveSummaryView } from './summaryView';
 import type { ResolveSummaryViewInput } from './summaryView';
+import { makeSplit as buildSplit } from '../../../tests/integration/testHelpers';
 
 const rates: Record<string, number> = { SGD: 1, USD: 1.35, JPY: 0.009 };
 
@@ -33,30 +34,13 @@ function makeReceipt(id: string, currency = 'SGD', override: number | null = nul
 }
 
 function makeSplit(total: number): SplitResult {
-  return {
-    lineItemsByPerson: {},
-    subtotalByPersonCents: { p1: total },
-    discountByPersonCents: { p1: 0 },
-    serviceByPersonCents: { p1: 0 },
-    gstByPersonCents: { p1: 0 },
-    roundingByPersonCents: {},
-    totalByPersonCents: { p1: total },
-    subtotalCents: total,
-    discountCents: 0,
-    serviceChargeCents: 0,
-    gstCents: 0,
-    roundingCents: 0,
-    grandTotalCents: total,
-    unassignedItemCount: 0,
-  };
+  return buildSplit({ p1: { subtotalCents: total } });
 }
 
 function makeInput(overrides: Partial<ResolveSummaryViewInput> = {}): ResolveSummaryViewInput {
   return {
-    people: [{ id: 'p1', name: 'Alice' }],
-    receipts: [],
-    splitByReceipt: [],
-    consolidatedSplit: makeSplit(0),
+    receiptSplits: [{ receipt: makeReceipt('r0'), split: makeSplit(0) }],
+    consolidated: makeSplit(0),
     exchangeRates: rates,
     activeTab: 'total',
     showBaseCurrency: false,
@@ -67,37 +51,35 @@ function makeInput(overrides: Partial<ResolveSummaryViewInput> = {}): ResolveSum
 // ─── Total tab ────────────────────────────────────────────────────────────────
 
 describe('resolveSummaryView — total tab', () => {
-  it('returns kind:total with consolidatedSplit as displaySplit', () => {
+  it('returns kind:total with the consolidated split as displaySplit', () => {
     const consolidated = makeSplit(3000);
-    const view = resolveSummaryView(
-      makeInput({ consolidatedSplit: consolidated, activeTab: 'total' }),
-    );
+    const view = resolveSummaryView(makeInput({ consolidated: consolidated, activeTab: 'total' }));
     expect(view.kind).toBe('total');
     if (view.kind !== 'total') return;
     expect(view.displaySplit).toBe(consolidated);
     expect(view.displayCurrency).toBe('SGD');
   });
 
-  it('computes grandTotal from consolidatedSplit', () => {
+  it('totals the consolidated split', () => {
     const view = resolveSummaryView(
-      makeInput({ consolidatedSplit: makeSplit(5000), activeTab: 'total' }),
+      makeInput({ consolidated: makeSplit(5000), activeTab: 'total' }),
     );
-    expect(view.grandTotal).toBe(5000);
+    expect(view.displaySplit.totals.totalCents).toBe(5000);
   });
 
-  it('sgdSplit equals consolidatedSplit on total tab', () => {
+  it('baseSplit is the consolidated split on total tab', () => {
     const consolidated = makeSplit(3000);
-    const view = resolveSummaryView(
-      makeInput({ consolidatedSplit: consolidated, activeTab: 'total' }),
-    );
-    expect(view.sgdSplit).toBe(consolidated);
+    const view = resolveSummaryView(makeInput({ consolidated: consolidated, activeTab: 'total' }));
+    expect(view.baseSplit).toBe(consolidated);
   });
 
   it('hasAnyForeign is true when at least one receipt is non-SGD', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [makeReceipt('r1', 'SGD'), makeReceipt('r2', 'USD')],
-        splitByReceipt: [makeSplit(1000), makeSplit(500)],
+        receiptSplits: [
+          { receipt: makeReceipt('r1', 'SGD'), split: makeSplit(1000) },
+          { receipt: makeReceipt('r2', 'USD'), split: makeSplit(500) },
+        ],
         activeTab: 'total',
       }),
     );
@@ -108,8 +90,10 @@ describe('resolveSummaryView — total tab', () => {
   it('hasAnyForeign is false when all receipts are SGD', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [makeReceipt('r1'), makeReceipt('r2')],
-        splitByReceipt: [makeSplit(1000), makeSplit(2000)],
+        receiptSplits: [
+          { receipt: makeReceipt('r1'), split: makeSplit(1000) },
+          { receipt: makeReceipt('r2'), split: makeSplit(2000) },
+        ],
         activeTab: 'total',
       }),
     );
@@ -120,8 +104,11 @@ describe('resolveSummaryView — total tab', () => {
   it('billedCurrencies lists each receipt currency once, in receipt order', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'JPY'), makeReceipt('r3', 'USD')],
-        splitByReceipt: [makeSplit(500), makeSplit(50000), makeSplit(200)],
+        receiptSplits: [
+          { receipt: makeReceipt('r1', 'USD'), split: makeSplit(500) },
+          { receipt: makeReceipt('r2', 'JPY'), split: makeSplit(50000) },
+          { receipt: makeReceipt('r3', 'USD'), split: makeSplit(200) },
+        ],
         activeTab: 'total',
       }),
     );
@@ -132,27 +119,31 @@ describe('resolveSummaryView — total tab', () => {
   it('totals in the shared currency as billed when every receipt uses it', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'USD')],
-        splitByReceipt: [makeSplit(500), makeSplit(200)],
-        consolidatedSplit: makeSplit(945),
+        receiptSplits: [
+          { receipt: makeReceipt('r1', 'USD'), split: makeSplit(500) },
+          { receipt: makeReceipt('r2', 'USD'), split: makeSplit(200) },
+        ],
+        consolidated: makeSplit(945),
         activeTab: 'total',
       }),
     );
     if (view.kind !== 'total') return;
     expect(view.displayCurrency).toBe('USD');
-    expect(view.displaySplit.totalByPersonCents.p1).toBe(700);
-    expect(view.grandTotal).toBe(700);
+    expect(view.displaySplit.byPerson.p1.totalCents).toBe(700);
+    expect(view.displaySplit.totals.totalCents).toBe(700);
     expect(view.billedRate).toBe(1.35);
-    expect(view.sgdSplit.totalByPersonCents.p1).toBe(945);
+    expect(view.baseSplit.byPerson.p1.totalCents).toBe(945);
   });
 
   it('totals in SGD when the toggle asks for it, even with one shared currency', () => {
     const consolidated = makeSplit(945);
     const view = resolveSummaryView(
       makeInput({
-        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'USD')],
-        splitByReceipt: [makeSplit(500), makeSplit(200)],
-        consolidatedSplit: consolidated,
+        receiptSplits: [
+          { receipt: makeReceipt('r1', 'USD'), split: makeSplit(500) },
+          { receipt: makeReceipt('r2', 'USD'), split: makeSplit(200) },
+        ],
+        consolidated: consolidated,
         activeTab: 'total',
         showBaseCurrency: true,
       }),
@@ -165,9 +156,11 @@ describe('resolveSummaryView — total tab', () => {
     const consolidated = makeSplit(1125);
     const view = resolveSummaryView(
       makeInput({
-        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'JPY')],
-        splitByReceipt: [makeSplit(500), makeSplit(50000)],
-        consolidatedSplit: consolidated,
+        receiptSplits: [
+          { receipt: makeReceipt('r1', 'USD'), split: makeSplit(500) },
+          { receipt: makeReceipt('r2', 'JPY'), split: makeSplit(50000) },
+        ],
+        consolidated: consolidated,
         activeTab: 'total',
       }),
     );
@@ -180,8 +173,10 @@ describe('resolveSummaryView — total tab', () => {
   it('leaves billedRate empty when one receipt has its own rate', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [makeReceipt('r1', 'USD'), makeReceipt('r2', 'USD', 1.4)],
-        splitByReceipt: [makeSplit(500), makeSplit(200)],
+        receiptSplits: [
+          { receipt: makeReceipt('r1', 'USD'), split: makeSplit(500) },
+          { receipt: makeReceipt('r2', 'USD', 1.4), split: makeSplit(200) },
+        ],
         activeTab: 'total',
       }),
     );
@@ -195,8 +190,7 @@ describe('resolveSummaryView — total tab', () => {
     const s1 = makeSplit(500);
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r1],
-        splitByReceipt: [s1],
+        receiptSplits: [{ receipt: r1, split: s1 }],
         activeTab: 'total',
         showBaseCurrency: false,
       }),
@@ -211,8 +205,7 @@ describe('resolveSummaryView — total tab', () => {
     const s1 = makeSplit(500); // 500 USD cents
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r1],
-        splitByReceipt: [s1],
+        receiptSplits: [{ receipt: r1, split: s1 }],
         activeTab: 'total',
         showBaseCurrency: true,
       }),
@@ -220,30 +213,14 @@ describe('resolveSummaryView — total tab', () => {
     if (view.kind !== 'total') return;
     expect(view.receiptBreakdowns[0].currency).toBe('SGD');
     // 500 USD cents * 1.35 = 675 SGD cents
-    expect(view.receiptBreakdowns[0].split.totalByPersonCents.p1).toBe(675);
-  });
-
-  it('uses BASE_CURRENCY when receipt slot is missing from receipts (splitByReceipt longer)', () => {
-    // splitByReceipt longer than receipts → receipts[i]?.currency is undefined → ?? BASE_CURRENCY
-    const s1 = makeSplit(500);
-    const view = resolveSummaryView(
-      makeInput({
-        receipts: [],
-        splitByReceipt: [s1],
-        activeTab: 'total',
-      }),
-    );
-    expect(view.kind).toBe('total');
-    if (view.kind !== 'total') return;
-    expect(view.receiptBreakdowns).toHaveLength(0);
+    expect(view.receiptBreakdowns[0].split.byPerson.p1.totalCents).toBe(675);
   });
 
   it('uses "Receipt N" name when receipt name is empty', () => {
     const r1 = { ...makeReceipt('r1', 'SGD'), name: '' };
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r1],
-        splitByReceipt: [makeSplit(1000)],
+        receiptSplits: [{ receipt: r1, split: makeSplit(1000) }],
         activeTab: 'total',
       }),
     );
@@ -251,58 +228,16 @@ describe('resolveSummaryView — total tab', () => {
     expect(view.receiptBreakdowns[0].name).toBe('Receipt 1');
   });
 
-  it('includes per-receipt charge metadata in receiptBreakdowns', () => {
+  it('carries each receipt in receiptBreakdowns, for its charge settings', () => {
     const r1 = makeReceipt('r1', 'SGD');
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r1],
-        splitByReceipt: [makeSplit(1000)],
+        receiptSplits: [{ receipt: r1, split: makeSplit(1000) }],
         activeTab: 'total',
       }),
     );
     if (view.kind !== 'total') return;
-    expect(view.receiptBreakdowns[0].discount).toBe(r1.discount);
-    expect(view.receiptBreakdowns[0].serviceCharge).toBe(r1.serviceCharge);
-    expect(view.receiptBreakdowns[0].gst).toBe(r1.gst);
-  });
-
-  it('falls back to splitByReceipt[i] when sgdSplitByReceipt[i] is undefined (receipts longer than splits)', () => {
-    // receipts.length > splitByReceipt.length with showBaseCurrency=true:
-    // sgdSplitByReceipt is built from splitByReceipt.map(), so sgdSplitByReceipt[1] is undefined
-    // → the ?? splitByReceipt[i] fallback branch is exercised
-    const r1 = makeReceipt('r1', 'USD');
-    const r2 = makeReceipt('r2', 'SGD');
-    const s1 = makeSplit(500);
-    const view = resolveSummaryView(
-      makeInput({
-        receipts: [r1, r2],
-        splitByReceipt: [s1], // only 1 split for 2 receipts
-        activeTab: 'total',
-        showBaseCurrency: true,
-      }),
-    );
-    if (view.kind !== 'total') return;
-    expect(view.receiptBreakdowns).toHaveLength(2);
-    expect(view.receiptBreakdowns[0].currency).toBe('SGD');
-  });
-
-  it('treats receipt with null currency as SGD (defensive runtime check)', () => {
-    const r1 = { ...makeReceipt('r1', 'SGD'), currency: null as unknown as string };
-    const r2 = makeReceipt('r2', 'USD');
-    const view = resolveSummaryView(
-      makeInput({
-        receipts: [r1, r2],
-        splitByReceipt: [makeSplit(1000), makeSplit(500)],
-        activeTab: 'total',
-        showBaseCurrency: false,
-      }),
-    );
-    if (view.kind !== 'total') return;
-    // null ?? BASE_CURRENCY → 'SGD', so r1 is not foreign
-    expect(view.receiptBreakdowns[0].currency).toBe('SGD');
-    expect(view.receiptBreakdowns[0].effectiveRate).toBeUndefined();
-    // hasAnyForeign should still be true because r2 is USD
-    expect(view.hasAnyForeign).toBe(true);
+    expect(view.receiptBreakdowns[0].receipt).toBe(r1);
   });
 });
 
@@ -317,8 +252,7 @@ describe('resolveSummaryView — receipt tab', () => {
   it('returns kind:receipt with native split and currency for SGD receipt', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r1],
-        splitByReceipt: [sgdSplit],
+        receiptSplits: [{ receipt: r1, split: sgdSplit }],
         activeTab: 'r1',
       }),
     );
@@ -334,8 +268,7 @@ describe('resolveSummaryView — receipt tab', () => {
   it('foreign receipt with showBaseCurrency=false: displaySplit in native currency', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r2],
-        splitByReceipt: [usdSplit],
+        receiptSplits: [{ receipt: r2, split: usdSplit }],
         activeTab: 'r2',
         showBaseCurrency: false,
       }),
@@ -350,8 +283,7 @@ describe('resolveSummaryView — receipt tab', () => {
   it('foreign receipt with showBaseCurrency=true: displaySplit converted to SGD', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r2],
-        splitByReceipt: [usdSplit],
+        receiptSplits: [{ receipt: r2, split: usdSplit }],
         activeTab: 'r2',
         showBaseCurrency: true,
       }),
@@ -359,55 +291,51 @@ describe('resolveSummaryView — receipt tab', () => {
     if (view.kind !== 'receipt') return;
     expect(view.displayCurrency).toBe('SGD');
     // 500 USD cents * 1.35 = 675 SGD cents
-    expect(view.displaySplit.totalByPersonCents.p1).toBe(675);
+    expect(view.displaySplit.byPerson.p1.totalCents).toBe(675);
   });
 
-  it('sgdSplit is converted to SGD for foreign receipt', () => {
+  it('baseSplit is converted to SGD for foreign receipt', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r2],
-        splitByReceipt: [usdSplit],
+        receiptSplits: [{ receipt: r2, split: usdSplit }],
         activeTab: 'r2',
       }),
     );
     if (view.kind !== 'receipt') return;
-    expect(view.sgdSplit.totalByPersonCents.p1).toBe(675);
+    expect(view.baseSplit.byPerson.p1.totalCents).toBe(675);
   });
 
-  it('sgdSplit equals nativeSplit for SGD receipt', () => {
+  it('baseSplit equals nativeSplit for SGD receipt', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r1],
-        splitByReceipt: [sgdSplit],
+        receiptSplits: [{ receipt: r1, split: sgdSplit }],
         activeTab: 'r1',
       }),
     );
     if (view.kind !== 'receipt') return;
-    expect(view.sgdSplit).toBe(sgdSplit);
+    expect(view.baseSplit).toBe(sgdSplit);
   });
 
   it('uses override rate when set on receipt', () => {
     const r3 = makeReceipt('r3', 'USD', 1.5);
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r3],
-        splitByReceipt: [usdSplit],
+        receiptSplits: [{ receipt: r3, split: usdSplit }],
         activeTab: 'r3',
       }),
     );
     if (view.kind !== 'receipt') return;
     expect(view.effectiveRate).toBe(1.5);
     // 500 cents * 1.5 = 750 SGD cents
-    expect(view.sgdSplit.totalByPersonCents.p1).toBe(750);
+    expect(view.baseSplit.byPerson.p1.totalCents).toBe(750);
   });
 
   it('shows every receipt when activeTab matches none of them', () => {
     const consolidated = makeSplit(1000);
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r1],
-        splitByReceipt: [sgdSplit],
-        consolidatedSplit: consolidated,
+        receiptSplits: [{ receipt: r1, split: sgdSplit }],
+        consolidated: consolidated,
         activeTab: 'unknown-id',
       }),
     );
@@ -415,14 +343,13 @@ describe('resolveSummaryView — receipt tab', () => {
     expect(view.displaySplit).toBe(consolidated);
   });
 
-  it('grandTotal is computed from displaySplit', () => {
+  it('totals the displayed split', () => {
     const view = resolveSummaryView(
       makeInput({
-        receipts: [r1],
-        splitByReceipt: [sgdSplit],
+        receiptSplits: [{ receipt: r1, split: sgdSplit }],
         activeTab: 'r1',
       }),
     );
-    expect(view.grandTotal).toBe(1000);
+    expect(view.displaySplit.totals.totalCents).toBe(1000);
   });
 });

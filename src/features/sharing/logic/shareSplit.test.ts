@@ -6,6 +6,7 @@ import {
   getShareSupport,
   shareText,
 } from '@features/sharing/logic/shareSplit';
+import { makeSplit } from '../../../tests/integration/testHelpers';
 
 describe('buildDownloadFilename', () => {
   beforeEach(() => {
@@ -51,25 +52,8 @@ describe('buildSplitShareText', () => {
           { id: 'p2', name: 'Ben' },
         ],
         receiptName: 'Split',
-        split: {
-          lineItemsByPerson: {},
-          subtotalByPersonCents: {},
-          discountByPersonCents: {},
-          serviceByPersonCents: {},
-          gstByPersonCents: {},
-          roundingByPersonCents: {},
-          totalByPersonCents: {
-            p1: 1250,
-            p2: 2500,
-          },
-          subtotalCents: 0,
-          discountCents: 0,
-          serviceChargeCents: 0,
-          gstCents: 0,
-          roundingCents: 0,
-          grandTotalCents: 3750,
-          unassignedItemCount: 0,
-        },
+        split: makeSplit({ p1: { subtotalCents: 1250 }, p2: { subtotalCents: 2500 } }),
+        currency: 'SGD',
       }),
     ).toBe('Split total: $37.50\n\nAlice: $12.50\nBen: $25.00');
   });

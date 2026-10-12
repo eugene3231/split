@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { computeSplit } from '@features/split-workspace/logic/split/split';
-import { amountCharge, disabledCharge, makeItem } from '../../../tests/integration/testHelpers';
-import type { PersonReceiptLineItem, SplitResult } from '@shared/types';
+import {
+  amountCharge,
+  disabledCharge,
+  makeItem,
+  makeReceipt,
+  makeSplit,
+} from '../../../tests/integration/testHelpers';
+import type { SplitLine } from '@shared/types';
 import {
   convertCents,
   convertSplitResult,
   getEffectiveRate,
 } from '@features/split-workspace/logic/exchangeRates';
 import { equalShares } from '@features/split-workspace/logic/assignment';
+import { centsByPerson } from '@features/split-workspace/logic/split/amounts';
 
 const rates: Record<string, number> = {
   SGD: 1,
@@ -16,46 +23,16 @@ const rates: Record<string, number> = {
   JPY: 0.009,
 };
 
-// Minimal SplitResult for two people
-function makeSplitResult(overrides: Partial<SplitResult> = {}): SplitResult {
-  return {
-    lineItemsByPerson: {
-      p1: [
-        {
-          itemId: 'i1',
-          name: 'Pad Thai',
-          assignedAmountCents: 250,
-          involved: true,
-        },
-      ],
-      p2: [
-        {
-          itemId: 'i1',
-          name: 'Pad Thai',
-          assignedAmountCents: 250,
-          involved: true,
-        },
-      ],
-    },
-    subtotalByPersonCents: { p1: 250, p2: 250 },
-    discountByPersonCents: { p1: 0, p2: 0 },
-    serviceByPersonCents: { p1: 13, p2: 12 },
-    gstByPersonCents: { p1: 11, p2: 11 },
-    roundingByPersonCents: {},
-    totalByPersonCents: { p1: 274, p2: 273 },
-    subtotalCents: 500,
-    discountCents: 0,
-    serviceChargeCents: 25,
-    gstCents: 22,
-    roundingCents: 0,
-    grandTotalCents: 547,
-    unassignedItemCount: 0,
-    ...overrides,
-  };
+function line(itemId: string, amountCents: number): SplitLine {
+  return { itemId, name: itemId, amountCents };
 }
 
-function line(itemId: string, assignedAmountCents: number): PersonReceiptLineItem {
-  return { itemId, name: itemId, assignedAmountCents, involved: true };
+/** Two people who shared one 5.00 item, with service charge and tax on top. */
+function padThaiSplit() {
+  return makeSplit({
+    p1: { subtotalCents: 250, service: 13, gst: 11, lines: [line('i1', 250)] },
+    p2: { subtotalCents: 250, service: 12, gst: 11, lines: [line('i1', 250)] },
+  });
 }
 
 function sum(values: Record<string, number>): number {
@@ -136,67 +113,68 @@ describe('convertSplitResult', () => {
   ])(
     'keeps a fully discounted person nonnegative at %s per item',
     (amount, discount, subtotal, discountCents) => {
-      const native = computeSplit({
-        people: [
+      const native = computeSplit(
+        makeReceipt({
+          items: ['a', 'b'].map((id) =>
+            makeItem({
+              id,
+              amountInput: amount,
+              assignment: equalShares([id]),
+            }),
+          ),
+          discount: amountCharge(discount),
+          serviceCharge: disabledCharge,
+          gst: disabledCharge,
+        }),
+        [
           { id: 'a', name: 'A' },
           { id: 'b', name: 'B' },
         ],
-        items: ['a', 'b'].map((id) =>
-          makeItem({
-            id,
-            amountInput: amount,
-            assignment: equalShares([id]),
-          }),
-        ),
-        discount: amountCharge(discount),
-        serviceCharge: disabledCharge,
-        gst: disabledCharge,
-      });
+      );
       const converted = convertSplitResult(native, 'USD', 'SGD', rates);
-      expect(converted.totalByPersonCents).toEqual({ a: 0, b: 1 });
-      expect(converted.subtotalCents).toBe(subtotal);
-      expect(converted.discountCents).toBe(discountCents);
-      expect(sum(converted.subtotalByPersonCents)).toBe(subtotal);
-      expect(sum(converted.discountByPersonCents)).toBe(discountCents);
-      expect(sum(converted.totalByPersonCents)).toBe(1);
+      expect(centsByPerson(converted, 'total')).toEqual({ a: 0, b: 1 });
+      expect(converted.totals.subtotalCents).toBe(subtotal);
+      expect(converted.totals.chargeCents.discount).toBe(discountCents);
+      expect(sum(centsByPerson(converted, 'subtotal'))).toBe(subtotal);
+      expect(sum(centsByPerson(converted, 'discount'))).toBe(discountCents);
+      expect(sum(centsByPerson(converted, 'total'))).toBe(1);
       for (const id of ['a', 'b']) {
-        expect(converted.subtotalByPersonCents[id]).toBeGreaterThanOrEqual(
-          converted.discountByPersonCents[id],
+        expect(converted.byPerson[id].subtotalCents).toBeGreaterThanOrEqual(
+          converted.byPerson[id].chargeCents.discount,
         );
-        expect(converted.totalByPersonCents[id]).toBe(
-          converted.subtotalByPersonCents[id] - converted.discountByPersonCents[id],
+        expect(converted.byPerson[id].totalCents).toBe(
+          converted.byPerson[id].subtotalCents - converted.byPerson[id].chargeCents.discount,
         );
         expect(
-          converted.lineItemsByPerson[id].reduce(
-            (total, item) => total + item.assignedAmountCents,
-            0,
-          ),
-        ).toBe(converted.subtotalByPersonCents[id]);
+          converted.byPerson[id].lines.reduce((total, item) => total + (item.amountCents ?? 0), 0),
+        ).toBe(converted.byPerson[id].subtotalCents);
       }
       if (amount === '0.01') {
-        expect(converted.subtotalByPersonCents).toEqual({ a: 2, b: 1 });
-        expect(converted.discountByPersonCents).toEqual({ a: 2, b: 0 });
+        expect(centsByPerson(converted, 'subtotal')).toEqual({ a: 2, b: 1 });
+        expect(centsByPerson(converted, 'discount')).toEqual({ a: 2, b: 0 });
       }
     },
   );
 
   it('repairs multiple deficits from multiple donors without changing discount recipients', () => {
     const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
-    const native = computeSplit({
-      people: ids.map((id) => ({ id, name: id })),
-      items: ids.map((id) =>
-        makeItem({
-          id,
-          amountInput: '0.01',
-          assignment: equalShares([id]),
-        }),
-      ),
-      discount: amountCharge('0.05'),
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    const native = computeSplit(
+      makeReceipt({
+        items: ids.map((id) =>
+          makeItem({
+            id,
+            amountInput: '0.01',
+            assignment: equalShares([id]),
+          }),
+        ),
+        discount: amountCharge('0.05'),
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
+      ids.map((id) => ({ id, name: id })),
+    );
     const converted = convertSplitResult(native, 'USD', 'SGD', rates);
-    expect(converted.subtotalByPersonCents).toEqual({
+    expect(centsByPerson(converted, 'subtotal')).toEqual({
       a: 2,
       b: 2,
       c: 1,
@@ -208,7 +186,7 @@ describe('convertSplitResult', () => {
       i: 1,
       j: 1,
     });
-    expect(converted.discountByPersonCents).toEqual({
+    expect(centsByPerson(converted, 'discount')).toEqual({
       a: 2,
       b: 2,
       c: 1,
@@ -220,7 +198,7 @@ describe('convertSplitResult', () => {
       i: 0,
       j: 0,
     });
-    expect(converted.totalByPersonCents).toEqual({
+    expect(centsByPerson(converted, 'total')).toEqual({
       a: 0,
       b: 0,
       c: 0,
@@ -232,179 +210,129 @@ describe('convertSplitResult', () => {
       i: 1,
       j: 1,
     });
-    expect(sum(converted.subtotalByPersonCents)).toBe(14);
-    expect(sum(converted.discountByPersonCents)).toBe(7);
-    expect(sum(converted.totalByPersonCents)).toBe(7);
+    expect(sum(centsByPerson(converted, 'subtotal'))).toBe(14);
+    expect(sum(centsByPerson(converted, 'discount'))).toBe(7);
+    expect(sum(centsByPerson(converted, 'total'))).toBe(7);
     for (const id of ids) {
       expect(
-        converted.lineItemsByPerson[id].reduce(
-          (total, item) => total + item.assignedAmountCents,
-          0,
-        ),
-      ).toBe(converted.subtotalByPersonCents[id]);
+        converted.byPerson[id].lines.reduce((total, item) => total + (item.amountCents ?? 0), 0),
+      ).toBe(converted.byPerson[id].subtotalCents);
     }
   });
 
   it('returns the same result unchanged when currencies are identical', () => {
-    const split = makeSplitResult();
+    const split = padThaiSplit();
     const result = convertSplitResult(split, 'SGD', 'SGD', rates);
     expect(result).toBe(split); // same reference
   });
 
   it('converts all monetary fields from USD to SGD', () => {
-    const split = makeSplitResult({
-      subtotalCents: 1000, // $10 USD → $13.50 SGD = 1350 SGD cents
-      grandTotalCents: 1200, // $12 USD → $16.20 SGD = 1620 SGD cents
-      serviceChargeCents: 100, // $1 USD → $1.35 SGD = 135 SGD cents
-      gstCents: 100,
-      roundingCents: 0,
-      discountCents: 0,
-      subtotalByPersonCents: { p1: 500, p2: 500 },
-      totalByPersonCents: { p1: 600, p2: 600 },
-      serviceByPersonCents: { p1: 50, p2: 50 },
-      gstByPersonCents: { p1: 50, p2: 50 },
-      roundingByPersonCents: {},
-      discountByPersonCents: { p1: 0, p2: 0 },
+    // $10.00 of food, $1.00 service and $1.00 tax, shared evenly
+    const split = makeSplit({
+      p1: { subtotalCents: 500, service: 50, gst: 50, lines: [line('a', 500)] },
+      p2: { subtotalCents: 500, service: 50, gst: 50, lines: [line('b', 500)] },
     });
 
     const result = convertSplitResult(split, 'USD', 'SGD', rates);
 
     // 1 USD = 1.35 SGD
-    expect(result.subtotalCents).toBe(1350);
-    expect(result.grandTotalCents).toBe(1620);
-    expect(result.serviceChargeCents).toBe(135);
-    expect(result.gstCents).toBe(135);
-    expect(result.subtotalByPersonCents).toEqual({ p1: 675, p2: 675 });
-    expect(result.totalByPersonCents).toEqual({ p1: 810, p2: 810 });
+    expect(result.totals.subtotalCents).toBe(1350);
+    expect(result.totals.totalCents).toBe(1620);
+    expect(result.totals.chargeCents.service).toBe(135);
+    expect(result.totals.chargeCents.gst).toBe(135);
+    expect(centsByPerson(result, 'subtotal')).toEqual({ p1: 675, p2: 675 });
+    expect(centsByPerson(result, 'total')).toEqual({ p1: 810, p2: 810 });
   });
 
   it('balances tied charge cents between people with equal native totals', () => {
-    const split = makeSplitResult({
-      lineItemsByPerson: { p1: [line('a', 500)], p2: [line('b', 500)] },
-      subtotalByPersonCents: { p1: 500, p2: 500 },
-      discountByPersonCents: { p1: 0, p2: 0 },
-      serviceByPersonCents: { p1: 50, p2: 50 },
-      gstByPersonCents: { p1: 50, p2: 50 },
-      roundingByPersonCents: {},
-      totalByPersonCents: { p1: 600, p2: 600 },
-      subtotalCents: 1000,
-      discountCents: 0,
-      serviceChargeCents: 100,
-      gstCents: 100,
-      roundingCents: 0,
-      grandTotalCents: 1200,
+    const split = makeSplit({
+      p1: { subtotalCents: 500, service: 50, gst: 50, lines: [line('a', 500)] },
+      p2: { subtotalCents: 500, service: 50, gst: 50, lines: [line('b', 500)] },
     });
 
     const converted = convertSplitResult(split, 'USD', 'SGD', rates);
 
-    expect(converted.serviceByPersonCents).toEqual({ p1: 68, p2: 67 });
-    expect(converted.gstByPersonCents).toEqual({ p1: 67, p2: 68 });
-    expect(converted.totalByPersonCents).toEqual({ p1: 810, p2: 810 });
-    expect(converted.grandTotalCents).toBe(1620);
+    expect(centsByPerson(converted, 'service')).toEqual({ p1: 68, p2: 67 });
+    expect(centsByPerson(converted, 'gst')).toEqual({ p1: 67, p2: 68 });
+    expect(centsByPerson(converted, 'total')).toEqual({ p1: 810, p2: 810 });
+    expect(converted.totals.totalCents).toBe(1620);
   });
 
   it('converts line item amounts', () => {
-    const split = makeSplitResult(); // line items have assignedAmountCents: 250
+    const split = padThaiSplit(); // each person's line is 250
     const result = convertSplitResult(split, 'USD', 'SGD', rates);
 
     // 250 USD cents * 1.35 = 337.5 → 338 SGD cents
-    expect(result.lineItemsByPerson.p1[0].assignedAmountCents).toBe(338);
-    expect(result.lineItemsByPerson.p2[0].assignedAmountCents).toBe(337);
+    expect(result.byPerson.p1.lines[0].amountCents).toBe(338);
+    expect(result.byPerson.p2.lines[0].amountCents).toBe(337);
   });
 
   it('converts the receipt once and allocates its rounding cent across people', () => {
-    const split = makeSplitResult({
-      lineItemsByPerson: { p1: [line('a', 1001)], p2: [line('b', 1001)] },
-      subtotalByPersonCents: { p1: 1001, p2: 1001 },
-      discountByPersonCents: { p1: 0, p2: 0 },
-      serviceByPersonCents: { p1: 0, p2: 0 },
-      gstByPersonCents: { p1: 0, p2: 0 },
-      roundingByPersonCents: {},
-      totalByPersonCents: { p1: 1001, p2: 1001 },
-      subtotalCents: 2002,
-      discountCents: 0,
-      serviceChargeCents: 0,
-      gstCents: 0,
-      roundingCents: 0,
-      grandTotalCents: 2002,
+    const split = makeSplit({
+      p1: { subtotalCents: 1001, lines: [line('a', 1001)] },
+      p2: { subtotalCents: 1001, lines: [line('b', 1001)] },
     });
 
     const converted = convertSplitResult(split, 'USD', 'SGD', rates);
 
-    expect(converted.grandTotalCents).toBe(2703);
-    expect(converted.totalByPersonCents).toEqual({ p1: 1352, p2: 1351 });
-    expect(converted.lineItemsByPerson.p1[0].assignedAmountCents).toBe(1352);
-    expect(converted.lineItemsByPerson.p2[0].assignedAmountCents).toBe(1351);
+    expect(converted.totals.totalCents).toBe(2703);
+    expect(centsByPerson(converted, 'total')).toEqual({ p1: 1352, p2: 1351 });
+    expect(converted.byPerson.p1.lines[0].amountCents).toBe(1352);
+    expect(converted.byPerson.p2.lines[0].amountCents).toBe(1351);
   });
 
   it('balances categories and item lines through discounts, service, and GST', () => {
-    const split = makeSplitResult({
-      lineItemsByPerson: {
-        p1: [line('discounted', 1001), line('small', 1)],
-        p2: [line('other', 1001)],
+    const split = makeSplit({
+      p1: {
+        subtotalCents: 1002,
+        discount: 1,
+        service: 1,
+        gst: 1,
+        lines: [line('discounted', 1001), line('small', 1)],
       },
-      subtotalByPersonCents: { p1: 1002, p2: 1001 },
-      discountByPersonCents: { p1: 1, p2: 1 },
-      serviceByPersonCents: { p1: 1, p2: 1 },
-      gstByPersonCents: { p1: 1, p2: 0 },
-      roundingByPersonCents: {},
-      totalByPersonCents: { p1: 1003, p2: 1001 },
-      subtotalCents: 2003,
-      discountCents: 2,
-      serviceChargeCents: 2,
-      gstCents: 1,
-      roundingCents: 0,
-      grandTotalCents: 2004,
+      p2: { subtotalCents: 1001, discount: 1, service: 1, lines: [line('other', 1001)] },
     });
 
     const converted = convertSplitResult(split, 'USD', 'SGD', rates);
 
-    expect(converted.grandTotalCents).toBe(2705);
-    expect(converted.subtotalCents).toBe(2704);
-    expect(converted.discountCents).toBe(3);
-    expect(converted.serviceChargeCents).toBe(3);
-    expect(converted.gstCents).toBe(1);
-    expect(converted.lineItemsByPerson.p1.map((item) => item.assignedAmountCents)).toEqual([
-      1352, 1,
-    ]);
-    expect(sum(converted.subtotalByPersonCents)).toBe(converted.subtotalCents);
-    expect(sum(converted.discountByPersonCents)).toBe(converted.discountCents);
-    expect(sum(converted.serviceByPersonCents)).toBe(converted.serviceChargeCents);
-    expect(sum(converted.gstByPersonCents)).toBe(converted.gstCents);
-    expect(sum(converted.totalByPersonCents)).toBe(converted.grandTotalCents);
+    expect(converted.totals.totalCents).toBe(2705);
+    expect(converted.totals.subtotalCents).toBe(2704);
+    expect(converted.totals.chargeCents.discount).toBe(3);
+    expect(converted.totals.chargeCents.service).toBe(3);
+    expect(converted.totals.chargeCents.gst).toBe(1);
+    expect(converted.byPerson.p1.lines.map((item) => item.amountCents)).toEqual([1352, 1]);
+    expect(sum(centsByPerson(converted, 'subtotal'))).toBe(converted.totals.subtotalCents);
+    expect(sum(centsByPerson(converted, 'discount'))).toBe(converted.totals.chargeCents.discount);
+    expect(sum(centsByPerson(converted, 'service'))).toBe(converted.totals.chargeCents.service);
+    expect(sum(centsByPerson(converted, 'gst'))).toBe(converted.totals.chargeCents.gst);
+    expect(sum(centsByPerson(converted, 'total'))).toBe(converted.totals.totalCents);
     expect(
-      converted.subtotalCents -
-        converted.discountCents +
-        converted.serviceChargeCents +
-        converted.gstCents,
-    ).toBe(converted.grandTotalCents);
+      converted.totals.subtotalCents -
+        converted.totals.chargeCents.discount +
+        converted.totals.chargeCents.service +
+        converted.totals.chargeCents.gst,
+    ).toBe(converted.totals.totalCents);
     for (const personId of ['p1', 'p2']) {
       expect(
-        converted.lineItemsByPerson[personId].reduce(
-          (total, item) => total + item.assignedAmountCents,
+        converted.byPerson[personId].lines.reduce(
+          (total, item) => total + (item.amountCents ?? 0),
           0,
         ),
-      ).toBe(converted.subtotalByPersonCents[personId]);
-      expect(converted.totalByPersonCents[personId]).toBe(
-        converted.subtotalByPersonCents[personId] -
-          converted.discountByPersonCents[personId] +
-          converted.serviceByPersonCents[personId] +
-          converted.gstByPersonCents[personId],
+      ).toBe(converted.byPerson[personId].subtotalCents);
+      expect(converted.byPerson[personId].totalCents).toBe(
+        converted.byPerson[personId].subtotalCents -
+          converted.byPerson[personId].chargeCents.discount +
+          converted.byPerson[personId].chargeCents.service +
+          converted.byPerson[personId].chargeCents.gst,
       );
     }
   });
 
-  it('preserves unassignedItemCount unchanged', () => {
-    const split = makeSplitResult({ unassignedItemCount: 3 });
-    const result = convertSplitResult(split, 'USD', 'SGD', rates);
-    expect(result.unassignedItemCount).toBe(3);
-  });
-
   it('applies user override rate to the conversion', () => {
-    const split = makeSplitResult({ subtotalCents: 1000, grandTotalCents: 1000 });
+    const split = makeSplit({ p1: { subtotalCents: 1000 } });
     const result = convertSplitResult(split, 'USD', 'SGD', rates, 1.5);
     // 1000 cents * 1.5 = 1500 SGD cents
-    expect(result.subtotalCents).toBe(1500);
-    expect(result.grandTotalCents).toBe(1500);
+    expect(result.totals.subtotalCents).toBe(1500);
+    expect(result.totals.totalCents).toBe(1500);
   });
 });

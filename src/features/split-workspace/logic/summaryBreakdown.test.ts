@@ -1,19 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { ChargeState, Person, PersonReceiptLineItem, SplitResult } from '@shared/types';
+import type { ChargeState, Person, SplitLine, SplitResult } from '@shared/types';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
 import { resolveSummaryView, type SummaryView } from './summaryView';
-import { computeSplit, computeConsolidatedSplit } from './split/split';
-import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
+import { deriveSplits } from './split/deriveSplits';
+import { makeItem, makeReceipt, makeSplit } from '../../../tests/integration/testHelpers';
 import { equalShares } from '@features/split-workspace/logic/assignment';
-
-const disabledCharge: ChargeState = {
-  enabled: false,
-  mode: 'amount',
-  amountInput: '',
-  percentInput: '',
-  detectedConfidence: null,
-  detectedSource: null,
-};
 
 function percentCharge(percentInput: string): ChargeState {
   return {
@@ -29,34 +20,20 @@ function percentCharge(percentInput: string): ChargeState {
 const alice: Person = { id: 'alice', name: 'Alice' };
 const bob: Person = { id: 'bob', name: 'Bob' };
 
-function line(overrides: Partial<PersonReceiptLineItem> = {}): PersonReceiptLineItem {
+function line(overrides: Partial<SplitLine> = {}): SplitLine {
   return {
     itemId: 'item-1',
     name: 'Noodles',
-    assignedAmountCents: 1200,
-    involved: true,
+    amountCents: 1200,
     ...overrides,
   };
 }
 
-function split(overrides: Partial<SplitResult> = {}): SplitResult {
-  return {
-    lineItemsByPerson: { alice: [line()] },
-    subtotalByPersonCents: { alice: 1200 },
-    discountByPersonCents: { alice: 0 },
-    serviceByPersonCents: { alice: 0 },
-    gstByPersonCents: { alice: 0 },
-    roundingByPersonCents: {},
-    totalByPersonCents: { alice: 1200 },
-    subtotalCents: 1200,
-    discountCents: 0,
-    serviceChargeCents: 0,
-    gstCents: 0,
-    roundingCents: 0,
-    grandTotalCents: 1200,
-    unassignedItemCount: 0,
-    ...overrides,
-  };
+type PersonAmounts = Parameters<typeof makeSplit>[0][string];
+
+/** Alice alone with a 12.00 bowl of noodles, unless told otherwise. */
+function split(alice: PersonAmounts = {}): SplitResult {
+  return makeSplit({ alice: { subtotalCents: 1200, lines: [line()], ...alice } });
 }
 
 describe('resolveSummaryBreakdown', () => {
@@ -75,13 +52,9 @@ describe('resolveSummaryBreakdown', () => {
           }),
         ),
       });
-      const nativeSplit = computeSplit({ people, ...receipt });
       const exchangeRates = { USD: 1.35 };
       const view = resolveSummaryView({
-        people,
-        receipts: [receipt],
-        splitByReceipt: [nativeSplit],
-        consolidatedSplit: computeConsolidatedSplit([nativeSplit], people, ['USD'], exchangeRates),
+        ...deriveSplits(people, [receipt], exchangeRates),
         exchangeRates,
         activeTab,
         showBaseCurrency: false,
@@ -90,7 +63,10 @@ describe('resolveSummaryBreakdown', () => {
       const conversions = breakdowns.map((person) =>
         activeTab === 'total' ? person.sections[0].conversion : person.conversion,
       );
-      expect(view.sgdSplit.totalByPersonCents).toEqual({ alice: 1352, bob: 1351 });
+      expect(view.baseSplit.byPerson).toMatchObject({
+        alice: { totalCents: 1352 },
+        bob: { totalCents: 1351 },
+      });
       expect(conversions.map((conversion) => conversion?.amountCents)).toEqual([1352, 1351]);
     },
   );
@@ -109,19 +85,9 @@ describe('resolveSummaryBreakdown', () => {
           }),
         ),
       });
-    const receipts = [makeUsdReceipt('r1'), makeUsdReceipt('r2')];
-    const splitByReceipt = receipts.map((receipt) => computeSplit({ people, ...receipt }));
     const exchangeRates = { USD: 1.35 };
     const view = resolveSummaryView({
-      people,
-      receipts,
-      splitByReceipt,
-      consolidatedSplit: computeConsolidatedSplit(
-        splitByReceipt,
-        people,
-        ['USD', 'USD'],
-        exchangeRates,
-      ),
+      ...deriveSplits(people, [makeUsdReceipt('r1'), makeUsdReceipt('r2')], exchangeRates),
       exchangeRates,
       activeTab: 'total',
       showBaseCurrency: false,
@@ -149,13 +115,14 @@ describe('resolveSummaryBreakdown', () => {
 
   it('leaves out the header rate when the receipts convert at different rates', () => {
     const view = resolveSummaryView({
-      people: [alice],
-      receipts: [
-        makeReceipt({ id: 'r1', currency: 'USD' }),
-        makeReceipt({ id: 'r2', currency: 'USD', exchangeRateOverride: 1.4 }),
+      receiptSplits: [
+        { receipt: makeReceipt({ id: 'r1', currency: 'USD' }), split: split() },
+        {
+          receipt: makeReceipt({ id: 'r2', currency: 'USD', exchangeRateOverride: 1.4 }),
+          split: split(),
+        },
       ],
-      splitByReceipt: [split(), split()],
-      consolidatedSplit: split(),
+      consolidated: split(),
       exchangeRates: { USD: 1.35 },
       activeTab: 'total',
       showBaseCurrency: false,
@@ -184,16 +151,9 @@ describe('resolveSummaryBreakdown', () => {
         currency: 'SGD',
         exchangeRateOverride: null,
       },
-      displaySplit: split({
-        discountByPersonCents: { alice: 60 },
-        serviceByPersonCents: { alice: 120 },
-        gstByPersonCents: { alice: 108 },
-        roundingByPersonCents: {},
-        totalByPersonCents: { alice: 1368 },
-      }),
+      displaySplit: split({ discount: 60, service: 120, gst: 108 }),
       displayCurrency: 'SGD',
-      grandTotal: 1368,
-      sgdSplit: split(),
+      baseSplit: split(),
       nativeCurrency: 'SGD',
       isForeign: false,
       effectiveRate: null,
@@ -247,10 +207,9 @@ describe('resolveSummaryBreakdown', () => {
     const view: SummaryView = {
       kind: 'receipt',
       receipt: makeReceipt({ currency: 'USD' }),
-      displaySplit: split({ totalByPersonCents: { alice: 1620 }, grandTotalCents: 1620 }),
+      displaySplit: split({ subtotalCents: 1620 }),
       displayCurrency: 'SGD',
-      grandTotal: 1620,
-      sgdSplit: split({ totalByPersonCents: { alice: 1620 }, grandTotalCents: 1620 }),
+      baseSplit: split({ subtotalCents: 1620 }),
       nativeCurrency: 'USD',
       isForeign: true,
       effectiveRate: 1.35,
@@ -263,32 +222,27 @@ describe('resolveSummaryBreakdown', () => {
   });
 
   it('includes receipt charges in expanded and collapsed totals', () => {
-    const chargedSplit = split({
-      discountByPersonCents: { alice: 100 },
-      serviceByPersonCents: { alice: 200 },
-      gstByPersonCents: { alice: 90 },
-      roundingByPersonCents: {},
-      totalByPersonCents: { alice: 1390 },
-    });
+    const chargedSplit = split({ discount: 100, service: 200, gst: 90 });
     const view: SummaryView = {
       kind: 'total',
       displaySplit: chargedSplit,
       displayCurrency: 'SGD',
-      grandTotal: 1390,
-      sgdSplit: chargedSplit,
+      baseSplit: chargedSplit,
       hasAnyForeign: false,
       billedCurrencies: ['SGD'],
       billedRate: null,
       receiptBreakdowns: [
         {
-          id: 'dinner',
+          receipt: makeReceipt({
+            id: 'dinner',
+            discount: percentCharge('8.33'),
+            serviceCharge: percentCharge('16.67'),
+            gst: percentCharge('7.5'),
+          }),
           name: 'Dinner',
           split: chargedSplit,
-          sgdSplit: chargedSplit,
+          baseSplit: chargedSplit,
           currency: 'SGD',
-          discount: percentCharge('8.33'),
-          serviceCharge: percentCharge('16.67'),
-          gst: percentCharge('7.5'),
         },
       ],
     };
@@ -303,46 +257,34 @@ describe('resolveSummaryBreakdown', () => {
   });
 
   it('resolves total-tab receipt sections and collapsed totals per person', () => {
-    const ramenSplit = split({
-      lineItemsByPerson: { alice: [line({ itemId: 'ramen', name: 'Ramen' })] },
-      totalByPersonCents: { alice: 1200 },
-    });
+    const ramenSplit = split({ lines: [line({ itemId: 'ramen', name: 'Ramen' })] });
     const teaSplit = split({
-      lineItemsByPerson: {
-        alice: [line({ itemId: 'tea', name: 'Tea', assignedAmountCents: 300 })],
-      },
-      totalByPersonCents: { alice: 300 },
+      subtotalCents: 300,
+      lines: [line({ itemId: 'tea', name: 'Tea', amountCents: 300 })],
     });
     const view: SummaryView = {
       kind: 'total',
-      displaySplit: split({ totalByPersonCents: { alice: 1800 }, grandTotalCents: 1800 }),
+      displaySplit: split({ subtotalCents: 1800 }),
       displayCurrency: 'SGD',
-      grandTotal: 1800,
-      sgdSplit: split(),
+      baseSplit: split(),
       hasAnyForeign: true,
       billedCurrencies: ['JPY'],
       billedRate: null,
       receiptBreakdowns: [
         {
-          id: 'ramen-shop',
+          receipt: makeReceipt({ id: 'ramen-shop' }),
           name: 'Ramen Shop',
           split: ramenSplit,
-          sgdSplit: split({ totalByPersonCents: { alice: 11 } }),
+          baseSplit: split({ subtotalCents: 11 }),
           currency: 'JPY',
-          discount: disabledCharge,
-          serviceCharge: disabledCharge,
-          gst: disabledCharge,
           effectiveRate: 0.009,
         },
         {
-          id: 'tea-stall',
+          receipt: makeReceipt({ id: 'tea-stall' }),
           name: 'Tea Stall',
           split: teaSplit,
-          sgdSplit: teaSplit,
+          baseSplit: teaSplit,
           currency: 'SGD',
-          discount: disabledCharge,
-          serviceCharge: disabledCharge,
-          gst: disabledCharge,
           effectiveRate: undefined,
         },
       ],
@@ -369,49 +311,37 @@ describe('resolveSummaryBreakdown', () => {
 
   it('lists only the items a person had, and drops a receipt they had nothing on', () => {
     const dinner = split({
-      lineItemsByPerson: {
-        alice: [
-          line({ itemId: 'noodles', name: 'Noodles' }),
-          line({ itemId: 'tea', name: 'Tea', involved: false, assignedAmountCents: 0 }),
-        ],
-      },
-      totalByPersonCents: { alice: 1200 },
+      lines: [
+        line({ itemId: 'noodles', name: 'Noodles' }),
+        line({ itemId: 'tea', name: 'Tea', amountCents: null }),
+      ],
     });
     const drinks = split({
-      lineItemsByPerson: {
-        alice: [line({ itemId: 'beer', name: 'Beer', involved: false, assignedAmountCents: 0 })],
-      },
-      totalByPersonCents: { alice: 0 },
+      subtotalCents: 0,
+      lines: [line({ itemId: 'beer', name: 'Beer', amountCents: null })],
     });
     const view: SummaryView = {
       kind: 'total',
       displaySplit: dinner,
       displayCurrency: 'SGD',
-      grandTotal: 1200,
-      sgdSplit: dinner,
+      baseSplit: dinner,
       hasAnyForeign: false,
       billedCurrencies: ['SGD'],
       billedRate: null,
       receiptBreakdowns: [
         {
-          id: 'dinner',
+          receipt: makeReceipt({ id: 'dinner' }),
           name: 'Dinner',
           split: dinner,
-          sgdSplit: dinner,
+          baseSplit: dinner,
           currency: 'SGD',
-          discount: disabledCharge,
-          serviceCharge: disabledCharge,
-          gst: disabledCharge,
         },
         {
-          id: 'drinks',
+          receipt: makeReceipt({ id: 'drinks' }),
           name: 'Drinks',
           split: drinks,
-          sgdSplit: drinks,
+          baseSplit: drinks,
           currency: 'SGD',
-          discount: disabledCharge,
-          serviceCharge: disabledCharge,
-          gst: disabledCharge,
         },
       ],
     };
@@ -434,25 +364,22 @@ describe('resolveSummaryBreakdown', () => {
   });
 
   it('marks a person with no assigned sections as empty', () => {
+    const nothingForBob = makeSplit({ bob: {} });
     const view: SummaryView = {
       kind: 'total',
-      displaySplit: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
+      displaySplit: nothingForBob,
       displayCurrency: 'SGD',
-      grandTotal: 0,
-      sgdSplit: split(),
+      baseSplit: nothingForBob,
       hasAnyForeign: false,
       billedCurrencies: ['SGD'],
       billedRate: null,
       receiptBreakdowns: [
         {
-          id: 'dinner',
+          receipt: makeReceipt({ id: 'dinner' }),
           name: 'Dinner',
-          split: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
-          sgdSplit: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
+          split: nothingForBob,
+          baseSplit: nothingForBob,
           currency: 'SGD',
-          discount: disabledCharge,
-          serviceCharge: disabledCharge,
-          gst: disabledCharge,
         },
       ],
     };
@@ -464,13 +391,13 @@ describe('resolveSummaryBreakdown', () => {
   });
 
   it('leaves out the receipt total for a person with nothing on a single receipt', () => {
+    const nothingForBob = makeSplit({ bob: {} });
     const view: SummaryView = {
       kind: 'receipt',
       receipt: makeReceipt({}),
-      displaySplit: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
+      displaySplit: nothingForBob,
       displayCurrency: 'SGD',
-      grandTotal: 0,
-      sgdSplit: split(),
+      baseSplit: nothingForBob,
       nativeCurrency: 'SGD',
       isForeign: false,
       effectiveRate: null,

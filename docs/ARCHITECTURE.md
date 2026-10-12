@@ -9,10 +9,10 @@ Two conventions that follow from it: a feature component may select from its fea
 `stores` own canonical editable state → `logic` holds pure transforms → `hooks` compose state for a screen and run async workflows → `components` render.
 
 - `useReceiptStore`, `useCurrencyStore` — source of truth for people, receipts, active receipt, payer mobile, exchange rates. `useReceiptStore` loads the saved draft when its module loads and saves on every change, so it always holds at least one receipt (`receipts` is typed non-empty). Its actions take a receipt id; `patchReceipt` carries plain field edits and `updateItems` rewrites a receipt's items in one go.
-- `logic/split/` — receipt pricing, charge calculation, and per-person allocation. These rules belong to the workspace feature.
+- `logic/split/` — receipt pricing, charge calculation, and per-person allocation. These rules belong to the workspace feature. `computeSplit(receipt, people)` returns a `SplitResult`: an `Amounts` (subtotal, the four charges by `ChargeKind`, total) for each person with their item lines, and the same for the receipt as their sum. Anything that lists charges loops over `CHARGE_KINDS`. `allocate` shares cents between weights by position; `allocateCents` is the same for people and breaks ties by person id.
 - `logic/exchangeRates.ts` — rate selection and currency conversion.
 - `logic/jsonStorage.ts` — every value kept in browser storage is read through a zod schema (`jsonStorage(kind, key, schema)`); each storage module owns its schema. `logic/draftStorage.ts` reads version 2 and 3 drafts and always writes version 3.
-- `useReceiptSplit` — reads canonical state, returns active/consolidated/per-receipt splits.
+- `useSplits` — every split the workspace shows, from `deriveSplits(people, receipts, exchangeRates)`: each receipt paired with its split (`ReceiptSplit`), and all of them added up in the base currency. `deriveSplits` keeps its last result, so the components that read it in one render share one computation. Receipt totals for checking against a printed total are a separate calculation, `computeReceiptTotals`, because they count unassigned items as shared.
 - `logic/reconciliation.ts` — `resolveReconciliation(receipt, people)` checks a receipt against its printed total and returns the gap plus the fix as a receipt patch (rounding when the printed total is higher, a pre-tax discount when it is lower). The receipt step and the summary both render that and write the fix with `patchReceipt`.
 - `logic/summaryView.ts` — pure transform from split data plus summary controls into a screen-facing summary view.
 - `logic/summaryBreakdown.ts` / `logic/summaryOverview.ts` — the per-person breakdown and the who-had-what overview, both resolved from the summary view and each with a PNG export.
@@ -30,7 +30,7 @@ Steps live in `components/steps/`. A step stays a flat file until it grows priva
 
 ## Summary data flow
 
-`receiptStore`/`currencyStore` → `useReceiptSplit` → `resolveSummaryView` → `useSummaryModel` → `useSummaryExport` → `SummaryStep`
+`receiptStore`/`currencyStore` → `useSplits` → `resolveSummaryView` → `useSummaryModel` → `useSummaryExport` → `SummaryStep`
 
 Editing is keyed by `activeReceiptId`, but summary rendering follows `activeTab`, not the editor's active receipt. The wizard opens the summary only once every priced item is assigned (`isStepValid('items')`), so nothing downstream of `resolveSummaryView` handles unassigned items or an empty people list. QR generation stays inside `useSummaryModel`: summary-specific derived data with side effects.
 

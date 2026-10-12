@@ -3,6 +3,8 @@ import type { ChargeState, EditableItem, Person } from '@shared/types';
 import { computeSplit } from '@features/split-workspace/logic/split/split';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
 import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
+import { centsByPerson } from '@features/split-workspace/logic/split/amounts';
+import { makeReceipt } from '../../../../tests/integration/testHelpers';
 
 const disabledCharge: ChargeState = {
   enabled: false,
@@ -32,20 +34,22 @@ describe('computeSplit', () => {
       amountInput: '20.00',
     };
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
     const converted = convertSplitResult(split, 'USD', 'SGD', { USD: 1.35, SGD: 1 });
 
-    expect(split.discountCents).toBe(1000);
-    expect(split.grandTotalCents).toBe(0);
-    expect(converted.discountCents).toBe(1350);
-    expect(converted.gstCents).toBe(0);
-    expect(converted.grandTotalCents).toBe(0);
+    expect(split.totals.chargeCents.discount).toBe(1000);
+    expect(split.totals.totalCents).toBe(0);
+    expect(converted.totals.chargeCents.discount).toBe(1350);
+    expect(converted.totals.chargeCents.gst).toBe(0);
+    expect(converted.totals.totalCents).toBe(0);
   });
 
   it('charges a half-claimed item to its claimant at half price', () => {
@@ -63,15 +67,17 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.totalByPersonCents).toEqual({ alice: 300, bob: 0 });
+    expect(centsByPerson(split, 'total')).toEqual({ alice: 300, bob: 0 });
   });
 
   it('allocates equal split remainders deterministically', () => {
@@ -91,29 +97,31 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.subtotalCents).toBe(1000);
-    expect(split.subtotalByPersonCents).toEqual({
+    expect(split.totals.subtotalCents).toBe(1000);
+    expect(centsByPerson(split, 'subtotal')).toEqual({
       p1: 334,
       p2: 333,
       p3: 333,
     });
-    expect(split.grandTotalCents).toBe(1000);
-    expect(split.totalByPersonCents).toEqual({
+    expect(split.totals.totalCents).toBe(1000);
+    expect(centsByPerson(split, 'total')).toEqual({
       p1: 334,
       p2: 333,
       p3: 333,
     });
-    expect(split.lineItemsByPerson.p1[0]?.assignedAmountCents).toBe(334);
-    expect(split.lineItemsByPerson.p2[0]?.assignedAmountCents).toBe(333);
-    expect(split.lineItemsByPerson.p3[0]?.assignedAmountCents).toBe(333);
+    expect(split.byPerson.p1.lines[0]?.amountCents).toBe(334);
+    expect(split.byPerson.p2.lines[0]?.amountCents).toBe(333);
+    expect(split.byPerson.p3.lines[0]?.amountCents).toBe(333);
   });
 
   it('applies service charge and gst proportionally', () => {
@@ -155,18 +163,21 @@ describe('computeSplit', () => {
       detectedSource: null,
     };
 
-    const split = computeSplit({ people, items, discount: disabledCharge, serviceCharge, gst });
+    const split = computeSplit(
+      makeReceipt({ items, discount: disabledCharge, serviceCharge, gst }),
+      people,
+    );
 
     // Subtotal = $30, service = $3, gst = 9% of $33 = $2.97 → 297 cents
-    expect(split.subtotalCents).toBe(3000);
-    expect(split.serviceChargeCents).toBe(300);
-    expect(split.gstCents).toBe(297);
-    expect(split.grandTotalCents).toBe(3597);
+    expect(split.totals.subtotalCents).toBe(3000);
+    expect(split.totals.chargeCents.service).toBe(300);
+    expect(split.totals.chargeCents.gst).toBe(297);
+    expect(split.totals.totalCents).toBe(3597);
 
     // Alice: 1/3 of each charge; Bob: 2/3
-    expect(split.serviceByPersonCents.alice).toBe(100);
-    expect(split.serviceByPersonCents.bob).toBe(200);
-    expect(split.totalByPersonCents.alice + split.totalByPersonCents.bob).toBe(3597);
+    expect(split.byPerson.alice.chargeCents.service).toBe(100);
+    expect(split.byPerson.bob.chargeCents.service).toBe(200);
+    expect(split.byPerson.alice.totalCents + split.byPerson.bob.totalCents).toBe(3597);
   });
 
   it('applies a global discount proportionally to subtotals', () => {
@@ -199,19 +210,21 @@ describe('computeSplit', () => {
       detectedSource: null,
     };
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.discountCents).toBe(400);
+    expect(split.totals.chargeCents.discount).toBe(400);
     // Equal subtotals → equal discount split
-    expect(split.discountByPersonCents.alice).toBe(200);
-    expect(split.discountByPersonCents.bob).toBe(200);
-    expect(split.grandTotalCents).toBe(1600);
+    expect(split.byPerson.alice.chargeCents.discount).toBe(200);
+    expect(split.byPerson.bob.chargeCents.discount).toBe(200);
+    expect(split.totals.totalCents).toBe(1600);
   });
 
   it('falls back to Untitled item for items with no name', () => {
@@ -226,15 +239,17 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.lineItemsByPerson.p1[0]?.name).toBe('Untitled item');
+    expect(split.byPerson.p1.lines[0]?.name).toBe('Untitled item');
   });
 
   it('skips zero-net-amount items (fully discounted)', () => {
@@ -256,17 +271,19 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.subtotalCents).toBe(1000);
-    expect(split.lineItemsByPerson.p1).toHaveLength(1);
-    expect(split.lineItemsByPerson.p1[0]?.name).toBe('Paid item');
+    expect(split.totals.subtotalCents).toBe(1000);
+    expect(split.byPerson.p1.lines).toHaveLength(1);
+    expect(split.byPerson.p1.lines[0]?.name).toBe('Paid item');
   });
 
   it('records non-involved line items for people who did not order an item', () => {
@@ -284,21 +301,21 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    const bobLine = split.lineItemsByPerson.bob[0];
-    expect(bobLine?.involved).toBe(false);
-    expect(bobLine?.assignedAmountCents).toBe(0);
-    expect(split.lineItemsByPerson.alice[0]?.involved).toBe(true);
+    expect(split.byPerson.bob.lines[0].amountCents).toBeNull();
+    expect(split.byPerson.alice.lines[0].amountCents).toBe(1200);
   });
 
-  it('excludes unassigned items and counts them', () => {
+  it('leaves out an item nobody in the split is on', () => {
     const people: Person[] = [{ id: 'p1', name: 'Alice' }];
 
     const items: EditableItem[] = [
@@ -332,19 +349,20 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.unassignedItemCount).toBe(2);
-    expect(split.subtotalCents).toBe(500);
-    expect(split.grandTotalCents).toBe(500);
-    expect(split.subtotalByPersonCents.p1).toBe(500);
-    expect(split.lineItemsByPerson.p1).toHaveLength(1);
+    expect(split.totals.subtotalCents).toBe(500);
+    expect(split.totals.totalCents).toBe(500);
+    expect(split.byPerson.p1.subtotalCents).toBe(500);
+    expect(split.byPerson.p1.lines).toHaveLength(1);
   });
 
   it('handles all-zero weight distribution by falling back to equal weights', () => {
@@ -370,17 +388,19 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: { ...disabledCharge, enabled: true, mode: 'amount', amountInput: '0.00' },
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: { ...disabledCharge, enabled: true, mode: 'amount', amountInput: '0.00' },
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.grandTotalCents).toBe(1000);
-    expect(split.totalByPersonCents.p1).toBe(1000);
-    expect(split.totalByPersonCents.p2).toBe(0);
+    expect(split.totals.totalCents).toBe(1000);
+    expect(split.byPerson.p1.totalCents).toBe(1000);
+    expect(split.byPerson.p2.totalCents).toBe(0);
   });
 
   it('distributes fractional remainders correctly across unequal shares', () => {
@@ -400,17 +420,19 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
     const total =
-      split.totalByPersonCents.p1 + split.totalByPersonCents.p2 + split.totalByPersonCents.p3;
-    expect(total).toBe(split.grandTotalCents);
+      split.byPerson.p1.totalCents + split.byPerson.p2.totalCents + split.byPerson.p3.totalCents;
+    expect(total).toBe(split.totals.totalCents);
   });
 
   it('distributes charges equally when all subtotals are zero', () => {
@@ -430,19 +452,21 @@ describe('computeSplit', () => {
       detectedSource: null,
     };
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.subtotalCents).toBe(0);
-    expect(split.serviceChargeCents).toBe(1000);
-    expect(split.totalByPersonCents.p1).toBe(500);
-    expect(split.totalByPersonCents.p2).toBe(500);
-    expect(split.grandTotalCents).toBe(1000);
+    expect(split.totals.subtotalCents).toBe(0);
+    expect(split.totals.chargeCents.service).toBe(1000);
+    expect(split.byPerson.p1.totalCents).toBe(500);
+    expect(split.byPerson.p2.totalCents).toBe(500);
+    expect(split.totals.totalCents).toBe(1000);
   });
 
   it('splits a $30 item 2:1 between two people', () => {
@@ -460,19 +484,21 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.subtotalCents).toBe(3000);
-    expect(split.subtotalByPersonCents.alice).toBe(2000);
-    expect(split.subtotalByPersonCents.bob).toBe(1000);
-    expect(split.lineItemsByPerson.alice[0]?.assignedAmountCents).toBe(2000);
-    expect(split.lineItemsByPerson.bob[0]?.assignedAmountCents).toBe(1000);
+    expect(split.totals.subtotalCents).toBe(3000);
+    expect(split.byPerson.alice.subtotalCents).toBe(2000);
+    expect(split.byPerson.bob.subtotalCents).toBe(1000);
+    expect(split.byPerson.alice.lines[0]?.amountCents).toBe(2000);
+    expect(split.byPerson.bob.lines[0]?.amountCents).toBe(1000);
   });
 
   it('splits equally when weights are all 1 (same as no weights)', () => {
@@ -490,16 +516,18 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
-    expect(split.subtotalByPersonCents.alice).toBe(1000);
-    expect(split.subtotalByPersonCents.bob).toBe(1000);
+    expect(split.byPerson.alice.subtotalCents).toBe(1000);
+    expect(split.byPerson.bob.subtotalCents).toBe(1000);
   });
 
   it('handles remainder correctly in a 2:1 split of an indivisible amount', () => {
@@ -517,18 +545,20 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-    });
+    );
 
     // $10 split 2:1 → alice $6.67, bob $3.33 (remainder to alice via largest-remainder)
-    expect(split.subtotalByPersonCents.alice).toBe(667);
-    expect(split.subtotalByPersonCents.bob).toBe(333);
-    expect(split.subtotalByPersonCents.alice + split.subtotalByPersonCents.bob).toBe(1000);
+    expect(split.byPerson.alice.subtotalCents).toBe(667);
+    expect(split.byPerson.bob.subtotalCents).toBe(333);
+    expect(split.byPerson.alice.subtotalCents + split.byPerson.bob.subtotalCents).toBe(1000);
   });
 
   it('adds rounding after tax, split evenly between everyone on the receipt', () => {
@@ -554,45 +584,49 @@ describe('computeSplit', () => {
       },
     ];
 
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: { ...disabledCharge, enabled: true, percentInput: '9' },
+        roundingInput: '0.41',
+      }),
       people,
-      items,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: { ...disabledCharge, enabled: true, percentInput: '9' },
-      roundingInput: '0.41',
-    });
+    );
 
-    expect(split.gstCents).toBe(360);
-    expect(split.roundingCents).toBe(41);
-    expect(split.roundingByPersonCents).toEqual({ alice: 21, bob: 20, cara: 0 });
-    expect(split.grandTotalCents).toBe(4401);
-    expect(split.totalByPersonCents).toEqual({ alice: 3291, bob: 1110, cara: 0 });
+    expect(split.totals.chargeCents.gst).toBe(360);
+    expect(split.totals.chargeCents.rounding).toBe(41);
+    expect(centsByPerson(split, 'rounding')).toEqual({ alice: 21, bob: 20, cara: 0 });
+    expect(split.totals.totalCents).toBe(4401);
+    expect(centsByPerson(split, 'total')).toEqual({ alice: 3291, bob: 1110, cara: 0 });
   });
 
   it('keeps rounding as its own line through currency conversion', () => {
     const people: Person[] = [{ id: 'alice', name: 'Alice' }];
-    const split = computeSplit({
+    const split = computeSplit(
+      makeReceipt({
+        items: [
+          {
+            id: 'meal',
+            name: 'Meal',
+            amountInput: '10.00',
+            discountPercentInput: '',
+            assignment: equalShares(['alice']),
+          },
+        ],
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst: disabledCharge,
+        roundingInput: '1.00',
+      }),
       people,
-      items: [
-        {
-          id: 'meal',
-          name: 'Meal',
-          amountInput: '10.00',
-          discountPercentInput: '',
-          assignment: equalShares(['alice']),
-        },
-      ],
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-      roundingInput: '1.00',
-    });
+    );
 
     const converted = convertSplitResult(split, 'USD', 'SGD', { USD: 1.35 });
 
-    expect(converted.roundingCents).toBe(135);
-    expect(converted.roundingByPersonCents.alice).toBe(135);
-    expect(converted.grandTotalCents).toBe(1485);
+    expect(converted.totals.chargeCents.rounding).toBe(135);
+    expect(converted.byPerson.alice.chargeCents.rounding).toBe(135);
+    expect(converted.totals.totalCents).toBe(1485);
   });
 });

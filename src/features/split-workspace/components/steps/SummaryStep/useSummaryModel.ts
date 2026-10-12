@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Person, SplitResult } from '@shared/types';
+import type { Person } from '@shared/types';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { generatePaynowQrDataUrls, normalizeMobile } from '@features/payments';
@@ -7,7 +7,8 @@ import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summary
 import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
 import { resolveSummaryView } from '@features/split-workspace/logic/summaryView';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useSplits } from '@features/split-workspace/hooks/useSplits';
+import { centsByPerson } from '@features/split-workspace/logic/split/amounts';
 import {
   resolveReconciliation,
   type Reconciliation,
@@ -22,7 +23,8 @@ export type PayNowStatus = 'empty' | 'invalid' | 'generating' | 'ready' | 'unava
 
 function useQrDataUrls(
   people: Person[],
-  sgdSplit: SplitResult,
+  /** What each person owes, in the base currency PayNow is paid in. */
+  owedCents: Record<string, number>,
   payerMobile: string,
 ): { urls: Record<string, string>; status: PayNowStatus } {
   const [qrResult, setQrResult] = useState<{
@@ -32,14 +34,14 @@ function useQrDataUrls(
 
   const qrKey = JSON.stringify([
     payerMobile,
-    people.map((person) => [person.id, sgdSplit.totalByPersonCents[person.id] ?? 0]),
+    people.map((person) => [person.id, owedCents[person.id]]),
   ]);
   const completedQrKey = qrResult?.key;
 
   useEffect(() => {
     if (completedQrKey === qrKey) return;
     let cancelled = false;
-    generatePaynowQrDataUrls(people, sgdSplit, payerMobile).then(
+    generatePaynowQrDataUrls(people, owedCents, payerMobile).then(
       (urls) => {
         if (!cancelled) setQrResult({ key: qrKey, urls });
       },
@@ -50,11 +52,11 @@ function useQrDataUrls(
     return () => {
       cancelled = true;
     };
-  }, [completedQrKey, payerMobile, people, qrKey, sgdSplit]);
+  }, [completedQrKey, payerMobile, people, qrKey, owedCents]);
 
   const completed = qrResult?.key === qrKey;
   const urls = completed ? qrResult.urls : {};
-  const recipients = people.filter((person) => (sgdSplit.totalByPersonCents[person.id] ?? 0) > 0);
+  const recipients = people.filter((person) => owedCents[person.id] > 0);
   if (!payerMobile.trim()) return { urls, status: 'empty' };
   if (!normalizeMobile(payerMobile)) return { urls, status: 'invalid' };
   if (recipients.length === 0) return { urls, status: 'unavailable' };
@@ -80,7 +82,7 @@ export function useSummaryModel({
   const renameReceipt = useReceiptStore((s) => s.renameReceipt);
   const payerMobile = useReceiptStore((s) => s.payerMobile);
   const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
-  const { consolidated } = useReceiptSplit();
+  const { receiptSplits, consolidated } = useSplits();
   const activeSummaryReceipt =
     activeTab === 'total' ? null : (receipts.find((receipt) => receipt.id === activeTab) ?? null);
   const reconciliation = activeSummaryReceipt
@@ -88,10 +90,8 @@ export function useSummaryModel({
     : NOTHING_TO_RECONCILE;
 
   const view = resolveSummaryView({
-    people,
-    receipts,
-    splitByReceipt: consolidated.splitByReceipt,
-    consolidatedSplit: consolidated.split,
+    receiptSplits,
+    consolidated,
     exchangeRates,
     activeTab,
     showBaseCurrency,
@@ -99,7 +99,7 @@ export function useSummaryModel({
 
   const { urls: qrDataUrls, status: payNowStatus } = useQrDataUrls(
     people,
-    view.sgdSplit,
+    centsByPerson(view.baseSplit, 'total'),
     payerMobile,
   );
   const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls, showAllItems });

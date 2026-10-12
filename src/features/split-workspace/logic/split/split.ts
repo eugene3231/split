@@ -1,17 +1,19 @@
-import type {
-  ChargeState,
-  EditableItem,
-  Person,
-  PersonReceiptLineItem,
-  SplitResult,
-} from '@shared/types';
+import type { Person, PersonSplit, Receipt, ReceiptSplit, SplitResult } from '@shared/types';
 import { parseCurrencyToCents } from '@shared/logic/core/money';
 import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
 import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
 import { allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { sumAmounts } from '@features/split-workspace/logic/split/amounts';
 import { BASE_CURRENCY } from '@shared/constants';
 import { allocateItemShares } from '@features/split-workspace/logic/itemShare';
+import type { NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
+
+/** What it takes to price a receipt. */
+export type ReceiptPricing = Pick<
+  Receipt,
+  'items' | 'discount' | 'serviceCharge' | 'gst' | 'roundingInput'
+>;
 
 interface ResolvedItem {
   itemId: string;
@@ -20,243 +22,149 @@ interface ResolvedItem {
   netByPerson: Record<string, number>;
 }
 
-export function computeSplit({
-  people,
-  items,
-  discount,
-  serviceCharge,
-  gst,
-  roundingInput = '',
-}: {
-  people: Person[];
-  items: EditableItem[];
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
-  roundingInput?: string;
-}): SplitResult {
+/**
+ * Splits a receipt between the people on its items. An item nobody has is left out, and the
+ * part of an item that is still unassigned is charged to nobody.
+ */
+export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitResult {
   const personIds = people.map((person) => person.id);
   const validPeopleSet = new Set(personIds);
 
-  const subtotalByPersonCents = initializeCentsMap(personIds);
-  let unassignedItemCount = 0;
-
   const resolvedItems: ResolvedItem[] = [];
 
-  for (const item of items) {
+  for (const item of receipt.items) {
     const netAmountCents = resolveDiscountedAmountCents(item);
     if (netAmountCents === null || netAmountCents === 0) continue;
-
-    const name = item.name.trim() || 'Untitled item';
 
     const shares = Object.fromEntries(
       Object.entries(item.assignment.shares).filter(([id]) => validPeopleSet.has(id)),
     );
-    if (Object.keys(shares).length === 0) {
-      unassignedItemCount += 1;
-      continue;
-    }
+    if (Object.keys(shares).length === 0) continue;
 
     resolvedItems.push({
       itemId: item.id,
-      name,
+      name: item.name.trim() || 'Untitled item',
       netByPerson: allocateItemShares(netAmountCents, { ...item.assignment, shares }),
     });
   }
 
-  const lineItemsByPerson = initializeLineItemMap(personIds);
-  const involvedCountByPerson = initializeCentsMap(personIds);
-
-  for (const personId of personIds) {
-    for (const resolved of resolvedItems) {
-      const involved = Object.hasOwn(resolved.netByPerson, personId);
-      const assignedAmountCents = involved ? resolved.netByPerson[personId] : 0;
-      if (involved) {
-        subtotalByPersonCents[personId] += assignedAmountCents;
-        involvedCountByPerson[personId] += 1;
-      }
-      lineItemsByPerson[personId].push({
+  const linesByPerson = Object.fromEntries(
+    personIds.map((personId) => [
+      personId,
+      resolvedItems.map((resolved) => ({
         itemId: resolved.itemId,
         name: resolved.name,
-        assignedAmountCents,
-        involved,
-      });
-    }
-  }
+        amountCents: Object.hasOwn(resolved.netByPerson, personId)
+          ? resolved.netByPerson[personId]
+          : null,
+      })),
+    ]),
+  );
+  const subtotalByPerson = Object.fromEntries(
+    personIds.map((personId) => [
+      personId,
+      linesByPerson[personId].reduce((sum, line) => sum + (line.amountCents ?? 0), 0),
+    ]),
+  );
 
-  const subtotalCents = sumMapValues(subtotalByPersonCents);
+  const subtotalCents = sumMapValues(subtotalByPerson);
   const { discountCents, serviceChargeCents, gstCents } = resolveReceiptCharges({
     subtotalCents,
-    discount,
-    serviceCharge,
-    gst,
+    discount: receipt.discount,
+    serviceCharge: receipt.serviceCharge,
+    gst: receipt.gst,
   });
-  const discountWeights = weightsFromBase(subtotalByPersonCents, personIds);
-  const discountByPersonCents = allocateCents(discountCents, personIds, discountWeights);
+  // Each charge is shared in proportion to what it is charged on, and evenly when that is nothing.
+  const discountByPerson = allocateCents(discountCents, personIds, subtotalByPerson);
 
-  const discountedSubtotalByPersonCents = initializeCentsMap(personIds);
-  for (const personId of personIds) {
-    discountedSubtotalByPersonCents[personId] = Math.max(
-      0,
-      subtotalByPersonCents[personId] - discountByPersonCents[personId],
-    );
-  }
-  const serviceWeights = weightsFromBase(discountedSubtotalByPersonCents, personIds);
-  const serviceByPersonCents = allocateCents(serviceChargeCents, personIds, serviceWeights);
+  const discountedByPerson = Object.fromEntries(
+    personIds.map((personId) => [
+      personId,
+      Math.max(0, subtotalByPerson[personId] - discountByPerson[personId]),
+    ]),
+  );
+  const serviceByPerson = allocateCents(serviceChargeCents, personIds, discountedByPerson);
 
-  const gstWeightSeed = initializeCentsMap(personIds);
-  for (const personId of personIds) {
-    gstWeightSeed[personId] = Math.max(
-      0,
-      discountedSubtotalByPersonCents[personId] + serviceByPersonCents[personId],
-    );
-  }
-
-  const gstWeights = weightsFromBase(gstWeightSeed, personIds);
-  const gstByPersonCents = allocateCents(gstCents, personIds, gstWeights);
+  const gstBaseByPerson = Object.fromEntries(
+    personIds.map((personId) => [
+      personId,
+      discountedByPerson[personId] + serviceByPerson[personId],
+    ]),
+  );
+  const gstByPerson = allocateCents(gstCents, personIds, gstBaseByPerson);
 
   // Rounding comes after tax and is split evenly between everyone with something on the receipt.
-  const roundedPersonIds = personIds.filter((personId) => involvedCountByPerson[personId] > 0);
-  const roundingCents =
-    roundedPersonIds.length > 0 ? (parseCurrencyToCents(roundingInput) ?? 0) : 0;
-  const roundingByPersonCents = {
-    ...initializeCentsMap(personIds),
-    ...allocateCents(
-      roundingCents,
-      roundedPersonIds,
-      Object.fromEntries(roundedPersonIds.map((personId) => [personId, 1])),
+  const roundedPersonIds = personIds.filter((personId) =>
+    linesByPerson[personId].some((line) => line.amountCents !== null),
+  );
+  const roundingByPerson = allocateCents(
+    parseCurrencyToCents(receipt.roundingInput) ?? 0,
+    roundedPersonIds,
+    Object.fromEntries(roundedPersonIds.map((personId) => [personId, 1])),
+  );
+
+  const byPerson = Object.fromEntries(
+    personIds.map((personId): [string, PersonSplit] => {
+      const chargeCents = {
+        discount: discountByPerson[personId],
+        service: serviceByPerson[personId],
+        gst: gstByPerson[personId],
+        rounding: roundingByPerson[personId] ?? 0,
+      };
+      return [
+        personId,
+        {
+          subtotalCents: subtotalByPerson[personId],
+          chargeCents,
+          totalCents:
+            discountedByPerson[personId] +
+            chargeCents.service +
+            chargeCents.gst +
+            chargeCents.rounding,
+          lines: linesByPerson[personId],
+        },
+      ];
+    }),
+  );
+
+  return { totals: sumAmounts(Object.values(byPerson)), byPerson };
+}
+
+/** Every receipt added up in one currency, each converted at its own rate first. */
+export function consolidateSplits(
+  receiptSplits: NonEmptyArray<ReceiptSplit>,
+  exchangeRates: Record<string, number>,
+  currency: string = BASE_CURRENCY,
+): SplitResult {
+  return receiptSplits
+    .map(({ receipt, split }) =>
+      convertSplitResult(
+        split,
+        receipt.currency,
+        currency,
+        exchangeRates,
+        receipt.exchangeRateOverride,
+      ),
+    )
+    .reduce(addSplits);
+}
+
+/** Both splits cover the same people. */
+function addSplits(a: SplitResult, b: SplitResult): SplitResult {
+  return {
+    totals: sumAmounts([a.totals, b.totals]),
+    byPerson: Object.fromEntries(
+      Object.entries(a.byPerson).map(([personId, person]) => {
+        const other = b.byPerson[personId];
+        return [
+          personId,
+          { ...sumAmounts([person, other]), lines: [...person.lines, ...other.lines] },
+        ];
+      }),
     ),
   };
-
-  const totalByPersonCents = initializeCentsMap(personIds);
-  for (const personId of personIds) {
-    totalByPersonCents[personId] =
-      discountedSubtotalByPersonCents[personId] +
-      serviceByPersonCents[personId] +
-      gstByPersonCents[personId] +
-      roundingByPersonCents[personId];
-  }
-
-  const grandTotalCents = sumMapValues(totalByPersonCents);
-
-  return {
-    lineItemsByPerson,
-    subtotalByPersonCents,
-    discountByPersonCents,
-    serviceByPersonCents,
-    gstByPersonCents,
-    roundingByPersonCents,
-    totalByPersonCents,
-    subtotalCents,
-    discountCents,
-    serviceChargeCents,
-    gstCents,
-    roundingCents,
-    grandTotalCents,
-    unassignedItemCount,
-  };
-}
-
-export function computeConsolidatedSplit(
-  results: SplitResult[],
-  people: Person[],
-  currencies: string[] = [],
-  exchangeRates: Record<string, number> = {},
-  exchangeRateOverrides: (number | null)[] = [],
-  baseCurrency: string = BASE_CURRENCY,
-): SplitResult {
-  const personIds = people.map((p) => p.id);
-  const lineItemsByPerson = initializeLineItemMap(personIds);
-  const subtotalByPersonCents = initializeCentsMap(personIds);
-  const discountByPersonCents = initializeCentsMap(personIds);
-  const serviceByPersonCents = initializeCentsMap(personIds);
-  const gstByPersonCents = initializeCentsMap(personIds);
-  const roundingByPersonCents = initializeCentsMap(personIds);
-  const totalByPersonCents = initializeCentsMap(personIds);
-
-  let subtotalCents = 0;
-  let discountCents = 0;
-  let serviceChargeCents = 0;
-  let gstCents = 0;
-  let roundingCents = 0;
-  let grandTotalCents = 0;
-  let unassignedItemCount = 0;
-
-  for (let i = 0; i < results.length; i++) {
-    const fromCurrency = currencies[i] ?? baseCurrency;
-    const override = exchangeRateOverrides[i] ?? null;
-    const result =
-      fromCurrency !== baseCurrency
-        ? convertSplitResult(results[i], fromCurrency, baseCurrency, exchangeRates, override)
-        : results[i];
-
-    for (const personId of personIds) {
-      const lines = result.lineItemsByPerson[personId] ?? [];
-      lineItemsByPerson[personId].push(...lines);
-      subtotalByPersonCents[personId] += result.subtotalByPersonCents[personId] ?? 0;
-      discountByPersonCents[personId] += result.discountByPersonCents[personId] ?? 0;
-      serviceByPersonCents[personId] += result.serviceByPersonCents[personId] ?? 0;
-      gstByPersonCents[personId] += result.gstByPersonCents[personId] ?? 0;
-      roundingByPersonCents[personId] += result.roundingByPersonCents[personId] ?? 0;
-      totalByPersonCents[personId] += result.totalByPersonCents[personId] ?? 0;
-    }
-    subtotalCents += result.subtotalCents;
-    discountCents += result.discountCents;
-    serviceChargeCents += result.serviceChargeCents;
-    gstCents += result.gstCents;
-    roundingCents += result.roundingCents;
-    grandTotalCents += result.grandTotalCents;
-    unassignedItemCount += result.unassignedItemCount;
-  }
-
-  return {
-    lineItemsByPerson,
-    subtotalByPersonCents,
-    discountByPersonCents,
-    serviceByPersonCents,
-    gstByPersonCents,
-    roundingByPersonCents,
-    totalByPersonCents,
-    subtotalCents,
-    discountCents,
-    serviceChargeCents,
-    gstCents,
-    roundingCents,
-    grandTotalCents,
-    unassignedItemCount,
-  };
-}
-
-function initializeCentsMap(personIds: string[]): Record<string, number> {
-  return Object.fromEntries(personIds.map((personId) => [personId, 0]));
-}
-
-function initializeLineItemMap(personIds: string[]): Record<string, PersonReceiptLineItem[]> {
-  return Object.fromEntries(personIds.map((personId) => [personId, []]));
 }
 
 function sumMapValues(values: Record<string, number>): number {
   return Object.values(values).reduce((sum, value) => sum + value, 0);
-}
-
-function weightsFromBase(
-  base: Record<string, number>,
-  personIds: string[],
-): Record<string, number> {
-  const weights = initializeCentsMap(personIds);
-
-  for (const personId of personIds) {
-    weights[personId] = Math.max(base[personId] ?? 0, 0);
-  }
-
-  const totalWeight = sumMapValues(weights);
-  if (totalWeight > 0) {
-    return weights;
-  }
-
-  for (const personId of personIds) {
-    weights[personId] = 1;
-  }
-
-  return weights;
 }

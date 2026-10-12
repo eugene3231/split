@@ -188,7 +188,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
             <GrandTotalCard
               payNowStatus={model.payNowStatus}
               totalLabel={summaryBreakdown.totalLabel}
-              grandTotal={view.grandTotal}
+              grandTotal={view.displaySplit.totals.totalCents}
               displayCurrency={view.displayCurrency}
               currentReceipt={receiptForExport}
               people={people}

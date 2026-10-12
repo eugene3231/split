@@ -28,9 +28,9 @@ vi.mock('zustand/shallow', () => ({
   useShallow: (fn: (state: Record<string, unknown>) => unknown) => fn,
 }));
 
-vi.mock('@features/split-workspace/hooks/useReceiptSplit', () => ({
-  useReceiptSplit: () => ({
-    consolidated: { split: { totalByPersonCents: { p1: 1200, p2: 450 } } },
+vi.mock('@features/split-workspace/hooks/useSplits', () => ({
+  useSplits: () => ({
+    consolidated: { byPerson: { p1: { totalCents: 1200 }, p2: { totalCents: 450 } } },
   }),
 }));
 

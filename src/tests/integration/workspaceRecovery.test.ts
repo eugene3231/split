@@ -5,7 +5,7 @@ import { analyzeReceiptWithGemini } from '@features/receipt-scanner/api/geminiAp
 import { getScanState, useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import { useReceiptImport } from '@features/split-workspace/components/steps/ReceiptStep/useReceiptImport';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { loadPersistedDraft } from '@features/split-workspace/logic/draftStorage';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
@@ -62,8 +62,8 @@ function renderWorkspaceHooks() {
       state.receipts,
     );
     const receiptImport = useReceiptImport({ activeReceiptId: state.activeReceiptId });
-    const split = useReceiptSplit();
-    return { wizard, receiptImport, split };
+    const splits = useSplits();
+    return { wizard, receiptImport, splits };
   });
 }
 
@@ -176,7 +176,7 @@ describe('workspace recovery', () => {
         assignment: equalShares([state.people[0].id]),
       }));
     });
-    expect(result.current.split.active.split.grandTotalCents).toBe(2398);
+    expect(result.current.splits.receiptSplits[0].split.totals.totalCents).toBe(2398);
     unmount();
     reloadWorkspace();
 
