@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SummaryStep } from './SummaryStep';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import {
+  amountCharge,
   makeItem,
   makePerson,
   makeReceipt,
@@ -218,6 +219,30 @@ describe('SummaryStep', () => {
     expect(screen.getByRole('group', { name: 'Currency' })).toBeInTheDocument();
     expect(screen.queryByText(/12048\.\d/)).toBeNull();
     expect(screen.getAllByText(/1 SGD = 12,048 IDR/).length).toBeGreaterThan(1);
+  });
+
+  it('corrects a lower receipt total with a discount, and keeps the button for a gap it cannot close', () => {
+    const alice = makePerson('Alice');
+    seedStore(
+      [alice],
+      [
+        makeReceipt({
+          id: 'r1',
+          items: [makeItem({ amountInput: '1.00', assignment: equalShares([alice.id]) })],
+          serviceCharge: amountCharge('0.50'),
+          receiptTotalInput: '0.10',
+        }),
+      ],
+    );
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Corrective Discount' }));
+    const afterFirstTap = useReceiptStore.getState().receipts;
+    expect(afterFirstTap[0].discount).toMatchObject({ mode: 'amount', amountInput: '1.00' });
+    expect(screen.getByText('Reconciliation Discrepancy')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Corrective Discount' }));
+    expect(useReceiptStore.getState().receipts).toBe(afterFirstTap);
   });
 
   it('adds a short receipt total as rounding that every card then shows', () => {

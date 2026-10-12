@@ -1,19 +1,18 @@
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { CheckIcon } from './CheckIcon';
+import type {
+  Reconciliation,
+  ReconciliationFix,
+} from '@features/split-workspace/logic/reconciliation';
 
 interface Props {
-  reconciliationCents: number | null;
-  onApplyDiscount?: () => void;
-  onAddRounding?: () => void;
-  currency?: string;
+  reconciliation: Reconciliation;
+  currency: string;
+  onApplyFix: (fix: ReconciliationFix) => void;
 }
 
-export function ReconciliationNotice({
-  reconciliationCents,
-  onApplyDiscount,
-  onAddRounding,
-  currency,
-}: Props) {
+export function ReconciliationNotice({ reconciliation, currency, onApplyFix }: Props) {
+  const { cents: reconciliationCents, fix } = reconciliation;
   if (reconciliationCents === null) return null;
 
   const isMatch = reconciliationCents === 0;
@@ -59,26 +58,19 @@ export function ReconciliationNotice({
           </p>
         </div>
       </div>
-      {!isOver && onApplyDiscount && (
-        <button
-          type="button"
-          data-testid="apply-discount-reconcile-btn"
-          onClick={onApplyDiscount}
-          className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
-        >
-          Resolve Difference (Apply Discount)
-        </button>
-      )}
-      {isOver && onAddRounding && (
-        <button
-          type="button"
-          data-testid="add-rounding-reconcile-btn"
-          onClick={onAddRounding}
-          className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
-        >
-          Add {formatCurrencyFromCents(reconciliationCents, currency)} as rounding
-        </button>
-      )}
+      {/* The discount button stays up even when no discount can close the gap (#193). */}
+      <button
+        type="button"
+        data-testid={isOver ? 'add-rounding-reconcile-btn' : 'apply-discount-reconcile-btn'}
+        onClick={() => {
+          if (fix) onApplyFix(fix);
+        }}
+        className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
+      >
+        {isOver
+          ? `Add ${formatCurrencyFromCents(reconciliationCents, currency)} as rounding`
+          : 'Resolve Difference (Apply Discount)'}
+      </button>
     </div>
   );
 }

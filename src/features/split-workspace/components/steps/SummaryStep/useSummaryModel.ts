@@ -7,16 +7,16 @@ import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summary
 import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
 import { resolveSummaryView } from '@features/split-workspace/logic/summaryView';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
-import {
-  defaultDiscountState,
-  defaultGstState,
-  defaultServiceChargeState,
-} from '@features/split-workspace/constants';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
-import { useReconciliation } from '@features/split-workspace/hooks/useReconciliation';
-import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
+import {
+  resolveReconciliation,
+  type Reconciliation,
+} from '@features/split-workspace/logic/reconciliation';
 
 export type { SummaryView };
+
+/** The combined tab checks no printed total: each receipt has its own. */
+const NOTHING_TO_RECONCILE: Reconciliation = { cents: null, fix: null };
 
 export type PayNowStatus = 'empty' | 'invalid' | 'generating' | 'ready' | 'unavailable' | 'failed';
 
@@ -78,28 +78,14 @@ export function useSummaryModel({
   const people = useReceiptStore((s) => s.people);
   const receipts = useReceiptStore((s) => s.receipts);
   const renameReceipt = useReceiptStore((s) => s.renameReceipt);
-  const patchReceipt = useReceiptStore((s) => s.patchReceipt);
   const payerMobile = useReceiptStore((s) => s.payerMobile);
   const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
-  const { active, consolidated } = useReceiptSplit();
+  const { consolidated } = useReceiptSplit();
   const activeSummaryReceipt =
     activeTab === 'total' ? null : (receipts.find((receipt) => receipt.id === activeTab) ?? null);
-  const { reconciliationCents, handleApplyReconciliationDiscount, handleAddRounding } =
-    useReconciliation({
-      split: activeSummaryReceipt
-        ? computeReceiptTotals(activeSummaryReceipt, people)
-        : active.receiptTotals,
-      discount: activeSummaryReceipt?.discount ?? defaultDiscountState,
-      serviceCharge: activeSummaryReceipt?.serviceCharge ?? defaultServiceChargeState,
-      gst: activeSummaryReceipt?.gst ?? defaultGstState,
-      setDiscount: (discount) => {
-        if (activeSummaryReceipt) patchReceipt(activeSummaryReceipt.id, { discount });
-      },
-      setRoundingInput: (roundingInput) => {
-        if (activeSummaryReceipt) patchReceipt(activeSummaryReceipt.id, { roundingInput });
-      },
-      receiptTotalInput: activeSummaryReceipt?.receiptTotalInput ?? '',
-    });
+  const reconciliation = activeSummaryReceipt
+    ? resolveReconciliation(activeSummaryReceipt, people)
+    : NOTHING_TO_RECONCILE;
 
   const view = resolveSummaryView({
     people,
@@ -123,11 +109,7 @@ export function useSummaryModel({
     people,
     receipts,
     renameReceipt,
-    reconciliation: {
-      cents: reconciliationCents,
-      applyCorrectiveDiscount: handleApplyReconciliationDiscount,
-      addRounding: handleAddRounding,
-    },
+    reconciliation,
     view,
     payNowStatus,
     summaryBreakdown,

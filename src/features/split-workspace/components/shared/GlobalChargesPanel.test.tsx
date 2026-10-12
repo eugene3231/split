@@ -1,8 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { beforeEach, expect, it } from 'vitest';
 import type { Receipt } from '@shared/types';
 import { equalShares } from '@features/split-workspace/logic/assignment';
-import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 import {
   selectActiveReceipt,
   useReceiptStore,
@@ -19,26 +18,16 @@ import {
 import { GlobalChargesPanel } from './GlobalChargesPanel';
 
 /** The panel as the receipt step shows it: on the active receipt, re-rendering as it is edited. */
-function ActiveReceiptPanel({ onAddRounding = () => {} }: { onAddRounding?: () => void }) {
-  const receipt = useReceiptStore(selectActiveReceipt);
-  const people = useReceiptStore((state) => state.people);
-  return (
-    <GlobalChargesPanel
-      receipt={receipt}
-      split={computeReceiptTotals(receipt, people)}
-      reconciliationCents={100}
-      onApplyDiscount={() => {}}
-      onAddRounding={onAddRounding}
-    />
-  );
+function ActiveReceiptPanel() {
+  return <GlobalChargesPanel receipt={useReceiptStore(selectActiveReceipt)} />;
 }
 
-function renderPanel(receipt: Partial<Receipt> = {}, onAddRounding?: () => void) {
+function renderPanel(receipt: Partial<Receipt> = {}) {
   seedStore(
     [],
     [makeReceipt({ id: 'r1', currency: 'JPY', receiptTotalInput: '1.00', ...receipt })],
   );
-  return render(<ActiveReceiptPanel onAddRounding={onAddRounding} />);
+  return render(<ActiveReceiptPanel />);
 }
 
 beforeEach(() => {
@@ -61,13 +50,63 @@ it('lists the charge toggles in the order they are applied', () => {
   ]);
 });
 
-it('offers to add a short receipt total as rounding', () => {
-  const onAddRounding = vi.fn();
-  renderPanel({}, onAddRounding);
+it('adds a short receipt total as rounding, after which the totals match', () => {
+  const alice = makePerson('Alice');
+  const meal = makeItem({ amountInput: '10.00', assignment: equalShares([alice.id]) });
+  seedStore([alice], [makeReceipt({ id: 'r1', items: [meal], receiptTotalInput: '10.40' })]);
+  render(<ActiveReceiptPanel />);
 
-  fireEvent.click(screen.getByRole('button', { name: 'Add ¥1 as rounding' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add $0.40 as rounding' }));
 
-  expect(onAddRounding).toHaveBeenCalledOnce();
+  expect(useReceiptStore.getState().receipts[0].roundingInput).toBe('0.40');
+  expect(screen.getByText('Totals match!')).toBeInTheDocument();
+});
+
+it('reaches a lower receipt total with a discount before tax', () => {
+  const alice = makePerson('Alice');
+  const meal = makeItem({ amountInput: '100.00', assignment: equalShares([alice.id]) });
+  const receipt = makeReceipt({
+    id: 'r1',
+    items: [meal],
+    discount: percentCharge('5'),
+    serviceCharge: percentCharge('10'),
+    gst: percentCharge('9'),
+    receiptTotalInput: '107.91',
+  });
+  seedStore([alice], [receipt]);
+  render(<ActiveReceiptPanel />);
+
+  fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
+
+  expect(useReceiptStore.getState().receipts[0].discount).toMatchObject({
+    mode: 'amount',
+    amountInput: '10.00',
+  });
+  expect(screen.getByText('Totals match!')).toBeInTheDocument();
+});
+
+it('keeps showing a gap no discount can close, and a second tap changes nothing', () => {
+  const alice = makePerson('Alice');
+  const meal = makeItem({ amountInput: '1.00', assignment: equalShares([alice.id]) });
+  const receipt = makeReceipt({
+    id: 'r1',
+    items: [meal],
+    serviceCharge: amountCharge('0.50'),
+    receiptTotalInput: '0.10',
+  });
+  seedStore([alice], [receipt]);
+  render(<ActiveReceiptPanel />);
+
+  fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
+
+  expect(screen.getByText('Mismatch found ($0.40)')).toBeInTheDocument();
+  const afterFirstTap = useReceiptStore.getState().receipts;
+  expect(afterFirstTap[0].discount).toMatchObject({ mode: 'amount', amountInput: '1.00' });
+
+  fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
+
+  expect(useReceiptStore.getState().receipts).toBe(afterFirstTap);
+  expect(screen.getByText('Mismatch found ($0.40)')).toBeInTheDocument();
 });
 
 it('writes charge amounts and the receipt total the way the receipt currency is written', () => {

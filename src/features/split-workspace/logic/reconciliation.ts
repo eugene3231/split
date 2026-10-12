@@ -1,5 +1,5 @@
 import type { ChargeState, Person, Receipt, SplitResult } from '@shared/types';
-import { parseNumber } from '@shared/logic/core/money';
+import { parseCurrencyToCents, parseNumber } from '@shared/logic/core/money';
 import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
 import { computeSplit } from '@features/split-workspace/logic/split/split';
 import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
@@ -22,6 +22,56 @@ export function computeReceiptTotals(receipt: ReceiptPricing, people: Person[]):
     gst: receipt.gst,
     roundingInput: receipt.roundingInput,
   });
+}
+
+/** A receipt patch that brings the computed total to the printed one. */
+export type ReconciliationFix = { discount: ChargeState } | { roundingInput: string };
+
+export interface Reconciliation {
+  /** Printed total minus computed total. Null when no total was entered. */
+  cents: number | null;
+  /** Null when the totals agree, or when nothing can close the gap. */
+  fix: ReconciliationFix | null;
+}
+
+/**
+ * Checks a receipt against its printed total. A printed total that is higher is made up with
+ * rounding; one that is lower is reached with a discount before tax.
+ */
+export function resolveReconciliation(
+  receipt: ReceiptPricing & Pick<Receipt, 'receiptTotalInput'>,
+  people: Person[],
+): Reconciliation {
+  const receiptTotalCents = parseCurrencyToCents(receipt.receiptTotalInput);
+  if (receiptTotalCents === null) return { cents: null, fix: null };
+
+  const totals = computeReceiptTotals(receipt, people);
+  const cents = receiptTotalCents - totals.grandTotalCents;
+  if (cents === 0) return { cents, fix: null };
+  if (cents > 0) {
+    return { cents, fix: { roundingInput: ((totals.roundingCents + cents) / 100).toFixed(2) } };
+  }
+
+  const discountCents = findReconciliationDiscount({
+    subtotalCents: totals.subtotalCents,
+    currentDiscountCents: totals.discountCents,
+    serviceCharge: receipt.serviceCharge,
+    gst: receipt.gst,
+    // Rounding sits outside the charges the discount search recomputes.
+    targetTotalCents: receiptTotalCents - totals.roundingCents,
+  });
+  if (discountCents === null) return { cents, fix: null };
+  return {
+    cents,
+    fix: {
+      discount: {
+        ...receipt.discount,
+        enabled: true,
+        mode: 'amount',
+        amountInput: (discountCents / 100).toFixed(2),
+      },
+    },
+  };
 }
 
 interface ReconciliationDiscountInput {

@@ -4,7 +4,6 @@ import {
   computeSplit,
   computeConsolidatedSplit,
 } from '@features/split-workspace/logic/split/split';
-import { useReconciliation } from './useReconciliation';
 import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 import {
   selectActiveReceipt,
@@ -14,12 +13,8 @@ import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore
 import { BASE_CURRENCY } from '@shared/constants';
 
 export function useReceiptSplit() {
-  const { people, receipts, patchReceipt } = useReceiptStore(
-    useShallow((state) => ({
-      people: state.people,
-      receipts: state.receipts,
-      patchReceipt: state.patchReceipt,
-    })),
+  const { people, receipts } = useReceiptStore(
+    useShallow((state) => ({ people: state.people, receipts: state.receipts })),
   );
   const activeReceipt = useReceiptStore(selectActiveReceipt);
   const exchangeRates = useCurrencyStore((state) => state.exchangeRates);
@@ -70,17 +65,6 @@ export function useReceiptSplit() {
     );
   }, [splitByReceipt, people, receipts, exchangeRates]);
 
-  const { reconciliationCents, handleApplyReconciliationDiscount, handleAddRounding } =
-    useReconciliation({
-      split: receiptTotals,
-      discount: activeReceipt.discount,
-      serviceCharge: activeReceipt.serviceCharge,
-      gst: activeReceipt.gst,
-      setDiscount: (discount) => patchReceipt(activeReceipt.id, { discount }),
-      setRoundingInput: (roundingInput) => patchReceipt(activeReceipt.id, { roundingInput }),
-      receiptTotalInput: activeReceipt.receiptTotalInput,
-    });
-
   return {
     active: {
       split: activeSplit,
@@ -89,11 +73,6 @@ export function useReceiptSplit() {
     consolidated: {
       split: consolidatedSplit,
       splitByReceipt,
-    },
-    reconciliation: {
-      cents: reconciliationCents,
-      applyCorrectiveDiscount: handleApplyReconciliationDiscount,
-      addRounding: handleAddRounding,
     },
   };
 }

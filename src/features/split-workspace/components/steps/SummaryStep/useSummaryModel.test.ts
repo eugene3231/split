@@ -11,6 +11,7 @@ import {
   seedStore,
 } from '../../../../../tests/integration/testHelpers';
 import { equalShares } from '@features/split-workspace/logic/assignment';
+import type { Reconciliation } from '@features/split-workspace/logic/reconciliation';
 
 const { generatePaynowQrDataUrls } = vi.hoisted(() => ({
   generatePaynowQrDataUrls: vi.fn(),
@@ -25,6 +26,12 @@ beforeEach(() => {
   resetAllStores();
   generatePaynowQrDataUrls.mockReset().mockResolvedValue({});
 });
+
+/** What the summary's fix button does: write the fix to the receipt on the open tab. */
+function applyFix(receiptId: string, { fix }: Reconciliation) {
+  if (!fix) throw new Error('There is no fix to apply');
+  useReceiptStore.getState().patchReceipt(receiptId, fix);
+}
 
 function deferredQrUrls() {
   let resolve!: (urls: Record<string, string>) => void;
@@ -114,7 +121,7 @@ describe('useSummaryModel', () => {
     );
 
     expect(result.current.reconciliation.cents).toBe(-100);
-    act(() => result.current.reconciliation.applyCorrectiveDiscount());
+    act(() => applyFix('r2', result.current.reconciliation));
 
     const state = useReceiptStore.getState();
     expect(state.activeReceiptId).toBe('r1');
@@ -150,16 +157,13 @@ describe('useSummaryModel', () => {
     const { result } = renderHook(() =>
       useSummaryModel({ activeTab: 'selected', showBaseCurrency: true }),
     );
-    act(() => result.current.reconciliation.applyCorrectiveDiscount());
+    act(() => applyFix('selected', result.current.reconciliation));
     expect(useReceiptStore.getState().receipts[0]).toEqual(editor);
     expect(useReceiptStore.getState().receipts[1].discount).toMatchObject({
       mode: 'amount',
       amountInput: '10.00',
     });
-    expect(result.current.reconciliation.cents).toBe(0);
-    const after = useReceiptStore.getState().receipts;
-    act(() => result.current.reconciliation.applyCorrectiveDiscount());
-    expect(useReceiptStore.getState().receipts).toBe(after);
+    expect(result.current.reconciliation).toEqual({ cents: 0, fix: null });
   });
 
   it('has no receipt reconciliation on the Total tab', () => {
@@ -180,9 +184,7 @@ describe('useSummaryModel', () => {
       useSummaryModel({ activeTab: 'total', showBaseCurrency: false }),
     );
 
-    expect(result.current.reconciliation.cents).toBeNull();
-    act(() => result.current.reconciliation.applyCorrectiveDiscount());
-    expect(useReceiptStore.getState().receipts[0].discount).toEqual(receipt.discount);
+    expect(result.current.reconciliation).toEqual({ cents: null, fix: null });
   });
 
   it('hides old QR URLs while receipt amounts or payer mobile change', async () => {

@@ -12,7 +12,8 @@ Two conventions that follow from it: a feature component may select from its fea
 - `logic/split/` — receipt pricing, charge calculation, and per-person allocation. These rules belong to the workspace feature.
 - `logic/exchangeRates.ts` — rate selection and currency conversion.
 - `logic/jsonStorage.ts` — every value kept in browser storage is read through a zod schema (`jsonStorage(kind, key, schema)`); each storage module owns its schema. `logic/draftStorage.ts` reads version 2 and 3 drafts and always writes version 3.
-- `useReceiptSplit` — reads canonical state, returns active/consolidated/per-receipt splits and reconciliation.
+- `useReceiptSplit` — reads canonical state, returns active/consolidated/per-receipt splits.
+- `logic/reconciliation.ts` — `resolveReconciliation(receipt, people)` checks a receipt against its printed total and returns the gap plus the fix as a receipt patch (rounding when the printed total is higher, a pre-tax discount when it is lower). The receipt step and the summary both render that and write the fix with `patchReceipt`.
 - `logic/summaryView.ts` — pure transform from split data plus summary controls into a screen-facing summary view.
 - `logic/summaryBreakdown.ts` / `logic/summaryOverview.ts` — the per-person breakdown and the who-had-what overview, both resolved from the summary view and each with a PNG export.
 

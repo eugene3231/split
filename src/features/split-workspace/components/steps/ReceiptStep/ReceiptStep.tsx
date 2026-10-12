@@ -12,7 +12,6 @@ import { CurrencySelector } from '@features/split-workspace/components/shared/Cu
 import { ExchangeRateDisplay } from '@features/split-workspace/components/shared/ExchangeRateDisplay';
 import { useReceiptImport } from './useReceiptImport';
 import { useShallow } from 'zustand/shallow';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import {
   selectActiveReceipt,
   useReceiptStore,
@@ -46,7 +45,6 @@ export function ReceiptStep({ onAddReceipt }: Props) {
     })),
   );
   const receipt = useReceiptStore(selectActiveReceipt);
-  const { active, reconciliation } = useReceiptSplit();
   const { handleReceiptFileChange, handleScanReceipt } = useReceiptImport({
     activeReceiptId: receipt.id,
   });
@@ -177,13 +175,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
         </div>
 
         <div className="lg:col-span-4">
-          <GlobalChargesPanel
-            receipt={receipt}
-            split={active.receiptTotals}
-            reconciliationCents={reconciliation.cents}
-            onApplyDiscount={reconciliation.applyCorrectiveDiscount}
-            onAddRounding={reconciliation.addRounding}
-          />
+          <GlobalChargesPanel receipt={receipt} />
         </div>
       </div>
     </div>

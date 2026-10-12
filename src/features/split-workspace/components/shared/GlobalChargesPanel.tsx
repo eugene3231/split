@@ -1,27 +1,21 @@
-import type { Receipt, SplitResult } from '@shared/types';
+import type { Receipt } from '@shared/types';
 import { ChargeToggle } from '@features/split-workspace/components/shared/ChargeToggle';
 import { SummaryTotals } from '@features/split-workspace/components/shared/SummaryTotals';
 import { ReconciliationNotice } from '@features/split-workspace/components/shared/ReconciliationNotice';
 import { formatMoneyAmount, formatMoneyInput, getCurrencySymbol } from '@shared/logic/core/money';
 import { FormattedNumberInput } from '@features/split-workspace/components/shared/FormattedNumberInput';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import {
+  computeReceiptTotals,
+  resolveReconciliation,
+} from '@features/split-workspace/logic/reconciliation';
 
 interface Props {
   receipt: Receipt;
-  /** The receipt priced as a whole, whoever its items belong to. */
-  split: SplitResult;
-  reconciliationCents: number | null;
-  onApplyDiscount: () => void;
-  onAddRounding: () => void;
 }
 
-export function GlobalChargesPanel({
-  receipt,
-  split,
-  reconciliationCents,
-  onApplyDiscount,
-  onAddRounding,
-}: Props) {
+export function GlobalChargesPanel({ receipt }: Props) {
+  const people = useReceiptStore((state) => state.people);
   const patchReceipt = useReceiptStore((state) => state.patchReceipt);
   const { id, discount, serviceCharge, gst, currency } = receipt;
 
@@ -53,7 +47,7 @@ export function GlobalChargesPanel({
       </div>
 
       <SummaryTotals
-        split={split}
+        split={computeReceiptTotals(receipt, people)}
         discount={discount}
         serviceCharge={serviceCharge}
         gst={gst}
@@ -84,10 +78,9 @@ export function GlobalChargesPanel({
         </div>
 
         <ReconciliationNotice
-          reconciliationCents={reconciliationCents}
-          onApplyDiscount={onApplyDiscount}
-          onAddRounding={onAddRounding}
+          reconciliation={resolveReconciliation(receipt, people)}
           currency={currency}
+          onApplyFix={(fix) => patchReceipt(id, fix)}
         />
       </div>
     </div>

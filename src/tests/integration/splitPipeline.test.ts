@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import {
+  selectActiveReceipt,
+  useReceiptStore,
+} from '@features/split-workspace/stores/receiptStore';
+import { resolveReconciliation } from '@features/split-workspace/logic/reconciliation';
 import { defaultServiceChargeState, defaultGstState } from '@features/split-workspace/constants';
 import {
   disabledCharge,
@@ -17,6 +21,11 @@ import {
 import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 beforeEach(resetAllStores);
+
+function reconcileActiveReceipt() {
+  const state = useReceiptStore.getState();
+  return resolveReconciliation(selectActiveReceipt(state), state.people);
+}
 
 function useSplitFromStore() {
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -535,10 +544,12 @@ describe('Split pipeline integration', () => {
       seedStore([alice, bob], [receipt]);
       const { result } = useSplitFromStore();
 
-      expect(result.current.reconciliation.cents).toBeLessThan(0);
+      const { cents, fix } = reconcileActiveReceipt();
+      expect(cents).toBe(-200);
+      if (!fix) throw new Error('Expected a corrective discount');
 
       act(() => {
-        result.current.reconciliation.applyCorrectiveDiscount();
+        useReceiptStore.getState().patchReceipt(receipt.id, fix);
       });
 
       expect(result.current.active.split.grandTotalCents).toBeLessThan(1000);
@@ -558,9 +569,8 @@ describe('Split pipeline integration', () => {
       });
 
       seedStore([alice, bob], [receipt]);
-      const { result } = useSplitFromStore();
 
-      expect(result.current.reconciliation.cents).toBe(0);
+      expect(reconcileActiveReceipt().cents).toBe(0);
     });
 
     it('20: reconciliation no receipt total — reconciliationCents is null', () => {
@@ -577,9 +587,8 @@ describe('Split pipeline integration', () => {
       });
 
       seedStore([alice, bob], [receipt]);
-      const { result } = useSplitFromStore();
 
-      expect(result.current.reconciliation.cents).toBeNull();
+      expect(reconcileActiveReceipt().cents).toBeNull();
     });
 
     it('21: charge mode=amount — service as fixed amount, sums to serviceChargeCents', () => {
@@ -793,7 +802,7 @@ describe('Split pipeline integration', () => {
       const { result } = useSplitFromStore();
 
       expect(result.current.active.receiptTotals.grandTotalCents).toBe(3000);
-      expect(result.current.reconciliation.cents).toBe(0);
+      expect(reconcileActiveReceipt().cents).toBe(0);
       expect(result.current.active.split.grandTotalCents).toBe(1000);
       expect(result.current.active.split.unassignedItemCount).toBe(1);
     });

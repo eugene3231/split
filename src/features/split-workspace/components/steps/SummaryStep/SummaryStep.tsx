@@ -41,7 +41,8 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
     showAllItems: detail === 'all-items',
   });
   const { people, receipts, renameReceipt, view, summaryBreakdown, summaryOverview } = model;
-  const reconciliationCents = model.reconciliation.cents;
+  const { cents: reconciliationCents, fix } = model.reconciliation;
+  const patchReceipt = useReceiptStore((state) => state.patchReceipt);
   const { exportState, text, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({
       model,
@@ -103,24 +104,19 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                 </p>
               </div>
             </div>
-            {reconciliationCents < 0 ? (
-              <button
-                type="button"
-                onClick={model.reconciliation.applyCorrectiveDiscount}
-                className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
-              >
-                Apply Corrective Discount
-              </button>
-            ) : (
-              <button
-                type="button"
-                data-testid="summary-add-rounding-btn"
-                onClick={model.reconciliation.addRounding}
-                className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
-              >
-                Add {formatCurrencyFromCents(reconciliationCents, nativeCurrency)} as rounding
-              </button>
-            )}
+            {/* The discount button stays up even when no discount can close the gap (#193). */}
+            <button
+              type="button"
+              data-testid={reconciliationCents > 0 ? 'summary-add-rounding-btn' : undefined}
+              onClick={() => {
+                if (fix && receiptForExport) patchReceipt(receiptForExport.id, fix);
+              }}
+              className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
+            >
+              {reconciliationCents > 0
+                ? `Add ${formatCurrencyFromCents(reconciliationCents, nativeCurrency)} as rounding`
+                : 'Apply Corrective Discount'}
+            </button>
           </div>
         </div>
       )}

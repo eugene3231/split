@@ -64,7 +64,7 @@ export function makeReceipt(overrides: Partial<Receipt> & { id?: string }): Rece
     serviceCharge: overrides.serviceCharge ?? { ...disabledCharge },
     gst: overrides.gst ?? { ...disabledCharge },
     receiptTotalInput: overrides.receiptTotalInput ?? '',
-    roundingInput: '',
+    roundingInput: overrides.roundingInput ?? '',
     currency: overrides.currency ?? 'SGD',
     exchangeRateOverride: overrides.exchangeRateOverride ?? null,
   };
