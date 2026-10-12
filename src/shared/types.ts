@@ -53,7 +53,6 @@ export type OcrResponse = {
 
 export type SplitResult = {
   lineItemsByPerson: Record<string, PersonReceiptLineItem[]>;
-  involvedCountByPerson: Record<string, number>;
   subtotalByPersonCents: Record<string, number>;
   discountByPersonCents: Record<string, number>;
   serviceByPersonCents: Record<string, number>;
@@ -72,12 +71,8 @@ export type SplitResult = {
 export type PersonReceiptLineItem = {
   itemId: string;
   name: string;
-  grossAmountCents: number;
-  discountPercent: number;
-  discountAmountCents: number;
-  netAmountCents: number;
+  /** The person's share of the item after its own discount. Zero when they had none of it. */
   assignedAmountCents: number;
-  splitCount: number;
   involved: boolean;
 };
 

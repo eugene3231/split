@@ -24,10 +24,8 @@ export function buildSplitShareText(args: {
   return lines.join('\n');
 }
 
-export function getShareSupport(
-  navigatorLike: ShareNavigator | undefined = getNavigator(),
-): ShareSupport {
-  if (!navigatorLike || typeof navigatorLike.share !== 'function') {
+export function getShareSupport(navigatorLike: ShareNavigator = navigator): ShareSupport {
+  if (typeof navigatorLike.share !== 'function') {
     return 'fallback';
   }
   return 'native';
@@ -35,9 +33,9 @@ export function getShareSupport(
 
 export async function copyShareText(
   text: string,
-  navigatorLike: ShareNavigator | undefined = getNavigator(),
+  navigatorLike: ShareNavigator = navigator,
 ): Promise<void> {
-  if (!navigatorLike?.clipboard || typeof navigatorLike.clipboard.writeText !== 'function') {
+  if (typeof navigatorLike.clipboard?.writeText !== 'function') {
     throw new Error('Copy is not available on this device.');
   }
 
@@ -46,9 +44,9 @@ export async function copyShareText(
 
 export async function shareText(
   text: string,
-  navigatorLike: ShareNavigator | undefined = getNavigator(),
+  navigatorLike: ShareNavigator = navigator,
 ): Promise<ShareSupport> {
-  if (!navigatorLike || typeof navigatorLike.share !== 'function') {
+  if (typeof navigatorLike.share !== 'function') {
     await copyShareText(text, navigatorLike);
     return 'fallback';
   }
@@ -83,12 +81,4 @@ export function downloadImage(blob: Blob, fileName: string): void {
   anchor.download = fileName;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function getNavigator(): ShareNavigator | undefined {
-  if (typeof navigator === 'undefined') {
-    return undefined;
-  }
-
-  return navigator;
 }

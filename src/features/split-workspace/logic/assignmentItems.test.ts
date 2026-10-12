@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EditableItem, Person } from '@shared/types';
-import {
-  pickDefaultPersonId,
-  sanitizeItemAssignment,
-} from '@features/split-workspace/logic/assignmentItems';
+import { sanitizeItemAssignment } from '@features/split-workspace/logic/assignmentItems';
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },
@@ -76,13 +73,5 @@ describe('sanitizeItemAssignment', () => {
 
     const next = sanitizeItemAssignment(item, people);
     expect(next.assignment.personIds).toEqual(['p2', 'p1']);
-  });
-});
-
-describe('pickDefaultPersonId', () => {
-  it('returns candidate if valid, otherwise first person or empty string', () => {
-    expect(pickDefaultPersonId(people, 'p2')).toBe('p2');
-    expect(pickDefaultPersonId(people, 'missing')).toBe('p1');
-    expect(pickDefaultPersonId([], 'missing')).toBe('');
   });
 });

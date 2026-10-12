@@ -37,7 +37,6 @@ const makeSplit = (grandTotalCents: number): SplitResult => ({
   roundingCents: 0,
   grandTotalCents,
   unassignedItemCount: 0,
-  involvedCountByPerson: {},
 });
 
 describe('useReconciliation', () => {

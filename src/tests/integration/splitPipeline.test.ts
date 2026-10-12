@@ -423,7 +423,7 @@ describe('Split pipeline integration', () => {
       expect(active.split.unassignedItemCount).toBe(0);
     });
 
-    it('14: person assigned to no items — zero subtotal, involvedCount = 0', () => {
+    it('14: person assigned to no items — zero subtotal, not involved in any line', () => {
       const alice = makePerson('Alice');
       const bob = makePerson('Bob');
       const receipt = makeReceipt({
@@ -440,7 +440,7 @@ describe('Split pipeline integration', () => {
       const { active } = result.current;
 
       expect(active.split.subtotalByPersonCents[bob.id]).toBe(0);
-      expect(active.split.involvedCountByPerson[bob.id]).toBe(0);
+      expect(active.split.lineItemsByPerson[bob.id].some((line) => line.involved)).toBe(false);
       expect(active.split.totalByPersonCents[bob.id]).toBe(0);
     });
 
@@ -513,7 +513,9 @@ describe('Split pipeline integration', () => {
 
       expect(active.split.subtotalCents).toBe(1000);
       expect(active.split.totalByPersonCents[bob.id]).toBe(1000);
-      expect(active.split.involvedCountByPerson[alice.id]).toBe(0);
+      expect(active.split.lineItemsByPerson[alice.id]).toEqual([
+        expect.objectContaining({ involved: false }),
+      ]);
     });
 
     it('18: reconciliation overcharge — reconciliationCents is negative', () => {

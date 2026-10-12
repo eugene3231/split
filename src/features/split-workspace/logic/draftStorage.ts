@@ -19,7 +19,6 @@ import { toNullableNumber } from '@shared/logic/core/money';
 import { isRecord } from '@features/split-workspace/logic/guards';
 import { createId } from '@shared/logic/core/id';
 function getBrowserStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
   try {
     return window.localStorage;
   } catch {
@@ -95,19 +94,6 @@ export function loadPersistedDraft(): SessionDraft | null {
     return null;
   } catch {
     return null;
-  }
-}
-
-export function clearPersistedDraft(): void {
-  const storage = getBrowserStorage();
-  if (!storage) {
-    return;
-  }
-
-  try {
-    storage.removeItem(LOCAL_STORAGE_DRAFT_KEY);
-  } catch {
-    // Ignore storage remove failures.
   }
 }
 

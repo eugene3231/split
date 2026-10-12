@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { generateReceiptSplitImageLight } from '@features/sharing/logic/receiptSplitImageLight';
 import { generateOverviewTableImage } from '@features/sharing/logic/overviewTableImage';
 import {
@@ -7,7 +7,6 @@ import {
   downloadImage,
   shareText,
 } from '@features/sharing/logic/shareSplit';
-import { buildSummaryExportPayload } from '@features/split-workspace/logic/buildSummaryExportPayload';
 import type { SummaryModel } from './useSummaryModel';
 import type { SummaryMode } from './SummaryModeToggle';
 
@@ -19,10 +18,7 @@ export type SummaryExportState =
   | { kind: 'error'; message: string };
 
 interface UseSummaryExportArgs {
-  model: Pick<
-    SummaryModel,
-    'people' | 'reconciliation' | 'view' | 'summaryBreakdown' | 'summaryOverview'
-  >;
+  model: Pick<SummaryModel, 'people' | 'view' | 'summaryBreakdown' | 'summaryOverview'>;
   includeItemDetails: boolean;
   mode: SummaryMode;
 }
@@ -32,13 +28,10 @@ export function useSummaryExport({ model, includeItemDetails, mode }: UseSummary
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const successTimeoutRef = useRef<number | null>(null);
 
-  const payload = useMemo(
-    () => buildSummaryExportPayload({ model, includeItemDetails }),
-    [model, includeItemDetails],
-  );
+  const receiptName = model.view.kind === 'receipt' ? model.view.receipt.name : undefined;
   const text = buildSplitShareText({
     people: model.people,
-    receiptName: payload.receiptName ?? '',
+    receiptName: receiptName ?? '',
     split: model.view.displaySplit,
     currency: model.view.displayCurrency,
   });
@@ -58,8 +51,12 @@ export function useSummaryExport({ model, includeItemDetails, mode }: UseSummary
   // The image follows whichever view is on screen: the person cards or the overview table.
   const generateImage = () =>
     mode === 'overview'
-      ? generateOverviewTableImage({ overview: model.summaryOverview, title: payload.receiptName })
-      : generateReceiptSplitImageLight(payload);
+      ? generateOverviewTableImage({ overview: model.summaryOverview, title: receiptName })
+      : generateReceiptSplitImageLight({
+          summaryBreakdown: model.summaryBreakdown,
+          includeItemDetails,
+          receiptName,
+        });
 
   const beginAction = (action: Extract<SummaryExportState, { kind: 'busy' }>['action']) => {
     if (successTimeoutRef.current !== null) {
@@ -75,7 +72,7 @@ export function useSummaryExport({ model, includeItemDetails, mode }: UseSummary
       const blob = await generateImage();
       downloadImage(
         blob,
-        buildDownloadFilename(mode === 'overview' ? 'overview' : 'split', payload.receiptName),
+        buildDownloadFilename(mode === 'overview' ? 'overview' : 'split', receiptName),
       );
       setExportState({ kind: 'idle' });
     } catch {

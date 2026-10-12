@@ -32,12 +32,7 @@ function line(overrides: Partial<PersonReceiptLineItem> = {}): PersonReceiptLine
   return {
     itemId: 'item-1',
     name: 'Noodles',
-    grossAmountCents: 1200,
-    discountPercent: 0,
-    discountAmountCents: 0,
-    netAmountCents: 1200,
     assignedAmountCents: 1200,
-    splitCount: 1,
     involved: true,
     ...overrides,
   };
@@ -46,7 +41,6 @@ function line(overrides: Partial<PersonReceiptLineItem> = {}): PersonReceiptLine
 function split(overrides: Partial<SplitResult> = {}): SplitResult {
   return {
     lineItemsByPerson: { alice: [line()] },
-    involvedCountByPerson: { alice: 1 },
     subtotalByPersonCents: { alice: 1200 },
     discountByPersonCents: { alice: 0 },
     serviceByPersonCents: { alice: 0 },
@@ -87,10 +81,6 @@ describe('resolveSummaryBreakdown', () => {
         receipts: [receipt],
         splitByReceipt: [nativeSplit],
         consolidatedSplit: computeConsolidatedSplit([nativeSplit], people, ['USD'], exchangeRates),
-        fallbackSplit: nativeSplit,
-        discount: disabledCharge,
-        serviceCharge: disabledCharge,
-        gst: disabledCharge,
         exchangeRates,
         activeTab,
         showBaseCurrency: false,
@@ -131,10 +121,6 @@ describe('resolveSummaryBreakdown', () => {
         ['USD', 'USD'],
         exchangeRates,
       ),
-      fallbackSplit: splitByReceipt[0],
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
       exchangeRates,
       activeTab: 'total',
       showBaseCurrency: false,
@@ -169,10 +155,6 @@ describe('resolveSummaryBreakdown', () => {
       ],
       splitByReceipt: [split(), split()],
       consolidatedSplit: split(),
-      fallbackSplit: split(),
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
       exchangeRates: { USD: 1.35 },
       activeTab: 'total',
       showBaseCurrency: false,
@@ -210,9 +192,6 @@ describe('resolveSummaryBreakdown', () => {
       }),
       displayCurrency: 'SGD',
       grandTotal: 1368,
-      discount: percentCharge('5'),
-      serviceCharge: percentCharge('10'),
-      gst: percentCharge('9'),
       sgdSplit: split(),
       nativeCurrency: 'SGD',
       isForeign: false,
@@ -266,13 +245,10 @@ describe('resolveSummaryBreakdown', () => {
   it('omits a second SGD conversion when a foreign receipt is displayed in SGD', () => {
     const view: SummaryView = {
       kind: 'receipt',
-      receipt: null,
+      receipt: makeReceipt({ currency: 'USD' }),
       displaySplit: split({ totalByPersonCents: { alice: 1620 }, grandTotalCents: 1620 }),
       displayCurrency: 'SGD',
       grandTotal: 1620,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
       sgdSplit: split({ totalByPersonCents: { alice: 1620 }, grandTotalCents: 1620 }),
       nativeCurrency: 'USD',
       isForeign: true,
@@ -298,15 +274,13 @@ describe('resolveSummaryBreakdown', () => {
       displaySplit: chargedSplit,
       displayCurrency: 'SGD',
       grandTotal: 1390,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
       sgdSplit: chargedSplit,
       hasAnyForeign: false,
       billedCurrencies: ['SGD'],
       billedRate: null,
       receiptBreakdowns: [
         {
+          id: 'dinner',
           name: 'Dinner',
           split: chargedSplit,
           sgdSplit: chargedSplit,
@@ -343,15 +317,13 @@ describe('resolveSummaryBreakdown', () => {
       displaySplit: split({ totalByPersonCents: { alice: 1800 }, grandTotalCents: 1800 }),
       displayCurrency: 'SGD',
       grandTotal: 1800,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
       sgdSplit: split(),
       hasAnyForeign: true,
       billedCurrencies: ['JPY'],
       billedRate: null,
       receiptBreakdowns: [
         {
+          id: 'ramen-shop',
           name: 'Ramen Shop',
           split: ramenSplit,
           sgdSplit: split({ totalByPersonCents: { alice: 11 } }),
@@ -362,6 +334,7 @@ describe('resolveSummaryBreakdown', () => {
           effectiveRate: 0.009,
         },
         {
+          id: 'tea-stall',
           name: 'Tea Stall',
           split: teaSplit,
           sgdSplit: teaSplit,
@@ -380,8 +353,8 @@ describe('resolveSummaryBreakdown', () => {
     expect(breakdown.totalLabel).toBe('Total · 2 receipts');
     expect(person.headerLabel).toBe('Total · 2 receipts');
     expect(person.collapsedReceiptTotals).toEqual([
-      { id: '0:Ramen Shop', label: 'Ramen Shop', totalCents: 1200, currency: 'JPY' },
-      { id: '1:Tea Stall', label: 'Tea Stall', totalCents: 300, currency: 'SGD' },
+      { id: 'ramen-shop', label: 'Ramen Shop', totalCents: 1200, currency: 'JPY' },
+      { id: 'tea-stall', label: 'Tea Stall', totalCents: 300, currency: 'SGD' },
     ]);
     expect(person.sections.map((section) => section.title)).toEqual(['Ramen Shop', 'Tea Stall']);
     expect(person.sections[0].conversion).toEqual({
@@ -414,15 +387,13 @@ describe('resolveSummaryBreakdown', () => {
       displaySplit: dinner,
       displayCurrency: 'SGD',
       grandTotal: 1200,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
       sgdSplit: dinner,
       hasAnyForeign: false,
       billedCurrencies: ['SGD'],
       billedRate: null,
       receiptBreakdowns: [
         {
+          id: 'dinner',
           name: 'Dinner',
           split: dinner,
           sgdSplit: dinner,
@@ -432,6 +403,7 @@ describe('resolveSummaryBreakdown', () => {
           gst: disabledCharge,
         },
         {
+          id: 'drinks',
           name: 'Drinks',
           split: drinks,
           sgdSplit: drinks,
@@ -460,44 +432,19 @@ describe('resolveSummaryBreakdown', () => {
     ]);
   });
 
-  it('returns empty state metadata when no people are present', () => {
-    const view: SummaryView = {
-      kind: 'total',
-      displaySplit: split({ unassignedItemCount: 2 }),
-      displayCurrency: 'SGD',
-      grandTotal: 0,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
-      sgdSplit: split(),
-      hasAnyForeign: false,
-      billedCurrencies: ['SGD'],
-      billedRate: null,
-      receiptBreakdowns: [],
-    };
-
-    const breakdown = resolveSummaryBreakdown({ people: [], view });
-
-    expect(breakdown.emptyPeopleMessage).toBe('Add people to see the breakdown.');
-    expect(breakdown.unassignedItemCount).toBe(2);
-    expect(breakdown.personBreakdowns).toEqual([]);
-  });
-
   it('marks a person with no assigned sections as empty', () => {
     const view: SummaryView = {
       kind: 'total',
       displaySplit: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
       displayCurrency: 'SGD',
       grandTotal: 0,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
       sgdSplit: split(),
       hasAnyForeign: false,
       billedCurrencies: ['SGD'],
       billedRate: null,
       receiptBreakdowns: [
         {
+          id: 'dinner',
           name: 'Dinner',
           split: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
           sgdSplit: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
@@ -518,13 +465,10 @@ describe('resolveSummaryBreakdown', () => {
   it('leaves out the receipt total for a person with nothing on a single receipt', () => {
     const view: SummaryView = {
       kind: 'receipt',
-      receipt: null,
+      receipt: makeReceipt({}),
       displaySplit: split({ lineItemsByPerson: {}, totalByPersonCents: { bob: 0 } }),
       displayCurrency: 'SGD',
       grandTotal: 0,
-      discount: disabledCharge,
-      serviceCharge: disabledCharge,
-      gst: disabledCharge,
       sgdSplit: split(),
       nativeCurrency: 'SGD',
       isForeign: false,

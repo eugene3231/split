@@ -14,7 +14,6 @@ Two conventions that follow from it: a feature component may select from its fea
 - `useReceiptSplit` — reads canonical state, returns active/consolidated/per-receipt splits and reconciliation.
 - `logic/summaryView.ts` — pure transform from split data plus summary controls into a screen-facing summary view.
 - `logic/summaryBreakdown.ts` / `logic/summaryOverview.ts` — the per-person breakdown and the who-had-what overview, both resolved from the summary view and each with a PNG export.
-- `logic/buildSummaryExportPayload.ts` — pure mapping from the summary model into the export payload.
 
 ## Steps
 
@@ -29,9 +28,9 @@ Steps live in `components/steps/`. A step stays a flat file until it grows priva
 
 ## Summary data flow
 
-`receiptStore`/`currencyStore` → `useReceiptSplit` → `resolveSummaryView` → `useSummaryModel` → `buildSummaryExportPayload` → `useSummaryExport` → `SummaryStep`
+`receiptStore`/`currencyStore` → `useReceiptSplit` → `resolveSummaryView` → `useSummaryModel` → `useSummaryExport` → `SummaryStep`
 
-Editing is keyed by `activeReceiptId`, but summary rendering follows `activeTab`, not the editor's active receipt. QR generation stays inside `useSummaryModel`: summary-specific derived data with side effects.
+Editing is keyed by `activeReceiptId`, but summary rendering follows `activeTab`, not the editor's active receipt. The wizard opens the summary only once every priced item is assigned (`isStepValid('items')`), so nothing downstream of `resolveSummaryView` handles unassigned items or an empty people list. QR generation stays inside `useSummaryModel`: summary-specific derived data with side effects.
 
 `shared/types/summaryBreakdown.ts` defines the breakdown consumed by both the workspace UI and the sharing canvas. The workspace derives this data from canonical state. The sharing feature consumes the contract without importing workspace hooks or logic. Both renderers use the shared person-color palette.
 

@@ -37,11 +37,11 @@ function stubFetchNetworkError(message: string) {
 
 describe('analyzeReceiptWithGemini', () => {
   it('throws explicit errors when api key or model is missing', async () => {
-    await expect(
-      analyzeReceiptWithGemini(createFile(), '', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Missing Gemini API key. Enter it above.');
+    await expect(analyzeReceiptWithGemini(createFile(), '', 'gemini-2.5-flash')).rejects.toThrow(
+      'Missing Gemini API key. Enter it above.',
+    );
 
-    await expect(analyzeReceiptWithGemini(createFile(), 'abc', ' ', vi.fn())).rejects.toThrow(
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', ' ')).rejects.toThrow(
       'Missing Gemini model selection.',
     );
   });
@@ -66,7 +66,7 @@ describe('analyzeReceiptWithGemini', () => {
       }),
     );
 
-    await analyzeReceiptWithGemini(createFile(), 'secret-key', 'gemini-2.5-flash', vi.fn());
+    await analyzeReceiptWithGemini(createFile(), 'secret-key', 'gemini-2.5-flash');
 
     const fetchMock = vi.mocked(globalThis.fetch);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -76,34 +76,33 @@ describe('analyzeReceiptWithGemini', () => {
 
   it('throws when Gemini response is empty or not parseable', async () => {
     stubFetch(null);
-    await expect(
-      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini returned an empty response.');
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash')).rejects.toThrow(
+      'Gemini returned an empty response.',
+    );
 
     stubFetch('not-json');
-    await expect(
-      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini output was not valid JSON.');
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash')).rejects.toThrow(
+      'Gemini output was not valid JSON.',
+    );
   });
 
   it('propagates Gemini API errors', async () => {
     stubFetchApiError('Invalid API key');
 
-    await expect(
-      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Invalid API key');
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash')).rejects.toThrow(
+      'Invalid API key',
+    );
   });
 
   it('throws when fetch itself fails', async () => {
     stubFetchNetworkError('Network error');
 
-    await expect(
-      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Network error');
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash')).rejects.toThrow(
+      'Network error',
+    );
   });
 
   it('parses valid Gemini output into normalized OCR payload', async () => {
-    const statuses: string[] = [];
     stubFetch(
       JSON.stringify({
         items: [
@@ -126,18 +125,8 @@ describe('analyzeReceiptWithGemini', () => {
       }),
     );
 
-    const result = await analyzeReceiptWithGemini(
-      createFile(),
-      'abc',
-      'gemini-2.5-flash',
-      (status) => statuses.push(status),
-    );
+    const result = await analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash');
 
-    expect(statuses).toEqual([
-      'Encoding receipt...',
-      'Calling Gemini...',
-      'Parsing Gemini output...',
-    ]);
     expect(result.items).toEqual([{ description: 'Chicken Rice', amount: 8.5 }]);
     expect(result.subtotal).toBe(8.5);
     expect(result.total).toBe(9.27);
@@ -178,7 +167,7 @@ describe('analyzeReceiptWithGemini', () => {
       }),
     );
 
-    const result = await analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn());
+    const result = await analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash');
     expect(result.items).toEqual([]);
     expect(result.warnings).toContain(
       'Gemini did not return line items confidently. Add/edit items manually.',
@@ -195,9 +184,9 @@ describe('analyzeReceiptWithGemini', () => {
       }),
     );
 
-    await expect(
-      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini response did not include extractable content.');
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash')).rejects.toThrow(
+      'Gemini response did not include extractable content.',
+    );
   });
 
   it('throws when Gemini returns valid JSON that does not match the receipt schema', async () => {
@@ -207,9 +196,9 @@ describe('analyzeReceiptWithGemini', () => {
       }),
     );
 
-    await expect(
-      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini response did not match expected schema.');
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash')).rejects.toThrow(
+      'Gemini response did not match expected schema.',
+    );
   });
 
   it('throws when Gemini response body is not valid JSON at all', async () => {
@@ -222,9 +211,9 @@ describe('analyzeReceiptWithGemini', () => {
       }),
     );
 
-    await expect(
-      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Gemini returned non-JSON response.');
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash')).rejects.toThrow(
+      'Gemini returned non-JSON response.',
+    );
   });
 });
 
@@ -245,8 +234,8 @@ describe('fileToBase64 error handling', () => {
       },
     );
 
-    await expect(
-      analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash', vi.fn()),
-    ).rejects.toThrow('Failed to read receipt file');
+    await expect(analyzeReceiptWithGemini(createFile(), 'abc', 'gemini-2.5-flash')).rejects.toThrow(
+      'Failed to read receipt file',
+    );
   });
 });

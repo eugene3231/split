@@ -84,11 +84,9 @@ describe('useSummaryModel', () => {
     );
 
     expect(useReceiptStore.getState().activeReceiptId).toBe('r1');
-    expect(result.current.activeSummaryReceipt?.id).toBe('r2');
     expect(result.current.view.kind).toBe('receipt');
     if (result.current.view.kind !== 'receipt') return;
-    expect(result.current.view.receipt?.id).toBe('r2');
-    expect(result.current.view.discount).toBe(receipt2.discount);
+    expect(result.current.view.receipt).toBe(receipt2);
   });
 
   it('reconciles and corrects the selected receipt in its native currency', () => {
@@ -157,7 +155,6 @@ describe('useSummaryModel', () => {
       mode: 'amount',
       amountInput: '10.00',
     });
-    expect(result.current.splitByReceipt[1].grandTotalCents).toBe(10791);
     expect(result.current.reconciliation.cents).toBe(0);
     const after = useReceiptStore.getState().receipts;
     act(() => result.current.reconciliation.applyCorrectiveDiscount());

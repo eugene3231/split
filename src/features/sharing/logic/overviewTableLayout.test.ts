@@ -14,7 +14,6 @@ function section(id: string): OverviewReceiptSection {
         priceCents: 1000,
         currency: 'SGD',
         sharesByPerson: { alice: 1000 },
-        unassigned: false,
       },
     ],
     chargeRows: [
@@ -35,7 +34,6 @@ function overview(sections: OverviewReceiptSection[], peopleCount = 2): SummaryO
     currency: 'SGD',
     totalCents: 1090 * sections.length,
     totalByPersonCents: {},
-    unassignedItemCount: 0,
   };
 }
 

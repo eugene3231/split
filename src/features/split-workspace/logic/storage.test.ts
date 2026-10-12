@@ -9,7 +9,6 @@ import {
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import {
-  clearPersistedDraft,
   exportDraftToJson,
   importDraftFromJson,
   loadPersistedDraft,
@@ -856,7 +855,6 @@ describe('storage availability failures', () => {
     expect(() =>
       savePersistedOcrSettings({ version: 1, geminiModel: '', savedAt: '' }),
     ).not.toThrow();
-    expect(() => clearPersistedDraft()).not.toThrow();
 
     localStorageGetter.mockRestore();
   });
@@ -873,29 +871,6 @@ describe('storage availability failures', () => {
     expect(() => clearSessionGeminiApiKey()).not.toThrow();
 
     sessionStorageGetter.mockRestore();
-  });
-});
-
-describe('clearPersistedDraft', () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-  });
-
-  it('removes the draft key from localStorage', () => {
-    window.localStorage.setItem(
-      LOCAL_STORAGE_DRAFT_KEY,
-      JSON.stringify({
-        version: 2,
-        people: [],
-        receipts: [],
-        activeReceiptId: '',
-        payerMobile: '',
-        savedAt: '',
-      }),
-    );
-    expect(window.localStorage.getItem(LOCAL_STORAGE_DRAFT_KEY)).not.toBeNull();
-    clearPersistedDraft();
-    expect(window.localStorage.getItem(LOCAL_STORAGE_DRAFT_KEY)).toBeNull();
   });
 });
 

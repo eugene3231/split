@@ -1,4 +1,3 @@
-import type { SplitResult } from '@shared/types';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type {
   BreakdownChargeRow,
@@ -22,11 +21,8 @@ import { chooseGridLayout } from '@features/sharing/logic/receiptSplitImageLayou
 
 type GenerateReceiptSplitImageLightOptions = {
   summaryBreakdown: SummaryBreakdown;
-  split: SplitResult;
-  reconciliationCents: number | null;
   includeItemDetails: boolean;
   receiptName?: string;
-  currency?: string;
 };
 
 const FONT = 'Inter, system-ui, -apple-system, sans-serif';
@@ -41,8 +37,6 @@ const MAX_COLUMNS = 4;
 const TITLE_H = 96;
 const BAND_H = 112;
 const BAND_AFTER_GAP = 28;
-const NOTICE_H = 72;
-const NOTICE_GAP = 24;
 
 const CARD_PAD = 28;
 const AVATAR_RADIUS = 24;
@@ -69,10 +63,6 @@ const QR_SIZE = 240;
 export async function generateReceiptSplitImageLight(
   options: GenerateReceiptSplitImageLightOptions,
 ): Promise<Blob> {
-  if (typeof document === 'undefined') {
-    throw new Error('Image export is only available in the browser.');
-  }
-
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Unable to initialize canvas renderer.');
@@ -85,8 +75,7 @@ export async function generateReceiptSplitImageLight(
   );
 
   const bodyTop = PAD + TITLE_H + BAND_H + BAND_AFTER_GAP;
-  const noticesH = summaryBreakdown.unassignedItemCount > 0 ? NOTICE_GAP + NOTICE_H : 0;
-  const heightFor = (bodyHeight: number) => bodyTop + bodyHeight + noticesH + PAD;
+  const heightFor = (bodyHeight: number) => bodyTop + bodyHeight + PAD;
   const layout = chooseGridLayout({
     heights: cardHeights,
     maxColumns: MAX_COLUMNS,
@@ -97,7 +86,7 @@ export async function generateReceiptSplitImageLight(
 
   // Resizing clears the canvas and its state, so it happens once the measuring is done.
   canvas.width = canvasWidthFor(layout.columns);
-  canvas.height = heightFor(people.length > 0 ? layout.height : NOTICE_H);
+  canvas.height = heightFor(layout.height);
 
   ctx.fillStyle = '#f5f5f5';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -107,46 +96,20 @@ export async function generateReceiptSplitImageLight(
   drawGrandTotalBand(ctx, {
     y: PAD + TITLE_H,
     width: contentWidth,
-    split: options.split,
-    currency: options.currency,
     summaryBreakdown,
   });
 
-  let y = bodyTop;
-  if (people.length === 0) {
-    drawNotice(
-      ctx,
-      y,
-      contentWidth,
-      summaryBreakdown.emptyPeopleMessage ?? 'No people added yet.',
-      'card',
-    );
-    y += NOTICE_H;
-  } else {
-    people.forEach((breakdown, index) => {
-      const placement = layout.placements[index];
-      drawPersonCard(ctx, {
-        x: PAD + placement.column * (COLUMN_WIDTH + COLUMN_GAP),
-        y: bodyTop + placement.y,
-        height: placement.height,
-        breakdown,
-        includeItemDetails,
-        qrImage: qrImages.get(breakdown.person.id),
-      });
+  people.forEach((breakdown, index) => {
+    const placement = layout.placements[index];
+    drawPersonCard(ctx, {
+      x: PAD + placement.column * (COLUMN_WIDTH + COLUMN_GAP),
+      y: bodyTop + placement.y,
+      height: placement.height,
+      breakdown,
+      includeItemDetails,
+      qrImage: qrImages.get(breakdown.person.id),
     });
-    y += layout.height;
-  }
-
-  if (summaryBreakdown.unassignedItemCount > 0) {
-    y += NOTICE_GAP;
-    drawNotice(
-      ctx,
-      y,
-      contentWidth,
-      `${summaryBreakdown.unassignedItemCount} item(s) are unassigned and excluded from totals.`,
-      'warning',
-    );
-  }
+  });
 
   return canvasToBlob(canvas);
 }
@@ -188,8 +151,6 @@ function drawTitle(ctx: CanvasRenderingContext2D, receiptName?: string): void {
 interface GrandTotalBandArgs {
   y: number;
   width: number;
-  split: SplitResult;
-  currency?: string;
   summaryBreakdown: SummaryBreakdown;
 }
 
@@ -205,7 +166,7 @@ function drawGrandTotalBand(ctx: CanvasRenderingContext2D, args: GrandTotalBandA
   ctx.fillStyle = '#ffffff';
   ctx.font = `800 48px ${FONT}`;
   ctx.fillText(
-    formatCurrencyFromCents(args.split.grandTotalCents, args.currency),
+    formatCurrencyFromCents(args.summaryBreakdown.totalCents, args.summaryBreakdown.currency),
     PAD + CARD_PAD,
     args.y + 90,
   );
@@ -219,25 +180,6 @@ function drawGrandTotalBand(ctx: CanvasRenderingContext2D, args: GrandTotalBandA
   ctx.textAlign = 'right';
   ctx.fillText(formatRateLine(exchangeRate), PAD + args.width - CARD_PAD, args.y + 90);
   ctx.textAlign = 'left';
-}
-
-function drawNotice(
-  ctx: CanvasRenderingContext2D,
-  y: number,
-  width: number,
-  message: string,
-  tone: 'card' | 'warning',
-): void {
-  if (tone === 'card') {
-    drawLightCardShell(ctx, PAD, y, width, NOTICE_H);
-  } else {
-    ctx.fillStyle = '#fef3c7';
-    drawRoundedRect(ctx, PAD, y, width, NOTICE_H, 16);
-    ctx.fill();
-  }
-  ctx.fillStyle = tone === 'card' ? MUTED : '#92400e';
-  ctx.font = `500 22px ${FONT}`;
-  ctx.fillText(ellipsizeText(ctx, message, width - CARD_PAD * 2), PAD + CARD_PAD, y + 44);
 }
 
 const INNER_WIDTH = COLUMN_WIDTH - CARD_PAD * 2;

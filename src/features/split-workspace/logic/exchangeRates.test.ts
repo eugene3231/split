@@ -23,12 +23,7 @@ function makeSplitResult(overrides: Partial<SplitResult> = {}): SplitResult {
         {
           itemId: 'i1',
           name: 'Pad Thai',
-          grossAmountCents: 500,
-          discountPercent: 0,
-          discountAmountCents: 0,
-          netAmountCents: 500,
           assignedAmountCents: 250,
-          splitCount: 2,
           involved: true,
         },
       ],
@@ -36,17 +31,11 @@ function makeSplitResult(overrides: Partial<SplitResult> = {}): SplitResult {
         {
           itemId: 'i1',
           name: 'Pad Thai',
-          grossAmountCents: 500,
-          discountPercent: 0,
-          discountAmountCents: 0,
-          netAmountCents: 500,
           assignedAmountCents: 250,
-          splitCount: 2,
           involved: true,
         },
       ],
     },
-    involvedCountByPerson: { p1: 1, p2: 1 },
     subtotalByPersonCents: { p1: 250, p2: 250 },
     discountByPersonCents: { p1: 0, p2: 0 },
     serviceByPersonCents: { p1: 13, p2: 12 },
@@ -64,22 +53,8 @@ function makeSplitResult(overrides: Partial<SplitResult> = {}): SplitResult {
   };
 }
 
-function line(
-  itemId: string,
-  assignedAmountCents: number,
-  grossAmountCents = assignedAmountCents,
-): PersonReceiptLineItem {
-  return {
-    itemId,
-    name: itemId,
-    grossAmountCents,
-    discountPercent: 0,
-    discountAmountCents: grossAmountCents - assignedAmountCents,
-    netAmountCents: assignedAmountCents,
-    assignedAmountCents,
-    splitCount: 1,
-    involved: true,
-  };
+function line(itemId: string, assignedAmountCents: number): PersonReceiptLineItem {
+  return { itemId, name: itemId, assignedAmountCents, involved: true };
 }
 
 function sum(values: Record<string, number>): number {
@@ -334,7 +309,6 @@ describe('convertSplitResult', () => {
     // 250 USD cents * 1.35 = 337.5 → 338 SGD cents
     expect(result.lineItemsByPerson.p1[0].assignedAmountCents).toBe(338);
     expect(result.lineItemsByPerson.p2[0].assignedAmountCents).toBe(337);
-    expect(result.lineItemsByPerson.p1[0].grossAmountCents).toBe(675); // 500 * 1.35
   });
 
   it('converts the receipt once and allocates its rounding cent across people', () => {
@@ -365,7 +339,7 @@ describe('convertSplitResult', () => {
   it('balances categories and item lines through discounts, service, and GST', () => {
     const split = makeSplitResult({
       lineItemsByPerson: {
-        p1: [line('discounted', 1001, 1011), line('small', 1)],
+        p1: [line('discounted', 1001), line('small', 1)],
         p2: [line('other', 1001)],
       },
       subtotalByPersonCents: { p1: 1002, p2: 1001 },
@@ -417,16 +391,6 @@ describe('convertSplitResult', () => {
           converted.gstByPersonCents[personId],
       );
     }
-    const discountedLine = converted.lineItemsByPerson.p1[0];
-    expect(discountedLine.grossAmountCents - discountedLine.discountAmountCents).toBe(
-      discountedLine.assignedAmountCents,
-    );
-  });
-
-  it('preserves involvedCountByPerson unchanged (not a monetary field)', () => {
-    const split = makeSplitResult();
-    const result = convertSplitResult(split, 'USD', 'SGD', rates);
-    expect(result.involvedCountByPerson).toEqual({ p1: 1, p2: 1 });
   });
 
   it('preserves unassignedItemCount unchanged', () => {

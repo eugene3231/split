@@ -117,28 +117,16 @@ export function convertSplitResult(
 
       return [
         personId,
-        lines.map((line, index) => {
-          const assignedAmountCents = line.involved
-            ? assigned[index.toString().padStart(8, '0')]
-            : 0;
-          const grossAmountCents = Math.max(convert(line.grossAmountCents), assignedAmountCents);
-          return {
-            ...line,
-            grossAmountCents,
-            discountAmountCents: line.involved
-              ? grossAmountCents - assignedAmountCents
-              : convert(line.discountAmountCents),
-            netAmountCents: assignedAmountCents,
-            assignedAmountCents,
-          };
-        }),
+        lines.map((line, index) => ({
+          ...line,
+          assignedAmountCents: line.involved ? assigned[index.toString().padStart(8, '0')] : 0,
+        })),
       ];
     }),
   );
 
   return {
     lineItemsByPerson,
-    involvedCountByPerson: { ...split.involvedCountByPerson },
     subtotalByPersonCents,
     discountByPersonCents,
     serviceByPersonCents,

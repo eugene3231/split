@@ -125,30 +125,6 @@ describe('useReceiptImport', () => {
     expect(useScanStore.getState().scanStateByReceipt.r1?.isScanning ?? false).toBe(false);
   });
 
-  it('ignores late status updates after the receipt file changes', async () => {
-    seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
-    let resolveScan!: (payload: OcrResponse) => void;
-    let reportStatus!: (status: string) => void;
-    scanReceiptMock.mockImplementation((_file, _key, _model, setStatus) => {
-      reportStatus = setStatus!;
-      return new Promise<OcrResponse>((resolve) => {
-        resolveScan = resolve;
-      });
-    });
-    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
-    let scanPromise = Promise.resolve();
-    act(() => {
-      scanPromise = result.current.handleScanReceipt();
-      result.current.handleReceiptFileChange(new File(['b'], 'b.jpg', { type: 'image/jpeg' }));
-      reportStatus('Older request completed');
-    });
-    expect(useScanStore.getState().scanStateByReceipt.r1.scanStatus).toBe('');
-    await act(async () => {
-      resolveScan(makeOcrPayload());
-      await scanPromise;
-    });
-  });
-
   it('discards scan results when the receipt file was replaced mid-scan', async () => {
     const fileA = new File(['a'], 'a.jpg', { type: 'image/jpeg' });
     seedReceiptWithFile(fileA);

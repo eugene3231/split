@@ -42,7 +42,7 @@ function seedSavedBill() {
     ],
   );
   useReceiptStore.getState().setPayerMobile('91234567');
-  useGeminiStore.setState({ geminiApiKeyInput: 'saved-key', rememberGeminiApiKey: true });
+  useGeminiStore.setState({ geminiApiKeyInput: 'saved-key' });
   saveWizardState({ step: 'final', activePersonId: '' });
 }
 
@@ -145,7 +145,6 @@ describe('workspace recovery', () => {
     expect(loadWizardState()).toEqual({ version: 1, step: 'people', activePersonId: '' });
     expect(useScanStore.getState().scanStateByReceipt).toEqual({});
     expect(useGeminiStore.getState().geminiApiKeyInput).toBe('saved-key');
-    expect(useGeminiStore.getState().rememberGeminiApiKey).toBe(true);
     expect(useGeminiStore.getState().geminiModel).toBe(DEFAULT_GEMINI_MODEL);
 
     await act(async () => {

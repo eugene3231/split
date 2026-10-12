@@ -42,7 +42,6 @@ const makeSplit = (totalByPersonCents: Record<string, number>) => ({
   roundingCents: 0,
   grandTotalCents: Object.values(totalByPersonCents).reduce((s, v) => s + v, 0),
   unassignedItemCount: 0,
-  involvedCountByPerson: {},
 });
 
 describe('generatePaynowQrDataUrls', () => {

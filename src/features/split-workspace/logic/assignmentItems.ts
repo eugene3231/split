@@ -37,8 +37,3 @@ export function sanitizeItemAssignment(item: EditableItem, people: Person[]): Ed
     },
   };
 }
-
-export function pickDefaultPersonId(people: Person[], candidate: string): string {
-  const validIds = new Set(people.map((person) => person.id));
-  return validIds.has(candidate) ? candidate : (people[0]?.id ?? '');
-}

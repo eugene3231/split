@@ -35,7 +35,6 @@ function makeReceipt(id: string, currency = 'SGD', override: number | null = nul
 function makeSplit(total: number): SplitResult {
   return {
     lineItemsByPerson: {},
-    involvedCountByPerson: {},
     subtotalByPersonCents: { p1: total },
     discountByPersonCents: { p1: 0 },
     serviceByPersonCents: { p1: 0 },
@@ -52,20 +51,12 @@ function makeSplit(total: number): SplitResult {
   };
 }
 
-const globalDiscount = makeCharge({ percentInput: '0' });
-const globalServiceCharge = makeCharge({ enabled: true, percentInput: '10' });
-const globalGst = makeCharge({ enabled: true, percentInput: '9' });
-
 function makeInput(overrides: Partial<ResolveSummaryViewInput> = {}): ResolveSummaryViewInput {
   return {
     people: [{ id: 'p1', name: 'Alice' }],
     receipts: [],
     splitByReceipt: [],
     consolidatedSplit: makeSplit(0),
-    fallbackSplit: makeSplit(0),
-    discount: globalDiscount,
-    serviceCharge: globalServiceCharge,
-    gst: globalGst,
     exchangeRates: rates,
     activeTab: 'total',
     showBaseCurrency: false,
@@ -85,13 +76,6 @@ describe('resolveSummaryView — total tab', () => {
     if (view.kind !== 'total') return;
     expect(view.displaySplit).toBe(consolidated);
     expect(view.displayCurrency).toBe('SGD');
-  });
-
-  it('uses global charges on total tab', () => {
-    const view = resolveSummaryView(makeInput({ activeTab: 'total' }));
-    expect(view.discount).toBe(globalDiscount);
-    expect(view.serviceCharge).toBe(globalServiceCharge);
-    expect(view.gst).toBe(globalGst);
   });
 
   it('computes grandTotal from consolidatedSplit', () => {
@@ -347,20 +331,6 @@ describe('resolveSummaryView — receipt tab', () => {
     expect(view.effectiveRate).toBeNull();
   });
 
-  it('uses receipt charges over global charges', () => {
-    const view = resolveSummaryView(
-      makeInput({
-        receipts: [r1],
-        splitByReceipt: [sgdSplit],
-        activeTab: 'r1',
-      }),
-    );
-    if (view.kind !== 'receipt') return;
-    expect(view.discount).toBe(r1.discount);
-    expect(view.serviceCharge).toBe(r1.serviceCharge);
-    expect(view.gst).toBe(r1.gst);
-  });
-
   it('foreign receipt with showBaseCurrency=false: displaySplit in native currency', () => {
     const view = resolveSummaryView(
       makeInput({
@@ -431,19 +401,18 @@ describe('resolveSummaryView — receipt tab', () => {
     expect(view.sgdSplit.totalByPersonCents.p1).toBe(750);
   });
 
-  it('falls back to fallbackSplit and null receipt when activeTab matches nothing', () => {
-    const fallback = makeSplit(9999);
+  it('shows every receipt when activeTab matches none of them', () => {
+    const consolidated = makeSplit(1000);
     const view = resolveSummaryView(
       makeInput({
         receipts: [r1],
         splitByReceipt: [sgdSplit],
-        fallbackSplit: fallback,
+        consolidatedSplit: consolidated,
         activeTab: 'unknown-id',
       }),
     );
-    if (view.kind !== 'receipt') return;
-    expect(view.receipt).toBeNull();
-    expect(view.displaySplit).toBe(fallback);
+    expect(view.kind).toBe('total');
+    expect(view.displaySplit).toBe(consolidated);
   });
 
   it('grandTotal is computed from displaySplit', () => {

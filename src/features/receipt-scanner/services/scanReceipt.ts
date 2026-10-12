@@ -28,17 +28,8 @@ export async function scanReceipt({
 
   useScanStore.getState().startScan(receiptId);
 
-  const setScanStatusForReceipt = (status: string) => {
-    if (isCurrent()) useScanStore.getState().setScanStatus(receiptId, status);
-  };
-
   try {
-    const payload = await analyzeReceiptWithGemini(
-      receiptFile,
-      apiKeyInput,
-      model,
-      setScanStatusForReceipt,
-    );
+    const payload = await analyzeReceiptWithGemini(receiptFile, apiKeyInput, model);
     if (!isCurrent()) return null;
     useScanStore.getState().setScanWarnings(receiptId, payload.warnings);
     return payload;

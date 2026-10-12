@@ -73,16 +73,12 @@ function resolve(receipts: Receipt[], activeTab: string, exchangeRates = {}, sho
     receipts,
     splitByReceipt,
     consolidatedSplit,
-    fallbackSplit: splitByReceipt[0],
-    discount: offCharge,
-    serviceCharge: offCharge,
-    gst: offCharge,
     exchangeRates,
     activeTab,
     showBaseCurrency: showBase,
   });
   return {
-    overview: resolveSummaryOverview({ people, receipts, view }),
+    overview: resolveSummaryOverview({ people, view }),
     breakdown: resolveSummaryBreakdown({ people, view }),
   };
 }
@@ -159,27 +155,22 @@ describe('resolveSummaryOverview', () => {
     expect(overview.currency).toBe('SGD');
   });
 
-  it('keeps unassigned items in receipt order without shares', () => {
-    const withGap = receipt({
+  it('lists priced items in receipt order and leaves out free ones', () => {
+    const lunch = receipt({
       id: 'lunch',
       items: [
-        item('kopi', '2.20', ['alice']),
-        item('kaya toast', '3.00', []),
-        item('free water', '0', []),
-        item('teh', '2.00', ['removed-person']),
+        item('kopi', '2.20', ['bob']),
+        item('free water', '0', ['alice']),
+        item('teh', '2.00', ['alice']),
       ],
     });
 
-    const { overview } = resolve([withGap], 'lunch');
+    const { overview } = resolve([lunch], 'lunch');
 
-    const rows = overview.sections[0].itemRows;
-    expect(rows.map((row) => [row.name, row.unassigned, row.priceCents])).toEqual([
-      ['kopi', false, 220],
-      ['kaya toast', true, 300],
-      ['teh', true, 200],
+    expect(overview.sections[0].itemRows.map((row) => [row.name, row.priceCents])).toEqual([
+      ['kopi', 220],
+      ['teh', 200],
     ]);
-    expect(rows[1].sharesByPerson).toEqual({});
-    expect(overview.unassignedItemCount).toBe(2);
   });
 
   it('shows one section per receipt on the combined total, with the grand totals in SGD', () => {
@@ -212,25 +203,14 @@ describe('resolveSummaryOverview', () => {
       id: 'drinks',
       currency: 'MYR',
       exchangeRateOverride: 0.3,
-      items: [item('beer', '20.00', ['alice', 'bob']), item('nuts', '5.00', [])],
+      items: [item('beer', '20.00', ['alice', 'bob'])],
     });
 
     const { overview } = resolve([dinner, drinks], 'total', {}, true);
 
-    const [beer, nuts] = overview.sections[1].itemRows;
+    const [beer] = overview.sections[1].itemRows;
     expect(overview.sections[1].currency).toBe('SGD');
+    expect(beer).toMatchObject({ priceCents: 600, currency: 'SGD' });
     expect(beer.sharesByPerson).toEqual({ alice: 300, bob: 300 });
-    expect(nuts).toMatchObject({ unassigned: true, priceCents: 500, currency: 'MYR' });
-  });
-
-  it('falls back to the split’s own item order when the receipt is unknown', () => {
-    const { overview } = resolve([dinner], 'missing-receipt');
-
-    expect(overview.sections[0].title).toBe('Receipt');
-    expect(overview.sections[0].itemRows.map((row) => row.name)).toEqual([
-      'laksa',
-      'rice',
-      'fries',
-    ]);
   });
 });

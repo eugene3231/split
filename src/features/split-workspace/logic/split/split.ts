@@ -7,10 +7,7 @@ import type {
 } from '@shared/types';
 import { parseCurrencyToCents } from '@shared/logic/core/money';
 import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
-import {
-  parseDiscountPercent,
-  resolveDiscountedAmountCents,
-} from '@features/split-workspace/logic/split/pricing';
+import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
 import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -19,12 +16,8 @@ import { allocateItemShares } from '@features/split-workspace/logic/itemShare';
 interface ResolvedItem {
   itemId: string;
   name: string;
-  grossAmountCents: number;
-  discountPercent: number;
-  discountAmountCents: number;
   assignedPersonIds: Set<string>;
   netByPerson: Record<string, number>;
-  grossByPerson: Record<string, number>;
 }
 
 export function computeSplit({
@@ -54,14 +47,10 @@ export function computeSplit({
     const netAmountCents = resolveDiscountedAmountCents(item);
     if (netAmountCents === null || netAmountCents === 0) continue;
 
-    const grossAmountCents = parseCurrencyToCents(item.amountInput) ?? netAmountCents;
-    const discountPercent = parseDiscountPercent(item.discountPercentInput);
-    const discountAmountCents = Math.max(0, grossAmountCents - netAmountCents);
     const name = item.name.trim() || 'Untitled item';
 
     let assignedPersonIds: Set<string>;
     let netByPerson: Record<string, number>;
-    let grossByPerson: Record<string, number>;
 
     if (item.assignment.mode === 'single') {
       if (!validPeopleSet.has(item.assignment.personId)) {
@@ -70,7 +59,6 @@ export function computeSplit({
       }
       assignedPersonIds = new Set([item.assignment.personId]);
       netByPerson = { [item.assignment.personId]: netAmountCents };
-      grossByPerson = { [item.assignment.personId]: grossAmountCents };
     } else {
       const selectedIds = Array.from(
         new Set(item.assignment.personIds.filter((id) => validPeopleSet.has(id))),
@@ -81,20 +69,10 @@ export function computeSplit({
       }
       const { weights, unassignedWeight } = item.assignment;
       netByPerson = allocateItemShares(netAmountCents, selectedIds, weights, unassignedWeight);
-      grossByPerson = allocateItemShares(grossAmountCents, selectedIds, weights, unassignedWeight);
       assignedPersonIds = new Set(selectedIds);
     }
 
-    resolvedItems.push({
-      itemId: item.id,
-      name,
-      grossAmountCents,
-      discountPercent,
-      discountAmountCents,
-      assignedPersonIds,
-      netByPerson,
-      grossByPerson,
-    });
+    resolvedItems.push({ itemId: item.id, name, assignedPersonIds, netByPerson });
   }
 
   const lineItemsByPerson = initializeLineItemMap(personIds);
@@ -102,35 +80,18 @@ export function computeSplit({
 
   for (const personId of personIds) {
     for (const resolved of resolvedItems) {
-      if (resolved.assignedPersonIds.has(personId)) {
-        const net = resolved.netByPerson[personId];
-        const gross = resolved.grossByPerson[personId];
-        subtotalByPersonCents[personId] += net;
+      const involved = resolved.assignedPersonIds.has(personId);
+      const assignedAmountCents = involved ? resolved.netByPerson[personId] : 0;
+      if (involved) {
+        subtotalByPersonCents[personId] += assignedAmountCents;
         involvedCountByPerson[personId] += 1;
-        lineItemsByPerson[personId].push({
-          itemId: resolved.itemId,
-          name: resolved.name,
-          grossAmountCents: gross,
-          discountPercent: resolved.discountPercent,
-          discountAmountCents: Math.max(0, gross - net),
-          netAmountCents: net,
-          assignedAmountCents: net,
-          splitCount: resolved.assignedPersonIds.size,
-          involved: true,
-        });
-      } else {
-        lineItemsByPerson[personId].push({
-          itemId: resolved.itemId,
-          name: resolved.name,
-          grossAmountCents: resolved.grossAmountCents,
-          discountPercent: resolved.discountPercent,
-          discountAmountCents: resolved.discountAmountCents,
-          netAmountCents: 0,
-          assignedAmountCents: 0,
-          splitCount: resolved.assignedPersonIds.size,
-          involved: false,
-        });
       }
+      lineItemsByPerson[personId].push({
+        itemId: resolved.itemId,
+        name: resolved.name,
+        assignedAmountCents,
+        involved,
+      });
     }
   }
 
@@ -191,7 +152,6 @@ export function computeSplit({
 
   return {
     lineItemsByPerson,
-    involvedCountByPerson,
     subtotalByPersonCents,
     discountByPersonCents,
     serviceByPersonCents,
@@ -218,7 +178,6 @@ export function computeConsolidatedSplit(
 ): SplitResult {
   const personIds = people.map((p) => p.id);
   const lineItemsByPerson = initializeLineItemMap(personIds);
-  const involvedCountByPerson = initializeCentsMap(personIds);
   const subtotalByPersonCents = initializeCentsMap(personIds);
   const discountByPersonCents = initializeCentsMap(personIds);
   const serviceByPersonCents = initializeCentsMap(personIds);
@@ -245,7 +204,6 @@ export function computeConsolidatedSplit(
     for (const personId of personIds) {
       const lines = result.lineItemsByPerson[personId] ?? [];
       lineItemsByPerson[personId].push(...lines);
-      involvedCountByPerson[personId] += result.involvedCountByPerson[personId] ?? 0;
       subtotalByPersonCents[personId] += result.subtotalByPersonCents[personId] ?? 0;
       discountByPersonCents[personId] += result.discountByPersonCents[personId] ?? 0;
       serviceByPersonCents[personId] += result.serviceByPersonCents[personId] ?? 0;
@@ -264,7 +222,6 @@ export function computeConsolidatedSplit(
 
   return {
     lineItemsByPerson,
-    involvedCountByPerson,
     subtotalByPersonCents,
     discountByPersonCents,
     serviceByPersonCents,

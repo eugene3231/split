@@ -1,19 +1,16 @@
-import type { SetStateAction } from 'react';
 import { create } from 'zustand';
 import { FUNNY_LOADING_MESSAGES, getRandomLoadingMessageIndex } from '../logic/loadingMessages';
 
 export type ReceiptScanState = {
   isScanning: boolean;
-  scanStatus: string;
   scanError: string | null;
   scanWarnings: string[];
   loadingMessage: string;
   loadingMessageIndex: number;
 };
 
-export const defaultScanState: ReceiptScanState = {
+const defaultScanState: ReceiptScanState = {
   isScanning: false,
-  scanStatus: '',
   scanError: null,
   scanWarnings: [],
   loadingMessage: '',
@@ -38,15 +35,10 @@ function updateScanState(
   };
 }
 
-function resolveSetStateAction<T>(current: T, next: SetStateAction<T>): T {
-  return typeof next === 'function' ? (next as (prev: T) => T)(current) : next;
-}
-
 type ScanStore = {
   scanStateByReceipt: Record<string, ReceiptScanState>;
-  setScanStatus: (receiptId: string, next: SetStateAction<string>) => void;
-  setScanError: (receiptId: string, next: SetStateAction<string | null>) => void;
-  setScanWarnings: (receiptId: string, next: SetStateAction<string[]>) => void;
+  setScanError: (receiptId: string, scanError: string | null) => void;
+  setScanWarnings: (receiptId: string, scanWarnings: string[]) => void;
   clearScanFeedback: (receiptId: string) => void;
   startScan: (receiptId: string) => void;
   advanceLoadingMessage: () => void;
@@ -57,40 +49,20 @@ type ScanStore = {
 export const useScanStore = create<ScanStore>((set) => ({
   scanStateByReceipt: {},
 
-  setScanStatus: (receiptId, next) =>
-    set((state) => {
-      const current = getScanState(state.scanStateByReceipt, receiptId);
-      return {
-        scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-          scanStatus: resolveSetStateAction(current.scanStatus, next),
-        }),
-      };
-    }),
+  setScanError: (receiptId, scanError) =>
+    set((state) => ({
+      scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, { scanError }),
+    })),
 
-  setScanError: (receiptId, next) =>
-    set((state) => {
-      const current = getScanState(state.scanStateByReceipt, receiptId);
-      return {
-        scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-          scanError: resolveSetStateAction(current.scanError, next),
-        }),
-      };
-    }),
-
-  setScanWarnings: (receiptId, next) =>
-    set((state) => {
-      const current = getScanState(state.scanStateByReceipt, receiptId);
-      return {
-        scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-          scanWarnings: resolveSetStateAction(current.scanWarnings, next),
-        }),
-      };
-    }),
+  // Nothing shows these yet: how to surface scan warnings is still to be designed.
+  setScanWarnings: (receiptId, scanWarnings) =>
+    set((state) => ({
+      scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, { scanWarnings }),
+    })),
 
   clearScanFeedback: (receiptId) =>
     set((state) => ({
       scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
-        scanStatus: '',
         scanError: null,
         scanWarnings: [],
         loadingMessage: '',
@@ -104,7 +76,6 @@ export const useScanStore = create<ScanStore>((set) => ({
       return {
         scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
           isScanning: true,
-          scanStatus: 'Preparing Gemini request...',
           scanError: null,
           scanWarnings: [],
           loadingMessage: FUNNY_LOADING_MESSAGES[nextIndex],
@@ -133,7 +104,6 @@ export const useScanStore = create<ScanStore>((set) => ({
     set((state) => ({
       scanStateByReceipt: updateScanState(state.scanStateByReceipt, receiptId, {
         isScanning: false,
-        scanStatus: '',
         loadingMessage: '',
         loadingMessageIndex: 0,
       }),

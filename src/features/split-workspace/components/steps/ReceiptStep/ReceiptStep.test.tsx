@@ -80,7 +80,6 @@ vi.mock('./useReceiptStepModel', () => ({
     hasItems: false,
     activeSplit: {
       lineItemsByPerson: {},
-      involvedCountByPerson: {},
       subtotalByPersonCents: {},
       discountByPersonCents: {},
       serviceByPersonCents: {},

@@ -65,9 +65,9 @@ export interface PersonBreakdown {
 export interface SummaryBreakdown {
   /** Names the grand total: "Total · 3 receipts" on the combined tab, else "Total". */
   totalLabel: string;
+  totalCents: number;
+  currency: string;
   personBreakdowns: PersonBreakdown[];
   /** The one rate every person's header converts at, when there is one. */
   exchangeRate?: BreakdownExchangeRate;
-  emptyPeopleMessage?: string;
-  unassignedItemCount: number;
 }

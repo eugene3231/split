@@ -75,46 +75,6 @@ describe('scanReceipt', () => {
     expect(scanState.scanError).toBeNull();
   });
 
-  it('forwards status updates from Gemini analysis into scanStore', async () => {
-    let statusDuringCall: string | undefined;
-    analyzeReceiptWithGeminiMock.mockImplementationOnce(
-      async (
-        _file: unknown,
-        _key: unknown,
-        _model: unknown,
-        setStatus: (status: string) => void,
-      ) => {
-        setStatus('Calling Gemini...');
-        statusDuringCall = useScanStore.getState().scanStateByReceipt.r1?.scanStatus;
-        return {
-          items: [],
-          subtotal: null,
-          total: null,
-          detected: {
-            gst: { enabled: false, amount: null, percent: null, confidence: null, source: '' },
-            serviceCharge: {
-              enabled: false,
-              amount: null,
-              percent: null,
-              confidence: null,
-              source: '',
-            },
-          },
-          warnings: [],
-        };
-      },
-    );
-
-    await scanReceipt({
-      receiptId: 'r1',
-      receiptFile: new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' }),
-      apiKeyInput: 'test-key',
-      model: 'gemini-2.5-flash',
-    });
-
-    expect(statusDuringCall).toBe('Calling Gemini...');
-  });
-
   it('sets a fallback error message for non-Error throws and always finishes the scan', async () => {
     analyzeReceiptWithGeminiMock.mockRejectedValue('string error');
 

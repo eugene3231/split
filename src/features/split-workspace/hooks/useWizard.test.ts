@@ -54,7 +54,6 @@ describe('useWizard', () => {
     window.localStorage.clear();
     useGeminiStore.setState({
       geminiApiKeyInput: 'test-key',
-      rememberGeminiApiKey: false,
       geminiModel: DEFAULT_GEMINI_MODEL,
       showApiKeyModal: false,
     });

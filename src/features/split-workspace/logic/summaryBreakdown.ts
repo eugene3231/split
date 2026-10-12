@@ -29,26 +29,26 @@ export function resolveSummaryBreakdown({
 }: ResolveSummaryBreakdownInput): SummaryBreakdown {
   return {
     totalLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'Total',
+    totalCents: view.grandTotal,
+    currency: view.displayCurrency,
     personBreakdowns: resolvePersonBreakdowns({ people, view, qrDataUrls, showAllItems }),
     exchangeRate: resolveHeaderRate(view),
-    emptyPeopleMessage: people.length === 0 ? 'Add people to see the breakdown.' : undefined,
-    unassignedItemCount: view.displaySplit.unassignedItemCount,
   };
 }
 
-export function resolvePersonBreakdowns({
+function resolvePersonBreakdowns({
   people,
   view,
-  qrDataUrls = {},
-  showAllItems = false,
-}: ResolveSummaryBreakdownInput): PersonBreakdown[] {
+  qrDataUrls,
+  showAllItems,
+}: Required<ResolveSummaryBreakdownInput>): PersonBreakdown[] {
   const headerRate = resolveHeaderRate(view);
   return people.map((person, colorIndex) => {
     const totalCents = view.displaySplit.totalByPersonCents[person.id] ?? 0;
     const sections =
       view.kind === 'total'
         ? view.receiptBreakdowns
-            .map((entry, index) => {
+            .map((entry) => {
               const itemRows = buildItemRows(
                 entry.split.lineItemsByPerson[person.id] ?? [],
                 entry.currency,
@@ -58,7 +58,7 @@ export function resolvePersonBreakdowns({
                 return null;
               }
               return buildReceiptSection({
-                id: `${index}:${entry.name}`,
+                id: entry.id,
                 title: entry.name,
                 personId: person.id,
                 currency: entry.currency,
@@ -80,14 +80,14 @@ export function resolvePersonBreakdowns({
             .filter((section): section is ReceiptBreakdownSection => section !== null)
         : [
             buildReceiptSection({
-              id: view.receipt?.id ?? 'receipt',
-              title: view.receipt?.name ?? 'Receipt',
+              id: view.receipt.id,
+              title: view.receipt.name,
               personId: person.id,
               currency: view.displayCurrency,
               split: view.displaySplit,
-              discount: view.discount,
-              serviceCharge: view.serviceCharge,
-              gst: view.gst,
+              discount: view.receipt.discount,
+              serviceCharge: view.receipt.serviceCharge,
+              gst: view.receipt.gst,
               itemRows: buildItemRows(
                 view.displaySplit.lineItemsByPerson[person.id] ?? [],
                 view.displayCurrency,

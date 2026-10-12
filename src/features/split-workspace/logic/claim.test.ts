@@ -201,7 +201,6 @@ describe('resolveClaimView', () => {
       ['r1', 2],
       ['r2', 2],
     ]);
-    expect(result.people.map((person) => person.itemCount)).toEqual([1, 0, 0]);
   });
 });
 

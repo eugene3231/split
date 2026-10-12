@@ -12,10 +12,6 @@ interface PersistedWizardState extends WizardState {
 }
 
 export function loadWizardState(): PersistedWizardState | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
   try {
     const raw = window.localStorage.getItem(LOCAL_STORAGE_WIZARD_STATE_KEY);
     if (!raw) {
@@ -40,10 +36,6 @@ export function loadWizardState(): PersistedWizardState | null {
 }
 
 export function saveWizardState(state: WizardState): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
   const payload: PersistedWizardState = {
     version: 1,
     step: state.step,

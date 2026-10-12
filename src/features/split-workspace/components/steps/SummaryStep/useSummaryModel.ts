@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import type { Person, Receipt, SplitResult } from '@shared/types';
+import type { Person, SplitResult } from '@shared/types';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { generatePaynowQrDataUrls, normalizeMobile } from '@features/payments';
 import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
-import type { SummaryBreakdown } from '@shared/types/summaryBreakdown';
 import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
-import type { SummaryOverview } from '@shared/types/summaryOverview';
 import { resolveSummaryView } from '@features/split-workspace/logic/summaryView';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 import {
@@ -70,24 +68,7 @@ type UseSummaryModelProps = {
   showAllItems?: boolean;
 };
 
-export type SummaryModel = {
-  people: Person[];
-  receipts: Receipt[];
-  activeSummaryReceipt: Receipt | null;
-  renameReceipt: (receiptId: string, name: string) => void;
-  payerMobile: string;
-  splitByReceipt: SplitResult[];
-  reconciliation: {
-    cents: number | null;
-    applyCorrectiveDiscount: () => void;
-    addRounding: () => void;
-  };
-  view: SummaryView;
-  qrDataUrls: Record<string, string>;
-  payNowStatus: PayNowStatus;
-  summaryBreakdown: SummaryBreakdown;
-  summaryOverview: SummaryOverview;
-};
+export type SummaryModel = ReturnType<typeof useSummaryModel>;
 
 export function useSummaryModel({
   activeTab,
@@ -125,10 +106,6 @@ export function useSummaryModel({
     receipts,
     splitByReceipt: consolidated.splitByReceipt,
     consolidatedSplit: consolidated.split,
-    fallbackSplit: active.split,
-    discount: activeSummaryReceipt?.discount ?? defaultDiscountState,
-    serviceCharge: activeSummaryReceipt?.serviceCharge ?? defaultServiceChargeState,
-    gst: activeSummaryReceipt?.gst ?? defaultGstState,
     exchangeRates,
     activeTab,
     showBaseCurrency,
@@ -140,22 +117,18 @@ export function useSummaryModel({
     payerMobile,
   );
   const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls, showAllItems });
-  const summaryOverview = resolveSummaryOverview({ people, receipts, view });
+  const summaryOverview = resolveSummaryOverview({ people, view });
 
   return {
     people,
     receipts,
-    activeSummaryReceipt,
     renameReceipt,
-    payerMobile,
-    splitByReceipt: consolidated.splitByReceipt,
     reconciliation: {
       cents: reconciliationCents,
       applyCorrectiveDiscount: handleApplyReconciliationDiscount,
       addRounding: handleAddRounding,
     },
     view,
-    qrDataUrls,
     payNowStatus,
     summaryBreakdown,
     summaryOverview,

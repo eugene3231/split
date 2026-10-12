@@ -37,10 +37,6 @@ export async function generateOverviewTableImage({
   overview,
   title,
 }: GenerateOverviewImageOptions): Promise<Blob> {
-  if (typeof document === 'undefined') {
-    throw new Error('Image export is only available in the browser.');
-  }
-
   const { rows, width, height } = measureOverviewImage(overview);
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -51,7 +47,7 @@ export async function generateOverviewTableImage({
   ctx.fillStyle = '#f5f5f5';
   ctx.fillRect(0, 0, width, height);
 
-  drawTitle(ctx, overview, title);
+  drawTitle(ctx, title);
 
   const cardY = PAD + TITLE_H + TITLE_AFTER_GAP;
   const cardWidth = width - PAD * 2;
@@ -83,16 +79,14 @@ interface TableGeometry {
   columnCenter: (personIndex: number) => number;
 }
 
-function drawTitle(ctx: CanvasRenderingContext2D, overview: SummaryOverview, title?: string) {
+function drawTitle(ctx: CanvasRenderingContext2D, title?: string) {
   ctx.fillStyle = INK;
   ctx.font = `700 44px ${FONT}`;
   ctx.fillText(title || 'Who had what', PAD, PAD + 36);
 
   ctx.fillStyle = MUTED;
   ctx.font = `500 22px ${FONT}`;
-  const unassigned =
-    overview.unassignedItemCount > 0 ? ` · ${overview.unassignedItemCount} unassigned` : '';
-  ctx.fillText(`Generated ${formatGeneratedAt(new Date())}${unassigned}`, PAD, PAD + 72);
+  ctx.fillText(`Generated ${formatGeneratedAt(new Date())}`, PAD, PAD + 72);
 }
 
 function drawHeader(
@@ -143,22 +137,13 @@ function drawRow(
   }
 
   if (row.kind === 'item') {
-    const { name, priceCents, currency, unassigned, sharesByPerson } = row.row;
-    if (unassigned) {
-      ctx.fillStyle = '#fef3c7';
-      ctx.fillRect(
-        table.left - CARD_PAD_X,
-        y,
-        table.right - table.left + CARD_PAD_X * 2,
-        rowHeight,
-      );
-    }
+    const { name, priceCents, currency, sharesByPerson } = row.row;
     drawTwoLineLabel(ctx, {
       x: table.left,
       y,
       width: labelWidth,
       label: name,
-      detail: `${formatCurrencyFromCents(priceCents, currency)}${unassigned ? ' · nobody yet' : ''}`,
+      detail: formatCurrencyFromCents(priceCents, currency),
       font: `500 22px ${FONT}`,
     });
     overview.people.forEach((person, index) => {

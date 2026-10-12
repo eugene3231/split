@@ -5,7 +5,6 @@ import {
 import type { PersistedOcrSettings } from '@features/split-workspace/types';
 import { isRecord } from '@features/split-workspace/logic/guards';
 function getBrowserStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
   try {
     return window.localStorage;
   } catch {
@@ -14,7 +13,6 @@ function getBrowserStorage(): Storage | null {
 }
 
 function getBrowserSessionStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
   try {
     return window.sessionStorage;
   } catch {

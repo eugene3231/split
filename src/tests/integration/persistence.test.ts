@@ -10,6 +10,14 @@ import {
   seedStore,
 } from './testHelpers';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
+import { importDraftFromJson } from '@features/split-workspace/logic/draftStorage';
+
+/** What the workspace menu does with a chosen file: parse it, then swap it into the store. */
+function importWorkspaceJson(json: string) {
+  const draft = importDraftFromJson(json);
+  if (!draft) throw new Error('Workspace JSON did not parse');
+  useReceiptStore.getState().loadWorkspace(draft);
+}
 
 beforeEach(() => {
   resetAllStores();
@@ -55,7 +63,7 @@ describe('Persistence integration', () => {
     expect(parsed.receipts[1].discount.amountInput).toBe('5.00');
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.people).toHaveLength(2);
@@ -81,7 +89,7 @@ describe('Persistence integration', () => {
     const json = useReceiptStore.getState().getExportJson();
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].currency).toBe('USD');
@@ -104,7 +112,7 @@ describe('Persistence integration', () => {
     const json = useReceiptStore.getState().getExportJson();
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].items[0].discountPercentInput).toBe('50');
@@ -126,7 +134,7 @@ describe('Persistence integration', () => {
     const json = useReceiptStore.getState().getExportJson();
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].serviceCharge.enabled).toBe(true);
@@ -154,7 +162,7 @@ describe('Persistence integration', () => {
     const json = useReceiptStore.getState().getExportJson();
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].items).toHaveLength(2);
@@ -186,7 +194,7 @@ describe('Persistence integration', () => {
     const json = useReceiptStore.getState().getExportJson();
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     const restoredR1 = restored.receipts.find((r) => r.id === r1.id)!;
@@ -214,7 +222,7 @@ describe('Persistence integration', () => {
     const json = useReceiptStore.getState().getExportJson();
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].items[0].assignment.weights).toEqual({
@@ -244,7 +252,7 @@ describe('Persistence integration', () => {
     const json = useReceiptStore.getState().getExportJson();
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState().receipts[0].items[0].assignment;
     expect(restored.weights).toEqual({ [alice.id]: 1 });

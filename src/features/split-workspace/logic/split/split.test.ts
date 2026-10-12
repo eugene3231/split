@@ -304,9 +304,7 @@ describe('computeSplit', () => {
     const bobLine = split.lineItemsByPerson.bob[0];
     expect(bobLine?.involved).toBe(false);
     expect(bobLine?.assignedAmountCents).toBe(0);
-    expect(bobLine?.grossAmountCents).toBe(1200);
-    expect(split.involvedCountByPerson.alice).toBe(1);
-    expect(split.involvedCountByPerson.bob).toBe(0);
+    expect(split.lineItemsByPerson.alice[0]?.involved).toBe(true);
   });
 
   it('excludes unassigned items and counts them', () => {

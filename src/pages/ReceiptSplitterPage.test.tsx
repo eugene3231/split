@@ -27,7 +27,6 @@ function resetStore() {
   });
   useGeminiStore.setState({
     geminiApiKeyInput: 'test-key',
-    rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
     showApiKeyModal: false,
   });

@@ -88,7 +88,6 @@ export function resetAllStores() {
   useScanStore.setState({ scanStateByReceipt: {} });
   useGeminiStore.setState({
     geminiApiKeyInput: '',
-    rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
     showApiKeyModal: false,
   });

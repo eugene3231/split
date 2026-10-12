@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SummaryOverview } from '@shared/types/summaryOverview';
 import { OverviewTable } from './OverviewTable';
@@ -21,15 +21,6 @@ function overview(overrides: Partial<SummaryOverview> = {}): SummaryOverview {
             priceCents: 1000,
             currency: 'SGD',
             sharesByPerson: { alice: 600, bob: 400 },
-            unassigned: false,
-          },
-          {
-            id: 'toast',
-            name: 'Kaya toast',
-            priceCents: 300,
-            currency: 'SGD',
-            sharesByPerson: {},
-            unassigned: true,
           },
         ],
         chargeRows: [
@@ -48,7 +39,6 @@ function overview(overrides: Partial<SummaryOverview> = {}): SummaryOverview {
     currency: 'SGD',
     totalCents: 900,
     totalByPersonCents: { alice: 540, bob: 360 },
-    unassignedItemCount: 1,
     ...overrides,
   };
 }
@@ -56,15 +46,6 @@ function overview(overrides: Partial<SummaryOverview> = {}): SummaryOverview {
 afterEach(() => vi.restoreAllMocks());
 
 describe('OverviewTable', () => {
-  it('flags unassigned items with no one’s share against them', () => {
-    render(<OverviewTable overview={overview()} />);
-
-    expect(screen.getByText('1 unassigned')).toBeInTheDocument();
-    const row = screen.getByRole('row', { name: /Kaya toast/ });
-    expect(row).toHaveTextContent('$3.00 · nobody yet');
-    expect(within(row).queryByTitle(/Kaya toast:/)).toBeNull();
-  });
-
   it('labels each share with the person and amount', () => {
     render(<OverviewTable overview={overview()} />);
 

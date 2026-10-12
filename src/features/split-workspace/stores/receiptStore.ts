@@ -6,7 +6,6 @@ import {
 } from '@features/split-workspace/constants';
 import {
   exportDraftToJson,
-  importDraftFromJson,
   loadPersistedDraft,
 } from '@features/split-workspace/logic/draftStorage';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -99,7 +98,6 @@ type ReceiptStoreActions = {
   applyReceiptScan: (args: ApplyReceiptScanArgs) => ReceiptScanCommit;
   patchReceipt: (receiptId: string, patch: Partial<Receipt>) => void;
   getExportJson: () => string;
-  importFromJson: (raw: string) => void;
   loadWorkspace: (draft: SessionDraft) => void;
 
   setPayerMobile: (mobile: string) => void;
@@ -399,10 +397,6 @@ export const useReceiptStore = create<ReceiptStore>((set, get) => {
     getExportJson: () => {
       const { people, receipts, activeReceiptId, payerMobile } = get();
       return exportDraftToJson({ people, receipts, activeReceiptId, payerMobile });
-    },
-    importFromJson: (raw) => {
-      const draft = importDraftFromJson(raw);
-      if (draft) get().loadWorkspace(draft);
     },
     loadWorkspace: (draft) => {
       set({

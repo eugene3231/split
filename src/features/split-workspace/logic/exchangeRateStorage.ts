@@ -1,7 +1,6 @@
 import { LOCAL_STORAGE_EXCHANGE_RATES_KEY } from '@features/split-workspace/constants';
 
 function getBrowserStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
   try {
     return window.localStorage;
   } catch {

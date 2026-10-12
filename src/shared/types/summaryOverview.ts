@@ -7,7 +7,6 @@ export interface OverviewItemRow {
   currency: string;
   /** Only the people who had the item; everyone else is absent. */
   sharesByPerson: Record<string, number>;
-  unassigned: boolean;
 }
 
 export interface OverviewChargeRow {
@@ -34,5 +33,4 @@ export interface SummaryOverview {
   currency: string;
   totalCents: number;
   totalByPersonCents: Record<string, number>;
-  unassignedItemCount: number;
 }

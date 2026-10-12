@@ -49,7 +49,6 @@ function resetStore() {
   useScanStore.setState({ scanStateByReceipt: {} });
   useGeminiStore.setState({
     geminiApiKeyInput: '',
-    rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
     showApiKeyModal: false,
   });
@@ -71,7 +70,6 @@ describe('scanStore + geminiStore', () => {
     const scanState = useScanStore.getState().scanStateByReceipt[TEST_RECEIPT_ID];
 
     expect(scanState.isScanning).toBe(true);
-    expect(scanState.scanStatus).toBe('Preparing Gemini request...');
     expect(scanState.scanError).toBeNull();
     expect(scanState.scanWarnings).toEqual([]);
     expect(scanState.loadingMessage).toBe(FIRST_LOADING_MESSAGE);
@@ -99,7 +97,6 @@ describe('scanStore + geminiStore', () => {
       scanStateByReceipt: {
         [TEST_RECEIPT_ID]: {
           isScanning: false,
-          scanStatus: '',
           scanError: null,
           scanWarnings: [],
           loadingMessage: 'old message',
@@ -123,7 +120,6 @@ describe('scanStore + geminiStore', () => {
     useScanStore.getState().finishScan(TEST_RECEIPT_ID);
     const scanState = useScanStore.getState().scanStateByReceipt[TEST_RECEIPT_ID];
     expect(scanState.isScanning).toBe(false);
-    expect(scanState.scanStatus).toBe('');
     expect(scanState.loadingMessage).toBe('');
     expect(scanState.loadingMessageIndex).toBe(0);
     expect(scanState.scanError).toBe('network issue');
@@ -135,7 +131,6 @@ describe('scanStore + geminiStore', () => {
       scanStateByReceipt: {
         [TEST_RECEIPT_ID]: {
           isScanning: true,
-          scanStatus: 'Calling Gemini...',
           scanError: 'boom',
           scanWarnings: ['low confidence'],
           loadingMessage: 'Working...',
@@ -147,31 +142,12 @@ describe('scanStore + geminiStore', () => {
     useScanStore.getState().clearScanFeedback(TEST_RECEIPT_ID);
     const scanState = useScanStore.getState().scanStateByReceipt[TEST_RECEIPT_ID];
 
-    expect(scanState.scanStatus).toBe('');
     expect(scanState.scanError).toBeNull();
     expect(scanState.scanWarnings).toEqual([]);
     expect(scanState.loadingMessage).toBe('');
     expect(scanState.loadingMessageIndex).toBe(0);
 
     expect(scanState.isScanning).toBe(true);
-  });
-
-  it('setScanStatus/setScanError/setScanWarnings support value and updater forms', () => {
-    useScanStore.getState().setScanStatus(TEST_RECEIPT_ID, 'Encoding receipt...');
-    useScanStore.getState().setScanStatus(TEST_RECEIPT_ID, (current) => `${current} done`);
-
-    useScanStore.getState().setScanError(TEST_RECEIPT_ID, 'first');
-    useScanStore
-      .getState()
-      .setScanError(TEST_RECEIPT_ID, (current) => (current ? `${current}!` : current));
-
-    useScanStore.getState().setScanWarnings(TEST_RECEIPT_ID, ['a']);
-    useScanStore.getState().setScanWarnings(TEST_RECEIPT_ID, (current) => [...current, 'b']);
-
-    const scanState = useScanStore.getState().scanStateByReceipt[TEST_RECEIPT_ID];
-    expect(scanState.scanStatus).toBe('Encoding receipt... done');
-    expect(scanState.scanError).toBe('first!');
-    expect(scanState.scanWarnings).toEqual(['a', 'b']);
   });
 
   it('persists gemini model changes through the store action', () => {
@@ -183,16 +159,11 @@ describe('scanStore + geminiStore', () => {
     );
   });
 
-  it('persists and clears the session gemini api key through store actions', () => {
-    useGeminiStore.getState().setRememberGeminiApiKey(true);
+  it('keeps the gemini api key for the session and forgets it when cleared', () => {
     useGeminiStore.getState().setGeminiApiKeyInput('session-key');
     expect(window.sessionStorage.getItem(SESSION_STORAGE_GEMINI_API_KEY)).toBe('session-key');
 
     useGeminiStore.getState().setGeminiApiKeyInput('');
-    expect(window.sessionStorage.getItem(SESSION_STORAGE_GEMINI_API_KEY)).toBeNull();
-
-    useGeminiStore.getState().setGeminiApiKeyInput('session-key');
-    useGeminiStore.getState().setRememberGeminiApiKey(false);
     expect(window.sessionStorage.getItem(SESSION_STORAGE_GEMINI_API_KEY)).toBeNull();
   });
 });
@@ -489,22 +460,6 @@ describe('receiptStore additional coverage', () => {
     expect(
       useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.receiptFile,
     ).toBeNull();
-  });
-
-  it('importFromJson ignores invalid JSON', () => {
-    useReceiptStore.getState().initialize();
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-
-    useReceiptStore.getState().importFromJson('not valid json');
-    expect(useReceiptStore.getState().people).toHaveLength(1);
-  });
-
-  it('importFromJson ignores malformed draft', () => {
-    useReceiptStore.getState().initialize();
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-
-    useReceiptStore.getState().importFromJson(JSON.stringify({ version: 999 }));
-    expect(useReceiptStore.getState().people).toHaveLength(1);
   });
 
   it('loadWorkspace replaces people, receipts and payer mobile with the loaded split', () => {

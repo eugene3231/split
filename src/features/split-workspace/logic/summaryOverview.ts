@@ -1,6 +1,4 @@
-import { BASE_CURRENCY } from '@shared/constants';
-import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
-import type { ChargeState, EditableItem, Person, Receipt, SplitResult } from '@shared/types';
+import type { ChargeState, Person, SplitResult } from '@shared/types';
 import { buildChargeLabel } from '@features/split-workspace/logic/chargeLabels';
 import type { SummaryView } from '@features/split-workspace/logic/summaryView';
 import type {
@@ -12,7 +10,6 @@ import type {
 
 export interface ResolveSummaryOverviewInput {
   people: Person[];
-  receipts: Receipt[];
   view: SummaryView;
 }
 
@@ -21,7 +18,6 @@ interface SectionSource {
   title: string;
   currency: string;
   split: SplitResult;
-  receipt: Receipt | null;
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
@@ -29,12 +25,9 @@ interface SectionSource {
 
 export function resolveSummaryOverview({
   people,
-  receipts,
   view,
 }: ResolveSummaryOverviewInput): SummaryOverview {
-  const sections = resolveSectionSources({ receipts, view }).map((source) =>
-    buildSection(people, source),
-  );
+  const sections = resolveSectionSources(view).map((source) => buildSection(people, source));
 
   return {
     people,
@@ -44,38 +37,29 @@ export function resolveSummaryOverview({
     totalByPersonCents: Object.fromEntries(
       people.map((person) => [person.id, view.displaySplit.totalByPersonCents[person.id] ?? 0]),
     ),
-    unassignedItemCount: sections.reduce(
-      (count, section) => count + section.itemRows.filter((row) => row.unassigned).length,
-      0,
-    ),
   };
 }
 
-function resolveSectionSources({
-  receipts,
-  view,
-}: Omit<ResolveSummaryOverviewInput, 'people'>): SectionSource[] {
+function resolveSectionSources(view: SummaryView): SectionSource[] {
   if (view.kind === 'receipt') {
     return [
       {
-        id: view.receipt?.id ?? 'receipt',
-        title: view.receipt?.name || 'Receipt',
+        id: view.receipt.id,
+        title: view.receipt.name || 'Receipt',
         currency: view.displayCurrency,
         split: view.displaySplit,
-        receipt: view.receipt,
-        discount: view.discount,
-        serviceCharge: view.serviceCharge,
-        gst: view.gst,
+        discount: view.receipt.discount,
+        serviceCharge: view.receipt.serviceCharge,
+        gst: view.receipt.gst,
       },
     ];
   }
 
-  return view.receiptBreakdowns.map((entry, index) => ({
-    id: receipts[index]?.id ?? `receipt-${index}`,
+  return view.receiptBreakdowns.map((entry) => ({
+    id: entry.id,
     title: entry.name,
     currency: entry.currency,
     split: entry.split,
-    receipt: receipts[index] ?? null,
     discount: entry.discount,
     serviceCharge: entry.serviceCharge,
     gst: entry.gst,
@@ -96,25 +80,11 @@ function buildSection(people: Person[], source: SectionSource): OverviewReceiptS
   };
 }
 
-function buildItemRows(people: Person[], source: SectionSource): OverviewItemRow[] {
-  const assignedRows = collectAssignedRows(people, source);
-  if (!source.receipt) return Array.from(assignedRows.values());
-
-  // An unassigned item never enters the split, so it is never converted: show it as billed.
-  const billedCurrency = source.receipt.currency ?? BASE_CURRENCY;
-  return source.receipt.items.flatMap((item) => {
-    const assigned = assignedRows.get(item.id);
-    if (assigned) return [assigned];
-    const unassigned = buildUnassignedRow(item, billedCurrency);
-    return unassigned ? [unassigned] : [];
-  });
-}
-
-/** Keyed by item id, in receipt order; the split omits unassigned and zero-priced items. */
-function collectAssignedRows(
-  people: Person[],
-  { split, currency }: SectionSource,
-): Map<string, OverviewItemRow> {
+/**
+ * One row per priced item, in receipt order. The wizard opens the summary only once every
+ * priced item is assigned, so each of them has a line in the split.
+ */
+function buildItemRows(people: Person[], { split, currency }: SectionSource): OverviewItemRow[] {
   const rows = new Map<string, OverviewItemRow>();
   for (const person of people) {
     for (const line of split.lineItemsByPerson[person.id] ?? []) {
@@ -124,7 +94,6 @@ function collectAssignedRows(
         priceCents: 0,
         currency,
         sharesByPerson: {},
-        unassigned: false,
       };
       if (line.involved) {
         row.sharesByPerson[person.id] = line.assignedAmountCents;
@@ -133,20 +102,7 @@ function collectAssignedRows(
       rows.set(line.itemId, row);
     }
   }
-  return rows;
-}
-
-function buildUnassignedRow(item: EditableItem, currency: string): OverviewItemRow | null {
-  const priceCents = resolveDiscountedAmountCents(item);
-  if (!priceCents) return null;
-  return {
-    id: item.id,
-    name: item.name.trim() || 'Untitled item',
-    priceCents,
-    currency,
-    sharesByPerson: {},
-    unassigned: true,
-  };
+  return Array.from(rows.values());
 }
 
 function buildChargeRows(people: Person[], source: SectionSource): OverviewChargeRow[] {

@@ -15,8 +15,6 @@ export interface ClaimPerson {
   colorIndex: number;
   firstName: string;
   totalCents: number;
-  /** Items this person is on, across every receipt. */
-  itemCount: number;
   isActive: boolean;
 }
 
@@ -88,17 +86,12 @@ export function resolveClaimView(args: {
 }): ClaimView {
   const { receipts, people, totalByPersonCents, totalsCurrency } = args;
   const activePersonId = resolveActivePersonId(args.activePersonId, people);
-  const pricedItems = receipts
-    .flatMap((receipt) => receipt.items)
-    .filter((item) => resolveDiscountedAmountCents(item) !== null);
-
   const claimPeople = people.map((person, index): ClaimPerson => ({
     id: person.id,
     name: person.name,
     colorIndex: index,
     firstName: firstName(person.name),
     totalCents: totalByPersonCents[person.id] ?? 0,
-    itemCount: pricedItems.filter((item) => item.assignment.personIds.includes(person.id)).length,
     isActive: person.id === activePersonId,
   }));
 

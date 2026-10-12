@@ -10,9 +10,6 @@ interface BaseView {
   displaySplit: SplitResult;
   displayCurrency: string;
   grandTotal: number;
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
   /** Always in SGD — used for QR generation and PayNow amounts. */
   sgdSplit: SplitResult;
 }
@@ -26,6 +23,7 @@ export interface TotalTabView extends BaseView {
   billedRate: number | null;
   /** Per-receipt split data consumed by summaryBreakdown on the consolidated tab. */
   receiptBreakdowns: {
+    id: string;
     name: string;
     split: SplitResult;
     sgdSplit: SplitResult;
@@ -39,7 +37,7 @@ export interface TotalTabView extends BaseView {
 
 export interface ReceiptTabView extends BaseView {
   kind: 'receipt';
-  receipt: Receipt | null;
+  receipt: Receipt;
   nativeCurrency: string;
   isForeign: boolean;
   effectiveRate: number | null;
@@ -52,12 +50,8 @@ export type ResolveSummaryViewInput = {
   receipts: Receipt[];
   splitByReceipt: SplitResult[];
   consolidatedSplit: SplitResult;
-  /** Fallback split used when activeTab doesn't match any receipt id. */
-  fallbackSplit: SplitResult;
-  discount: ChargeState;
-  serviceCharge: ChargeState;
-  gst: ChargeState;
   exchangeRates: Record<string, number>;
+  /** A receipt id, or anything else (by convention `'total'`) for every receipt combined. */
   activeTab: string;
   showBaseCurrency: boolean;
 };
@@ -71,9 +65,6 @@ function resolveTotalTab({
   receipts,
   splitByReceipt,
   consolidatedSplit,
-  discount,
-  serviceCharge,
-  gst,
   exchangeRates,
   showBaseCurrency,
 }: ResolveSummaryViewInput): TotalTabView {
@@ -94,6 +85,7 @@ function resolveTotalTab({
     const currency = showBaseCurrency ? BASE_CURRENCY : (r.currency ?? BASE_CURRENCY);
     const isForeign = (r.currency ?? BASE_CURRENCY) !== BASE_CURRENCY;
     return {
+      id: r.id,
       name: r.name || `Receipt ${i + 1}`,
       split: (showBaseCurrency ? sgdSplitByReceipt[i] : splitByReceipt[i]) ?? splitByReceipt[i],
       sgdSplit: sgdSplitByReceipt[i],
@@ -132,9 +124,6 @@ function resolveTotalTab({
     displaySplit,
     displayCurrency: totalCurrency,
     grandTotal: grandTotalOf(displaySplit),
-    discount,
-    serviceCharge,
-    gst,
     sgdSplit: consolidatedSplit,
     hasAnyForeign: receipts.some((r) => (r.currency ?? BASE_CURRENCY) !== BASE_CURRENCY),
     billedCurrencies,
@@ -144,22 +133,14 @@ function resolveTotalTab({
   };
 }
 
-function resolveReceiptTab({
-  receipts,
-  splitByReceipt,
-  fallbackSplit,
-  discount,
-  serviceCharge,
-  gst,
-  exchangeRates,
-  activeTab,
-  showBaseCurrency,
-}: ResolveSummaryViewInput): ReceiptTabView {
-  const receiptIndex = receipts.findIndex((r) => r.id === activeTab);
-  const receipt = receipts[receiptIndex] ?? null;
-  const nativeSplit = splitByReceipt[receiptIndex] ?? fallbackSplit;
+function resolveReceiptTab(
+  { receipts, splitByReceipt, exchangeRates, showBaseCurrency }: ResolveSummaryViewInput,
+  receiptIndex: number,
+): ReceiptTabView {
+  const receipt = receipts[receiptIndex];
+  const nativeSplit = splitByReceipt[receiptIndex];
 
-  const nativeCurrency = receipt?.currency ?? BASE_CURRENCY;
+  const nativeCurrency = receipt.currency ?? BASE_CURRENCY;
   const isForeign = nativeCurrency !== BASE_CURRENCY;
 
   const sgdSplit = isForeign
@@ -168,7 +149,7 @@ function resolveReceiptTab({
         nativeCurrency,
         BASE_CURRENCY,
         exchangeRates,
-        receipt?.exchangeRateOverride ?? null,
+        receipt.exchangeRateOverride ?? null,
       )
     : nativeSplit;
 
@@ -181,18 +162,16 @@ function resolveReceiptTab({
     displaySplit,
     displayCurrency,
     grandTotal: grandTotalOf(displaySplit),
-    discount: receipt?.discount ?? discount,
-    serviceCharge: receipt?.serviceCharge ?? serviceCharge,
-    gst: receipt?.gst ?? gst,
     sgdSplit,
     nativeCurrency,
     isForeign,
     effectiveRate: isForeign
-      ? getEffectiveRate(nativeCurrency, exchangeRates, receipt?.exchangeRateOverride ?? null)
+      ? getEffectiveRate(nativeCurrency, exchangeRates, receipt.exchangeRateOverride ?? null)
       : null,
   };
 }
 
 export function resolveSummaryView(input: ResolveSummaryViewInput): SummaryView {
-  return input.activeTab === 'total' ? resolveTotalTab(input) : resolveReceiptTab(input);
+  const receiptIndex = input.receipts.findIndex((receipt) => receipt.id === input.activeTab);
+  return receiptIndex === -1 ? resolveTotalTab(input) : resolveReceiptTab(input, receiptIndex);
 }

@@ -21,7 +21,7 @@ Row selection, labels, totals, receipt sections, currency-conversion metadata, Q
 
 ## Overview table
 
-The Overview mode has its own pair: `OverviewTable.tsx` in React and `src/features/sharing/logic/overviewTableImage.ts` for the PNG (row order and sizes in `overviewTableLayout.ts`). Both render `SummaryOverview` from `summaryOverview.ts`, so the same rules apply: keep rows, labels, totals and the unassigned treatment in sync, and keep row decisions in `summaryOverview.ts`.
+The Overview mode has its own pair: `OverviewTable.tsx` in React and `src/features/sharing/logic/overviewTableImage.ts` for the PNG (row order and sizes in `overviewTableLayout.ts`). Both render `SummaryOverview` from `summaryOverview.ts`, so the same rules apply: keep rows, labels and totals in sync, and keep row decisions in `summaryOverview.ts`.
 
 ## Naming
 

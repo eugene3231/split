@@ -37,16 +37,12 @@ export function OverviewTable({ overview }: Props) {
       className="min-w-0 overflow-clip rounded-2xl bg-surface-container-lowest"
       style={{ '--people': people.length } as CSSProperties}
     >
-      <div className="flex items-center justify-between gap-3 px-4 pt-5 pb-3 sm:px-6">
-        <h2 id="overview-heading" className="text-lg font-bold text-on-surface">
-          Who had what
-        </h2>
-        {overview.unassignedItemCount > 0 && (
-          <span className="rounded-full bg-warning-container px-2.5 py-1 text-xs font-semibold text-on-warning-container">
-            {overview.unassignedItemCount} unassigned
-          </span>
-        )}
-      </div>
+      <h2
+        id="overview-heading"
+        className="px-4 pt-5 pb-3 text-lg font-bold text-on-surface sm:px-6"
+      >
+        Who had what
+      </h2>
       {/* The people row, and the receipt being scrolled through, pin under the app bar while the
           page scrolls. They sit outside the table because a sticky row can't escape the table's
           sideways scroll box, so the people row follows that box's scroll instead.
@@ -205,26 +201,15 @@ function SectionTitle({ className, children }: { className?: string; children: R
 
 function ItemRow({ row, people }: { row: OverviewItemRow; people: Person[] }) {
   return (
-    <tr
-      className={cn('border-b border-outline-variant/30', row.unassigned && 'bg-warning-container')}
-    >
+    <tr className="border-b border-outline-variant/30">
       <StickyCell
         as="th"
         scope="row"
-        className={cn(
-          'border-l-2 py-2.5 font-medium text-on-surface',
-          row.unassigned ? 'border-warning bg-warning-container' : 'border-transparent',
-        )}
+        className="border-l-2 border-transparent py-2.5 font-medium text-on-surface"
       >
         <span className="line-clamp-2 sm:line-clamp-none">{row.name}</span>
-        <span
-          className={cn(
-            'block text-xs font-normal tabular-nums',
-            row.unassigned ? 'text-on-warning-container' : 'text-on-surface-variant',
-          )}
-        >
+        <span className="block text-xs font-normal text-on-surface-variant tabular-nums">
           {formatCurrencyFromCents(row.priceCents, row.currency)}
-          {row.unassigned && ' · nobody yet'}
         </span>
       </StickyCell>
       {people.map((person, index) => (

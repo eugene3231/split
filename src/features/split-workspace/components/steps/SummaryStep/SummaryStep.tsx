@@ -153,7 +153,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                     <p className="text-xs text-on-surface-variant">
                       1 {BASE_CURRENCY} = {formatExchangeRate(1 / view.effectiveRate)}{' '}
                       {view.nativeCurrency}
-                      {view.receipt?.exchangeRateOverride ? ' (custom rate)' : ''}
+                      {view.receipt.exchangeRateOverride ? ' (custom rate)' : ''}
                     </p>
                   ) : null}
                 </div>
@@ -180,11 +180,6 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                   showDetails={detail !== 'totals'}
                 />
               ))}
-              {summaryBreakdown.emptyPeopleMessage && (
-                <p className="py-8 text-center text-sm text-on-surface-variant">
-                  {summaryBreakdown.emptyPeopleMessage}
-                </p>
-              )}
             </div>
           )}
         </div>
