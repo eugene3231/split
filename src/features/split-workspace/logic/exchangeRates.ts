@@ -1,5 +1,5 @@
 import type { SplitResult } from '@shared/types';
-import { allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { allocate, allocateCents } from '@features/split-workspace/logic/split/allocation';
 
 export const FALLBACK_RATES_TO_SGD: Record<string, number> = {
   SGD: 1,
@@ -107,19 +107,17 @@ export function convertSplitResult(
 
   const lineItemsByPerson = Object.fromEntries(
     Object.entries(split.lineItemsByPerson).map(([personId, lines]) => {
-      const involvedIds = lines
-        .map((line, index) => (line.involved ? index.toString().padStart(8, '0') : null))
-        .filter((id): id is string => id !== null);
-      const weights = Object.fromEntries(
-        involvedIds.map((id) => [id, lines[Number(id)].assignedAmountCents]),
+      const involved = lines.flatMap((line, index) => (line.involved ? [index] : []));
+      const assigned = allocate(
+        subtotalByPersonCents[personId] ?? 0,
+        involved.map((index) => lines[index].assignedAmountCents),
       );
-      const assigned = allocateCents(subtotalByPersonCents[personId] ?? 0, involvedIds, weights);
 
       return [
         personId,
         lines.map((line, index) => ({
           ...line,
-          assignedAmountCents: line.involved ? assigned[index.toString().padStart(8, '0')] : 0,
+          assignedAmountCents: line.involved ? assigned[involved.indexOf(index)] : 0,
         })),
       ];
     }),

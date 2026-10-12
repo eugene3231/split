@@ -1,5 +1,5 @@
 import { parseCurrencyToCents } from '@shared/logic/core/money';
-import { allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { allocate, allocateCents } from '@features/split-workspace/logic/split/allocation';
 import { redistributeOnChange } from '@features/split-workspace/logic/weightRedistribution';
 import {
   equalShares,
@@ -11,7 +11,8 @@ import type { EditableItem, ItemAssignment } from '@shared/types';
 // Larger denominators read better as a percent, unless the share is a plain 1/n.
 const MAX_LABEL_DENOMINATOR = 10;
 
-// Never a person id: ids come from createId().
+// Stands in for the unassigned share where amounts are keyed by person. Never a person id: ids
+// come from createId().
 const UNASSIGNED_KEY = '\u0000unassigned';
 
 export type ShareInput =
@@ -36,15 +37,10 @@ export function allocateItemShares(
   priceCents: number,
   { shares, unassignedShare }: ItemAssignment,
 ): Record<string, number> {
-  const personIds = Object.keys(shares);
-  if (unassignedShare === 0) return allocateCents(priceCents, personIds, shares);
-
-  const allocation = allocateCents(priceCents, [...personIds, UNASSIGNED_KEY], {
-    ...shares,
-    [UNASSIGNED_KEY]: unassignedShare,
-  });
-  delete allocation[UNASSIGNED_KEY];
-  return allocation;
+  const personIds = Object.keys(shares).sort((a, b) => a.localeCompare(b));
+  // The unassigned share comes last, so a spare cent goes to a person before it.
+  const cents = allocate(priceCents, [...personIds.map((id) => shares[id]), unassignedShare]);
+  return Object.fromEntries(personIds.map((id, index) => [id, cents[index]]));
 }
 
 export function resolvePersonShare(

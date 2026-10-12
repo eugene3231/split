@@ -37,6 +37,11 @@ describe('allocateItemShares', () => {
     });
   });
 
+  it('gives a spare cent to a person before the unassigned share, whatever their id', () => {
+    expect(allocateItemShares(1, makeAssignment({ zoe: 1 }, 1))).toEqual({ zoe: 1 });
+    expect(allocateItemShares(1, makeAssignment({ alice: 1 }, 1))).toEqual({ alice: 1 });
+  });
+
   it('splits equally between people with the same share', () => {
     expect(allocateItemShares(1000, makeAssignment({ a: 1, b: 1, c: 1 }))).toEqual({
       a: 334,
