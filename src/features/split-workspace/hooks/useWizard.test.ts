@@ -54,14 +54,7 @@ describe('useWizard', () => {
       geminiModel: DEFAULT_GEMINI_MODEL,
       showApiKeyModal: false,
     });
-    useReceiptStore.setState({
-      peopleInput: '',
-      initialized: true,
-      people: [],
-      receipts: [],
-      activeReceiptId: '',
-      payerMobile: '',
-    });
+    useReceiptStore.getState().resetSplit();
     useScanStore.setState({ scanStateByReceipt: {} });
   });
 
@@ -102,7 +95,10 @@ describe('useWizard', () => {
 
   it('splits leftovers on every receipt evenly from the last person, then shows the summary', () => {
     saveWizardState({ step: 'items', activePersonId: 'p2' });
-    const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2', 'i3'])];
+    const receipts: [Receipt, Receipt] = [
+      makeReceipt('r1', ['i1']),
+      makeReceipt('r2', ['i2', 'i3']),
+    ];
     receipts[0].items[0].assignment = NOBODY;
     receipts[1].items[1].assignment = NOBODY;
     useReceiptStore.setState({ people, receipts, activeReceiptId: 'r1' });
@@ -210,10 +206,9 @@ describe('useWizard', () => {
     expect(result.current.activeStep).toBe('items');
   });
 
-  it('starts an initialized blank split and resets navigation without changing Gemini settings', () => {
+  it('starts a blank split and resets navigation without changing Gemini settings', () => {
     saveWizardState({ step: 'final', activePersonId: 'p2' });
     useReceiptStore.setState({
-      initialized: true,
       people,
       receipts: [makeReceipt('r1', ['meal'])],
       activeReceiptId: 'r1',
@@ -235,7 +230,6 @@ describe('useWizard', () => {
     act(() => result.current.handleResetSplit());
 
     const state = useReceiptStore.getState();
-    expect(state.initialized).toBe(true);
     expect(state.people).toEqual([]);
     expect(state.peopleInput).toBe('');
     expect(state.payerMobile).toBe('');

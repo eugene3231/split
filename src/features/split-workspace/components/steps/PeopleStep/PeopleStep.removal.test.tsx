@@ -4,14 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { PeopleStep } from './PeopleStep';
 
+// jsdom queues a timer for every localStorage write, and these tests count pending timers.
+vi.mock('@features/split-workspace/logic/draftStorage', async (importActual) => ({
+  ...(await importActual<typeof import('@features/split-workspace/logic/draftStorage')>()),
+  savePersistedDraft: vi.fn(),
+}));
+
 beforeEach(() => {
+  useReceiptStore.getState().resetSplit();
   useReceiptStore.setState({
     people: [
       { id: 'p1', name: 'Alice' },
       { id: 'p2', name: 'Bob' },
     ],
-    peopleInput: '',
-    receipts: [],
   });
 });
 

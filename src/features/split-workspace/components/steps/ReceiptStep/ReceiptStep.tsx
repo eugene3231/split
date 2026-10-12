@@ -49,10 +49,6 @@ export function ReceiptStep({ onAddReceipt }: Props) {
     activeReceiptId,
   });
 
-  if (!activeReceipt || !discount || !serviceCharge || !gst) {
-    return null;
-  }
-
   return (
     <div>
       <StepHeader

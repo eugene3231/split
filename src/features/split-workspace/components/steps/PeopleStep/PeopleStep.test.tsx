@@ -18,7 +18,7 @@ function addNames(names: string) {
 
 beforeEach(() => {
   window.localStorage.clear();
-  useReceiptStore.setState({ peopleInput: '', people: [], receipts: [] });
+  useReceiptStore.getState().resetSplit();
   useSavedGroupsStore.setState({ groups: [] });
 });
 

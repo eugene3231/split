@@ -1,5 +1,8 @@
 import { useShallow } from 'zustand/shallow';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import {
+  selectActiveReceipt,
+  useReceiptStore,
+} from '@features/split-workspace/stores/receiptStore';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
@@ -24,17 +27,14 @@ import { WIZARD_STEPS, type WizardStep } from '@features/split-workspace/types';
 export function Workspace() {
   useReceiptSplitterController();
 
-  const { people, receipts, activeReceiptId, normalizeItems } = useReceiptStore(
+  const { people, receipts, normalizeItems } = useReceiptStore(
     useShallow((state) => ({
       people: state.people,
       receipts: state.receipts,
-      activeReceiptId: state.activeReceiptId,
       normalizeItems: state.normalizeItems,
     })),
   );
-
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
-  const items = activeReceipt?.items ?? [];
+  const activeReceipt = useReceiptStore(selectActiveReceipt);
   const { active, consolidated } = useReceiptSplit();
 
   const {
@@ -50,7 +50,7 @@ export function Workspace() {
     handleAddReceipt,
     handleResetSplit,
     handleLoadWorkspace,
-  } = useWizard(items, people, normalizeItems, receipts);
+  } = useWizard(activeReceipt.items, people, normalizeItems, receipts);
 
   const activePerson = people.find((person) => person.id === activePersonId);
   const stepDirection = useSlideDirection(WIZARD_STEPS.indexOf(activeStep));
@@ -61,10 +61,6 @@ export function Workspace() {
       action(...args);
       window.scrollTo({ top: 0, behavior: 'instant' });
     };
-
-  if (!activeReceipt) {
-    return null;
-  }
 
   return (
     <div

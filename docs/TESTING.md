@@ -73,7 +73,7 @@ vi.mock('@features/receipt-scanner/api/geminiApi', async (importActual) => {
 });
 ```
 
-Integration tests use the helpers in `src/tests/integration/testHelpers.ts` — `makePerson`, `makeItem`, `makeReceipt`, `seedStore`, `resetAllStores`, `sumValues` — with `resetAllStores` in `beforeEach`.
+Integration tests use the helpers in `src/tests/integration/testHelpers.ts` — `makePerson`, `makeItem`, `makeReceipt`, `seedStore`, `resetAllStores`, `reloadWorkspace`, `sumValues` — with `resetAllStores` in `beforeEach`. The receipt store reads its saved draft once, when the module loads, so a test that writes a draft to `localStorage` or simulates a page reload calls `reloadWorkspace` to make the store read it.
 
 ## Coverage
 

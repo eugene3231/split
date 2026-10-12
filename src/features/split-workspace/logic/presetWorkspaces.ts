@@ -7,6 +7,7 @@ import {
 import { BASE_CURRENCY } from '@shared/constants';
 import { createId } from '@shared/logic/core/id';
 import { equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
+import { mapNonEmpty, type NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
 import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
 
 /** One person's name, several names sharing equally, or names mapped to share weights. */
@@ -35,7 +36,7 @@ interface PresetDefinition {
   label: string;
   peopleNames: string[];
   payerMobile: string;
-  receipts: PresetReceipt[];
+  receipts: NonEmptyArray<PresetReceipt>;
 }
 
 export interface PresetWorkspace {
@@ -225,7 +226,7 @@ function buildPresetDraft(definition: PresetDefinition): SessionDraft {
   const people: Person[] = definition.peopleNames.map((name) => ({ id: createId(), name }));
   const idByName = new Map(people.map((person) => [person.name, person.id]));
 
-  const receipts: Receipt[] = definition.receipts.map((receipt) => ({
+  const receipts = mapNonEmpty(definition.receipts, (receipt): Receipt => ({
     id: createId(),
     name: receipt.name,
     items: receipt.items.map((item) => ({

@@ -56,9 +56,7 @@ function seedReceiptWithFile(file: File) {
     ],
   });
   seedStore([alice], [receipt], { activeReceiptId: 'r1' });
-  useReceiptStore.setState((state) => ({
-    receipts: state.receipts.map((r) => (r.id === 'r1' ? { ...r, receiptFile: file } : r)),
-  }));
+  useReceiptStore.getState().patchReceipt('r1', { receiptFile: file });
 }
 
 describe('useReceiptImport', () => {

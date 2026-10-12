@@ -22,6 +22,7 @@ import {
   saveSessionGeminiApiKey,
 } from './geminiSettingsStorage';
 import { loadExchangeRates, saveExchangeRates } from './exchangeRateStorage';
+import type { WorkspaceState } from '@features/split-workspace/types';
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -267,7 +268,7 @@ const receipt1 = {
   exchangeRateOverride: null,
 };
 
-const minimalDraftState = {
+const minimalDraftState: WorkspaceState = {
   people: [{ id: 'p1', name: 'Alice' }],
   receipts: [receipt1],
   activeReceiptId: 'r1',
@@ -875,14 +876,7 @@ describe('storage availability failures', () => {
     expect(loadPersistedDraft()).toBeNull();
     expect(loadPersistedOcrSettings()).toBeNull();
     expect(() =>
-      savePersistedDraft({
-        version: 3,
-        people: [],
-        receipts: [],
-        activeReceiptId: '',
-        payerMobile: '',
-        savedAt: '',
-      }),
+      savePersistedDraft({ version: 3, ...minimalDraftState, savedAt: '' }),
     ).not.toThrow();
     expect(() =>
       savePersistedOcrSettings({ version: 1, geminiModel: '', savedAt: '' }),

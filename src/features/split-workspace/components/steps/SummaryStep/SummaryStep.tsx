@@ -29,7 +29,7 @@ export type SummaryStepProps = {
 export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const receipts = useReceiptStore.getState().receipts;
-    return receipts.length > 1 ? 'total' : (receipts[0]?.id ?? 'total');
+    return receipts.length > 1 ? 'total' : receipts[0].id;
   });
   const [detail, setDetail] = useState<SummaryDetail>('their-items');
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
@@ -48,10 +48,6 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
       includeItemDetails: detail !== 'totals',
       mode,
     });
-
-  if (receipts.length === 0) {
-    return null;
-  }
 
   const receiptForExport = view.kind === 'receipt' ? view.receipt : null;
   const nativeCurrency = view.kind === 'receipt' ? view.nativeCurrency : BASE_CURRENCY;

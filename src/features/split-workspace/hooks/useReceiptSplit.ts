@@ -6,54 +6,40 @@ import {
 } from '@features/split-workspace/logic/split/split';
 import { useReconciliation } from './useReconciliation';
 import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import {
+  selectActiveReceipt,
+  useReceiptStore,
+} from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { BASE_CURRENCY } from '@shared/constants';
-import {
-  defaultDiscountState,
-  defaultGstState,
-  defaultServiceChargeState,
-} from '@features/split-workspace/constants';
 
 export function useReceiptSplit() {
-  const { people, receipts, activeReceiptId, setDiscount, setRoundingInput } = useReceiptStore(
+  const { people, receipts, setDiscount, setRoundingInput } = useReceiptStore(
     useShallow((state) => ({
       people: state.people,
       receipts: state.receipts,
-      activeReceiptId: state.activeReceiptId,
       setDiscount: state.setDiscount,
       setRoundingInput: state.setRoundingInput,
     })),
   );
+  const activeReceipt = useReceiptStore(selectActiveReceipt);
   const exchangeRates = useCurrencyStore((state) => state.exchangeRates);
-
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
 
   const activeSplit = useMemo(
     () =>
       computeSplit({
         people,
-        items: activeReceipt?.items ?? [],
-        discount: activeReceipt?.discount ?? defaultDiscountState,
-        serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
-        gst: activeReceipt?.gst ?? defaultGstState,
-        roundingInput: activeReceipt?.roundingInput,
+        items: activeReceipt.items,
+        discount: activeReceipt.discount,
+        serviceCharge: activeReceipt.serviceCharge,
+        gst: activeReceipt.gst,
+        roundingInput: activeReceipt.roundingInput,
       }),
     [people, activeReceipt],
   );
 
   const receiptTotals = useMemo(
-    () =>
-      computeReceiptTotals(
-        activeReceipt ?? {
-          items: [],
-          discount: defaultDiscountState,
-          serviceCharge: defaultServiceChargeState,
-          gst: defaultGstState,
-          roundingInput: '',
-        },
-        people,
-      ),
+    () => computeReceiptTotals(activeReceipt, people),
     [people, activeReceipt],
   );
 
@@ -73,8 +59,8 @@ export function useReceiptSplit() {
   );
 
   const consolidatedSplit = useMemo(() => {
-    const currencies = receipts.map((r) => r.currency ?? BASE_CURRENCY);
-    const overrides = receipts.map((r) => r.exchangeRateOverride ?? null);
+    const currencies = receipts.map((r) => r.currency);
+    const overrides = receipts.map((r) => r.exchangeRateOverride);
     return computeConsolidatedSplit(
       splitByReceipt,
       people,
@@ -88,17 +74,16 @@ export function useReceiptSplit() {
   const { reconciliationCents, handleApplyReconciliationDiscount, handleAddRounding } =
     useReconciliation({
       split: receiptTotals,
-      discount: activeReceipt?.discount ?? defaultDiscountState,
-      serviceCharge: activeReceipt?.serviceCharge ?? defaultServiceChargeState,
-      gst: activeReceipt?.gst ?? defaultGstState,
+      discount: activeReceipt.discount,
+      serviceCharge: activeReceipt.serviceCharge,
+      gst: activeReceipt.gst,
       setDiscount,
       setRoundingInput,
-      receiptTotalInput: activeReceipt?.receiptTotalInput ?? '',
+      receiptTotalInput: activeReceipt.receiptTotalInput,
     });
 
   return {
     active: {
-      receipt: activeReceipt ?? null,
       split: activeSplit,
       receiptTotals,
     },

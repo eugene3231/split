@@ -1,7 +1,9 @@
 import { useShallow } from 'zustand/shallow';
 import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import { BASE_CURRENCY } from '@shared/constants';
+import {
+  selectActiveReceipt,
+  useReceiptStore,
+} from '@features/split-workspace/stores/receiptStore';
 
 export function useReceiptStepModel() {
   const {
@@ -39,13 +41,9 @@ export function useReceiptStepModel() {
   );
   const { active, reconciliation } = useReceiptSplit();
 
-  const activeReceipt = receipts.find((receipt) => receipt.id === activeReceiptId) ?? receipts[0];
-  const items = activeReceipt?.items ?? [];
-  const discount = activeReceipt?.discount;
-  const serviceCharge = activeReceipt?.serviceCharge;
-  const gst = activeReceipt?.gst;
-  const receiptTotalInput = activeReceipt?.receiptTotalInput ?? '';
-  const activeCurrency = activeReceipt?.currency ?? BASE_CURRENCY;
+  const activeReceipt = useReceiptStore(selectActiveReceipt);
+  const { items, discount, serviceCharge, gst, receiptTotalInput } = activeReceipt;
+  const activeCurrency = activeReceipt.currency;
 
   return {
     receipts,

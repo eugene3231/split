@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { SessionDraft } from '@features/split-workspace/types';
+import type { SessionDraft, WorkspaceState } from '@features/split-workspace/types';
 import { BASE_CURRENCY } from '@shared/constants';
 import {
   LOCAL_STORAGE_DRAFT_KEY,
@@ -14,6 +14,7 @@ import {
   makeAssignment,
 } from '@features/split-workspace/logic/assignment';
 import { jsonStorage, lenientArray, parseJson } from '@features/split-workspace/logic/jsonStorage';
+import { isNonEmpty, mapNonEmpty } from '@features/split-workspace/logic/nonEmpty';
 import { toNullableNumber } from '@shared/logic/core/money';
 import { createId } from '@shared/logic/core/id';
 
@@ -123,7 +124,7 @@ const draftSchema: z.ZodType<SessionDraft> = z
       const parsed = receiptSchema.safeParse(value);
       return parsed.success ? [finishReceipt(parsed.data, index, draft.people)] : [];
     });
-    if (receipts.length === 0) {
+    if (!isNonEmpty(receipts)) {
       context.addIssue({ code: 'custom', message: 'A draft needs at least one receipt.' });
       return z.NEVER;
     }
@@ -159,17 +160,12 @@ function finishReceipt(
 
 const draftStorage = jsonStorage('localStorage', LOCAL_STORAGE_DRAFT_KEY, draftSchema);
 
-export function exportDraftToJson(state: {
-  people: Person[];
-  receipts: Receipt[];
-  activeReceiptId: string;
-  payerMobile: string;
-}): string {
+export function exportDraftToJson(state: WorkspaceState): string {
   const draft: SessionDraft = {
     version: 3,
     people: state.people,
     // A picked receipt photo is a File, which JSON can't carry.
-    receipts: state.receipts.map((receipt) => ({ ...receipt, receiptFile: undefined })),
+    receipts: mapNonEmpty(state.receipts, (receipt) => ({ ...receipt, receiptFile: undefined })),
     activeReceiptId: state.activeReceiptId,
     payerMobile: state.payerMobile,
     savedAt: new Date().toISOString(),

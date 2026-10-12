@@ -16,16 +16,14 @@ vi.mock('../features/sharing/logic/receiptSplitImageLight', () => ({
 
 import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage';
 import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
+import { reloadWorkspace } from '../tests/integration/testHelpers';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function resetStore() {
-  useReceiptStore.setState({
-    peopleInput: '',
-    initialized: false,
-  });
+  useReceiptStore.getState().resetSplit();
   useGeminiStore.setState({
     geminiApiKeyInput: 'test-key',
     geminiModel: DEFAULT_GEMINI_MODEL,
@@ -82,6 +80,7 @@ function seedDraft(overrides: {
       savedAt: '2026-03-21T00:00:00.000Z',
     }),
   );
+  reloadWorkspace();
 }
 
 function addPeople(names: string) {
@@ -504,11 +503,8 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByTestId('receipt-empty-state')).not.toBeInTheDocument();
 
       // Remove all items via the store to trigger empty state
-      useReceiptStore.setState((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, items: [] } : r,
-        ),
-      }));
+      const { activeReceiptId, patchReceipt } = useReceiptStore.getState();
+      act(() => patchReceipt(activeReceiptId, { items: [] }));
       await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument());
     });
 
@@ -520,11 +516,8 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue();
 
       // Clear items to trigger empty state
-      useReceiptStore.setState((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, items: [] } : r,
-        ),
-      }));
+      const { activeReceiptId, patchReceipt } = useReceiptStore.getState();
+      act(() => patchReceipt(activeReceiptId, { items: [] }));
       await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument());
 
       fireEvent.click(screen.getByTestId('receipt-add-item-btn'));
@@ -1044,6 +1037,7 @@ describe('ReceiptSplitterPage integration', () => {
       });
 
       unmount();
+      reloadWorkspace();
       render(<ReceiptSplitterPage />);
 
       await waitFor(() => {
@@ -1074,6 +1068,7 @@ describe('ReceiptSplitterPage integration', () => {
       });
 
       unmount();
+      reloadWorkspace();
       render(<ReceiptSplitterPage />);
 
       // Restores to Bob on the claim step from localStorage — no navigation needed
