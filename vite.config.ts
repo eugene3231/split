@@ -26,7 +26,12 @@ export default defineConfig({
           environment: 'jsdom',
           setupFiles: ['./src/tests/setup.ts'],
           include: ['src/**/*.test.{ts,tsx}'],
-          exclude: ['**/node_modules/**', '.claude/**', 'src/tests/integration/**'],
+          exclude: [
+            '**/node_modules/**',
+            '.claude/**',
+            '.worktrees/**',
+            'src/tests/integration/**',
+          ],
         },
       },
       {
@@ -39,7 +44,7 @@ export default defineConfig({
           environment: 'jsdom',
           setupFiles: ['./src/tests/setup.ts'],
           include: ['src/tests/integration/**/*.test.ts'],
-          exclude: ['**/node_modules/**', '.claude/**'],
+          exclude: ['**/node_modules/**', '.claude/**', '.worktrees/**'],
         },
       },
     ],
