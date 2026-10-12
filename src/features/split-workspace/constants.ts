@@ -27,25 +27,6 @@ export const defaultGstState: ChargeState = {
   detectedSource: null,
 };
 
-export const SUPPORTED_CURRENCIES = [
-  'SGD',
-  'USD',
-  'EUR',
-  'GBP',
-  'THB',
-  'MYR',
-  'JPY',
-  'KRW',
-  'TWD',
-  'IDR',
-  'PHP',
-  'AUD',
-  'CNY',
-  'HKD',
-  'VND',
-  'INR',
-] as const;
-
 export const LOCAL_STORAGE_DRAFT_KEY = 'split:receipt-draft:v1';
 export const LOCAL_STORAGE_OCR_SETTINGS_KEY = 'split:ocr-settings:v1';
 export const LOCAL_STORAGE_WIZARD_STATE_KEY = 'split:simple-wizard-state:v1';

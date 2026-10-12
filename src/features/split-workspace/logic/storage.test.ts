@@ -23,6 +23,7 @@ import {
 } from './geminiSettingsStorage';
 import { loadExchangeRates, saveExchangeRates } from './exchangeRateStorage';
 import type { WorkspaceState } from '@features/split-workspace/types';
+import type { Receipt } from '@shared/types';
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -166,6 +167,21 @@ describe('draft storage', () => {
     expect(draft?.receipts[0].exchangeRateOverride).toBe(0.038);
   });
 
+  it('falls back to the base currency for a currency the app does not support', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_DRAFT_KEY,
+      JSON.stringify({
+        version: 3,
+        people: [],
+        receipts: [{ id: 'r1', name: 'Receipt 1', items: [], currency: 'XYZ' }],
+        activeReceiptId: 'r1',
+        savedAt: '',
+      }),
+    );
+
+    expect(loadPersistedDraft()?.receipts[0].currency).toBe('SGD');
+  });
+
   it('ignores invalid exchangeRateOverride values (0 or negative)', () => {
     window.localStorage.setItem(
       LOCAL_STORAGE_DRAFT_KEY,
@@ -247,7 +263,7 @@ describe('session gemini API key storage', () => {
   });
 });
 
-const receipt1 = {
+const receipt1: Receipt = {
   id: 'r1',
   name: 'Dinner',
   items: [

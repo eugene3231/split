@@ -1,5 +1,6 @@
 import type { Person, SplitResult } from '@shared/types';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import type { CurrencyCode } from '@shared/constants';
 
 type ShareNavigator = Pick<Navigator, 'share' | 'canShare' | 'clipboard'>;
 
@@ -9,7 +10,7 @@ export function buildSplitShareText(args: {
   people: Person[];
   receiptName: string;
   split: SplitResult;
-  currency: string;
+  currency: CurrencyCode;
 }): string {
   const lines = [
     `${args.receiptName} total: ${formatCurrencyFromCents(args.split.totals.totalCents, args.currency)}\n`,

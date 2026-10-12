@@ -1,9 +1,10 @@
 import type { ChargeKind, Person } from '@shared/types';
+import type { CurrencyCode } from '@shared/constants';
 
 export interface BreakdownExchangeRate {
   rate: number;
-  fromCurrency: string;
-  toCurrency: string;
+  fromCurrency: CurrencyCode;
+  toCurrency: CurrencyCode;
 }
 
 export interface BreakdownConversion extends BreakdownExchangeRate {
@@ -19,7 +20,7 @@ export interface BreakdownItemRow {
   /** Null when the person was not involved. */
   amountCents: number | null;
   involved: boolean;
-  currency: string;
+  currency: CurrencyCode;
 }
 
 export interface BreakdownChargeRow {
@@ -27,21 +28,21 @@ export interface BreakdownChargeRow {
   label: string;
   amountCents: number;
   sign: 'minus' | 'plus';
-  currency: string;
+  currency: CurrencyCode;
 }
 
 export interface ReceiptBreakdownTotal {
   id: string;
   label: string;
   totalCents: number;
-  currency: string;
+  currency: CurrencyCode;
 }
 
 export interface ReceiptBreakdownSection {
   id: string;
   title: string;
   totalCents: number;
-  currency: string;
+  currency: CurrencyCode;
   conversion?: BreakdownConversion;
   itemRows: BreakdownItemRow[];
   chargeRows: BreakdownChargeRow[];
@@ -54,7 +55,7 @@ export interface PersonBreakdown {
   /** Which receipts the person's total covers: "Total · 3 receipts" or "Total · this receipt". */
   headerLabel: string;
   totalCents: number;
-  currency: string;
+  currency: CurrencyCode;
   conversion?: BreakdownConversion;
   qrDataUrl?: string;
   collapsedReceiptTotals: ReceiptBreakdownTotal[];
@@ -66,7 +67,7 @@ export interface SummaryBreakdown {
   /** Names the grand total: "Total · 3 receipts" on the combined tab, else "Total". */
   totalLabel: string;
   totalCents: number;
-  currency: string;
+  currency: CurrencyCode;
   personBreakdowns: PersonBreakdown[];
   /** The one rate every person's header converts at, when there is one. */
   exchangeRate?: BreakdownExchangeRate;

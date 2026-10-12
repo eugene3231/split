@@ -21,7 +21,7 @@ import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptS
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
 import { SummaryStep } from '@features/split-workspace/components/steps/SummaryStep/SummaryStep';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import type { Person } from '@shared/types';
 import { WIZARD_STEPS, type WizardStep } from '@features/split-workspace/types';
 
@@ -122,7 +122,7 @@ interface WorkspaceNavStatusProps {
   activePerson: Person | undefined;
   activePersonTotalCents: number;
   receiptTotalCents: number;
-  receiptCurrency: string;
+  receiptCurrency: CurrencyCode;
 }
 
 function WorkspaceNavStatus({

@@ -14,6 +14,7 @@ import {
   resolveClaimView,
   resolvePreviousPersonId,
 } from './claim';
+import type { CurrencyCode } from '@shared/constants';
 
 const people: Person[] = [
   { id: 'p1', name: 'Eugene Chua' },
@@ -36,7 +37,7 @@ function makeItem(
   };
 }
 
-function makeReceipt(id: string, items: EditableItem[], currency = 'SGD'): Receipt {
+function makeReceipt(id: string, items: EditableItem[], currency: CurrencyCode = 'SGD'): Receipt {
   return {
     id,
     name: `Receipt ${id}`,

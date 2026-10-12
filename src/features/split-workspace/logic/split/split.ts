@@ -5,7 +5,7 @@ import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/sp
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
 import { allocateCents } from '@features/split-workspace/logic/split/allocation';
 import { sumAmounts } from '@features/split-workspace/logic/split/amounts';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import { allocateItemShares } from '@features/split-workspace/logic/itemShare';
 import type { NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
 
@@ -134,7 +134,7 @@ export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitRe
 export function consolidateSplits(
   receiptSplits: NonEmptyArray<ReceiptSplit>,
   exchangeRates: Record<string, number>,
-  currency: string = BASE_CURRENCY,
+  currency: CurrencyCode = BASE_CURRENCY,
 ): SplitResult {
   return receiptSplits
     .map(({ receipt, split }) =>

@@ -22,6 +22,7 @@ import {
   measureOverviewImage,
   type OverviewImageRow,
 } from '@features/sharing/logic/overviewTableLayout';
+import type { CurrencyCode } from '@shared/constants';
 
 const FONT = 'Inter, system-ui, -apple-system, sans-serif';
 const INK = '#18181b';
@@ -256,7 +257,7 @@ function drawSharePill(
   cx: number,
   cy: number,
   cents: number,
-  currency: string,
+  currency: CurrencyCode,
   colorIndex: number,
 ) {
   const text = formatCurrencyFromCents(cents, currency);

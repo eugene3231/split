@@ -12,6 +12,7 @@ import type {
   OverviewReceiptSection,
   SummaryOverview,
 } from '@shared/types/summaryOverview';
+import type { CurrencyCode } from '@shared/constants';
 
 export interface ResolveSummaryOverviewInput {
   people: Person[];
@@ -21,7 +22,7 @@ export interface ResolveSummaryOverviewInput {
 interface SectionSource {
   id: string;
   title: string;
-  currency: string;
+  currency: CurrencyCode;
   split: SplitResult;
   charges: ReceiptCharges;
 }

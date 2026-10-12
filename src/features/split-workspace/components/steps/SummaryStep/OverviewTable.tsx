@@ -12,6 +12,7 @@ import type {
   OverviewReceiptSection,
   SummaryOverview,
 } from '@shared/types/summaryOverview';
+import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
   overview: SummaryOverview;
@@ -227,7 +228,7 @@ function ItemRow({ row, people }: { row: OverviewItemRow; people: Person[] }) {
 
 interface ShareCellProps {
   cents: number | undefined;
-  currency: string;
+  currency: CurrencyCode;
   colorIndex: number;
   label: string;
 }
@@ -261,7 +262,7 @@ function ChargeRow({
 }: {
   row: OverviewChargeRow;
   people: Person[];
-  currency: string;
+  currency: CurrencyCode;
 }) {
   const sign = row.sign === 'minus' ? '−' : '';
   return (
@@ -314,7 +315,7 @@ function SectionTotalRow({
   );
 }
 
-function AmountCell({ cents, currency }: { cents: number; currency: string }) {
+function AmountCell({ cents, currency }: { cents: number; currency: CurrencyCode }) {
   return (
     <td className="px-1 py-2.5 text-center text-xs whitespace-nowrap">
       {formatCurrencyFromCents(cents, currency)}

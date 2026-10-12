@@ -1,5 +1,5 @@
 import type { Receipt, ReceiptSplit, SplitResult } from '@shared/types';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import { consolidateSplits } from '@features/split-workspace/logic/split/split';
 import {
   convertSplitResult,
@@ -9,7 +9,7 @@ import type { NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
 
 interface BaseView {
   displaySplit: SplitResult;
-  displayCurrency: string;
+  displayCurrency: CurrencyCode;
   /** Always in the base currency — used for QR generation and PayNow amounts. */
   baseSplit: SplitResult;
 }
@@ -18,7 +18,7 @@ export interface TotalTabView extends BaseView {
   kind: 'total';
   hasAnyForeign: boolean;
   /** Each currency the receipts were billed in, in receipt order. */
-  billedCurrencies: string[];
+  billedCurrencies: CurrencyCode[];
   /** The one rate every receipt converts at when totals show in a foreign currency, else null. */
   billedRate: number | null;
   /** Per-receipt split data consumed by summaryBreakdown on the consolidated tab. */
@@ -27,7 +27,7 @@ export interface TotalTabView extends BaseView {
     name: string;
     split: SplitResult;
     baseSplit: SplitResult;
-    currency: string;
+    currency: CurrencyCode;
     effectiveRate?: number;
   }[];
 }
@@ -35,7 +35,7 @@ export interface TotalTabView extends BaseView {
 export interface ReceiptTabView extends BaseView {
   kind: 'receipt';
   receipt: Receipt;
-  nativeCurrency: string;
+  nativeCurrency: CurrencyCode;
   isForeign: boolean;
   effectiveRate: number | null;
 }

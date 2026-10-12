@@ -4,7 +4,7 @@ import {
   defaultGstState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import { createId } from '@shared/logic/core/id';
 import { equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 import { mapNonEmpty, type NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
@@ -24,7 +24,7 @@ type PresetCharge = { percent: string } | { amount: string } | null;
 
 interface PresetReceipt {
   name: string;
-  currency?: string;
+  currency?: CurrencyCode;
   items: PresetItem[];
   serviceCharge: PresetCharge;
   gst: PresetCharge;

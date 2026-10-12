@@ -3,6 +3,7 @@ import type { ChargeState, Receipt, SplitResult } from '@shared/types';
 import { resolveSummaryView } from './summaryView';
 import type { ResolveSummaryViewInput } from './summaryView';
 import { makeSplit as buildSplit } from '../../../tests/integration/testHelpers';
+import type { CurrencyCode } from '@shared/constants';
 
 const rates: Record<string, number> = { SGD: 1, USD: 1.35, JPY: 0.009 };
 
@@ -18,7 +19,11 @@ function makeCharge(overrides: Partial<ChargeState> = {}): ChargeState {
   };
 }
 
-function makeReceipt(id: string, currency = 'SGD', override: number | null = null): Receipt {
+function makeReceipt(
+  id: string,
+  currency: CurrencyCode = 'SGD',
+  override: number | null = null,
+): Receipt {
   return {
     id,
     name: `Receipt ${id}`,

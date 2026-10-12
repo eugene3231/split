@@ -1,4 +1,4 @@
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import { CHARGE_KINDS } from '@shared/types';
 import type { Person, PersonSplit, SplitLine } from '@shared/types';
 import {
@@ -128,7 +128,7 @@ function resolveHeaderRate(view: SummaryView): BreakdownExchangeRate | undefined
 function isSameRate(
   headerRate: BreakdownExchangeRate | undefined,
   rate: number,
-  fromCurrency: string,
+  fromCurrency: CurrencyCode,
 ): boolean {
   return headerRate?.rate === rate && headerRate.fromCurrency === fromCurrency;
 }
@@ -139,7 +139,7 @@ interface BuildReceiptSectionInput {
   charges: ReceiptCharges;
   /** The person's part of the receipt, in the section's currency. */
   person: PersonSplit;
-  currency: string;
+  currency: CurrencyCode;
   conversion?: BreakdownConversion;
   itemRows: BreakdownItemRow[];
 }
@@ -167,7 +167,7 @@ function buildReceiptSection({
 
 function buildItemRows(
   lines: SplitLine[],
-  currency: string,
+  currency: CurrencyCode,
   showAllItems: boolean,
 ): BreakdownItemRow[] {
   return lines.flatMap((line, index) =>
@@ -189,7 +189,7 @@ function buildItemRows(
 function buildChargeRows(
   person: PersonSplit,
   charges: ReceiptCharges,
-  currency: string,
+  currency: CurrencyCode,
 ): BreakdownChargeRow[] {
   return CHARGE_KINDS.filter((kind) => person.chargeCents[kind] > 0).map((kind) => ({
     kind,

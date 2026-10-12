@@ -3,12 +3,13 @@ import type { ClaimPerson } from '@features/split-workspace/logic/claim';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
 import { prefersMotion } from '@features/split-workspace/components/shared/motion';
+import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
   people: ClaimPerson[];
   onSelect: (personId: string) => void;
   layout: 'row' | 'column';
-  currency: string;
+  currency: CurrencyCode;
   className?: string;
 }
 

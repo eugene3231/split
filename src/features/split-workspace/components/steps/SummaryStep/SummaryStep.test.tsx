@@ -11,6 +11,7 @@ import {
   seedStore,
 } from '../../../../../tests/integration/testHelpers';
 import { equalShares } from '@features/split-workspace/logic/assignment';
+import type { CurrencyCode } from '@shared/constants';
 
 const { generatePaynowQrDataUrls } = vi.hoisted(() => ({ generatePaynowQrDataUrls: vi.fn() }));
 vi.mock('@features/payments', async (importActual) => ({
@@ -271,7 +272,7 @@ describe('SummaryStep', () => {
     expect(screen.getAllByText('Rounding')).toHaveLength(2);
   });
 
-  it.each([
+  it.each<[CurrencyCode[], boolean]>([
     [['IDR', 'IDR'], true],
     [['IDR', 'USD'], false],
   ])(

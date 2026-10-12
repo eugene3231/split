@@ -4,6 +4,7 @@ import type {
   OverviewReceiptSection,
   SummaryOverview,
 } from '@shared/types/summaryOverview';
+import type { CurrencyCode } from '@shared/constants';
 
 export const PAD = 56;
 export const TITLE_H = 76;
@@ -19,7 +20,7 @@ export const ROW_HEIGHTS = { heading: 52, item: 76, charge: 68, sectionTotal: 76
 export type OverviewImageRow =
   | { kind: 'heading'; section: OverviewReceiptSection }
   | { kind: 'item'; row: OverviewItemRow }
-  | { kind: 'charge'; row: OverviewChargeRow; currency: string }
+  | { kind: 'charge'; row: OverviewChargeRow; currency: CurrencyCode }
   | { kind: 'sectionTotal'; section: OverviewReceiptSection };
 
 /** The table's body rows in order, matching what `OverviewTable` renders. */

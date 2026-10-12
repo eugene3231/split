@@ -12,6 +12,7 @@ import {
   getAssignedItemsCount,
   getDetectedItemsCount,
 } from '@features/split-workspace/logic/wizardValidation';
+import type { CurrencyCode } from '@shared/constants';
 
 export interface ClaimPerson {
   id: string;
@@ -48,7 +49,7 @@ export interface ClaimItem {
 export interface ClaimSection {
   receiptId: string;
   name: string;
-  currency: string;
+  currency: CurrencyCode;
   items: ClaimItem[];
   /** How many of the receipt's items the active person is on. */
   activeSelection: 'none' | 'some' | 'all';
@@ -59,7 +60,7 @@ export interface ClaimSection {
 export interface ClaimView {
   activePerson: ClaimPerson | null;
   people: ClaimPerson[];
-  totalsCurrency: string;
+  totalsCurrency: CurrencyCode;
   sections: ClaimSection[];
 }
 
@@ -86,7 +87,7 @@ export function resolveClaimView(args: {
   people: Person[];
   activePersonId: string;
   totalByPersonCents: Record<string, number>;
-  totalsCurrency: string;
+  totalsCurrency: CurrencyCode;
 }): ClaimView {
   const { receipts, people, totalByPersonCents, totalsCurrency } = args;
   const activePersonId = resolveActivePersonId(args.activePersonId, people);

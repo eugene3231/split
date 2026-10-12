@@ -1,10 +1,11 @@
 import type { ChargeKind, Person } from '@shared/types';
+import type { CurrencyCode } from '@shared/constants';
 
 export interface OverviewItemRow {
   id: string;
   name: string;
   priceCents: number;
-  currency: string;
+  currency: CurrencyCode;
   /** Only the people who had the item; everyone else is absent. */
   sharesByPerson: Record<string, number>;
 }
@@ -20,7 +21,7 @@ export interface OverviewChargeRow {
 export interface OverviewReceiptSection {
   id: string;
   title: string;
-  currency: string;
+  currency: CurrencyCode;
   itemRows: OverviewItemRow[];
   chargeRows: OverviewChargeRow[];
   totalCents: number;
@@ -30,7 +31,7 @@ export interface OverviewReceiptSection {
 export interface SummaryOverview {
   people: Person[];
   sections: OverviewReceiptSection[];
-  currency: string;
+  currency: CurrencyCode;
   totalCents: number;
   totalByPersonCents: Record<string, number>;
 }

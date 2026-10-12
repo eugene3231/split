@@ -7,12 +7,13 @@ import { cn } from '@shared/utils/cn';
 import { PayNowField } from './PayNowField';
 import type { PayNowStatus } from './useSummaryModel';
 import { CheckIcon } from '@features/split-workspace/components/shared/CheckIcon';
+import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
   payNowStatus: PayNowStatus;
   totalLabel: string;
   grandTotal: number;
-  displayCurrency: string;
+  displayCurrency: CurrencyCode;
   currentReceipt: Receipt | null;
   people: Person[];
   onRenameReceipt: (id: string, name: string) => void;

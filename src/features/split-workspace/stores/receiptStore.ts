@@ -8,7 +8,7 @@ import {
   loadPersistedDraft,
   savePersistedDraft,
 } from '@features/split-workspace/logic/draftStorage';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import { createId } from '@shared/logic/core/id';
 import type { EditableItem, OcrResponse, Person, Receipt } from '@shared/types';
 import type { SessionDraft, WorkspaceState } from '@features/split-workspace/types';
@@ -105,7 +105,7 @@ interface ReceiptStoreActions {
   /** A blank name keeps the current one. */
   renameReceipt: (receiptId: string, name: string) => void;
   /** A custom exchange rate belongs to the currency it was typed for, so it is cleared. */
-  setReceiptCurrency: (receiptId: string, currency: string) => void;
+  setReceiptCurrency: (receiptId: string, currency: CurrencyCode) => void;
   patchReceipt: (receiptId: string, patch: ReceiptPatch) => void;
   applyReceiptScan: (args: ApplyReceiptScanArgs) => ReceiptScanCommit;
 

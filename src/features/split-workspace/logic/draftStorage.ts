@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { SessionDraft, WorkspaceState } from '@features/split-workspace/types';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, CURRENCY_CODES } from '@shared/constants';
 import {
   LOCAL_STORAGE_DRAFT_KEY,
   defaultDiscountState,
@@ -104,7 +104,7 @@ const receiptSchema = z.object({
   gst: chargeSchema(defaultGstState),
   receiptTotalInput: text,
   roundingInput: text,
-  currency: z.string().min(1).catch(BASE_CURRENCY),
+  currency: z.enum(CURRENCY_CODES).catch(BASE_CURRENCY),
   exchangeRateOverride: z.number().positive().nullable().catch(null),
 });
 

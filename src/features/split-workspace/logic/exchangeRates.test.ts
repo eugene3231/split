@@ -50,19 +50,14 @@ describe('getEffectiveRate', () => {
     expect(getEffectiveRate('USD', rates, null)).toBe(1.35);
   });
 
-  it('falls back to FALLBACK_RATES_TO_SGD when currency not in rates', () => {
-    // EUR not in our test rates but is in FALLBACK_RATES_TO_SGD
-    const rate = getEffectiveRate('EUR', {}, null);
-    expect(rate).toBeGreaterThan(0);
+  it("falls back to the currency's own rate when no live rate has loaded", () => {
+    expect(getEffectiveRate('EUR', {}, null)).toBe(1.48);
+    expect(getEffectiveRate('SGD', {}, null)).toBe(1);
   });
 
   it('ignores override of 0 (treats as null)', () => {
     // override of 0 is invalid, should fall through to rates map
     expect(getEffectiveRate('USD', rates, 0)).toBe(1.35);
-  });
-
-  it('returns 1 for completely unknown currency not in rates or fallbacks', () => {
-    expect(getEffectiveRate('ZZZ', {}, null)).toBe(1);
   });
 });
 

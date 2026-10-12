@@ -8,6 +8,7 @@ import {
 import type { EditableItem, ItemAssignment, Person, Receipt } from '@shared/types';
 import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 import { AssignStep } from './AssignStep';
+import type { CurrencyCode } from '@shared/constants';
 
 interface AssignStepStoreMock {
   receipts: Receipt[];
@@ -44,7 +45,7 @@ function makeItem(id: string, assignment: ItemAssignment = NOBODY): EditableItem
   };
 }
 
-function makeReceipt(id: string, items: EditableItem[], currency = 'SGD'): Receipt {
+function makeReceipt(id: string, items: EditableItem[], currency: CurrencyCode = 'SGD'): Receipt {
   return {
     id,
     name: `Receipt ${id}`,

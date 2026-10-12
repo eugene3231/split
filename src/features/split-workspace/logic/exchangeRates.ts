@@ -1,3 +1,4 @@
+import { CURRENCY_CODES, currencyInfo, type CurrencyCode } from '@shared/constants';
 import { CHARGE_KINDS } from '@shared/types';
 import type { Amounts, ChargeKind, SplitLine, SplitResult } from '@shared/types';
 import { allocate, allocateCents } from '@features/split-workspace/logic/split/allocation';
@@ -7,54 +8,39 @@ import {
   signedCharge,
 } from '@features/split-workspace/logic/split/amounts';
 
-export const FALLBACK_RATES_TO_SGD: Record<string, number> = {
-  SGD: 1,
-  USD: 1.35,
-  EUR: 1.48,
-  GBP: 1.73,
-  THB: 0.038,
-  MYR: 0.3,
-  JPY: 0.009,
-  KRW: 0.00099,
-  TWD: 0.042,
-  IDR: 0.000083,
-  PHP: 0.024,
-  AUD: 0.88,
-  CNY: 0.19,
-  HKD: 0.17,
-  VND: 0.000053,
-  INR: 0.016,
-};
+/** A rate for every currency, used until live rates have loaded. */
+export const FALLBACK_RATES: Record<string, number> = Object.fromEntries(
+  CURRENCY_CODES.map((code) => [code, currencyInfo(code).fallbackRate]),
+);
 
 /**
- * Returns the effective exchange rate for a currency to SGD.
- * If an override is provided, it takes precedence over the rates map.
- * Falls back to FALLBACK_RATES_TO_SGD if the currency isn't in the rates map.
+ * What one unit of `currency` is worth in the base currency. A rate the user typed for the
+ * receipt wins, then the live rate, then the currency's fallback rate.
  */
 export function getEffectiveRate(
-  currency: string,
+  currency: CurrencyCode,
   rates: Record<string, number>,
   override: number | null,
 ): number {
   if (override !== null && override > 0) return override;
-  return rates[currency] ?? FALLBACK_RATES_TO_SGD[currency] ?? 1;
+  return rates[currency] ?? currencyInfo(currency).fallbackRate;
 }
 
 /**
- * Converts an integer cent amount from one currency to another.
- * `rates` maps currency code -> SGD value (1 unit of currency = X SGD).
+ * Converts an integer cent amount from one currency to another. `rates` maps a currency code
+ * to its value in the base currency, and `override` replaces the rate of `fromCurrency`.
  */
 export function convertCents(
   amountCents: number,
-  fromCurrency: string,
-  toCurrency: string,
+  fromCurrency: CurrencyCode,
+  toCurrency: CurrencyCode,
   rates: Record<string, number>,
   override: number | null = null,
 ): number {
   if (fromCurrency === toCurrency) return amountCents;
-  const toSgd = getEffectiveRate(fromCurrency, rates, override);
-  const fromSgd = getEffectiveRate(toCurrency, rates, null);
-  return Math.round((amountCents * toSgd) / fromSgd);
+  const toBase = getEffectiveRate(fromCurrency, rates, override);
+  const fromBase = getEffectiveRate(toCurrency, rates, null);
+  return Math.round((amountCents * toBase) / fromBase);
 }
 
 /**
@@ -63,8 +49,8 @@ export function convertCents(
  */
 export function convertSplitResult(
   split: SplitResult,
-  fromCurrency: string,
-  toCurrency: string,
+  fromCurrency: CurrencyCode,
+  toCurrency: CurrencyCode,
   rates: Record<string, number>,
   override: number | null = null,
 ): SplitResult {

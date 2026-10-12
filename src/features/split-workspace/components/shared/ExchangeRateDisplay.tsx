@@ -1,6 +1,6 @@
 import { getEffectiveRate } from '@features/split-workspace/logic/exchangeRates';
 import { useState } from 'react';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { formatExchangeRate } from '@shared/logic/core/money';
@@ -14,7 +14,7 @@ import {
 
 interface Props {
   receiptId: string;
-  currency: string;
+  currency: CurrencyCode;
   exchangeRateOverride: number | null;
 }
 

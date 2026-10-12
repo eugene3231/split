@@ -9,7 +9,7 @@ beforeEach(resetAllStores);
 const props = {
   totalLabel: 'Grand total',
   grandTotal: 1000,
-  displayCurrency: 'SGD',
+  displayCurrency: 'SGD' as const,
   currentReceipt: null,
   people: [],
   onRenameReceipt: vi.fn(),

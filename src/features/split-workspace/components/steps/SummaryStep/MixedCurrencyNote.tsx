@@ -1,7 +1,7 @@
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 
 interface Props {
-  currencies: string[];
+  currencies: CurrencyCode[];
 }
 
 export function MixedCurrencyNote({ currencies }: Props) {

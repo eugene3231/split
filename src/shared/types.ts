@@ -1,3 +1,5 @@
+import type { CurrencyCode } from '@shared/constants';
+
 export type ChargeMode = 'amount' | 'percent';
 
 export type Person = {
@@ -90,7 +92,7 @@ export type Receipt = {
   /** A fixed amount the store added to reach its printed total, split evenly and never taxed. */
   roundingInput: string;
   receiptFile?: File | null;
-  currency: string;
+  currency: CurrencyCode;
   exchangeRateOverride: number | null;
 };
 

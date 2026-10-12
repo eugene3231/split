@@ -4,10 +4,11 @@ import type {
   Reconciliation,
   ReconciliationFix,
 } from '@features/split-workspace/logic/reconciliation';
+import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
   reconciliation: Reconciliation;
-  currency: string;
+  currency: CurrencyCode;
   onApplyFix: (fix: ReconciliationFix) => void;
 }
 

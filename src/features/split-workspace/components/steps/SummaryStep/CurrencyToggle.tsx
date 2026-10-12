@@ -1,12 +1,12 @@
 import { getCurrencySymbol } from '@shared/logic/core/money';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import { PillToggle } from './PillToggle';
 
 interface Props {
   showBaseCurrency: boolean;
   onToggle: (show: boolean) => void;
   activeTab: string;
-  currentCurrency: string;
+  currentCurrency: CurrencyCode;
 }
 
 export function CurrencyToggle({ showBaseCurrency, onToggle, activeTab, currentCurrency }: Props) {

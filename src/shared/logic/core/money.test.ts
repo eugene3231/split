@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CURRENCY_SYMBOLS } from '@shared/constants';
+import { CURRENCIES, CURRENCY_CODES } from '@shared/constants';
 import {
   formatCurrencyFromCents,
   formatExchangeRate,
@@ -15,15 +15,11 @@ describe('getCurrencySymbol', () => {
     expect(getCurrencySymbol('SGD')).toBe('$');
   });
 
-  it('returns the currency code itself for unknown currencies', () => {
-    expect(getCurrencySymbol('XYZ')).toBe('XYZ');
-    expect(getCurrencySymbol('ZZZ')).toBe('ZZZ');
-  });
-
-  it('covers every entry in CURRENCY_SYMBOLS', () => {
-    for (const [currency, symbol] of Object.entries(CURRENCY_SYMBOLS)) {
-      expect(getCurrencySymbol(currency)).toBe(symbol);
+  it('has a symbol for every currency the app supports', () => {
+    for (const currency of CURRENCY_CODES) {
+      expect(getCurrencySymbol(currency)).toBe(CURRENCIES[currency].symbol);
     }
+    expect(CURRENCY_CODES).toHaveLength(16);
   });
 });
 
@@ -56,10 +52,6 @@ describe('formatCurrencyFromCents', () => {
   it('shows two decimal places for currencies with cents', () => {
     expect(formatCurrencyFromCents(100, 'SGD')).toBe('$1.00');
     expect(formatCurrencyFromCents(150, 'USD')).toBe('US$1.50');
-  });
-
-  it('uses the currency code as symbol for unknown currencies', () => {
-    expect(formatCurrencyFromCents(500, 'XYZ')).toBe('XYZ5.00');
   });
 });
 

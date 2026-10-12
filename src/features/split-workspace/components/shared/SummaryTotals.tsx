@@ -8,11 +8,12 @@ import { CHARGE_SIGN } from '@features/split-workspace/logic/split/amounts';
 import { cn } from '@shared/utils/cn';
 import { CHARGE_KINDS } from '@shared/types';
 import type { Amounts } from '@shared/types';
+import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
   totals: Amounts;
   charges: ReceiptCharges;
-  currency: string;
+  currency: CurrencyCode;
   onRemoveRounding: () => void;
 }
 

@@ -4,6 +4,7 @@ import {
   drawPersonAvatar,
   formatConversionLines,
 } from '@features/sharing/logic/receiptSplitImageLightHelpers';
+import type { BreakdownConversion } from '@shared/types/summaryBreakdown';
 
 interface FillCall {
   kind: 'fill' | 'text';
@@ -53,7 +54,7 @@ describe('drawPersonAvatar', () => {
 });
 
 describe('currency conversion copy', () => {
-  const conversion = {
+  const conversion: BreakdownConversion = {
     amountCents: 1352,
     rate: 1.35,
     fromCurrency: 'USD',
