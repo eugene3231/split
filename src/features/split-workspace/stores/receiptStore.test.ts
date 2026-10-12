@@ -20,6 +20,11 @@ import type { OcrResponse, Person, Receipt } from '@shared/types';
 import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
 import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
 import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
+import {
+  setPersonOnEveryItem,
+  splitUnassignedItemsEqually,
+} from '@features/split-workspace/logic/assignmentInteraction';
+import { assignEveryItemEqually } from '@features/split-workspace/logic/evenSplit';
 
 const FIRST_LOADING_MESSAGE = 'Asking Gemini to decipher cryptic cashier handwriting...';
 const SECOND_LOADING_MESSAGE = 'Negotiating with suspiciously smudged totals...';
@@ -175,7 +180,7 @@ describe('saving and loading the workspace', () => {
   });
 
   it('opens with the saved workspace when the app loads', async () => {
-    useReceiptStore.getState().addPeopleFromInput('Alice');
+    useReceiptStore.getState().addPeople(['Alice']);
     useReceiptStore.getState().setPayerMobile('91234567');
     const receiptId = useReceiptStore.getState().activeReceiptId;
 
@@ -209,7 +214,7 @@ describe('saving and loading the workspace', () => {
   });
 
   it('saves every change as it is made', () => {
-    useReceiptStore.getState().addPeopleFromInput('Alice, Bob');
+    useReceiptStore.getState().addPeople(['Alice', 'Bob']);
     expect(loadPersistedDraft()?.people.map((person) => person.name)).toEqual(['Alice', 'Bob']);
 
     const receiptId = useReceiptStore.getState().activeReceiptId;
@@ -231,8 +236,7 @@ describe('saving and loading the workspace', () => {
 
 describe('receipt management', () => {
   it('replaces the workspace with a blank one under a new receipt ID', () => {
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-    useReceiptStore.getState().setPeopleInput('Pending person');
+    useReceiptStore.getState().addPeople(['Alice']);
     useReceiptStore.getState().setPayerMobile('91234567');
     const oldReceiptId = useReceiptStore.getState().activeReceiptId;
 
@@ -240,7 +244,6 @@ describe('receipt management', () => {
 
     const state = useReceiptStore.getState();
     expect(state.people).toEqual([]);
-    expect(state.peopleInput).toBe('');
     expect(state.payerMobile).toBe('');
     expect(state.receipts).toHaveLength(1);
     expect(state.receipts[0].id).not.toBe(oldReceiptId);
@@ -388,23 +391,23 @@ describe('receiptStore additional coverage', () => {
     vi.restoreAllMocks();
   });
 
-  it('addPeopleFromInput does nothing for empty input', () => {
-    useReceiptStore.getState().addPeopleFromInput('   ');
+  it('addPeople ignores blank names', () => {
+    useReceiptStore.getState().addPeople(['   ', '']);
     expect(useReceiptStore.getState().people).toHaveLength(0);
   });
 
-  it('addPeopleFromInput skips duplicates', () => {
-    useReceiptStore.getState().addPeopleFromInput('Alice');
+  it('addPeople skips names already in the split', () => {
+    useReceiptStore.getState().addPeople(['Alice']);
     expect(useReceiptStore.getState().people).toHaveLength(1);
 
-    useReceiptStore.getState().addPeopleFromInput('Alice, Bob');
+    useReceiptStore.getState().addPeople(['Alice', 'Bob']);
     expect(useReceiptStore.getState().people).toHaveLength(2);
   });
 
   it('keeps only the first spelling of each name within a batch', () => {
-    useReceiptStore.getState().addPeopleFromInput('Alice');
+    useReceiptStore.getState().addPeople(['Alice']);
 
-    useReceiptStore.getState().addPeopleFromInput(' Sam, sam\nBOB, Bob, alice ');
+    useReceiptStore.getState().addPeople([' Sam', ' sam', 'BOB', ' Bob', ' alice ']);
 
     expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual([
       'Alice',
@@ -417,53 +420,18 @@ describe('receiptStore additional coverage', () => {
     const receiptId = useReceiptStore.getState().activeReceiptId;
     const itemId = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.items[0].id;
 
-    useReceiptStore.getState().removeItem(itemId);
+    useReceiptStore.getState().removeItem(receiptId, itemId);
     const items = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.items;
     expect(items).toHaveLength(1);
   });
 
-  it('setServiceCharge updates the active receipt', () => {
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-
-    useReceiptStore.getState().setServiceCharge({
-      enabled: true,
-      mode: 'percent',
-      amountInput: '',
-      percentInput: '15',
-      detectedConfidence: null,
-      detectedSource: null,
-    });
-
-    const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
-    expect(receipt.serviceCharge.percentInput).toBe('15');
-  });
-
-  it('setGst updates the active receipt', () => {
-    useReceiptStore.getState().setGst({
-      enabled: false,
-      mode: 'percent',
-      amountInput: '',
-      percentInput: '',
-      detectedConfidence: null,
-      detectedSource: null,
-    });
-
-    const receipt = useReceiptStore.getState().receipts[0];
-    expect(receipt.gst.enabled).toBe(false);
-  });
-
-  it('setReceiptTotalInput updates the active receipt', () => {
-    useReceiptStore.getState().setReceiptTotalInput('99.50');
-    expect(useReceiptStore.getState().receipts[0].receiptTotalInput).toBe('99.50');
-  });
-
   it('keeps receipt draft fields when selecting a file', () => {
     const receiptId = useReceiptStore.getState().activeReceiptId;
-    useReceiptStore.getState().setReceiptTotalInput('15.00');
+    useReceiptStore.getState().patchReceipt(receiptId, { receiptTotalInput: '15.00' });
     const before = useReceiptStore.getState().receipts[0];
 
     const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
-    useReceiptStore.getState().handleReceiptFileSelected(file);
+    useReceiptStore.getState().patchReceipt(receiptId, { receiptFile: file });
 
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
     expect(receipt.receiptFile).toBe(file);
@@ -474,22 +442,8 @@ describe('receiptStore additional coverage', () => {
     expect(receipt.receiptTotalInput).toBe('15.00');
   });
 
-  it('handleReceiptFileSelected clears receiptFile when null is passed', () => {
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-
-    const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
-    useReceiptStore.getState().handleReceiptFileSelected(file);
-    expect(useReceiptStore.getState().receipts[0].receiptFile).toBe(file);
-
-    useReceiptStore.getState().handleReceiptFileSelected(null);
-    expect(
-      useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.receiptFile,
-    ).toBeNull();
-  });
-
   it('loadWorkspace replaces people, receipts and payer mobile with the loaded split', () => {
-    useReceiptStore.getState().addPeopleFromInput('Zed');
-    useReceiptStore.getState().setPeopleInput('half-typed');
+    useReceiptStore.getState().addPeople(['Zed']);
 
     const draft = PRESET_WORKSPACES[1].build();
     useReceiptStore.getState().loadWorkspace(draft);
@@ -499,34 +453,20 @@ describe('receiptStore additional coverage', () => {
     expect(state.receipts.map((receipt) => receipt.name)).toEqual(['Dinner']);
     expect(state.activeReceiptId).toBe(draft.receipts[0].id);
     expect(state.payerMobile).toBe('81234567');
-    expect(state.peopleInput).toBe('');
   });
 
-  it('setReceiptExchangeRateOverride updates the correct receipt', () => {
-    const receiptId = useReceiptStore.getState().activeReceiptId;
-
-    useReceiptStore.getState().setReceiptExchangeRateOverride(receiptId, 1.35);
-    const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
-    expect(receipt.exchangeRateOverride).toBe(1.35);
-
-    useReceiptStore.getState().setReceiptExchangeRateOverride(receiptId, null);
-    expect(
-      useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.exchangeRateOverride,
-    ).toBeNull();
-  });
-
-  it('addPeopleFromInput returns unchanged state when all names are duplicates', () => {
-    useReceiptStore.getState().addPeopleFromInput('Alice');
+  it('addPeople leaves the split unchanged when every name is already in it', () => {
+    useReceiptStore.getState().addPeople(['Alice']);
     expect(useReceiptStore.getState().people).toHaveLength(1);
 
-    useReceiptStore.getState().addPeopleFromInput('Alice');
+    useReceiptStore.getState().addPeople(['Alice']);
     expect(useReceiptStore.getState().people).toHaveLength(1);
   });
 
   it('setReceiptCurrency clears exchangeRateOverride', () => {
     const receiptId = useReceiptStore.getState().activeReceiptId;
 
-    useReceiptStore.getState().setReceiptExchangeRateOverride(receiptId, 1.5);
+    useReceiptStore.getState().patchReceipt(receiptId, { exchangeRateOverride: 1.5 });
     const receiptBefore = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
     expect(receiptBefore.exchangeRateOverride).toBe(1.5);
 
@@ -537,14 +477,14 @@ describe('receiptStore additional coverage', () => {
   });
 
   it('removeItem removes an item when receipt has more than one', () => {
-    useReceiptStore.getState().addPeopleFromInput('Alice');
-    useReceiptStore.getState().addItem();
-
+    useReceiptStore.getState().addPeople(['Alice']);
     const receiptId = useReceiptStore.getState().activeReceiptId;
+    useReceiptStore.getState().addItem(receiptId);
+
     const items = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.items;
     expect(items).toHaveLength(2);
 
-    useReceiptStore.getState().removeItem(items[0].id);
+    useReceiptStore.getState().removeItem(receiptId, items[0].id);
     const updatedItems = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.items;
     expect(updatedItems).toHaveLength(1);
   });
@@ -556,18 +496,46 @@ describe('receiptStore additional coverage', () => {
 
   it('patchReceipt applies a partial receipt update by id', () => {
     const receiptId = useReceiptStore.getState().activeReceiptId;
+    const before = useReceiptStore.getState().receipts[0];
     useReceiptStore.getState().patchReceipt(receiptId, {
       receiptTotalInput: '42.00',
-      roundingInput: '',
+      exchangeRateOverride: 1.35,
       currency: 'USD',
     });
 
     const receipt = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!;
     expect(receipt.receiptTotalInput).toBe('42.00');
+    expect(receipt.exchangeRateOverride).toBe(1.35);
     expect(receipt.currency).toBe('USD');
+    expect(receipt.items).toBe(before.items);
+    expect(receipt.serviceCharge).toBe(before.serviceCharge);
   });
 
-  it('splitUnassignedItemsEqually shares leftovers on every receipt with everyone', () => {
+  it('patchReceipt leaves the other receipts as they were', () => {
+    useReceiptStore.getState().addReceipt();
+    const [first, second] = useReceiptStore.getState().receipts;
+
+    useReceiptStore.getState().patchReceipt(first.id, { receiptTotalInput: '42.00' });
+
+    expect(useReceiptStore.getState().receipts[1]).toBe(second);
+  });
+
+  it('addItem, updateItem and removeItem act on the named receipt, not the active one', () => {
+    const firstId = useReceiptStore.getState().activeReceiptId;
+    useReceiptStore.getState().addReceipt();
+    const second = useReceiptStore.getState().receipts[1];
+    expect(useReceiptStore.getState().activeReceiptId).toBe(second.id);
+
+    useReceiptStore.getState().addItem(firstId);
+    const [kept, added] = useReceiptStore.getState().receipts[0].items;
+    useReceiptStore.getState().updateItem(firstId, added.id, (item) => ({ ...item, name: 'Tea' }));
+    useReceiptStore.getState().removeItem(firstId, kept.id);
+
+    expect(useReceiptStore.getState().receipts[0].items.map((item) => item.name)).toEqual(['Tea']);
+    expect(useReceiptStore.getState().receipts[1]).toBe(second);
+  });
+
+  it('updateItems rewrites the named receipt with the people in the split', () => {
     const people: Person[] = [
       { id: 'p1', name: 'Alice' },
       { id: 'p2', name: 'Bob' },
@@ -620,10 +588,10 @@ describe('receiptStore additional coverage', () => {
       activeReceiptId: 'r1',
     });
 
-    useReceiptStore.getState().splitUnassignedItemsEqually();
+    useReceiptStore.getState().updateItems('r2', splitUnassignedItemsEqually);
 
     const state = useReceiptStore.getState();
-    expect(state.receipts[0].items[0].assignment).toEqual(equalShares(['p1', 'p2']));
+    expect(state.receipts[0]).toBe(receipts[0]);
     expect(state.receipts[1].items[0].assignment).toEqual(equalShares(['p1', 'p2']));
   });
 });
@@ -648,7 +616,7 @@ describe('equal sharing on a chosen receipt', () => {
       activeReceiptId: 'r2',
     });
 
-    useReceiptStore.getState().splitReceiptEvenly('r1');
+    useReceiptStore.getState().updateItems('r1', assignEveryItemEqually);
 
     expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual(
       equalShares(['p1', 'p2']),
@@ -677,15 +645,19 @@ describe('equal sharing on a chosen receipt', () => {
         .getState()
         .receipts[index].items.map((item) => Object.keys(item.assignment.shares));
 
-    useReceiptStore.getState().setPersonOnReceiptItems('r1', 'p2', true);
+    useReceiptStore
+      .getState()
+      .updateItems('r1', (items) => setPersonOnEveryItem(items, 'p2', true));
     expect(personIdsOf(0)).toEqual([['p2'], ['p1', 'p2']]);
     expect(personIdsOf(1)).toEqual([[], ['p1']]);
 
-    useReceiptStore.getState().setPersonOnReceiptItems('r1', 'p2', false);
+    useReceiptStore
+      .getState()
+      .updateItems('r1', (items) => setPersonOnEveryItem(items, 'p2', false));
     expect(personIdsOf(0)).toEqual([[], ['p1']]);
   });
 
-  it('does not share any receipt when the active receipt no longer exists', () => {
+  it('changes nothing when the named receipt does not exist', () => {
     const receipt = makeReceipt({
       id: 'r1',
       items: [
@@ -704,7 +676,7 @@ describe('equal sharing on a chosen receipt', () => {
       activeReceiptId: 'missing',
     });
 
-    useReceiptStore.getState().splitReceiptEvenly('missing');
+    useReceiptStore.getState().updateItems('missing', assignEveryItemEqually);
 
     expect(useReceiptStore.getState().receipts).toEqual([receipt]);
   });

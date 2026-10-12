@@ -1,6 +1,5 @@
 import { getEffectiveRate } from '@features/split-workspace/logic/exchangeRates';
 import { useState } from 'react';
-import { useShallow } from 'zustand/shallow';
 import { BASE_CURRENCY } from '@shared/constants';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
@@ -20,11 +19,7 @@ interface Props {
 }
 
 export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride }: Props) {
-  const { setReceiptExchangeRateOverride } = useReceiptStore(
-    useShallow((s) => ({
-      setReceiptExchangeRateOverride: s.setReceiptExchangeRateOverride,
-    })),
-  );
+  const patchReceipt = useReceiptStore((s) => s.patchReceipt);
   const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
   const [isFlipped, setIsFlipped] = useState(false);
   const [editingField, setEditingField] = useState<RateDirection | null>(null);
@@ -53,13 +48,13 @@ export function ExchangeRateDisplay({ receiptId, currency, exchangeRateOverride 
   const commitEdit = () => {
     const forwardRate = parseRateInput(inputValue, editingField);
     if (forwardRate !== null) {
-      setReceiptExchangeRateOverride(receiptId, forwardRate);
+      patchReceipt(receiptId, { exchangeRateOverride: forwardRate });
     }
     setEditingField(null);
   };
 
   const resetToAuto = () => {
-    setReceiptExchangeRateOverride(receiptId, null);
+    patchReceipt(receiptId, { exchangeRateOverride: null });
     setEditingField(null);
   };
 

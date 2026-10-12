@@ -1,5 +1,12 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  makeItem,
+  makeReceipt,
+  resetAllStores,
+  seedStore,
+} from '../../../../../tests/integration/testHelpers';
+import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { ReceiptStep } from './ReceiptStep';
 
 vi.mock('./ReceiptImportActions', () => ({
@@ -26,15 +33,6 @@ vi.mock('@features/split-workspace/components/shared/ExchangeRateDisplay', () =>
   ExchangeRateDisplay: () => <div data-testid="exchange-rate-display" />,
 }));
 
-const disabledChargeState = {
-  enabled: false,
-  mode: 'amount' as const,
-  amountInput: '',
-  percentInput: '',
-  detectedConfidence: null,
-  detectedSource: null,
-};
-
 vi.mock('./useReceiptImport', () => ({
   useReceiptImport: () => ({
     handleReceiptFileChange: vi.fn(),
@@ -42,75 +40,10 @@ vi.mock('./useReceiptImport', () => ({
   }),
 }));
 
-vi.mock('./useReceiptStepModel', () => ({
-  useReceiptStepModel: () => ({
-    receipts: [
-      {
-        id: 'r1',
-        name: 'Receipt 1',
-        items: [],
-        discount: disabledChargeState,
-        serviceCharge: disabledChargeState,
-        gst: disabledChargeState,
-        receiptTotalInput: '',
-        currency: 'SGD',
-        exchangeRateOverride: null,
-        receiptFile: null,
-      },
-    ],
-    activeReceiptId: 'r1',
-    activeReceipt: {
-      id: 'r1',
-      name: 'Receipt 1',
-      items: [],
-      discount: disabledChargeState,
-      serviceCharge: disabledChargeState,
-      gst: disabledChargeState,
-      receiptTotalInput: '',
-      currency: 'SGD',
-      exchangeRateOverride: null,
-      receiptFile: null,
-    },
-    items: [],
-    discount: disabledChargeState,
-    serviceCharge: disabledChargeState,
-    gst: disabledChargeState,
-    receiptTotalInput: '',
-    activeCurrency: 'SGD',
-    hasItems: false,
-    activeSplit: {
-      lineItemsByPerson: {},
-      subtotalByPersonCents: {},
-      discountByPersonCents: {},
-      serviceByPersonCents: {},
-      gstByPersonCents: {},
-      roundingByPersonCents: {},
-      totalByPersonCents: {},
-      subtotalCents: 0,
-      discountCents: 0,
-      serviceChargeCents: 0,
-      gstCents: 0,
-      roundingCents: 0,
-      grandTotalCents: 0,
-      unassignedItemCount: 0,
-    },
-    reconciliation: {
-      cents: null,
-      applyCorrectiveDiscount: vi.fn(),
-    },
-    addItem: vi.fn(),
-    removeItem: vi.fn(),
-    updateItem: vi.fn(),
-    setDiscount: vi.fn(),
-    setServiceCharge: vi.fn(),
-    setGst: vi.fn(),
-    setReceiptTotalInput: vi.fn(),
-    setActiveReceiptId: vi.fn(),
-    removeReceipt: vi.fn(),
-    renameReceipt: vi.fn(),
-    setReceiptCurrency: vi.fn(),
-  }),
-}));
+beforeEach(() => {
+  resetAllStores();
+  seedStore([], [makeReceipt({ id: 'r1' })]);
+});
 
 describe('ReceiptStep', () => {
   it('renders the receipt step with key components', () => {
@@ -125,6 +58,37 @@ describe('ReceiptStep', () => {
     render(<ReceiptStep onAddReceipt={vi.fn()} />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('adds a first item to a receipt that has none', () => {
+    render(<ReceiptStep onAddReceipt={vi.fn()} />);
+    expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('receipt-add-item-btn'));
+
+    expect(useReceiptStore.getState().receipts[0].items).toHaveLength(1);
+    expect(screen.getAllByTestId('line-item-card')).toHaveLength(1);
+  });
+
+  it('shows the receipt on the selected tab, and its items', () => {
+    seedStore(
+      [],
+      [
+        makeReceipt({ id: 'r1', name: 'Lunch', items: [makeItem({ id: 'a' })] }),
+        makeReceipt({
+          id: 'r2',
+          name: 'Dinner',
+          items: [makeItem({ id: 'b' }), makeItem({ id: 'c' })],
+        }),
+      ],
+    );
+    render(<ReceiptStep onAddReceipt={vi.fn()} />);
+    expect(screen.getAllByTestId('line-item-card')).toHaveLength(1);
+
+    act(() => useReceiptStore.getState().setActiveReceiptId('r2'));
+
+    expect(screen.getAllByTestId('line-item-card')).toHaveLength(2);
+    expect(screen.getByText('2 items')).toBeInTheDocument();
   });
 
   it('renders the receipt_long icon in the card when no file is uploaded', () => {

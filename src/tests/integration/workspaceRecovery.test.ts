@@ -59,7 +59,6 @@ function renderWorkspaceHooks() {
     const wizard = useWizard(
       state.receipts.find((receipt) => receipt.id === state.activeReceiptId)?.items ?? [],
       state.people,
-      state.normalizeItems,
       state.receipts,
     );
     const receiptImport = useReceiptImport({ activeReceiptId: state.activeReceiptId });
@@ -167,10 +166,10 @@ describe('workspace recovery', () => {
     ).toBeNull();
 
     act(() => {
-      useReceiptStore.getState().addPeopleFromInput('Bob');
+      useReceiptStore.getState().addPeople(['Bob']);
       const state = useReceiptStore.getState();
-      const itemId = state.receipts[0].items[0].id;
-      useReceiptStore.getState().updateItem(itemId, (item) => ({
+      const [receipt] = state.receipts;
+      useReceiptStore.getState().updateItem(receipt.id, receipt.items[0].id, (item) => ({
         ...item,
         name: 'Dinner B meal',
         amountInput: '20.00',

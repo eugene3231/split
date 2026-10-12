@@ -6,16 +6,14 @@ import {
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import type { EditableItem, ItemAssignment, Person, Receipt } from '@shared/types';
-import { setPersonOnEveryItem } from '@features/split-workspace/logic/assignmentInteraction';
 import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 import { AssignStep } from './AssignStep';
 
 interface AssignStepStoreMock {
   receipts: Receipt[];
   people: Person[];
-  splitReceiptEvenly: ReturnType<typeof vi.fn>;
-  setPersonOnReceiptItems: ReturnType<typeof vi.fn>;
-  updateReceiptItem: ReturnType<typeof vi.fn>;
+  updateItems: ReturnType<typeof vi.fn>;
+  updateItem: ReturnType<typeof vi.fn>;
 }
 
 let storeMock: AssignStepStoreMock;
@@ -68,18 +66,19 @@ function setStoreMock(receipts: Receipt[]) {
       { id: 'p1', name: 'Alice Tan' },
       { id: 'p2', name: 'Bob' },
     ],
-    splitReceiptEvenly: vi.fn(),
-    setPersonOnReceiptItems: vi.fn((receiptId: string, personId: string, checked: boolean) => {
-      storeMock = {
-        ...storeMock,
-        receipts: storeMock.receipts.map((receipt) =>
-          receipt.id === receiptId
-            ? { ...receipt, items: setPersonOnEveryItem(receipt.items, personId, checked) }
-            : receipt,
-        ),
-      };
-    }),
-    updateReceiptItem: vi.fn(
+    updateItems: vi.fn(
+      (receiptId: string, update: (items: EditableItem[], people: Person[]) => EditableItem[]) => {
+        storeMock = {
+          ...storeMock,
+          receipts: storeMock.receipts.map((receipt) =>
+            receipt.id === receiptId
+              ? { ...receipt, items: update(receipt.items, storeMock.people) }
+              : receipt,
+          ),
+        };
+      },
+    ),
+    updateItem: vi.fn(
       (receiptId: string, itemId: string, updater: (item: EditableItem) => EditableItem) => {
         storeMock = {
           ...storeMock,
@@ -169,7 +168,7 @@ describe('AssignStep', () => {
 
     fireEvent.click(within(screen.getByTestId('claim-item-claimants-shared')).getByText('Bob'));
 
-    expect(storeMock.updateReceiptItem).not.toHaveBeenCalled();
+    expect(storeMock.updateItem).not.toHaveBeenCalled();
     expect(within(screen.getByTestId('claim-item-claimants-shared')).getByText('Bob')).toHaveClass(
       'opacity-100',
     );
@@ -249,7 +248,7 @@ describe('AssignStep', () => {
     fireEvent.keyDown(screen.getByTestId('claim-item-amount-shared-input'), { key: 'Escape' });
     refresh();
 
-    expect(storeMock.updateReceiptItem).not.toHaveBeenCalled();
+    expect(storeMock.updateItem).not.toHaveBeenCalled();
     expect(screen.getByTestId('claim-item-amount-shared')).toHaveTextContent('$6.00');
   });
 

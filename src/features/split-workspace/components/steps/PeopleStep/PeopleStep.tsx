@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
@@ -8,18 +9,23 @@ import { SavedGroups } from './SavedGroups';
 import { SaveGroupForm } from './SaveGroupForm';
 
 export function PeopleStep() {
-  const { people, peopleInput, setPeopleInput, addPeopleFromInput, removePerson, removeAllPeople } =
-    useReceiptStore(
-      useShallow((state) => ({
-        people: state.people,
-        peopleInput: state.peopleInput,
-        setPeopleInput: state.setPeopleInput,
-        addPeopleFromInput: state.addPeopleFromInput,
-        removePerson: state.removePerson,
-        removeAllPeople: state.removeAllPeople,
-      })),
-    );
+  const { people, addPeople, removePerson, removeAllPeople } = useReceiptStore(
+    useShallow((state) => ({
+      people: state.people,
+      addPeople: state.addPeople,
+      removePerson: state.removePerson,
+      removeAllPeople: state.removeAllPeople,
+    })),
+  );
+  const [peopleInput, setPeopleInput] = useState('');
   const { leavingIds, startRemoval, finishRemoval } = usePersonRemoval(removePerson);
+
+  const addTypedPeople = () => {
+    const names = peopleInput.split(/[\n,]+/).filter((name) => name.trim().length > 0);
+    if (names.length === 0) return;
+    addPeople(names);
+    setPeopleInput('');
+  };
 
   return (
     <div className="space-y-5">
@@ -33,7 +39,7 @@ export function PeopleStep() {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            addPeopleFromInput(peopleInput);
+            addTypedPeople();
           }}
           className="flex gap-3"
         >

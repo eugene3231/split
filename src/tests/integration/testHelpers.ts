@@ -104,7 +104,7 @@ export function seedStore(
 
 /** What reloading the page does: the store starts again from what the browser has saved. */
 export function reloadWorkspace() {
-  useReceiptStore.setState({ peopleInput: '', ...loadSavedWorkspace() });
+  useReceiptStore.setState(loadSavedWorkspace());
 }
 
 export function sumValues(record: Record<string, number>): number {

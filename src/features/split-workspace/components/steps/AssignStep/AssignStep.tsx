@@ -19,11 +19,11 @@ interface Props {
 }
 
 export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
-  const { receipts, people, updateReceiptItem } = useReceiptStore(
+  const { receipts, people, updateItem } = useReceiptStore(
     useShallow((state) => ({
       receipts: state.receipts,
       people: state.people,
-      updateReceiptItem: state.updateReceiptItem,
+      updateItem: state.updateItem,
     })),
   );
   const { consolidated } = useReceiptSplit();
@@ -39,7 +39,7 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
   const personDirection = useSlideDirection(view.people.findIndex((person) => person.isActive));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
-    updateReceiptItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
+    updateItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
 
   const { activePerson } = view;
   if (!activePerson) {

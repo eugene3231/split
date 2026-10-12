@@ -14,12 +14,11 @@ import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore
 import { BASE_CURRENCY } from '@shared/constants';
 
 export function useReceiptSplit() {
-  const { people, receipts, setDiscount, setRoundingInput } = useReceiptStore(
+  const { people, receipts, patchReceipt } = useReceiptStore(
     useShallow((state) => ({
       people: state.people,
       receipts: state.receipts,
-      setDiscount: state.setDiscount,
-      setRoundingInput: state.setRoundingInput,
+      patchReceipt: state.patchReceipt,
     })),
   );
   const activeReceipt = useReceiptStore(selectActiveReceipt);
@@ -77,8 +76,8 @@ export function useReceiptSplit() {
       discount: activeReceipt.discount,
       serviceCharge: activeReceipt.serviceCharge,
       gst: activeReceipt.gst,
-      setDiscount,
-      setRoundingInput,
+      setDiscount: (discount) => patchReceipt(activeReceipt.id, { discount }),
+      setRoundingInput: (roundingInput) => patchReceipt(activeReceipt.id, { roundingInput }),
       receiptTotalInput: activeReceipt.receiptTotalInput,
     });
 

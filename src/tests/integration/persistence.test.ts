@@ -10,7 +10,10 @@ import {
   seedStore,
 } from './testHelpers';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
-import { importDraftFromJson } from '@features/split-workspace/logic/draftStorage';
+import {
+  exportDraftToJson,
+  importDraftFromJson,
+} from '@features/split-workspace/logic/draftStorage';
 import { equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 /** What the workspace menu does with a chosen file: parse it, then swap it into the store. */
@@ -51,7 +54,7 @@ describe('Persistence integration', () => {
     });
 
     seedStore([alice, bob], [r1, r2]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
     expect(json).toBeTruthy();
 
     const parsed = JSON.parse(json);
@@ -87,7 +90,7 @@ describe('Persistence integration', () => {
     });
 
     seedStore([alice], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);
@@ -110,7 +113,7 @@ describe('Persistence integration', () => {
     });
 
     seedStore([alice], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);
@@ -132,7 +135,7 @@ describe('Persistence integration', () => {
     });
 
     seedStore([alice], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);
@@ -160,7 +163,7 @@ describe('Persistence integration', () => {
     });
 
     seedStore([alice, bob], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);
@@ -189,7 +192,7 @@ describe('Persistence integration', () => {
     const state = useReceiptStore.getState();
     expect(state.receipts.find((r) => r.id === r1.id)!.items).toHaveLength(0);
 
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);
@@ -212,7 +215,7 @@ describe('Persistence integration', () => {
     });
 
     seedStore([alice, bob], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);
@@ -235,7 +238,7 @@ describe('Persistence integration', () => {
     });
 
     seedStore([alice], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);

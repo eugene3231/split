@@ -14,7 +14,7 @@ import {
 } from '../../../../../tests/integration/testHelpers';
 import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
 import { useReceiptImport } from './useReceiptImport';
-import { equalShares } from '@features/split-workspace/logic/assignment';
+import { NOBODY, equalShares } from '@features/split-workspace/logic/assignment';
 
 vi.mock('@features/receipt-scanner/api/geminiApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@features/receipt-scanner/api/geminiApi')>();
@@ -206,23 +206,36 @@ describe('useReceiptImport', () => {
     [
       'item amount',
       () =>
-        useReceiptStore.getState().updateItem('i1', (item) => ({ ...item, amountInput: '15.00' })),
+        useReceiptStore
+          .getState()
+          .updateItem('r1', 'i1', (item) => ({ ...item, amountInput: '15.00' })),
     ],
     [
       'discount',
       () =>
-        useReceiptStore.getState().setDiscount({
-          ...useReceiptStore.getState().receipts[0].discount,
-          enabled: true,
-          amountInput: '2.00',
-          mode: 'amount',
+        useReceiptStore.getState().patchReceipt('r1', {
+          discount: {
+            ...useReceiptStore.getState().receipts[0].discount,
+            enabled: true,
+            amountInput: '2.00',
+            mode: 'amount',
+          },
         }),
     ],
-    ['receipt total', () => useReceiptStore.getState().setReceiptTotalInput('15.00')],
+    [
+      'receipt total',
+      () => useReceiptStore.getState().patchReceipt('r1', { receiptTotalInput: '15.00' }),
+    ],
     ['receipt name', () => useReceiptStore.getState().renameReceipt('r1', 'Corrected dinner')],
     ['currency', () => useReceiptStore.getState().setReceiptCurrency('r1', 'USD')],
-    ['people', () => useReceiptStore.getState().addPeopleFromInput('Bob')],
-    ['assignments', () => useReceiptStore.getState().normalizeItems()],
+    ['people', () => useReceiptStore.getState().addPeople(['Bob'])],
+    [
+      'assignments',
+      () =>
+        useReceiptStore
+          .getState()
+          .updateItem('r1', 'i1', (item) => ({ ...item, assignment: NOBODY })),
+    ],
   ])('keeps %s edits made while scanning and exposes a retry', async (_name, edit) => {
     seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
     const deferred = Promise.withResolvers<OcrResponse>();

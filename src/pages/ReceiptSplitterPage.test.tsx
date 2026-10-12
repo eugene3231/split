@@ -966,7 +966,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
 
       act(() =>
-        useReceiptStore.getState().updateItem('r1-i1', (item) => ({
+        useReceiptStore.getState().updateItem('r1', 'r1-i1', (item) => ({
           ...item,
           assignment: NOBODY,
         })),

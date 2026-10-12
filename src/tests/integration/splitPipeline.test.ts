@@ -396,7 +396,7 @@ describe('Split pipeline integration', () => {
       const consolidatedAuto = result.current.consolidated.split.grandTotalCents;
 
       act(() => {
-        useReceiptStore.getState().setReceiptExchangeRateOverride(rUsd.id, 1.5);
+        useReceiptStore.getState().patchReceipt(rUsd.id, { exchangeRateOverride: 1.5 });
       });
 
       const consolidatedOverride = result.current.consolidated.split.grandTotalCents;

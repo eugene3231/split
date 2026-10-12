@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
@@ -63,7 +63,6 @@ describe('useWizard', () => {
       useWizard(
         receipts.find((receipt) => receipt.id === activeReceiptId)?.items ?? [],
         people,
-        vi.fn(),
         receipts,
       ),
     );
@@ -105,7 +104,7 @@ describe('useWizard', () => {
 
     const { result } = renderHook(() => {
       const state = useReceiptStore();
-      return useWizard(state.receipts[0].items, state.people, vi.fn(), state.receipts);
+      return useWizard(state.receipts[0].items, state.people, state.receipts);
     });
 
     expect(result.current.canContinue).toBe(true);
@@ -212,7 +211,6 @@ describe('useWizard', () => {
       people,
       receipts: [makeReceipt('r1', ['meal'])],
       activeReceiptId: 'r1',
-      peopleInput: 'Unsubmitted person',
       payerMobile: '91234567',
     });
     useScanStore.getState().startScan('r1');
@@ -222,7 +220,6 @@ describe('useWizard', () => {
       return useWizard(
         state.receipts.find((receipt) => receipt.id === state.activeReceiptId)?.items ?? [],
         state.people,
-        state.normalizeItems,
         state.receipts,
       );
     });
@@ -231,7 +228,6 @@ describe('useWizard', () => {
 
     const state = useReceiptStore.getState();
     expect(state.people).toEqual([]);
-    expect(state.peopleInput).toBe('');
     expect(state.payerMobile).toBe('');
     expect(state.receipts).toHaveLength(1);
     expect(state.receipts[0].id).not.toBe('r1');

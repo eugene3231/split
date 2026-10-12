@@ -27,12 +27,8 @@ import { WIZARD_STEPS, type WizardStep } from '@features/split-workspace/types';
 export function Workspace() {
   useReceiptSplitterController();
 
-  const { people, receipts, normalizeItems } = useReceiptStore(
-    useShallow((state) => ({
-      people: state.people,
-      receipts: state.receipts,
-      normalizeItems: state.normalizeItems,
-    })),
+  const { people, receipts } = useReceiptStore(
+    useShallow((state) => ({ people: state.people, receipts: state.receipts })),
   );
   const activeReceipt = useReceiptStore(selectActiveReceipt);
   const { active, consolidated } = useReceiptSplit();
@@ -50,7 +46,7 @@ export function Workspace() {
     handleAddReceipt,
     handleResetSplit,
     handleLoadWorkspace,
-  } = useWizard(activeReceipt.items, people, normalizeItems, receipts);
+  } = useWizard(activeReceipt.items, people, receipts);
 
   const activePerson = people.find((person) => person.id === activePersonId);
   const stepDirection = useSlideDirection(WIZARD_STEPS.indexOf(activeStep));
