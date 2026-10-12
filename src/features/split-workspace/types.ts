@@ -12,9 +12,3 @@ export interface SessionDraft {
   payerMobile: string;
   savedAt: string;
 }
-
-export interface PersistedOcrSettings {
-  version: 1;
-  geminiModel: string;
-  savedAt: string;
-}

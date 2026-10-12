@@ -1,20 +1,24 @@
+import { z } from 'zod';
 import { LOCAL_STORAGE_SAVED_GROUPS_KEY } from '@features/split-workspace/constants';
-import { isRecord } from '@features/split-workspace/logic/guards';
+import { jsonStorage, lenientArray } from '@features/split-workspace/logic/jsonStorage';
 import { createId } from '@shared/logic/core/id';
 
-export interface SavedGroup {
-  id: string;
-  name: string;
-  names: string[];
-}
+const savedGroupSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  // Blank names are dropped, and a group left with nobody is not a group.
+  names: lenientArray(z.string().refine((name) => name.trim().length > 0)).pipe(
+    z.array(z.string()).min(1),
+  ),
+});
 
-function getBrowserStorage(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
+export type SavedGroup = z.infer<typeof savedGroupSchema>;
+
+const savedGroupsStorage = jsonStorage(
+  'localStorage',
+  LOCAL_STORAGE_SAVED_GROUPS_KEY,
+  lenientArray(savedGroupSchema),
+);
 
 /** Saving under an existing group name replaces that group's names. */
 export function upsertSavedGroup(
@@ -40,38 +44,10 @@ export function namesMissingFromSplit(group: SavedGroup, peopleNames: string[]):
   return group.names.filter((name) => !present.has(name.toLowerCase()));
 }
 
-function normalizeSavedGroup(value: unknown): SavedGroup | null {
-  if (!isRecord(value)) return null;
-  if (typeof value.id !== 'string' || typeof value.name !== 'string') return null;
-  if (!Array.isArray(value.names)) return null;
-
-  const names = value.names.filter(
-    (name): name is string => typeof name === 'string' && name.trim().length > 0,
-  );
-  if (names.length === 0) return null;
-  return { id: value.id, name: value.name, names };
-}
-
 export function loadSavedGroups(): SavedGroup[] {
-  const storage = getBrowserStorage();
-  if (!storage) return [];
-  try {
-    const raw = storage.getItem(LOCAL_STORAGE_SAVED_GROUPS_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.flatMap((value) => normalizeSavedGroup(value) ?? []);
-  } catch {
-    return [];
-  }
+  return savedGroupsStorage.load() ?? [];
 }
 
 export function saveSavedGroups(groups: SavedGroup[]): void {
-  const storage = getBrowserStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(LOCAL_STORAGE_SAVED_GROUPS_KEY, JSON.stringify(groups));
-  } catch {
-    // Ignore storage write failures.
-  }
+  savedGroupsStorage.save(groups);
 }
