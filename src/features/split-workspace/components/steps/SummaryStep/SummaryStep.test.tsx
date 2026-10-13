@@ -199,11 +199,9 @@ describe('SummaryStep', () => {
 
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
-    expect(screen.queryByText('Reconciliation Discrepancy')).toBeNull();
+    expect(screen.queryByText(/Mismatch found/)).toBeNull();
     fireEvent.mouseDown(screen.getByTestId('summary-tab-receipt-1'));
-    expect(screen.getByText(/The sum of individual shares/)).toHaveTextContent(
-      'US$1.00 off from the receipt total.',
-    );
+    expect(screen.getByText('Mismatch found (US$1.00)')).toBeInTheDocument();
   });
 
   it('rounds the foreign receipt rate beside the currency switch like the cards do', () => {
@@ -237,12 +235,12 @@ describe('SummaryStep', () => {
     );
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Corrective Discount' }));
+    fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
     const afterFirstTap = useReceiptStore.getState().receipts;
     expect(afterFirstTap[0].discount).toMatchObject({ mode: 'amount', amountInput: '1.00' });
-    expect(screen.getByText('Reconciliation Discrepancy')).toBeInTheDocument();
+    expect(screen.getByText(/Mismatch found/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Corrective Discount' }));
+    fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
     expect(useReceiptStore.getState().receipts).toBe(afterFirstTap);
   });
 
@@ -268,7 +266,8 @@ describe('SummaryStep', () => {
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add $0.40 as rounding' }));
 
-    expect(screen.queryByText('Reconciliation Discrepancy')).toBeNull();
+    expect(screen.queryByText(/Mismatch found/)).toBeNull();
+    expect(screen.queryByText('Totals match!')).toBeNull();
     expect(screen.getAllByText('Rounding')).toHaveLength(2);
   });
 

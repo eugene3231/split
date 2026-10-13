@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { ReconciliationNotice } from '@features/split-workspace/components/shared/ReconciliationNotice';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
-import { formatCurrencyFromCents, formatExchangeRate } from '@shared/logic/core/money';
+import { formatExchangeRate } from '@shared/logic/core/money';
 import { getShareSupport } from '@features/sharing/logic/shareSplit';
 import { PersonBreakdownCard } from './PersonBreakdownCard';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -38,7 +39,6 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
 
   const model = useSummaryModel({ activeTab, showBaseCurrency, detail });
   const { people, receipts, renameReceipt, view, summaryBreakdown, summaryOverview } = model;
-  const { cents: reconciliationCents, fix } = model.reconciliation;
   const patchReceipt = useReceiptStore((state) => state.patchReceipt);
   const { exportState, text, previewUrl, download, preview, share, closePreview } =
     useSummaryExport({ model, mode });
@@ -75,43 +75,18 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
         </div>
       </div>
 
-      {reconciliationCents !== null && reconciliationCents !== 0 && (
-        <div className="mb-8">
-          <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-error/20 bg-error-container/30 p-6 md:flex-row">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-error-container text-on-error-container">
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  warning
-                </span>
-              </div>
-              <div>
-                <h4 className="font-bold text-on-error-container">Reconciliation Discrepancy</h4>
-                <p className="text-sm text-on-error-container opacity-80">
-                  The sum of individual shares is{' '}
-                  {formatCurrencyFromCents(Math.abs(reconciliationCents), nativeCurrency)} off from
-                  the receipt total.
-                </p>
-              </div>
-            </div>
-            {/* The discount button stays up even when no discount can close the gap (#193). */}
-            <button
-              type="button"
-              data-testid={reconciliationCents > 0 ? 'summary-add-rounding-btn' : undefined}
-              onClick={() => {
-                if (fix && receiptForExport) patchReceipt(receiptForExport.id, fix);
-              }}
-              className="rounded-xl bg-on-error-container px-6 py-2.5 text-sm font-bold whitespace-nowrap text-on-primary transition-opacity hover:opacity-90"
-            >
-              {reconciliationCents > 0
-                ? `Add ${formatCurrencyFromCents(reconciliationCents, nativeCurrency)} as rounding`
-                : 'Apply Corrective Discount'}
-            </button>
+      {/* Only a mismatch is worth a banner here; the receipt step also confirms a match. */}
+      {receiptForExport &&
+        model.reconciliation.cents !== null &&
+        model.reconciliation.cents !== 0 && (
+          <div className="mb-8">
+            <ReconciliationNotice
+              reconciliation={model.reconciliation}
+              currency={receiptForExport.currency}
+              onApplyFix={(fix) => patchReceipt(receiptForExport.id, fix)}
+            />
           </div>
-        </div>
-      )}
+        )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         <div className={cn(isOverview ? 'lg:col-span-12' : 'order-2 lg:order-1 lg:col-span-8')}>
