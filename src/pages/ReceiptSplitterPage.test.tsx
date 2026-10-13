@@ -10,7 +10,7 @@ const { generatePersonBreakdownImageMock } = vi.hoisted(() => ({
   generatePersonBreakdownImageMock: vi.fn(),
 }));
 
-vi.mock('../features/sharing/logic/personBreakdownImage', () => ({
+vi.mock('@features/split-workspace/summary/breakdown/personBreakdownImage', () => ({
   generatePersonBreakdownImage: generatePersonBreakdownImageMock,
 }));
 

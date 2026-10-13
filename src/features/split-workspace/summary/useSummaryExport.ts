@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { generatePersonBreakdownImage } from '@features/sharing/logic/personBreakdownImage';
-import { generateOverviewImage } from '@features/sharing/logic/overviewImage';
+import { generatePersonBreakdownImage } from '@features/split-workspace/summary/breakdown/personBreakdownImage';
+import { generateOverviewImage } from '@features/split-workspace/summary/overview/overviewImage';
 import {
   buildDownloadFilename,
   buildSplitShareText,
   downloadImage,
   shareText,
-} from '@features/sharing/logic/shareSplit';
-import { soleReceipt } from '@features/split-workspace/logic/summaryView';
+} from '@features/split-workspace/summary/shareSplit';
+import { soleReceipt } from '@features/split-workspace/summary/summaryView';
 import type { SummaryModel } from './useSummaryModel';
 import type { SummaryMode } from './SummaryModeToggle';
 

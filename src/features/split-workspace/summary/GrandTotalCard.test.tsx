@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GrandTotalCard } from './GrandTotalCard';
-import { resetAllStores } from '../../../../../tests/integration/testHelpers';
+import { resetAllStores } from '../../../tests/integration/testHelpers';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 
 beforeEach(resetAllStores);

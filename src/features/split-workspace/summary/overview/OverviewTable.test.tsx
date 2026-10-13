@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { OverviewReceiptSection, SummaryOverview } from '@shared/types/summaryOverview';
+import type {
+  OverviewReceiptSection,
+  SummaryOverview,
+} from '@features/split-workspace/summary/overview/types';
 import { OverviewTable } from './OverviewTable';
 
 const alice = { id: 'alice', name: 'Alice Tan' };

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { SummaryDetail } from '@shared/types/summaryBreakdown';
+import type { SummaryDetail } from '@features/split-workspace/summary/breakdown/types';
 import { ItemListIcon } from './ItemListIcon';
 import { PillToggle } from './PillToggle';
 

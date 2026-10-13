@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { deriveSplits } from '@features/split-workspace/logic/split/deriveSplits';
 import type { NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
 import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
-import type { OverviewReceiptSection, OverviewRow } from '@shared/types/summaryOverview';
-import { resolveSummaryBreakdown } from './summaryBreakdown';
+import type {
+  OverviewReceiptSection,
+  OverviewRow,
+} from '@features/split-workspace/summary/overview/types';
+import { resolveSummaryBreakdown } from '@features/split-workspace/summary/breakdown/summaryBreakdown';
 import { resolveSummaryOverview } from './summaryOverview';
-import { resolveSummaryView } from './summaryView';
+import { resolveSummaryView } from '@features/split-workspace/summary/summaryView';
 import { equalShares } from '@features/split-workspace/logic/assignment';
 
 const offCharge: ChargeState = {

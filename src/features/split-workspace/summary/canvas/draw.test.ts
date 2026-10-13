@@ -5,7 +5,7 @@ import {
   ellipsizeText,
   formatGeneratedAt,
   wrapText,
-} from '@features/sharing/logic/canvas/draw';
+} from '@features/split-workspace/summary/canvas/draw';
 
 function makeContext(charWidth: number): CanvasRenderingContext2D {
   return {

@@ -7,21 +7,21 @@ import type {
   PersonBreakdownBody,
   ReceiptBreakdownSection,
   ReceiptBreakdownTotal,
-} from '@shared/types/summaryBreakdown';
+} from '@features/split-workspace/summary/breakdown/types';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import {
   formatChargeAmount,
   formatConversionLines,
   formatItemAmount,
-} from '@features/sharing/logic/breakdownFormat';
-import { buildDownloadFilename } from '@features/sharing/logic/shareSplit';
+} from '@features/split-workspace/summary/breakdown/breakdownFormat';
+import { buildDownloadFilename } from '@features/split-workspace/summary/shareSplit';
 import { cn } from '@shared/utils/cn';
 
 interface Props {
   breakdown: PersonBreakdown;
 }
 
-// `features/sharing/logic/personBreakdownImage.ts` draws the same breakdown for the PNG export.
+// `personBreakdownImage.ts`, beside this file, draws the same breakdown for the PNG export.
 // Where the two look different on purpose, a comment at the spot says so and
 // docs/EXPORT-PARITY.md lists it.
 export function PersonBreakdownCard({ breakdown }: Props) {

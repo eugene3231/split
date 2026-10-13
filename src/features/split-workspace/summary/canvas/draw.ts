@@ -1,5 +1,5 @@
 import { personColor } from '@shared/utils/personColors';
-import { FONT, INK, MUTED } from '@features/sharing/logic/canvas/theme';
+import { FONT, INK, MUTED } from '@features/split-workspace/summary/canvas/theme';
 
 export function ellipsizeText(
   context: CanvasRenderingContext2D,

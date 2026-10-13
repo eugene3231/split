@@ -4,7 +4,7 @@ import type {
   BreakdownConversion,
   BreakdownExchangeRate,
   BreakdownItemRow,
-} from '@shared/types/summaryBreakdown';
+} from '@features/split-workspace/summary/breakdown/types';
 
 // The wording both renderers of a person's card print, so the screen and the image agree on it.
 

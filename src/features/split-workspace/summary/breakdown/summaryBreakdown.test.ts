@@ -4,16 +4,16 @@ import type {
   BreakdownRow,
   PersonBreakdown,
   ReceiptBreakdownSection,
-} from '@shared/types/summaryBreakdown';
+} from '@features/split-workspace/summary/breakdown/types';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
 import {
   resolveSummaryView,
   type ReceiptView,
   type SummaryView,
   type ViewAmounts,
-} from './summaryView';
-import { deriveSplits } from './split/deriveSplits';
-import { makeItem, makeReceipt, makeSplit } from '../../../tests/integration/testHelpers';
+} from '@features/split-workspace/summary/summaryView';
+import { deriveSplits } from '@features/split-workspace/logic/split/deriveSplits';
+import { makeItem, makeReceipt, makeSplit } from '../../../../tests/integration/testHelpers';
 import { equalShares } from '@features/split-workspace/logic/assignment';
 
 function percentCharge(percentInput: string): ChargeState {

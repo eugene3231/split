@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { OverviewRow, SummaryOverview } from '@shared/types/summaryOverview';
+import type {
+  OverviewRow,
+  SummaryOverview,
+} from '@features/split-workspace/summary/overview/types';
 import { measureOverviewImage } from './overviewLayout';
 
 const item: OverviewRow = {

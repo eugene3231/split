@@ -4,7 +4,7 @@ import type {
   BreakdownRow,
   PersonBreakdown,
   PersonBreakdownBody,
-} from '@shared/types/summaryBreakdown';
+} from '@features/split-workspace/summary/breakdown/types';
 import { PersonBreakdownCard } from './PersonBreakdownCard';
 
 function breakdown(body: PersonBreakdownBody): PersonBreakdown {

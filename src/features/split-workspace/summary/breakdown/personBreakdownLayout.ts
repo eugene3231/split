@@ -5,10 +5,13 @@ import type {
   PersonBreakdownBody,
   ReceiptBreakdownSection,
   ReceiptBreakdownTotal,
-} from '@shared/types/summaryBreakdown';
-import { formatConversionLines, formatItemAmount } from '@features/sharing/logic/breakdownFormat';
-import { wrapText } from '@features/sharing/logic/canvas/draw';
-import { FONT } from '@features/sharing/logic/canvas/theme';
+} from '@features/split-workspace/summary/breakdown/types';
+import {
+  formatConversionLines,
+  formatItemAmount,
+} from '@features/split-workspace/summary/breakdown/breakdownFormat';
+import { wrapText } from '@features/split-workspace/summary/canvas/draw';
+import { FONT } from '@features/split-workspace/summary/canvas/theme';
 
 export const COLUMN_WIDTH = 760;
 export const CARD_PAD = 28;

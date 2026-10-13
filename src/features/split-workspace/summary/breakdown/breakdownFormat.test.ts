@@ -3,8 +3,8 @@ import {
   formatChargeAmount,
   formatConversionLines,
   formatItemAmount,
-} from '@features/sharing/logic/breakdownFormat';
-import type { BreakdownConversion } from '@shared/types/summaryBreakdown';
+} from '@features/split-workspace/summary/breakdown/breakdownFormat';
+import type { BreakdownConversion } from '@features/split-workspace/summary/breakdown/types';
 
 describe('currency conversion copy', () => {
   const conversion: BreakdownConversion = {

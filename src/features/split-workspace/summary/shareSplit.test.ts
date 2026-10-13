@@ -5,7 +5,7 @@ import {
   copyShareText,
   getShareSupport,
   shareText,
-} from '@features/sharing/logic/shareSplit';
+} from '@features/split-workspace/summary/shareSplit';
 import { makeSplit } from '../../../tests/integration/testHelpers';
 
 describe('buildDownloadFilename', () => {

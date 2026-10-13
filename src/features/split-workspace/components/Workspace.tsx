@@ -19,7 +19,7 @@ import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatu
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
-import { SummaryStep } from '@features/split-workspace/components/steps/SummaryStep/SummaryStep';
+import { SummaryStep } from '@features/split-workspace/summary/SummaryStep';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import type { Person } from '@shared/types';

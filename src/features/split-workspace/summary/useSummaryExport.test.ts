@@ -1,25 +1,25 @@
 import { act, renderHook } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { generatePersonBreakdownImage } from '@features/sharing/logic/personBreakdownImage';
-import { generateOverviewImage } from '@features/sharing/logic/overviewImage';
+import { generatePersonBreakdownImage } from '@features/split-workspace/summary/breakdown/personBreakdownImage';
+import { generateOverviewImage } from '@features/split-workspace/summary/overview/overviewImage';
 import {
   makeItem,
   makePerson,
   makeReceipt,
   resetAllStores,
   seedStore,
-} from '../../../../../tests/integration/testHelpers';
+} from '../../../tests/integration/testHelpers';
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
 import type { SummaryMode } from './SummaryModeToggle';
 import { equalShares } from '@features/split-workspace/logic/assignment';
 
-vi.mock('@features/sharing/logic/personBreakdownImage', () => ({
+vi.mock('@features/split-workspace/summary/breakdown/personBreakdownImage', () => ({
   generatePersonBreakdownImage: vi.fn(),
 }));
 
-vi.mock('@features/sharing/logic/overviewImage', () => ({
+vi.mock('@features/split-workspace/summary/overview/overviewImage', () => ({
   generateOverviewImage: vi.fn(),
 }));
 

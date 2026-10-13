@@ -6,14 +6,14 @@ import type {
   PersonBreakdown,
   ReceiptBreakdownTotal,
   SummaryBreakdown,
-} from '@shared/types/summaryBreakdown';
+} from '@features/split-workspace/summary/breakdown/types';
 import { loadImage } from '@shared/utils/loadImage';
 import {
   formatChargeAmount,
   formatConversionAmount,
   formatItemAmount,
   formatRateLine,
-} from '@features/sharing/logic/breakdownFormat';
+} from '@features/split-workspace/summary/breakdown/breakdownFormat';
 import {
   canvasToBlob,
   drawCardShell,
@@ -21,9 +21,9 @@ import {
   drawRoundedRect,
   drawTitle,
   ellipsizeText,
-} from '@features/sharing/logic/canvas/draw';
-import { FONT, INK, INSET, MUTED, PAGE } from '@features/sharing/logic/canvas/theme';
-import { chooseGridLayout } from '@features/sharing/logic/gridLayout';
+} from '@features/split-workspace/summary/canvas/draw';
+import { FONT, INK, INSET, MUTED, PAGE } from '@features/split-workspace/summary/canvas/theme';
+import { chooseGridLayout } from '@features/split-workspace/summary/breakdown/gridLayout';
 import {
   CARD_PAD,
   COLUMN_WIDTH,
@@ -39,7 +39,7 @@ import {
   type BodyLayout,
   type CardLayout,
   type SectionLayout,
-} from '@features/sharing/logic/personBreakdownLayout';
+} from '@features/split-workspace/summary/breakdown/personBreakdownLayout';
 
 interface GeneratePersonBreakdownImageOptions {
   summaryBreakdown: SummaryBreakdown;

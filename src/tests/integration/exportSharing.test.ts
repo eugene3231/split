@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import { buildSplitShareText, shareText, copyShareText } from '@features/sharing/logic/shareSplit';
+import {
+  buildSplitShareText,
+  shareText,
+  copyShareText,
+} from '@features/split-workspace/summary/shareSplit';
 import {
   percentCharge,
   resetAllStores,

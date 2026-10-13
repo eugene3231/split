@@ -2,13 +2,13 @@ import { CHARGE_KINDS } from '@shared/types';
 import type { Person } from '@shared/types';
 import { resolveChargeLabel } from '@features/split-workspace/logic/chargeLabels';
 import { CHARGE_SIGN, centsByPerson } from '@features/split-workspace/logic/split/amounts';
-import type { ReceiptView, SummaryView } from '@features/split-workspace/logic/summaryView';
+import type { ReceiptView, SummaryView } from '@features/split-workspace/summary/summaryView';
 import type {
   OverviewChargeRow,
   OverviewItemRow,
   OverviewSectionTotalRow,
   SummaryOverview,
-} from '@shared/types/summaryOverview';
+} from '@features/split-workspace/summary/overview/types';
 
 export interface ResolveSummaryOverviewInput {
   people: Person[];

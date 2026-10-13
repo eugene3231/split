@@ -13,7 +13,7 @@ import type {
   OverviewRow,
   OverviewSectionTotalRow,
   SummaryOverview,
-} from '@shared/types/summaryOverview';
+} from '@features/split-workspace/summary/overview/types';
 import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
@@ -26,7 +26,7 @@ const ITEM_COLUMN = 'w-32 sm:w-56';
 const TABLE_WIDTH =
   'w-full min-w-[calc(8rem+var(--people)*5rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)]';
 
-// `features/sharing/logic/overviewImage.ts` draws the same table for the PNG export.
+// `overviewImage.ts`, beside this file, draws the same table for the PNG export.
 export function OverviewTable({ overview }: Props) {
   const { people, sections } = overview;
   const headerRef = useRef<HTMLDivElement>(null);

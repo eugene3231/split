@@ -9,7 +9,7 @@ import {
   makeReceipt,
   resetAllStores,
   seedStore,
-} from '../../../../../tests/integration/testHelpers';
+} from '../../../tests/integration/testHelpers';
 import { equalShares } from '@features/split-workspace/logic/assignment';
 import type { CurrencyCode } from '@shared/constants';
 

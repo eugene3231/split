@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { Person } from '@shared/types';
-import type { SummaryDetail } from '@shared/types/summaryBreakdown';
+import type { SummaryDetail } from '@features/split-workspace/summary/breakdown/types';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { generatePaynowQrDataUrls, normalizeMobile } from '@features/payments';
-import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
-import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
-import { resolveSummaryView, soleReceipt } from '@features/split-workspace/logic/summaryView';
+import { resolveSummaryBreakdown } from '@features/split-workspace/summary/breakdown/summaryBreakdown';
+import { resolveSummaryOverview } from '@features/split-workspace/summary/overview/summaryOverview';
+import { resolveSummaryView, soleReceipt } from '@features/split-workspace/summary/summaryView';
 import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { centsByPerson } from '@features/split-workspace/logic/split/amounts';
 import {

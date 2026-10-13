@@ -1,6 +1,9 @@
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { personColor } from '@shared/utils/personColors';
-import type { OverviewRow, SummaryOverview } from '@shared/types/summaryOverview';
+import type {
+  OverviewRow,
+  SummaryOverview,
+} from '@features/split-workspace/summary/overview/types';
 import {
   canvasToBlob,
   drawCardShell,
@@ -8,8 +11,8 @@ import {
   drawRoundedRect,
   drawTitle,
   ellipsizeText,
-} from '@features/sharing/logic/canvas/draw';
-import { FONT, INK, INSET, MUTED, PAGE } from '@features/sharing/logic/canvas/theme';
+} from '@features/split-workspace/summary/canvas/draw';
+import { FONT, INK, INSET, MUTED, PAGE } from '@features/split-workspace/summary/canvas/theme';
 import {
   CARD_PAD_X,
   FOOTER_H,
@@ -21,7 +24,7 @@ import {
   TITLE_AFTER_GAP,
   TITLE_H,
   measureOverviewImage,
-} from '@features/sharing/logic/overviewLayout';
+} from '@features/split-workspace/summary/overview/overviewLayout';
 import type { CurrencyCode } from '@shared/constants';
 
 const DIVIDER = 'rgba(202,196,208,0.40)';

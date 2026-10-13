@@ -4,7 +4,7 @@ import type {
   PersonBreakdown,
   PersonBreakdownBody,
   ReceiptBreakdownSection,
-} from '@shared/types/summaryBreakdown';
+} from '@features/split-workspace/summary/breakdown/types';
 import { layoutCard } from './personBreakdownLayout';
 
 /** Every character is 10px wide, so a label's width is easy to reason about. */

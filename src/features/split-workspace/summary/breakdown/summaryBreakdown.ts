@@ -10,7 +10,7 @@ import type {
   ReceiptView,
   SummaryView,
   ViewAmounts,
-} from '@features/split-workspace/logic/summaryView';
+} from '@features/split-workspace/summary/summaryView';
 
 import type {
   BreakdownChargeRow,
@@ -20,7 +20,7 @@ import type {
   ReceiptBreakdownSection,
   SummaryBreakdown,
   SummaryDetail,
-} from '@shared/types/summaryBreakdown';
+} from '@features/split-workspace/summary/breakdown/types';
 
 const NO_ITEMS = 'No items assigned.';
 

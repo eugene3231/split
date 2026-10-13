@@ -1,4 +1,7 @@
-import type { OverviewRow, SummaryOverview } from '@shared/types/summaryOverview';
+import type {
+  OverviewRow,
+  SummaryOverview,
+} from '@features/split-workspace/summary/overview/types';
 
 export const PAD = 56;
 export const TITLE_H = 76;
