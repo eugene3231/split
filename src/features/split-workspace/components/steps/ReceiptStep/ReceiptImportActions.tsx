@@ -24,7 +24,6 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
       const ss = getScanState(s.scanStateByReceipt, activeReceiptId);
       return {
         isScanning: ss.isScanning,
-        scanStatus: ss.scanStatus,
         scanError: ss.scanError,
         loadingMessage: ss.loadingMessage,
       };
@@ -185,9 +184,6 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
           <p className="text-xs text-on-surface-variant">
             Existing items and charges are replaced only after a successful scan.
           </p>
-          {scan.scanStatus && !scan.isScanning && (
-            <p className="text-xs font-medium text-secondary">{scan.scanStatus}</p>
-          )}
           {scan.scanError && <p className="text-xs font-medium text-error">{scan.scanError}</p>}
         </div>
       )}

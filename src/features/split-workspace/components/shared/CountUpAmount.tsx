@@ -1,12 +1,13 @@
 import { useLayoutEffect, useRef } from 'react';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { prefersMotion } from './motion';
+import type { CurrencyCode } from '@shared/constants';
 
 const DURATION_MS = 400;
 
 interface Props {
   cents: number;
-  currency: string;
+  currency: CurrencyCode;
   className?: string;
 }
 

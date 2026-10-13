@@ -1,4 +1,5 @@
 import type { EditableItem, Person } from '@shared/types';
+import { isItemAssigned } from '@features/split-workspace/logic/assignment';
 import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import type { WizardStep } from '@features/split-workspace/types';
 
@@ -16,15 +17,6 @@ export function getAssignedItemsCount(items: EditableItem[], people: Person[]): 
   return items.filter(
     (item) => resolveDiscountedAmountCents(item) !== null && isItemAssigned(item, validPeople),
   ).length;
-}
-
-export function isItemAssigned(item: EditableItem, validPeople: Set<string>): boolean {
-  if (item.assignment.mode !== 'equal') {
-    return false;
-  }
-
-  const selected = item.assignment.personIds.filter((personId) => validPeople.has(personId));
-  return selected.length > 0 && !item.assignment.unassignedWeight;
 }
 
 export function isStepValid(

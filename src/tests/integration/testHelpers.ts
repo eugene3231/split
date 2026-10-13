@@ -1,9 +1,19 @@
-import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
+import type {
+  ChargeState,
+  EditableItem,
+  Person,
+  Receipt,
+  SplitLine,
+  SplitResult,
+} from '@shared/types';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { loadSavedWorkspace, useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { isNonEmpty } from '@features/split-workspace/logic/nonEmpty';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
+import { NOBODY } from '@features/split-workspace/logic/assignment';
+import { sumAmounts } from '@features/split-workspace/logic/split/amounts';
 
 export const disabledCharge: ChargeState = {
   enabled: false,
@@ -49,11 +59,7 @@ export function makeItem(overrides: Partial<EditableItem> & { id?: string }): Ed
     name: overrides.name ?? 'Item',
     amountInput: overrides.amountInput ?? '10.00',
     discountPercentInput: overrides.discountPercentInput ?? '',
-    assignment: overrides.assignment ?? {
-      mode: 'single',
-      personId: '',
-      personIds: [],
-    },
+    assignment: overrides.assignment ?? NOBODY,
   };
 }
 
@@ -66,21 +72,49 @@ export function makeReceipt(overrides: Partial<Receipt> & { id?: string }): Rece
     serviceCharge: overrides.serviceCharge ?? { ...disabledCharge },
     gst: overrides.gst ?? { ...disabledCharge },
     receiptTotalInput: overrides.receiptTotalInput ?? '',
-    roundingInput: '',
+    roundingInput: overrides.roundingInput ?? '',
     currency: overrides.currency ?? 'SGD',
     exchangeRateOverride: overrides.exchangeRateOverride ?? null,
   };
 }
 
+interface PersonSplitInput {
+  subtotalCents?: number;
+  discount?: number;
+  service?: number;
+  gst?: number;
+  rounding?: number;
+  /** Left out, it is the subtotal less the discount plus the other charges. */
+  totalCents?: number;
+  lines?: SplitLine[];
+}
+
+/** A split written out by hand, one entry per person. The receipt totals are their sum. */
+export function makeSplit(people: Record<string, PersonSplitInput>): SplitResult {
+  const byPerson = Object.fromEntries(
+    Object.entries(people).map(([personId, person]) => {
+      const subtotalCents = person.subtotalCents ?? 0;
+      const chargeCents = {
+        discount: person.discount ?? 0,
+        service: person.service ?? 0,
+        gst: person.gst ?? 0,
+        rounding: person.rounding ?? 0,
+      };
+      const totalCents =
+        person.totalCents ??
+        subtotalCents -
+          chargeCents.discount +
+          chargeCents.service +
+          chargeCents.gst +
+          chargeCents.rounding;
+      return [personId, { subtotalCents, chargeCents, totalCents, lines: person.lines ?? [] }];
+    }),
+  );
+  return { totals: sumAmounts(Object.values(byPerson)), byPerson };
+}
+
 export function resetAllStores() {
-  useReceiptStore.setState({
-    peopleInput: '',
-    initialized: false,
-    people: [],
-    receipts: [],
-    activeReceiptId: '',
-    payerMobile: '',
-  });
+  useReceiptStore.getState().resetSplit();
   useCurrencyStore.setState({
     exchangeRates: { SGD: 1 },
     exchangeRatesLastFetched: null,
@@ -88,7 +122,6 @@ export function resetAllStores() {
   useScanStore.setState({ scanStateByReceipt: {} });
   useGeminiStore.setState({
     geminiApiKeyInput: '',
-    rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
     showApiKeyModal: false,
   });
@@ -100,16 +133,21 @@ export function seedStore(
   receipts: Receipt[],
   options?: { activeReceiptId?: string; exchangeRates?: Record<string, number> },
 ) {
+  if (!isNonEmpty(receipts)) throw new Error('A workspace needs at least one receipt');
   useReceiptStore.setState({
-    initialized: true,
     people,
     receipts,
-    activeReceiptId: options?.activeReceiptId ?? receipts[0]?.id ?? '',
+    activeReceiptId: options?.activeReceiptId ?? receipts[0].id,
     payerMobile: '',
   });
   if (options?.exchangeRates) {
     useCurrencyStore.setState({ exchangeRates: options.exchangeRates });
   }
+}
+
+/** What reloading the page does: the store starts again from what the browser has saved. */
+export function reloadWorkspace() {
+  useReceiptStore.setState(loadSavedWorkspace());
 }
 
 export function sumValues(record: Record<string, number>): number {

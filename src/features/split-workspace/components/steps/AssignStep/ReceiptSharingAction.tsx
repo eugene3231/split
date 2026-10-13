@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import { canSplitEvenly, hasReceiptSelections } from '@features/split-workspace/logic/evenSplit';
+import {
+  assignEveryItemEqually,
+  canSplitEvenly,
+  hasReceiptSelections,
+} from '@features/split-workspace/logic/evenSplit';
 import { ConfirmDialog } from '@features/split-workspace/components/shared/ConfirmDialog';
 
 interface Props {
@@ -9,18 +13,18 @@ interface Props {
 }
 
 export function ReceiptSharingAction({ receiptId }: Props) {
-  const { receipt, people, splitReceiptEvenly } = useReceiptStore(
+  const { receipt, people, updateItems } = useReceiptStore(
     useShallow((state) => ({
       receipt: state.receipts.find((entry) => entry.id === receiptId),
       people: state.people,
-      splitReceiptEvenly: state.splitReceiptEvenly,
+      updateItems: state.updateItems,
     })),
   );
   const [confirming, setConfirming] = useState(false);
   if (!receipt) return null;
 
   const splitEvenly = () => {
-    splitReceiptEvenly(receiptId);
+    updateItems(receiptId, assignEveryItemEqually);
     setConfirming(false);
   };
 

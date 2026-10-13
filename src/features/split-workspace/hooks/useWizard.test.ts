@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
@@ -14,6 +14,7 @@ import {
 } from '@features/split-workspace/constants';
 import { resolveWizardStep } from '../logic/wizardState';
 import { useWizard } from './useWizard';
+import { NOBODY, equalShares } from '@features/split-workspace/logic/assignment';
 
 const people: Person[] = [
   { id: 'p1', name: 'Alice' },
@@ -26,11 +27,7 @@ function makeItem(id: string): EditableItem {
     name: `Item ${id}`,
     amountInput: '10.00',
     discountPercentInput: '',
-    assignment: {
-      mode: 'equal',
-      personId: '',
-      personIds: ['p1', 'p2'],
-    },
+    assignment: equalShares(['p1', 'p2']),
   };
 }
 
@@ -54,18 +51,10 @@ describe('useWizard', () => {
     window.localStorage.clear();
     useGeminiStore.setState({
       geminiApiKeyInput: 'test-key',
-      rememberGeminiApiKey: false,
       geminiModel: DEFAULT_GEMINI_MODEL,
       showApiKeyModal: false,
     });
-    useReceiptStore.setState({
-      peopleInput: '',
-      initialized: true,
-      people: [],
-      receipts: [],
-      activeReceiptId: '',
-      payerMobile: '',
-    });
+    useReceiptStore.getState().resetSplit();
     useScanStore.setState({ scanStateByReceipt: {} });
   });
 
@@ -74,7 +63,6 @@ describe('useWizard', () => {
       useWizard(
         receipts.find((receipt) => receipt.id === activeReceiptId)?.items ?? [],
         people,
-        vi.fn(),
         receipts,
       ),
     );
@@ -106,14 +94,17 @@ describe('useWizard', () => {
 
   it('splits leftovers on every receipt evenly from the last person, then shows the summary', () => {
     saveWizardState({ step: 'items', activePersonId: 'p2' });
-    const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2', 'i3'])];
-    receipts[0].items[0].assignment.personIds = [];
-    receipts[1].items[1].assignment.personIds = [];
+    const receipts: [Receipt, Receipt] = [
+      makeReceipt('r1', ['i1']),
+      makeReceipt('r2', ['i2', 'i3']),
+    ];
+    receipts[0].items[0].assignment = NOBODY;
+    receipts[1].items[1].assignment = NOBODY;
     useReceiptStore.setState({ people, receipts, activeReceiptId: 'r1' });
 
     const { result } = renderHook(() => {
       const state = useReceiptStore();
-      return useWizard(state.receipts[0].items, state.people, vi.fn(), state.receipts);
+      return useWizard(state.receipts[0].items, state.people, state.receipts);
     });
 
     expect(result.current.canContinue).toBe(true);
@@ -123,8 +114,8 @@ describe('useWizard', () => {
     act(() => result.current.handleNext());
 
     const state = useReceiptStore.getState();
-    expect(state.receipts[0].items[0].assignment.personIds).toEqual(['p1', 'p2']);
-    expect(state.receipts[1].items[1].assignment.personIds).toEqual(['p1', 'p2']);
+    expect(state.receipts[0].items[0].assignment).toEqual(equalShares(['p1', 'p2']));
+    expect(state.receipts[1].items[1].assignment).toEqual(equalShares(['p1', 'p2']));
     expect(result.current.activeStep).toBe('final');
   });
 
@@ -166,7 +157,7 @@ describe('useWizard', () => {
   it('keeps a blank row on another receipt from completing an unassigned purchase', () => {
     saveWizardState({ step: 'items', activePersonId: 'p1' });
     const receipts = [makeReceipt('r1', ['meal']), makeReceipt('r2', ['blank'])];
-    receipts[0].items[0].assignment.personIds = [];
+    receipts[0].items[0].assignment = NOBODY;
     receipts[1].items[0].amountInput = '';
 
     const { result } = renderWizard(receipts);
@@ -179,7 +170,7 @@ describe('useWizard', () => {
   it('evicts a restored summary with an unassigned purchase and an assigned blank row', () => {
     saveWizardState({ step: 'final', activePersonId: 'p1' });
     const receipts = [makeReceipt('r1', ['meal', 'blank'])];
-    receipts[0].items[0].assignment.personIds = [];
+    receipts[0].items[0].assignment = NOBODY;
     receipts[0].items[1].amountInput = '';
 
     const { result } = renderWizard(receipts);
@@ -204,7 +195,7 @@ describe('useWizard', () => {
   it('blocks summary when only the blank row is claimed', () => {
     saveWizardState({ step: 'items', activePersonId: 'p2' });
     const receipt = makeReceipt('r1', ['i1', 'i2']);
-    receipt.items[0].assignment.personIds = [];
+    receipt.items[0].assignment = NOBODY;
     receipt.items[1].amountInput = '';
 
     const { result } = renderWizard([receipt]);
@@ -214,14 +205,12 @@ describe('useWizard', () => {
     expect(result.current.activeStep).toBe('items');
   });
 
-  it('starts an initialized blank split and resets navigation without changing Gemini settings', () => {
+  it('starts a blank split and resets navigation without changing Gemini settings', () => {
     saveWizardState({ step: 'final', activePersonId: 'p2' });
     useReceiptStore.setState({
-      initialized: true,
       people,
       receipts: [makeReceipt('r1', ['meal'])],
       activeReceiptId: 'r1',
-      peopleInput: 'Unsubmitted person',
       payerMobile: '91234567',
     });
     useScanStore.getState().startScan('r1');
@@ -231,7 +220,6 @@ describe('useWizard', () => {
       return useWizard(
         state.receipts.find((receipt) => receipt.id === state.activeReceiptId)?.items ?? [],
         state.people,
-        state.normalizeItems,
         state.receipts,
       );
     });
@@ -239,9 +227,7 @@ describe('useWizard', () => {
     act(() => result.current.handleResetSplit());
 
     const state = useReceiptStore.getState();
-    expect(state.initialized).toBe(true);
     expect(state.people).toEqual([]);
-    expect(state.peopleInput).toBe('');
     expect(state.payerMobile).toBe('');
     expect(state.receipts).toHaveLength(1);
     expect(state.receipts[0].id).not.toBe('r1');
@@ -260,7 +246,7 @@ describe('useWizard', () => {
 describe('resolveWizardStep', () => {
   it('evicts final when any receipt has an unassigned item, even if the active receipt is valid', () => {
     const receipts = [makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2'])];
-    receipts[1].items[0].assignment.personIds = [];
+    receipts[1].items[0].assignment = NOBODY;
 
     expect(
       resolveWizardStep(

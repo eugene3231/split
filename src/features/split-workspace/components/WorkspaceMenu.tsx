@@ -3,6 +3,7 @@ import { DropdownMenu } from 'radix-ui';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { ConfirmDialog } from '@features/split-workspace/components/shared/ConfirmDialog';
 import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
+import { exportDraftToJson } from '@features/split-workspace/logic/draftStorage';
 import {
   downloadWorkspaceFile,
   hasWorkspaceContent,
@@ -43,7 +44,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
 
   const handleExport = () => {
     closeMenu();
-    downloadWorkspaceFile(useReceiptStore.getState().getExportJson());
+    downloadWorkspaceFile(exportDraftToJson(useReceiptStore.getState()));
   };
 
   const handleImportClick = () => {

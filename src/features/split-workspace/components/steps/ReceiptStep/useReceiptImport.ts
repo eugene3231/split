@@ -8,7 +8,7 @@ interface UseReceiptImportArgs {
 }
 
 export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
-  const handleReceiptFileSelected = useReceiptStore((state) => state.handleReceiptFileSelected);
+  const patchReceipt = useReceiptStore((state) => state.patchReceipt);
   const { geminiApiKeyInput, geminiModel } = useGeminiStore(
     useShallow((state) => ({
       geminiApiKeyInput: state.geminiApiKeyInput,
@@ -17,7 +17,7 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
   );
 
   const handleReceiptFileChange = (file: File | null) => {
-    handleReceiptFileSelected(file);
+    patchReceipt(activeReceiptId, { receiptFile: file });
     useScanStore.getState().clearScanFeedback(activeReceiptId);
   };
 

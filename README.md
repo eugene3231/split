@@ -52,20 +52,19 @@ pnpm dev
 
 3. Open the Vite URL and use the app.
 
-4. In `Scan Receipt Image`:
+4. On the receipt step, choose `Scan Receipt`. The Gemini API key dialog asks for:
 
-- Enter your Gemini API key
-- Select model
-- Optional: enable `Remember API key for this browser session`
+- Your Gemini API key
+- The model to use
 
-## Mock receipt
+## Test splits
 
-Use the `Load Mock Receipt` button in the UI to populate sample items and charges instantly to test out how it works
+Open the three-dot menu in the header and pick one of the `Test splits` to load sample people, items and charges and see how the app works.
 
 ## Notes
 
 - In this setup, Gemini is called directly from the browser.
-- API key is never persisted to localStorage. If enabled, it is stored only in `sessionStorage` for the current browser session.
+- API key is never persisted to localStorage. It is stored only in `sessionStorage`, for the current browser tab session.
 - Currently there is no dedicated backend, future work will include integrating with one to allow persistent API key management per user.
 - OCR extraction is largely correct but users are still able to edit items/amounts before finalizing.
 - Draft fields reset when a new receipt image is uploaded.

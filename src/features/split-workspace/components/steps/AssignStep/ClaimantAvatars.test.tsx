@@ -9,7 +9,6 @@ const person = (id: string, name: string, colorIndex: number): ClaimPerson => ({
   colorIndex,
   firstName: name,
   totalCents: 0,
-  itemCount: 0,
   isActive: false,
 });
 

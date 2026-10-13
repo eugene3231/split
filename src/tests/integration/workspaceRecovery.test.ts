@@ -5,14 +5,21 @@ import { analyzeReceiptWithGemini } from '@features/receipt-scanner/api/geminiAp
 import { getScanState, useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import { useReceiptImport } from '@features/split-workspace/components/steps/ReceiptStep/useReceiptImport';
-import { useDraftPersistence } from '@features/split-workspace/hooks/useDraftPersistence';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { loadPersistedDraft } from '@features/split-workspace/logic/draftStorage';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import { makeItem, makePerson, makeReceipt, resetAllStores, seedStore } from './testHelpers';
+import {
+  makeItem,
+  makePerson,
+  makeReceipt,
+  reloadWorkspace,
+  resetAllStores,
+  seedStore,
+} from './testHelpers';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 vi.mock('@features/receipt-scanner/api/geminiApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@features/receipt-scanner/api/geminiApi')>();
@@ -34,7 +41,7 @@ function seedSavedBill() {
             id: 'meal-a',
             name: 'Dinner A meal',
             amountInput: '5.00',
-            assignment: { mode: 'equal', personId: '', personIds: [alice.id] },
+            assignment: equalShares([alice.id]),
           }),
         ],
         receiptTotalInput: '5.00',
@@ -42,23 +49,21 @@ function seedSavedBill() {
     ],
   );
   useReceiptStore.getState().setPayerMobile('91234567');
-  useGeminiStore.setState({ geminiApiKeyInput: 'saved-key', rememberGeminiApiKey: true });
+  useGeminiStore.setState({ geminiApiKeyInput: 'saved-key' });
   saveWizardState({ step: 'final', activePersonId: '' });
 }
 
 function renderWorkspaceHooks() {
   return renderHook(() => {
     const state = useReceiptStore();
-    useDraftPersistence(state);
     const wizard = useWizard(
       state.receipts.find((receipt) => receipt.id === state.activeReceiptId)?.items ?? [],
       state.people,
-      state.normalizeItems,
       state.receipts,
     );
     const receiptImport = useReceiptImport({ activeReceiptId: state.activeReceiptId });
-    const split = useReceiptSplit();
-    return { wizard, receiptImport, split };
+    const splits = useSplits();
+    return { wizard, receiptImport, splits };
   });
 }
 
@@ -107,8 +112,7 @@ describe('workspace recovery', () => {
       'Connection failed',
     );
     unmount();
-    useReceiptStore.getState().reset();
-    useReceiptStore.getState().initialize();
+    reloadWorkspace();
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].name).toBe('Dinner A');
@@ -145,7 +149,6 @@ describe('workspace recovery', () => {
     expect(loadWizardState()).toEqual({ version: 1, step: 'people', activePersonId: '' });
     expect(useScanStore.getState().scanStateByReceipt).toEqual({});
     expect(useGeminiStore.getState().geminiApiKeyInput).toBe('saved-key');
-    expect(useGeminiStore.getState().rememberGeminiApiKey).toBe(true);
     expect(useGeminiStore.getState().geminiModel).toBe(DEFAULT_GEMINI_MODEL);
 
     await act(async () => {
@@ -163,20 +166,19 @@ describe('workspace recovery', () => {
     ).toBeNull();
 
     act(() => {
-      useReceiptStore.getState().addPeopleFromInput('Bob');
+      useReceiptStore.getState().addPeople(['Bob']);
       const state = useReceiptStore.getState();
-      const itemId = state.receipts[0].items[0].id;
-      useReceiptStore.getState().updateItem(itemId, (item) => ({
+      const [receipt] = state.receipts;
+      useReceiptStore.getState().updateItem(receipt.id, receipt.items[0].id, (item) => ({
         ...item,
         name: 'Dinner B meal',
         amountInput: '20.00',
-        assignment: { mode: 'equal', personId: '', personIds: [state.people[0].id] },
+        assignment: equalShares([state.people[0].id]),
       }));
     });
-    expect(result.current.split.active.split.grandTotalCents).toBe(2398);
+    expect(result.current.splits.receiptSplits[0].split.totals.totalCents).toBe(2398);
     unmount();
-    useReceiptStore.getState().reset();
-    useReceiptStore.getState().initialize();
+    reloadWorkspace();
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts).toHaveLength(1);

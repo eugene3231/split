@@ -1,43 +1,171 @@
-import type { SessionDraft } from '@features/split-workspace/types';
-import { BASE_CURRENCY } from '@shared/constants';
+import { z } from 'zod';
+import type { SessionDraft, WorkspaceState } from '@features/split-workspace/types';
+import { BASE_CURRENCY, CURRENCY_CODES } from '@shared/constants';
 import {
   LOCAL_STORAGE_DRAFT_KEY,
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
-import type {
-  ChargeMode,
-  ChargeState,
-  EditableItem,
-  ItemAssignment,
-  Person,
-  Receipt,
-} from '@shared/types';
-import { createDefaultItem } from '@features/split-workspace/logic/simpleAssignments';
+import type { ChargeState, ItemAssignment, Person, Receipt } from '@shared/types';
+import {
+  createDefaultItem,
+  equalShares,
+  makeAssignment,
+} from '@features/split-workspace/logic/assignment';
+import { jsonStorage, lenientArray, parseJson } from '@features/split-workspace/logic/jsonStorage';
+import { isNonEmpty, mapNonEmpty } from '@features/split-workspace/logic/nonEmpty';
 import { toNullableNumber } from '@shared/logic/core/money';
-import { isRecord } from '@features/split-workspace/logic/guards';
 import { createId } from '@shared/logic/core/id';
-function getBrowserStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
+
+// A draft is forgiving field by field: a bad value falls back to its default, and only a draft
+// with no usable receipt is rejected.
+
+const text = z.string().catch('');
+
+/** Rounded positive weights; any other entry is dropped. */
+const weightsSchema = z
+  .record(z.string(), z.unknown())
+  .transform((weights) =>
+    Object.fromEntries(
+      Object.entries(weights).flatMap(([id, weight]) =>
+        typeof weight === 'number' && Number.isFinite(weight) && weight > 0
+          ? [[id, Math.round(weight)]]
+          : [],
+      ),
+    ),
+  );
+
+const unassignedSchema = z
+  .number()
+  .catch(0)
+  .transform((weight) => (Number.isFinite(weight) && weight > 0 ? Math.round(weight) : 0));
+
+// `shares` has no fallback: it is what tells this shape from the version 2 one below.
+const assignmentSchema = z
+  .object({ shares: weightsSchema, unassignedShare: unassignedSchema })
+  .transform(({ shares, unassignedShare }) => makeAssignment(shares, unassignedShare));
+
+/**
+ * Version 2 listed the people on an item and kept weights beside them, where a missing weight
+ * meant 1. Its `single` mode named one person as a placeholder for "not assigned yet".
+ */
+const legacyAssignmentSchema = z
+  .object({
+    mode: z.literal('equal'),
+    personIds: lenientArray(z.string()),
+    weights: weightsSchema.catch({}),
+    unassignedWeight: unassignedSchema,
+  })
+  .transform(({ personIds, weights, unassignedWeight }) =>
+    makeAssignment(
+      Object.fromEntries(personIds.map((id) => [id, weights[id] ?? 1])),
+      unassignedWeight,
+    ),
+  );
+
+const itemSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .catch(() => createId()),
+  name: text,
+  amountInput: text,
+  discountPercentInput: text,
+  // Null for a version 2 `single` item, or an assignment that cannot be read.
+  assignment: z.union([assignmentSchema, legacyAssignmentSchema]).nullable().catch(null),
+});
+
+function chargeSchema(fallback: ChargeState) {
+  return z
+    .object({
+      enabled: z.boolean().catch(false),
+      mode: z.enum(['amount', 'percent']).catch('percent'),
+      amountInput: text,
+      percentInput: z.string().catch(fallback.percentInput),
+      detectedConfidence: z
+        .unknown()
+        .transform(toNullableNumber)
+        .catch(() => null),
+      detectedSource: z.string().nullable().catch(null),
+    })
+    .catch(() => ({ ...fallback }));
 }
 
-export function exportDraftToJson(state: {
-  people: Person[];
-  receipts: Receipt[];
-  activeReceiptId: string;
-  payerMobile: string;
-}): string {
+const receiptSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .catch(() => createId()),
+  name: z.string().trim().catch(''),
+  items: lenientArray(itemSchema),
+  discount: chargeSchema(defaultDiscountState),
+  serviceCharge: chargeSchema(defaultServiceChargeState),
+  gst: chargeSchema(defaultGstState),
+  receiptTotalInput: text,
+  roundingInput: text,
+  currency: z.enum(CURRENCY_CODES).catch(BASE_CURRENCY),
+  exchangeRateOverride: z.number().positive().nullable().catch(null),
+});
+
+const personSchema = z.object({ id: z.string().min(1), name: z.string().trim().min(1) });
+
+const draftSchema: z.ZodType<SessionDraft> = z
+  .object({
+    version: z.union([z.literal(2), z.literal(3)]),
+    people: lenientArray(personSchema),
+    receipts: z.array(z.unknown()).catch([]),
+    activeReceiptId: text,
+    payerMobile: text,
+    savedAt: z.string().catch(() => new Date().toISOString()),
+  })
+  .transform((draft, context) => {
+    const receipts = draft.receipts.flatMap((value, index) => {
+      const parsed = receiptSchema.safeParse(value);
+      return parsed.success ? [finishReceipt(parsed.data, index, draft.people)] : [];
+    });
+    if (!isNonEmpty(receipts)) {
+      context.addIssue({ code: 'custom', message: 'A draft needs at least one receipt.' });
+      return z.NEVER;
+    }
+
+    return {
+      ...draft,
+      version: 3 as const,
+      receipts,
+      activeReceiptId: receipts.some((receipt) => receipt.id === draft.activeReceiptId)
+        ? draft.activeReceiptId
+        : receipts[0].id,
+    };
+  });
+
+function finishReceipt(
+  receipt: z.infer<typeof receiptSchema>,
+  index: number,
+  people: Person[],
+): Receipt {
+  // An item saved without a readable assignment is shared by everyone, as it always has been.
+  const everyone: ItemAssignment = equalShares(people.map((person) => person.id));
+  const items = receipt.items.map((item) => ({
+    ...item,
+    assignment: item.assignment ?? everyone,
+  }));
+
+  return {
+    ...receipt,
+    name: receipt.name || `Receipt ${index + 1}`,
+    items: items.length > 0 ? items : [createDefaultItem()],
+  };
+}
+
+const draftStorage = jsonStorage('localStorage', LOCAL_STORAGE_DRAFT_KEY, draftSchema);
+
+export function exportDraftToJson(state: WorkspaceState): string {
   const draft: SessionDraft = {
-    version: 2,
+    version: 3,
     people: state.people,
     // A picked receipt photo is a File, which JSON can't carry.
-    receipts: state.receipts.map((receipt) => ({ ...receipt, receiptFile: undefined })),
+    receipts: mapNonEmpty(state.receipts, (receipt) => ({ ...receipt, receiptFile: undefined })),
     activeReceiptId: state.activeReceiptId,
     payerMobile: state.payerMobile,
     savedAt: new Date().toISOString(),
@@ -46,251 +174,13 @@ export function exportDraftToJson(state: {
 }
 
 export function importDraftFromJson(raw: string): SessionDraft | null {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed)) return null;
-
-    if (parsed.version === 2) {
-      return normalizeSessionDraft(parsed);
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
+  return parseJson(raw, draftSchema);
 }
 
 export function savePersistedDraft(draft: SessionDraft): void {
-  const storage = getBrowserStorage();
-  if (!storage) {
-    return;
-  }
-
-  try {
-    storage.setItem(LOCAL_STORAGE_DRAFT_KEY, JSON.stringify(draft));
-  } catch {
-    // Ignore storage write failures.
-  }
+  draftStorage.save(draft);
 }
 
 export function loadPersistedDraft(): SessionDraft | null {
-  const storage = getBrowserStorage();
-  if (!storage) {
-    return null;
-  }
-
-  try {
-    const raw = storage.getItem(LOCAL_STORAGE_DRAFT_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed)) return null;
-
-    if (parsed.version === 2) {
-      return normalizeSessionDraft(parsed);
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-export function clearPersistedDraft(): void {
-  const storage = getBrowserStorage();
-  if (!storage) {
-    return;
-  }
-
-  try {
-    storage.removeItem(LOCAL_STORAGE_DRAFT_KEY);
-  } catch {
-    // Ignore storage remove failures.
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Normalization: v2 SessionDraft
-// ---------------------------------------------------------------------------
-
-function normalizeSessionDraft(parsed: Record<string, unknown>): SessionDraft | null {
-  const people = normalizeDraftPeople(parsed.people);
-  const receipts = normalizeDraftReceipts(parsed.receipts, people);
-  if (receipts.length === 0) return null;
-
-  const activeReceiptId =
-    typeof parsed.activeReceiptId === 'string' &&
-    receipts.some((r) => r.id === parsed.activeReceiptId)
-      ? parsed.activeReceiptId
-      : receipts[0].id;
-
-  return {
-    version: 2,
-    people,
-    receipts,
-    activeReceiptId,
-    payerMobile: typeof parsed.payerMobile === 'string' ? parsed.payerMobile : '',
-    savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : new Date().toISOString(),
-  };
-}
-
-function normalizeDraftReceipts(value: unknown, people: Person[]): Receipt[] {
-  if (!Array.isArray(value)) return [];
-
-  const receipts = value
-    .map((r, index) => normalizeDraftReceipt(r, people, index + 1))
-    .filter((r): r is Receipt => r !== null);
-
-  return receipts;
-}
-
-function normalizeDraftReceipt(
-  value: unknown,
-  people: Person[],
-  fallbackIndex: number,
-): Receipt | null {
-  if (!isRecord(value)) return null;
-
-  const id = typeof value.id === 'string' && value.id ? value.id : createId();
-  const name =
-    typeof value.name === 'string' && value.name.trim()
-      ? value.name.trim()
-      : `Receipt ${fallbackIndex}`;
-  const items = normalizeDraftItems(value.items, people);
-
-  return {
-    id,
-    name,
-    items,
-    discount: normalizeDraftChargeState(value.discount, defaultDiscountState),
-    serviceCharge: normalizeDraftChargeState(value.serviceCharge, defaultServiceChargeState),
-    gst: normalizeDraftChargeState(value.gst, defaultGstState),
-    receiptTotalInput: typeof value.receiptTotalInput === 'string' ? value.receiptTotalInput : '',
-    roundingInput: typeof value.roundingInput === 'string' ? value.roundingInput : '',
-    currency: typeof value.currency === 'string' && value.currency ? value.currency : BASE_CURRENCY,
-    exchangeRateOverride:
-      typeof value.exchangeRateOverride === 'number' && value.exchangeRateOverride > 0
-        ? value.exchangeRateOverride
-        : null,
-  };
-}
-
-function normalizeDraftPeople(value: unknown): Person[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const nextPeople: Person[] = [];
-
-  for (const candidate of value) {
-    if (!isRecord(candidate)) {
-      continue;
-    }
-
-    const id = typeof candidate.id === 'string' ? candidate.id : '';
-    const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
-
-    if (!id || !name) {
-      continue;
-    }
-
-    nextPeople.push({ id, name });
-  }
-
-  return nextPeople;
-}
-
-function normalizeDraftItems(value: unknown, people: Person[]): EditableItem[] {
-  if (!Array.isArray(value)) {
-    return [createDefaultItem()];
-  }
-
-  const nextItems = value
-    .map((item) => normalizeDraftItem(item, people))
-    .filter((item): item is EditableItem => item !== null);
-
-  return nextItems.length > 0 ? nextItems : [createDefaultItem()];
-}
-
-function normalizeDraftItem(value: unknown, people: Person[]): EditableItem | null {
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  const assignment = normalizeDraftAssignment(value.assignment);
-
-  return {
-    id: typeof value.id === 'string' && value.id ? value.id : createId(),
-    name: typeof value.name === 'string' ? value.name : '',
-    amountInput: typeof value.amountInput === 'string' ? value.amountInput : '',
-    discountPercentInput:
-      typeof value.discountPercentInput === 'string' ? value.discountPercentInput : '',
-    assignment: assignment ?? {
-      mode: 'single',
-      personId: people[0]?.id ?? '',
-      personIds: people.map((person) => person.id),
-    },
-  };
-}
-
-function normalizeDraftAssignment(value: unknown): ItemAssignment | null {
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  const mode = value.mode === 'equal' ? 'equal' : 'single';
-  const personId = typeof value.personId === 'string' ? value.personId : '';
-  const personIds = Array.isArray(value.personIds)
-    ? value.personIds.filter((id): id is string => typeof id === 'string')
-    : [];
-  const uniquePersonIds = Array.from(new Set(personIds));
-
-  let weights: Record<string, number> | undefined;
-  if (isRecord(value.weights)) {
-    const parsed: Record<string, number> = {};
-    for (const [k, v] of Object.entries(value.weights)) {
-      if (typeof v === 'number' && v > 0 && Number.isFinite(v)) {
-        parsed[k] = Math.round(v);
-      }
-    }
-    if (Object.keys(parsed).length > 0) {
-      weights = parsed;
-    }
-  }
-
-  const unassignedWeight =
-    typeof value.unassignedWeight === 'number' &&
-    value.unassignedWeight > 0 &&
-    Number.isFinite(value.unassignedWeight)
-      ? Math.round(value.unassignedWeight)
-      : undefined;
-
-  return {
-    mode,
-    personId,
-    personIds: uniquePersonIds,
-    weights,
-    unassignedWeight,
-  };
-}
-
-function normalizeDraftChargeState(value: unknown, fallback: ChargeState): ChargeState {
-  if (!isRecord(value)) {
-    return { ...fallback };
-  }
-
-  const mode: ChargeMode = value.mode === 'amount' ? 'amount' : 'percent';
-  const detectedConfidence = toNullableNumber(value.detectedConfidence);
-
-  return {
-    enabled: value.enabled === true,
-    mode,
-    amountInput: typeof value.amountInput === 'string' ? value.amountInput : '',
-    percentInput:
-      typeof value.percentInput === 'string' ? value.percentInput : fallback.percentInput,
-    detectedConfidence,
-    detectedSource: typeof value.detectedSource === 'string' ? value.detectedSource : null,
-  };
+  return draftStorage.load();
 }

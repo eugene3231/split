@@ -8,6 +8,7 @@ import {
 } from '@shared/logic/core/money';
 import { FormattedNumberInput } from '@features/split-workspace/components/shared/FormattedNumberInput';
 import type { ChargeMode, ChargeState } from '@shared/types';
+import type { CurrencyCode } from '@shared/constants';
 
 const MODE_ITEM_CLASS =
   'rounded-md px-2 py-0.5 text-xs font-extrabold text-on-surface-variant transition-all data-[state=on]:bg-surface-container-lowest data-[state=on]:text-primary data-[state=on]:shadow-sm';
@@ -16,7 +17,7 @@ interface Props {
   label: string;
   value: ChargeState;
   onChange: (next: ChargeState) => void;
-  currency: string;
+  currency: CurrencyCode;
 }
 
 export function ChargeToggle({ label, value, onChange, currency }: Props) {

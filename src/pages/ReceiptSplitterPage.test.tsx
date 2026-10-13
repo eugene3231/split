@@ -6,28 +6,26 @@ import { LOCAL_STORAGE_OCR_SETTINGS_KEY } from '@features/split-workspace/consta
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 
-const { generateReceiptSplitImageLightMock } = vi.hoisted(() => ({
-  generateReceiptSplitImageLightMock: vi.fn(),
+const { generatePersonBreakdownImageMock } = vi.hoisted(() => ({
+  generatePersonBreakdownImageMock: vi.fn(),
 }));
 
-vi.mock('../features/sharing/logic/receiptSplitImageLight', () => ({
-  generateReceiptSplitImageLight: generateReceiptSplitImageLightMock,
+vi.mock('@features/split-workspace/summary/breakdown/personBreakdownImage', () => ({
+  generatePersonBreakdownImage: generatePersonBreakdownImageMock,
 }));
 
 import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage';
+import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
+import { reloadWorkspace } from '../tests/integration/testHelpers';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function resetStore() {
-  useReceiptStore.setState({
-    peopleInput: '',
-    initialized: false,
-  });
+  useReceiptStore.getState().resetSplit();
   useGeminiStore.setState({
     geminiApiKeyInput: 'test-key',
-    rememberGeminiApiKey: false,
     geminiModel: DEFAULT_GEMINI_MODEL,
     showApiKeyModal: false,
   });
@@ -52,7 +50,7 @@ function makeReceipt(overrides: { id: string; items?: object[]; receiptTotalInpu
         name: 'Chicken Rice',
         amountInput: '10.00',
         discountPercentInput: '',
-        assignment: { mode: 'equal', personId: '', personIds: ['p1', 'p2'] },
+        assignment: equalShares(['p1', 'p2']),
       },
     ],
     discount: disabledChargeState,
@@ -62,7 +60,7 @@ function makeReceipt(overrides: { id: string; items?: object[]; receiptTotalInpu
   };
 }
 
-function seedV2Draft(overrides: {
+function seedDraft(overrides: {
   people?: object[];
   receipts?: object[];
   activeReceiptId?: string;
@@ -75,13 +73,14 @@ function seedV2Draft(overrides: {
   window.localStorage.setItem(
     'split:receipt-draft:v1',
     JSON.stringify({
-      version: 2,
+      version: 3,
       people,
       receipts,
       activeReceiptId: overrides.activeReceiptId ?? (receipts[0] as { id: string }).id,
       savedAt: '2026-03-21T00:00:00.000Z',
     }),
   );
+  reloadWorkspace();
 }
 
 function addPeople(names: string) {
@@ -114,8 +113,8 @@ beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   resetStore();
-  generateReceiptSplitImageLightMock.mockReset();
-  generateReceiptSplitImageLightMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }));
+  generatePersonBreakdownImageMock.mockReset();
+  generatePersonBreakdownImageMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }));
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
   Object.defineProperty(URL, 'createObjectURL', {
@@ -197,7 +196,7 @@ describe('ReceiptSplitterPage integration', () => {
 
   describe('Navigation', () => {
     it('progresses through all 4 steps with valid seeded data', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -213,7 +212,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('keeps the credit footer below the wizard nav so it closes the page', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -226,7 +225,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('supports back navigation through all steps', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -250,7 +249,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('slides each step in from the side it was reached from', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       const panelDirection = () =>
@@ -264,7 +263,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('jumps from summary directly back to people through the top nav', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -281,7 +280,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('jumps from summary directly back to receipt through the top nav', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -298,7 +297,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('jumps from receipt directly to assign when receipt data is valid', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -312,7 +311,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('jumps from receipt directly to summary when assignments are complete', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -346,7 +345,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('blocks continue on receipt step until valid items exist', async () => {
-      seedV2Draft({
+      seedDraft({
         receipts: [{ ...makeReceipt({ id: 'r1' }), items: [] }],
       });
       render(<ReceiptSplitterPage />);
@@ -363,7 +362,7 @@ describe('ReceiptSplitterPage integration', () => {
               name: 'Chicken Rice',
               amountInput: '8.50',
               discountPercentInput: '',
-              assignment: { mode: 'equal', personId: '', personIds: [] },
+              assignment: NOBODY,
             },
           ],
         }),
@@ -372,7 +371,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('keeps the summary out of reach while an item is unclaimed', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -388,7 +387,7 @@ describe('ReceiptSplitterPage integration', () => {
 
   describe('Even split', () => {
     it('starts everyone on every item, then opens Items so exceptions can be unticked', async () => {
-      seedV2Draft({
+      seedDraft({
         receipts: [
           makeReceipt({
             id: 'r1',
@@ -398,7 +397,7 @@ describe('ReceiptSplitterPage integration', () => {
                 name: 'Dinner',
                 amountInput: '90.00',
                 discountPercentInput: '',
-                assignment: { mode: 'equal', personId: '', personIds: [] },
+                assignment: NOBODY,
               },
             ],
           }),
@@ -413,14 +412,13 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 
       expectActiveStepNav('items');
-      expect(useReceiptStore.getState().receipts[0].items[0].assignment.personIds).toEqual([
-        'p1',
-        'p2',
-      ]);
+      expect(
+        Object.keys(useReceiptStore.getState().receipts[0].items[0].assignment.shares),
+      ).toEqual(['p1', 'p2']);
     });
 
     it('shares only the active untouched receipt and preserves claims on other receipts', async () => {
-      seedV2Draft({
+      seedDraft({
         receipts: [
           makeReceipt({
             id: 'r1',
@@ -430,12 +428,7 @@ describe('ReceiptSplitterPage integration', () => {
                 name: 'Tea',
                 amountInput: '12',
                 discountPercentInput: '',
-                assignment: {
-                  mode: 'equal',
-                  personId: '',
-                  personIds: ['p1', 'p2'],
-                  weights: { p1: 2, p2: 1 },
-                },
+                assignment: makeAssignment({ p1: 2, p2: 1 }),
               },
             ],
           }),
@@ -447,7 +440,7 @@ describe('ReceiptSplitterPage integration', () => {
                 name: 'Dinner',
                 amountInput: '90',
                 discountPercentInput: '',
-                assignment: { mode: 'equal', personId: '', personIds: [] },
+                assignment: NOBODY,
               },
             ],
           }),
@@ -466,21 +459,16 @@ describe('ReceiptSplitterPage integration', () => {
       );
 
       expectActiveStepNav('items');
-      expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual({
-        mode: 'equal',
-        personId: '',
-        personIds: ['p1', 'p2'],
-        weights: { p1: 2, p2: 1 },
-      });
-      expect(useReceiptStore.getState().receipts[1].items[0].assignment).toEqual({
-        mode: 'equal',
-        personId: '',
-        personIds: ['p1', 'p2'],
-      });
+      expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual(
+        makeAssignment({ p1: 2, p2: 1 }),
+      );
+      expect(useReceiptStore.getState().receipts[1].items[0].assignment).toEqual(
+        equalShares(['p1', 'p2']),
+      );
     });
 
     it('confirms replacement, preserves selections on cancel, and disables after sharing', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
@@ -507,7 +495,7 @@ describe('ReceiptSplitterPage integration', () => {
 
   describe('Receipt step', () => {
     it('shows empty state when all items are removed', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -515,27 +503,21 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByTestId('receipt-empty-state')).not.toBeInTheDocument();
 
       // Remove all items via the store to trigger empty state
-      useReceiptStore.setState((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, items: [] } : r,
-        ),
-      }));
+      const { activeReceiptId, patchReceipt } = useReceiptStore.getState();
+      act(() => patchReceipt(activeReceiptId, { items: [] }));
       await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument());
     });
 
     it('adds an item to the store when the empty state add button is clicked', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
       clickContinue();
 
       // Clear items to trigger empty state
-      useReceiptStore.setState((state) => ({
-        receipts: state.receipts.map((r) =>
-          r.id === state.activeReceiptId ? { ...r, items: [] } : r,
-        ),
-      }));
+      const { activeReceiptId, patchReceipt } = useReceiptStore.getState();
+      act(() => patchReceipt(activeReceiptId, { items: [] }));
       await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument());
 
       fireEvent.click(screen.getByTestId('receipt-add-item-btn'));
@@ -545,7 +527,7 @@ describe('ReceiptSplitterPage integration', () => {
 
   describe('Claim step', () => {
     async function navigateToClaim(receipts?: object[]) {
-      seedV2Draft(receipts ? { receipts } : {});
+      seedDraft(receipts ? { receipts } : {});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue(); // → receipt
@@ -557,7 +539,7 @@ describe('ReceiptSplitterPage integration', () => {
       name: 'Teh Peng',
       amountInput: '2.00',
       discountPercentInput: '',
-      assignment: { mode: 'equal', personId: '', personIds: [] },
+      assignment: NOBODY,
     };
 
     it('shows completion inside the bottom status then restores the owes label', async () => {
@@ -649,7 +631,7 @@ describe('ReceiptSplitterPage integration', () => {
               name: 'Chicken Rice',
               amountInput: '10.00',
               discountPercentInput: '',
-              assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+              assignment: equalShares(['p1']),
             },
             unclaimedItem,
           ],
@@ -662,12 +644,12 @@ describe('ReceiptSplitterPage integration', () => {
 
       expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
       const items = useReceiptStore.getState().receipts[0].items;
-      expect(items[1].assignment.personIds).toEqual(['p1', 'p2']);
-      expect(items[0].assignment.personIds).toEqual(['p1']);
+      expect(items[1].assignment).toEqual(equalShares(['p1', 'p2']));
+      expect(items[0].assignment).toEqual(equalShares(['p1']));
     });
 
     it('shows the full receipt total on the receipt step before anything is claimed', async () => {
-      seedV2Draft({ receipts: [makeReceipt({ id: 'r1', items: [unclaimedItem] })] });
+      seedDraft({ receipts: [makeReceipt({ id: 'r1', items: [unclaimedItem] })] });
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -686,7 +668,7 @@ describe('ReceiptSplitterPage integration', () => {
               name: 'Garlic bread',
               amountInput: '6.00',
               discountPercentInput: '',
-              assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+              assignment: equalShares(['p1']),
             },
           ],
         }),
@@ -707,8 +689,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
       const [item] = useReceiptStore.getState().receipts[0].items;
-      expect(item.assignment.unassignedWeight).toBeUndefined();
-      expect(item.assignment.weights).toEqual({ p1: 3, p2: 1 });
+      expect(item.assignment).toEqual({ shares: { p1: 3, p2: 1 }, unassignedShare: 0 });
     });
 
     it('shows every receipt on one page and counts what is left across them', async () => {
@@ -723,13 +704,13 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(screen.getByTestId('claim-item-toggle-r2-i1'));
 
       const [, r2] = useReceiptStore.getState().receipts;
-      expect(r2.items[0].assignment.personIds).toEqual(['p1']);
+      expect(r2.items[0].assignment).toEqual(equalShares(['p1']));
     });
   });
 
   describe('Summary step', () => {
     async function navigateToFinal() {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue(); // → receipt
@@ -752,7 +733,7 @@ describe('ReceiptSplitterPage integration', () => {
     it('triggers image generation when save image is clicked', async () => {
       await navigateToFinal();
       fireEvent.click(screen.getByTestId('export-save-image-btn'));
-      await waitFor(() => expect(generateReceiptSplitImageLightMock).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(generatePersonBreakdownImageMock).toHaveBeenCalledTimes(1));
     });
 
     it('triggers clipboard write when copy text is clicked', async () => {
@@ -767,7 +748,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('shows receipt tabs when multiple receipts exist', async () => {
-      seedV2Draft({
+      seedDraft({
         receipts: [makeReceipt({ id: 'r1' }), makeReceipt({ id: 'r2' })],
       });
       render(<ReceiptSplitterPage />);
@@ -790,7 +771,7 @@ describe('ReceiptSplitterPage integration', () => {
 
   describe('Reconciliation', () => {
     it('shows the apply discount button when computed total exceeds the receipt total', async () => {
-      seedV2Draft({
+      seedDraft({
         receipts: [
           makeReceipt({
             id: 'r1',
@@ -800,7 +781,7 @@ describe('ReceiptSplitterPage integration', () => {
                 name: 'Pizza',
                 amountInput: '10.00',
                 discountPercentInput: '',
-                assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+                assignment: equalShares(['p1']),
               },
             ],
             receiptTotalInput: '8.00',
@@ -814,7 +795,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('does not show the button when totals match', async () => {
-      seedV2Draft({
+      seedDraft({
         receipts: [
           makeReceipt({
             id: 'r1',
@@ -824,7 +805,7 @@ describe('ReceiptSplitterPage integration', () => {
                 name: 'Pizza',
                 amountInput: '10.00',
                 discountPercentInput: '',
-                assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+                assignment: equalShares(['p1']),
               },
             ],
             receiptTotalInput: '10.00',
@@ -838,7 +819,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('does not show the button when no receipt total is set', async () => {
-      seedV2Draft({
+      seedDraft({
         receipts: [
           makeReceipt({
             id: 'r1',
@@ -848,7 +829,7 @@ describe('ReceiptSplitterPage integration', () => {
                 name: 'Pizza',
                 amountInput: '10.00',
                 discountPercentInput: '',
-                assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+                assignment: equalShares(['p1']),
               },
             ],
             receiptTotalInput: '',
@@ -862,7 +843,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('applying the discount resolves the discrepancy and hides the button', async () => {
-      seedV2Draft({
+      seedDraft({
         receipts: [
           makeReceipt({
             id: 'r1',
@@ -872,7 +853,7 @@ describe('ReceiptSplitterPage integration', () => {
                 name: 'Pizza',
                 amountInput: '10.00',
                 discountPercentInput: '',
-                assignment: { mode: 'equal', personId: '', personIds: ['p1'] },
+                assignment: equalShares(['p1']),
               },
             ],
             receiptTotalInput: '8.00',
@@ -893,7 +874,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('shows the modal when navigating from people to receipt without an API key', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
@@ -901,7 +882,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('skip closes the modal without saving a key', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
@@ -911,7 +892,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('saving a key closes the modal and persists the value in the store', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
@@ -923,7 +904,7 @@ describe('ReceiptSplitterPage integration', () => {
 
     it('shows the current Gemini model and saves model selection changes', async () => {
       useGeminiStore.setState({ geminiApiKeyInput: '', geminiModel: GEMINI_MODELS[1] });
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
@@ -942,7 +923,7 @@ describe('ReceiptSplitterPage integration', () => {
 
     it('does not show the modal when an API key is already set', async () => {
       useGeminiStore.setState({ geminiApiKeyInput: 'existing-key' });
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue();
@@ -952,7 +933,7 @@ describe('ReceiptSplitterPage integration', () => {
 
   describe('Edge cases', () => {
     it('falls back to people step and blocks continue when all people are removed', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -974,7 +955,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('falls back from final to the claim step when assignments become incomplete', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -985,9 +966,9 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
 
       act(() =>
-        useReceiptStore.getState().updateItem('r1-i1', (item) => ({
+        useReceiptStore.getState().updateItem('r1', 'r1-i1', (item) => ({
           ...item,
-          assignment: { ...item.assignment, personIds: [] },
+          assignment: NOBODY,
         })),
       );
 
@@ -1010,7 +991,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('exports the workspace as a dated JSON file', () => {
-      seedV2Draft({});
+      seedDraft({});
       render(<ReceiptSplitterPage />);
 
       fireEvent.keyDown(screen.getByTestId('workspace-menu-btn'), { key: 'Enter' });
@@ -1025,7 +1006,7 @@ describe('ReceiptSplitterPage integration', () => {
 
   describe('Persistence', () => {
     it('does not overwrite localStorage with empty state during StrictMode double-invocation', async () => {
-      seedV2Draft({});
+      seedDraft({});
       render(
         <StrictMode>
           <ReceiptSplitterPage />
@@ -1043,7 +1024,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('restores the wizard step after unmount and remount', async () => {
-      seedV2Draft({});
+      seedDraft({});
       const { unmount } = render(<ReceiptSplitterPage />);
 
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
@@ -1056,6 +1037,7 @@ describe('ReceiptSplitterPage integration', () => {
       });
 
       unmount();
+      reloadWorkspace();
       render(<ReceiptSplitterPage />);
 
       await waitFor(() => {
@@ -1064,7 +1046,7 @@ describe('ReceiptSplitterPage integration', () => {
     });
 
     it('restores item assignments after unmount and remount', async () => {
-      seedV2Draft({});
+      seedDraft({});
       const { unmount } = render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
 
@@ -1081,11 +1063,12 @@ describe('ReceiptSplitterPage integration', () => {
       await waitFor(() => {
         const draft = window.localStorage.getItem('split:receipt-draft:v1');
         const wizard = window.localStorage.getItem('split:simple-wizard-state:v1');
-        expect(draft).toContain('"personIds":["p1"]');
+        expect(draft).toContain('"shares":{"p1":1}');
         expect(wizard).toContain('items');
       });
 
       unmount();
+      reloadWorkspace();
       render(<ReceiptSplitterPage />);
 
       // Restores to Bob on the claim step from localStorage — no navigation needed

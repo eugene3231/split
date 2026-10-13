@@ -1,17 +1,19 @@
+import { BASE_CURRENCY } from '@shared/constants';
+
 /**
  * Fetches live exchange rates from open.er-api.com (no auth required).
- * Returns a map of currency code -> SGD value (1 unit = X SGD),
+ * Returns a map of currency code -> value in the base currency (1 unit = X base),
  * or null if the fetch fails.
  */
 export async function fetchExchangeRates(): Promise<Record<string, number> | null> {
   try {
-    const response = await fetch('https://open.er-api.com/v6/latest/SGD');
+    const response = await fetch(`https://open.er-api.com/v6/latest/${BASE_CURRENCY}`);
     if (!response.ok) return null;
 
     const data: unknown = await response.json();
     if (!isRecord(data) || data.result !== 'success' || !isRecord(data.rates)) return null;
 
-    // API returns "1 SGD = X foreign currency", so invert to get "1 foreign = X SGD"
+    // The API returns "1 base = X foreign", so invert to get "1 foreign = X base".
     const ratesMap: Record<string, number> = {};
     for (const [code, rate] of Object.entries(data.rates)) {
       const numRate = typeof rate === 'number' ? rate : Number(rate);
@@ -19,8 +21,7 @@ export async function fetchExchangeRates(): Promise<Record<string, number> | nul
         ratesMap[code] = 1 / numRate;
       }
     }
-    // SGD to SGD is always 1
-    ratesMap['SGD'] = 1;
+    ratesMap[BASE_CURRENCY] = 1;
 
     return ratesMap;
   } catch {

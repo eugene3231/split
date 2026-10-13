@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ChargeState, EditableItem } from '@shared/types';
-import { BASE_CURRENCY } from '@shared/constants';
+import type { CurrencyCode } from '@shared/constants';
 import {
   formatMoneyAmount,
   formatMoneyInput,
@@ -12,18 +12,12 @@ import { FormattedNumberInput } from '@features/split-workspace/components/share
 interface Props {
   item: EditableItem;
   discount: ChargeState;
-  currency?: string;
+  currency: CurrencyCode;
   onUpdate: (updater: (current: EditableItem) => EditableItem) => void;
   onRemove: () => void;
 }
 
-export function LineItemCard({
-  item,
-  discount,
-  currency = BASE_CURRENCY,
-  onUpdate,
-  onRemove,
-}: Props) {
+export function LineItemCard({ item, discount, currency, onUpdate, onRemove }: Props) {
   const formatPrice = (input: string) => formatMoneyInput(input, currency);
   const priceWidth = Math.max(formatPrice(item.amountInput).length, item.amountInput.length);
   const [showDiscount, setShowDiscount] = useState(!!item.discountPercentInput);

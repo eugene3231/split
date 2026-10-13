@@ -6,32 +6,35 @@ import {
   makeItem,
   makePerson,
   percentCharge,
+  makeReceipt,
 } from '../../../../tests/integration/testHelpers';
 import { SummaryTotals } from './SummaryTotals';
+import { equalShares } from '@features/split-workspace/logic/assignment';
 
 it('lists each charge once and ends on the computed total', () => {
   const person = makePerson('Alex');
   const serviceCharge = percentCharge('10');
   const gst = percentCharge('9');
-  const split = computeSplit({
-    people: [person],
-    items: [
-      makeItem({
-        amountInput: '100.00',
-        assignment: { mode: 'single', personId: person.id, personIds: [person.id] },
-      }),
-    ],
-    discount: disabledCharge,
-    serviceCharge,
-    gst,
-  });
+  const split = computeSplit(
+    makeReceipt({
+      items: [
+        makeItem({
+          amountInput: '100.00',
+          assignment: equalShares([person.id]),
+        }),
+      ],
+      discount: disabledCharge,
+      serviceCharge,
+      gst,
+    }),
+    [person],
+  );
 
   render(
     <SummaryTotals
-      split={split}
-      discount={disabledCharge}
-      serviceCharge={serviceCharge}
-      gst={gst}
+      totals={split.totals}
+      charges={{ discount: disabledCharge, serviceCharge, gst }}
+      currency="SGD"
       onRemoveRounding={() => {}}
     />,
   );
@@ -46,27 +49,28 @@ it('lists each charge once and ends on the computed total', () => {
 it('shows rounding after tax with a way to remove it', () => {
   const person = makePerson('Alex');
   const gst = percentCharge('9');
-  const split = computeSplit({
-    people: [person],
-    items: [
-      makeItem({
-        amountInput: '10.00',
-        assignment: { mode: 'single', personId: person.id, personIds: [person.id] },
-      }),
-    ],
-    discount: disabledCharge,
-    serviceCharge: disabledCharge,
-    gst,
-    roundingInput: '0.10',
-  });
+  const split = computeSplit(
+    makeReceipt({
+      items: [
+        makeItem({
+          amountInput: '10.00',
+          assignment: equalShares([person.id]),
+        }),
+      ],
+      discount: disabledCharge,
+      serviceCharge: disabledCharge,
+      gst,
+      roundingInput: '0.10',
+    }),
+    [person],
+  );
   const onRemoveRounding = vi.fn();
 
   render(
     <SummaryTotals
-      split={split}
-      discount={disabledCharge}
-      serviceCharge={disabledCharge}
-      gst={gst}
+      totals={split.totals}
+      charges={{ discount: disabledCharge, serviceCharge: disabledCharge, gst }}
+      currency="SGD"
       onRemoveRounding={onRemoveRounding}
     />,
   );

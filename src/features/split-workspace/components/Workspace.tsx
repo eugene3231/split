@@ -1,11 +1,15 @@
 import { useShallow } from 'zustand/shallow';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import {
+  selectActiveReceipt,
+  useReceiptStore,
+} from '@features/split-workspace/stores/receiptStore';
+import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
 import { useAllAssignedMoment } from '@features/split-workspace/hooks/useAllAssignedMoment';
 import { countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
+import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
 import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
@@ -15,27 +19,20 @@ import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatu
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
-import { SummaryStep } from '@features/split-workspace/components/steps/SummaryStep/SummaryStep';
+import { SummaryStep } from '@features/split-workspace/summary/SummaryStep';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
-import { BASE_CURRENCY } from '@shared/constants';
+import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import type { Person } from '@shared/types';
 import { WIZARD_STEPS, type WizardStep } from '@features/split-workspace/types';
 
 export function Workspace() {
   useReceiptSplitterController();
 
-  const { people, receipts, activeReceiptId, normalizeItems } = useReceiptStore(
-    useShallow((state) => ({
-      people: state.people,
-      receipts: state.receipts,
-      activeReceiptId: state.activeReceiptId,
-      normalizeItems: state.normalizeItems,
-    })),
+  const { people, receipts } = useReceiptStore(
+    useShallow((state) => ({ people: state.people, receipts: state.receipts })),
   );
-
-  const activeReceipt = receipts.find((r) => r.id === activeReceiptId) ?? receipts[0];
-  const items = activeReceipt?.items ?? [];
-  const { active, consolidated } = useReceiptSplit();
+  const activeReceipt = useReceiptStore(selectActiveReceipt);
+  const { consolidated } = useSplits();
 
   const {
     activeStep,
@@ -50,7 +47,7 @@ export function Workspace() {
     handleAddReceipt,
     handleResetSplit,
     handleLoadWorkspace,
-  } = useWizard(items, people, normalizeItems, receipts);
+  } = useWizard(activeReceipt.items, people, receipts);
 
   const activePerson = people.find((person) => person.id === activePersonId);
   const stepDirection = useSlideDirection(WIZARD_STEPS.indexOf(activeStep));
@@ -61,10 +58,6 @@ export function Workspace() {
       action(...args);
       window.scrollTo({ top: 0, behavior: 'instant' });
     };
-
-  if (!activeReceipt) {
-    return null;
-  }
 
   return (
     <div
@@ -109,8 +102,10 @@ export function Workspace() {
             leftCount={countItemsLeft(receipts, people)}
             activeStep={activeStep}
             activePerson={activePerson}
-            activePersonTotalCents={consolidated.split.totalByPersonCents[activePersonId] ?? 0}
-            receiptTotalCents={active.receiptTotals.grandTotalCents}
+            activePersonTotalCents={
+              activePerson ? consolidated.byPerson[activePerson.id].totalCents : 0
+            }
+            receiptTotalCents={computeReceiptTotals(activeReceipt, people).totalCents}
             receiptCurrency={activeReceipt.currency}
           />
         }
@@ -127,7 +122,7 @@ interface WorkspaceNavStatusProps {
   activePerson: Person | undefined;
   activePersonTotalCents: number;
   receiptTotalCents: number;
-  receiptCurrency: string;
+  receiptCurrency: CurrencyCode;
 }
 
 function WorkspaceNavStatus({

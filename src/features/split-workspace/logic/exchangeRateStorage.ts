@@ -1,43 +1,32 @@
+import { z } from 'zod';
 import { LOCAL_STORAGE_EXCHANGE_RATES_KEY } from '@features/split-workspace/constants';
+import { jsonStorage } from './jsonStorage';
 
-function getBrowserStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
+const exchangeRatesSchema = z.object({
+  rates: z
+    .record(z.string(), z.unknown())
+    .transform((rates) =>
+      Object.fromEntries(
+        Object.entries(rates).filter(
+          (entry): entry is [string, number] =>
+            typeof entry[1] === 'number' && Number.isFinite(entry[1]) && entry[1] > 0,
+        ),
+      ),
+    ),
+  savedAt: z.number().catch(0),
+});
+
+const exchangeRatesStorage = jsonStorage(
+  'localStorage',
+  LOCAL_STORAGE_EXCHANGE_RATES_KEY,
+  exchangeRatesSchema,
+);
 
 export function saveExchangeRates(rates: Record<string, number>): void {
-  const storage = getBrowserStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(
-      LOCAL_STORAGE_EXCHANGE_RATES_KEY,
-      JSON.stringify({ rates, savedAt: Date.now() }),
-    );
-  } catch {
-    return;
-  }
+  exchangeRatesStorage.save({ rates, savedAt: Date.now() });
 }
 
 export function loadExchangeRates(): Record<string, number> | null {
-  const storage = getBrowserStorage();
-  if (!storage) return null;
-  try {
-    const raw = storage.getItem(LOCAL_STORAGE_EXCHANGE_RATES_KEY);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null || !('rates' in parsed)) return null;
-    const { rates } = parsed;
-    if (typeof rates !== 'object' || rates === null) return null;
-    const result: Record<string, number> = {};
-    for (const [k, v] of Object.entries(rates)) {
-      if (typeof v === 'number' && Number.isFinite(v) && v > 0) result[k] = v;
-    }
-    return Object.keys(result).length > 0 ? result : null;
-  } catch {
-    return null;
-  }
+  const rates = exchangeRatesStorage.load()?.rates;
+  return rates && Object.keys(rates).length > 0 ? rates : null;
 }

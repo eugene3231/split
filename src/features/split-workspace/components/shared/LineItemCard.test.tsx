@@ -31,7 +31,13 @@ it('writes the price the way the receipt currency is written', () => {
 it('shows a dollar placeholder with cents and a rupiah one without', () => {
   const empty = { ...item, amountInput: '' };
   const { rerender } = render(
-    <LineItemCard item={empty} discount={disabledCharge} onUpdate={() => {}} onRemove={() => {}} />,
+    <LineItemCard
+      item={empty}
+      discount={disabledCharge}
+      currency="SGD"
+      onUpdate={() => {}}
+      onRemove={() => {}}
+    />,
   );
   expect(screen.getByRole('textbox', { name: 'Price' })).toHaveAttribute('placeholder', '0.00');
 
@@ -50,7 +56,13 @@ it('shows a dollar placeholder with cents and a rupiah one without', () => {
 it('saves the typed price as typed', () => {
   const onUpdate = vi.fn();
   render(
-    <LineItemCard item={item} discount={disabledCharge} onUpdate={onUpdate} onRemove={() => {}} />,
+    <LineItemCard
+      item={item}
+      discount={disabledCharge}
+      currency="SGD"
+      onUpdate={onUpdate}
+      onRemove={() => {}}
+    />,
   );
   const input = screen.getByRole('textbox', { name: 'Price' });
 

@@ -22,7 +22,6 @@ export async function analyzeReceiptWithGemini(
   file: File,
   apiKeyInput: string,
   model: string,
-  onStatus: (status: string) => void,
 ): Promise<OcrResponse> {
   const apiKey = apiKeyInput.trim();
   if (!apiKey) {
@@ -34,7 +33,6 @@ export async function analyzeReceiptWithGemini(
     throw new Error('Missing Gemini model selection.');
   }
 
-  onStatus('Encoding receipt...');
   const contentBase64 = await fileToBase64(file);
   const mimeType = file.type || 'image/jpeg';
 
@@ -43,8 +41,6 @@ export async function analyzeReceiptWithGemini(
     'If unsure, set nullable fields to null and add a warning.',
     'Amounts must be numbers, not strings.',
   ].join('\n');
-
-  onStatus('Calling Gemini...');
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`;
   const response = await fetch(url, {
@@ -87,7 +83,6 @@ export async function analyzeReceiptWithGemini(
     throw new Error('Gemini response did not include extractable content.');
   }
 
-  onStatus('Parsing Gemini output...');
   return parseGeminiReceiptResponse(modelText);
 }
 

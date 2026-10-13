@@ -5,6 +5,7 @@ import { useSavedGroupsStore } from '@features/split-workspace/stores/savedGroup
 import { makeItem, makeReceipt } from '../../../../../tests/integration/testHelpers';
 import { loadSavedGroups } from '@features/split-workspace/logic/savedGroups';
 import { PeopleStep } from './PeopleStep';
+import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 function peopleNames() {
   return useReceiptStore.getState().people.map((person) => person.name);
@@ -17,8 +18,38 @@ function addNames(names: string) {
 
 beforeEach(() => {
   window.localStorage.clear();
-  useReceiptStore.setState({ peopleInput: '', people: [], receipts: [] });
+  useReceiptStore.getState().resetSplit();
   useSavedGroupsStore.setState({ groups: [] });
+});
+
+describe('PeopleStep name field', () => {
+  it('adds every typed name and empties the field', () => {
+    render(<PeopleStep />);
+
+    addNames(' Ana, Ben ,, Cai');
+
+    expect(peopleNames()).toEqual(['Ana', 'Ben', 'Cai']);
+    expect(screen.getByTestId('people-input')).toHaveValue('');
+  });
+
+  it('empties the field when every typed name is already in the split', () => {
+    render(<PeopleStep />);
+    addNames('Ana');
+
+    addNames('ana');
+
+    expect(peopleNames()).toEqual(['Ana']);
+    expect(screen.getByTestId('people-input')).toHaveValue('');
+  });
+
+  it('keeps what was typed when it holds no name', () => {
+    render(<PeopleStep />);
+
+    addNames(' , ');
+
+    expect(peopleNames()).toEqual([]);
+    expect(screen.getByTestId('people-input')).toHaveValue(' , ');
+  });
 });
 
 describe('PeopleStep saved groups', () => {
@@ -116,13 +147,7 @@ describe('PeopleStep saved groups', () => {
           id: 'i1',
           name: 'Dinner',
           amountInput: '90',
-          assignment: {
-            mode: 'equal',
-            personId: '',
-            personIds: ['p1', 'p2'],
-            weights: { p1: 2, p2: 1 },
-            unassignedWeight: 1,
-          },
+          assignment: makeAssignment({ p1: 2, p2: 1 }, 1),
         }),
       ],
     });
@@ -133,7 +158,7 @@ describe('PeopleStep saved groups', () => {
           id: 'i2',
           name: 'Tea',
           amountInput: '6',
-          assignment: { mode: 'single', personId: 'p2', personIds: [] },
+          assignment: equalShares(['p2']),
         }),
       ],
     });
@@ -142,11 +167,11 @@ describe('PeopleStep saved groups', () => {
         { id: 'p1', name: 'Ana' },
         { id: 'p2', name: 'Ben' },
       ],
-      peopleInput: 'Dee',
       receipts: [first, second],
       activeReceiptId: 'r2',
     });
     render(<PeopleStep />);
+    fireEvent.change(screen.getByTestId('people-input'), { target: { value: 'Dee' } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove all' }));
 
@@ -157,11 +182,11 @@ describe('PeopleStep saved groups', () => {
     expect(useReceiptStore.getState().receipts).toEqual([
       {
         ...first,
-        items: [{ ...first.items[0], assignment: { mode: 'equal', personId: '', personIds: [] } }],
+        items: [{ ...first.items[0], assignment: NOBODY }],
       },
       {
         ...second,
-        items: [{ ...second.items[0], assignment: { mode: 'equal', personId: '', personIds: [] } }],
+        items: [{ ...second.items[0], assignment: NOBODY }],
       },
     ]);
     expect(useSavedGroupsStore.getState().groups).toEqual([

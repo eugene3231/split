@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { findReconciliationDiscount } from './reconciliation';
+import { findReconciliationDiscount, resolveReconciliation } from './reconciliation';
+import { NOBODY, equalShares } from '@features/split-workspace/logic/assignment';
 import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
 import {
   amountCharge,
   disabledCharge,
+  makeItem,
+  makeReceipt,
   percentCharge,
 } from '../../../tests/integration/testHelpers';
 
@@ -138,4 +141,107 @@ describe('findReconciliationDiscount', () => {
       ).toBeNull();
     },
   );
+});
+
+describe('resolveReconciliation', () => {
+  const alice = { id: 'a', name: 'Alice' };
+  const bob = { id: 'b', name: 'Bob' };
+  const meal = (amountInput: string, assignment = equalShares([alice.id])) =>
+    makeItem({ amountInput, assignment });
+
+  it('has nothing to reconcile until a receipt total is entered', () => {
+    const receipt = makeReceipt({ items: [meal('10.00')], receiptTotalInput: '' });
+
+    expect(resolveReconciliation(receipt, [alice])).toEqual({ cents: null, fix: null });
+  });
+
+  it('needs no fix when the receipt total matches', () => {
+    const receipt = makeReceipt({ items: [meal('10.00')], receiptTotalInput: '10.00' });
+
+    expect(resolveReconciliation(receipt, [alice])).toEqual({ cents: 0, fix: null });
+  });
+
+  it('offers the missing amount as rounding when the receipt total is higher', () => {
+    const receipt = makeReceipt({ items: [meal('10.00')], receiptTotalInput: '12.00' });
+
+    expect(resolveReconciliation(receipt, [alice])).toEqual({
+      cents: 200,
+      fix: { roundingInput: '2.00' },
+    });
+  });
+
+  it('adds the gap to any rounding already on the receipt', () => {
+    const receipt = makeReceipt({
+      items: [meal('10.00')],
+      receiptTotalInput: '10.40',
+      roundingInput: '0.10',
+    });
+
+    expect(resolveReconciliation(receipt, [alice])).toEqual({
+      cents: 30,
+      fix: { roundingInput: '0.40' },
+    });
+  });
+
+  it('offers a discount as an amount when the receipt total is lower', () => {
+    const receipt = makeReceipt({ items: [meal('10.00')], receiptTotalInput: '9.00' });
+
+    expect(resolveReconciliation(receipt, [alice])).toEqual({
+      cents: -100,
+      fix: { discount: { ...disabledCharge, enabled: true, mode: 'amount', amountInput: '1.00' } },
+    });
+  });
+
+  it('sizes the discount before tax, so both percentage charges are recomputed', () => {
+    const receipt = makeReceipt({
+      items: [meal('100.00')],
+      discount: percentCharge('5'),
+      serviceCharge: percentCharge('10'),
+      gst: percentCharge('9'),
+      receiptTotalInput: '107.91',
+    });
+
+    const { fix } = resolveReconciliation(receipt, [alice]);
+
+    expect(fix).toEqual({
+      discount: { ...percentCharge('5'), mode: 'amount', amountInput: '10.00' },
+    });
+    expect(resolveReconciliation({ ...receipt, ...fix }, [alice])).toEqual({ cents: 0, fix: null });
+  });
+
+  it('leaves rounding out of the discount search', () => {
+    const receipt = makeReceipt({
+      items: [meal('9.90')],
+      receiptTotalInput: '9.10',
+      roundingInput: '0.10',
+    });
+
+    expect(resolveReconciliation(receipt, [alice]).fix).toEqual({
+      discount: expect.objectContaining({ amountInput: '0.90' }),
+    });
+  });
+
+  it('has no fix left once a full discount still cannot reach the receipt total', () => {
+    const receipt = makeReceipt({
+      items: [meal('1.00')],
+      serviceCharge: amountCharge('0.50'),
+      receiptTotalInput: '0.10',
+    });
+    const first = resolveReconciliation(receipt, [alice]);
+    expect(first.fix).toEqual({ discount: expect.objectContaining({ amountInput: '1.00' }) });
+
+    expect(resolveReconciliation({ ...receipt, ...first.fix }, [alice])).toEqual({
+      cents: -40,
+      fix: null,
+    });
+  });
+
+  it('counts items nobody has taken yet, so the gap does not move as people pick items', () => {
+    const receipt = makeReceipt({
+      items: [meal('10.00'), meal('20.00', NOBODY)],
+      receiptTotalInput: '30.00',
+    });
+
+    expect(resolveReconciliation(receipt, [alice, bob])).toEqual({ cents: 0, fix: null });
+  });
 });

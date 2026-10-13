@@ -14,19 +14,15 @@ import {
   resolvePreviousPersonId,
 } from '@features/split-workspace/logic/claim';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
+import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
 
-export function useWizard(
-  items: EditableItem[],
-  people: Person[],
-  normalizeItems: () => void,
-  receipts: Receipt[],
-) {
+export function useWizard(items: EditableItem[], people: Person[], receipts: Receipt[]) {
   const geminiApiKeyInput = useGeminiStore((state) => state.geminiApiKeyInput);
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
   const resetSplit = useReceiptStore((state) => state.resetSplit);
   const loadWorkspace = useReceiptStore((state) => state.loadWorkspace);
-  const splitUnassignedItemsEqually = useReceiptStore((state) => state.splitUnassignedItemsEqually);
+  const updateItems = useReceiptStore((state) => state.updateItems);
 
   const [initialWizardState] = useState(() => loadWizardState());
   const [activeStepState, setActiveStep] = useState<WizardStep>(
@@ -66,7 +62,6 @@ export function useWizard(
   };
 
   const startClaiming = () => {
-    normalizeItems();
     setActivePersonId(people[0]?.id ?? '');
     setActiveStep('items');
   };
@@ -90,7 +85,6 @@ export function useWizard(
       return;
     }
 
-    normalizeItems();
     setActiveStep('final');
   };
 
@@ -114,7 +108,9 @@ export function useWizard(
       setActivePersonId(claimContinue.personId);
       return;
     }
-    if (claimContinue.kind === 'split-leftovers') splitUnassignedItemsEqually();
+    if (claimContinue.kind === 'split-leftovers') {
+      for (const receipt of receipts) updateItems(receipt.id, splitUnassignedItemsEqually);
+    }
     setActiveStep('final');
   };
 

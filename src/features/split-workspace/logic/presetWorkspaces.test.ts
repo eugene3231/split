@@ -8,7 +8,7 @@ const [lunch, dinner, bali] = PRESET_WORKSPACES;
 function splitOf(preset: (typeof PRESET_WORKSPACES)[number]) {
   const draft = preset.build();
   const receipt = draft.receipts[0];
-  return { draft, receipt, split: computeSplit({ people: draft.people, ...receipt }) };
+  return { draft, receipt, split: computeSplit(receipt, draft.people) };
 }
 
 describe('PRESET_WORKSPACES', () => {
@@ -34,7 +34,7 @@ describe('PRESET_WORKSPACES', () => {
 
   it.each([lunch, dinner])('matches the printed total of $label', (preset) => {
     const { receipt, split } = splitOf(preset);
-    expect((split.grandTotalCents / 100).toFixed(2)).toBe(receipt.receiptTotalInput);
+    expect((split.totals.totalCents / 100).toFixed(2)).toBe(receipt.receiptTotalInput);
   });
 
   it('mixes solo, shared, and weighted shares', () => {
@@ -42,15 +42,15 @@ describe('PRESET_WORKSPACES', () => {
     const nameOf = (id: string) => draft.people.find((person) => person.id === id)?.name;
     const shares = receipt.items.map((item) => ({
       name: item.name,
-      people: item.assignment.personIds.map(nameOf),
-      weights: item.assignment.weights ? Object.values(item.assignment.weights) : undefined,
+      people: Object.keys(item.assignment.shares).map(nameOf),
+      weights: Object.values(item.assignment.shares),
     }));
 
     expect(shares).toEqual([
-      { name: 'Chicken Rice', people: ['Alice'], weights: undefined },
-      { name: 'Iced Lemon Tea', people: ['Bob'], weights: undefined },
+      { name: 'Chicken Rice', people: ['Alice'], weights: [1] },
+      { name: 'Iced Lemon Tea', people: ['Bob'], weights: [1] },
       { name: 'Pasta Alfredo', people: ['Bob', 'Charlie'], weights: [2, 1] },
-      { name: 'Truffle Fries', people: ['Alice', 'Bob', 'Charlie'], weights: undefined },
+      { name: 'Truffle Fries', people: ['Alice', 'Bob', 'Charlie'], weights: [1, 1, 1] },
     ]);
   });
 
@@ -82,15 +82,15 @@ describe('PRESET_WORKSPACES', () => {
       amountInput: '71750.00',
     });
     const [woods] = draft.receipts;
-    const split = computeSplit({ people: draft.people, ...woods });
-    expect(split.grandTotalCents).toBe(120642500);
+    const split = computeSplit(woods, draft.people);
+    expect(split.totals.totalCents).toBe(120642500);
   });
 
   it.each([1, 2])('matches the printed total of Bali receipt index %i', (index) => {
     const draft = bali.build();
     const receipt = draft.receipts[index];
-    const split = computeSplit({ people: draft.people, ...receipt });
-    expect((split.grandTotalCents / 100).toFixed(2)).toBe(
+    const split = computeSplit(receipt, draft.people);
+    expect((split.totals.totalCents / 100).toFixed(2)).toBe(
       Number(receipt.receiptTotalInput).toFixed(2),
     );
   });

@@ -1,5 +1,9 @@
-import type { EditableItem, Person } from '@shared/types';
-import { isItemAssigned } from '@features/split-workspace/logic/wizardValidation';
+import type { EditableItem, ItemAssignment, Person } from '@shared/types';
+import {
+  equalShares,
+  isItemAssigned,
+  makeAssignment,
+} from '@features/split-workspace/logic/assignment';
 import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import {
   setPersonShare,
@@ -26,10 +30,10 @@ export function applyAssignmentCommand(
     return stepPersonShare(item, command.personId, command.step);
   }
   if (command.type === 'split-evenly') {
-    return assignEqually(item, command.personIds);
+    return { ...item, assignment: equalShares(command.personIds) };
   }
   if (command.type === 'only-person') {
-    return assignEqually(item, [command.personId]);
+    return { ...item, assignment: equalShares([command.personId]) };
   }
   return setPersonShare(item, command.personId, command.input);
 }
@@ -39,36 +43,38 @@ export function togglePersonInAssignment(
   checked: boolean,
   currentItem: EditableItem,
 ): EditableItem {
-  const { personIds, weights, unassignedWeight } = currentItem.assignment;
-  if (checked === personIds.includes(personId)) return currentItem;
+  const { shares, unassignedShare } = currentItem.assignment;
+  if (checked === Object.hasOwn(shares, personId)) return currentItem;
 
-  const nextIds = checked ? [...personIds, personId] : personIds.filter((id) => id !== personId);
-  const nextWeights = { ...weights };
-  let nextUnassigned = unassignedWeight;
-
-  if (!checked) {
-    // Once part of an item is unassigned, a leaver's slice joins it instead of going to the others.
-    if (unassignedWeight) nextUnassigned = unassignedWeight + (weights?.[personId] ?? 1);
-    delete nextWeights[personId];
-  } else if (unassignedWeight) {
-    // Ticking a half-claimed item takes the half nobody had.
-    nextWeights[personId] = unassignedWeight;
-    nextUnassigned = undefined;
-  } else if (weights) {
-    nextWeights[personId] = averageWeight(personIds.map((id) => weights[id] ?? 1));
-  }
-
-  const keepsWeights = nextIds.length >= 2 || (nextIds.length === 1 && nextUnassigned);
   return {
     ...currentItem,
-    assignment: {
-      mode: 'equal',
-      personId: '',
-      personIds: nextIds,
-      weights: keepsWeights && (weights || nextUnassigned) ? nextWeights : undefined,
-      unassignedWeight: nextIds.length > 0 ? nextUnassigned : undefined,
-    },
+    assignment: checked
+      ? addPerson(currentItem.assignment, personId)
+      : removePerson(shares, unassignedShare, personId),
   };
+}
+
+function addPerson({ shares, unassignedShare }: ItemAssignment, personId: string): ItemAssignment {
+  // Ticking a half-claimed item takes the half nobody had.
+  if (unassignedShare > 0) return makeAssignment({ ...shares, [personId]: unassignedShare });
+
+  // Otherwise a newcomer takes an average share, 1/(n+1) of the item, and everyone already on
+  // it keeps their ratio of the rest.
+  const weights = Object.values(shares);
+  if (weights.length === 0) return equalShares([personId]);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  const scaled = Object.entries(shares).map(([id, weight]) => [id, weight * weights.length]);
+  return makeAssignment({ ...Object.fromEntries(scaled), [personId]: total });
+}
+
+function removePerson(
+  shares: Record<string, number>,
+  unassignedShare: number,
+  personId: string,
+): ItemAssignment {
+  const { [personId]: leaving, ...rest } = shares;
+  // Once part of an item is unassigned, a leaver's slice joins it instead of going to the others.
+  return makeAssignment(rest, unassignedShare > 0 ? unassignedShare + leaving : 0);
 }
 
 /** Ticks or unticks one person on every priced item, the same as toggling each row. */
@@ -96,40 +102,27 @@ export function splitUnassignedItemsEqually(
     return items;
   }
 
-  const validPeopleSet = new Set(people.map((person) => person.id));
   const personIds = people.map((person) => person.id);
+  const validPeopleSet = new Set(personIds);
 
   return items.map((item) => {
     if (isItemAssigned(item, validPeopleSet)) {
       return item;
     }
 
-    const leftover = item.assignment.unassignedWeight ?? 0;
-    const claimants = new Set(item.assignment.personIds.filter((id) => validPeopleSet.has(id)));
-    const weights =
-      leftover > 0 && claimants.size > 0
-        ? Object.fromEntries(
-            personIds.map((id) => [
-              id,
-              claimants.has(id)
-                ? (item.assignment.weights?.[id] ?? 1) * personIds.length + leftover
-                : leftover,
-            ]),
-          )
-        : undefined;
+    const { shares, unassignedShare } = item.assignment;
+    const hasClaimant = personIds.some((id) => Object.hasOwn(shares, id));
+    if (unassignedShare === 0 || !hasClaimant) {
+      return { ...item, assignment: equalShares(personIds) };
+    }
 
     return {
       ...item,
-      assignment: { mode: 'equal', personId: '', personIds, weights },
+      assignment: makeAssignment(
+        Object.fromEntries(
+          personIds.map((id) => [id, (shares[id] ?? 0) * personIds.length + unassignedShare]),
+        ),
+      ),
     };
   });
-}
-
-/** Puts exactly these people on the item in equal shares, with nothing left over. */
-function assignEqually(item: EditableItem, personIds: string[]): EditableItem {
-  return { ...item, assignment: { mode: 'equal', personId: '', personIds } };
-}
-
-function averageWeight(weights: number[]): number {
-  return Math.max(1, Math.round(weights.reduce((sum, weight) => sum + weight, 0) / weights.length));
 }

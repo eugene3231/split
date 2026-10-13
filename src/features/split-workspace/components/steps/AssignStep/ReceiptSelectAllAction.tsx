@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Checkbox } from 'radix-ui';
 import type { ClaimSection } from '@features/split-workspace/logic/claim';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { setPersonOnEveryItem } from '@features/split-workspace/logic/assignmentInteraction';
 import { ConfirmDialog } from '@features/split-workspace/components/shared/ConfirmDialog';
 import { ClaimCheckMark } from './ClaimCheckMark';
 
@@ -12,13 +13,15 @@ interface Props {
 }
 
 export function ReceiptSelectAllAction({ section, personId, personName }: Props) {
-  const setPersonOnReceiptItems = useReceiptStore((state) => state.setPersonOnReceiptItems);
+  const updateItems = useReceiptStore((state) => state.updateItems);
+  const setSelected = (selected: boolean) =>
+    updateItems(section.receiptId, (items) => setPersonOnEveryItem(items, personId, selected));
   const [confirming, setConfirming] = useState(false);
   const checked =
     section.activeSelection === 'some' ? 'indeterminate' : section.activeSelection === 'all';
 
   const deselectAll = () => {
-    setPersonOnReceiptItems(section.receiptId, personId, false);
+    setSelected(false);
     setConfirming(false);
   };
 
@@ -28,7 +31,7 @@ export function ReceiptSelectAllAction({ section, personId, personName }: Props)
         aria-label={`Select all items on ${section.name}`}
         checked={checked}
         onCheckedChange={(next) => {
-          if (next === true) setPersonOnReceiptItems(section.receiptId, personId, true);
+          if (next === true) setSelected(true);
           else if (section.activeHasCustomShare) setConfirming(true);
           else deselectAll();
         }}

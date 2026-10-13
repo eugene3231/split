@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EditableItem, ItemAssignment, Person, Receipt } from '@shared/types';
+import { NOBODY, equalShares, makeAssignment } from './assignment';
 import {
   defaultDiscountState,
   defaultGstState,
@@ -13,6 +14,7 @@ import {
   resolveClaimView,
   resolvePreviousPersonId,
 } from './claim';
+import type { CurrencyCode } from '@shared/constants';
 
 const people: Person[] = [
   { id: 'p1', name: 'Eugene Chua' },
@@ -23,7 +25,7 @@ const people: Person[] = [
 function makeItem(
   id: string,
   amountInput: string,
-  assignment: Partial<ItemAssignment> = {},
+  assignment: ItemAssignment = NOBODY,
   name = `Item ${id}`,
 ): EditableItem {
   return {
@@ -31,11 +33,11 @@ function makeItem(
     name,
     amountInput,
     discountPercentInput: '',
-    assignment: { mode: 'equal', personId: '', personIds: [], ...assignment },
+    assignment,
   };
 }
 
-function makeReceipt(id: string, items: EditableItem[], currency = 'SGD'): Receipt {
+function makeReceipt(id: string, items: EditableItem[], currency: CurrencyCode = 'SGD'): Receipt {
   return {
     id,
     name: `Receipt ${id}`,
@@ -80,10 +82,10 @@ describe('resolveClaimView', () => {
   it('reports whether the active person is on none, some or all of a receipt', () => {
     const receipts = [
       makeReceipt('r1', [
-        makeItem('i1', '8.50', { personIds: ['p1'] }),
-        makeItem('i2', '4.00', { personIds: ['p1', 'p2'] }),
+        makeItem('i1', '8.50', equalShares(['p1'])),
+        makeItem('i2', '4.00', equalShares(['p1', 'p2'])),
       ]),
-      makeReceipt('r2', [makeItem('i3', '8.50', { personIds: ['p1'] }), makeItem('i4', '4.00')]),
+      makeReceipt('r2', [makeItem('i3', '8.50', equalShares(['p1'])), makeItem('i4', '4.00')]),
       makeReceipt('r3', [makeItem('i5', '8.50')]),
     ];
 
@@ -96,15 +98,15 @@ describe('resolveClaimView', () => {
   });
 
   it('flags a custom share only for an uneven or part-assigned item the active person is on', () => {
-    const custom = (assignment: Partial<ItemAssignment>, activePersonId = 'p1') =>
+    const custom = (assignment: ItemAssignment, activePersonId = 'p1') =>
       view([makeReceipt('r1', [makeItem('i1', '9.00', assignment)])], activePersonId).sections[0]
         .activeHasCustomShare;
 
-    expect(custom({ personIds: ['p1', 'p2'] })).toBe(false);
-    expect(custom({ personIds: ['p1', 'p2'], weights: { p1: 1, p2: 1 } })).toBe(false);
-    expect(custom({ personIds: ['p1', 'p2'], weights: { p1: 2, p2: 1 } })).toBe(true);
-    expect(custom({ personIds: ['p1'], weights: { p1: 1 }, unassignedWeight: 1 })).toBe(true);
-    expect(custom({ personIds: ['p1', 'p2'], weights: { p1: 2, p2: 1 } }, 'p3')).toBe(false);
+    expect(custom(equalShares(['p1', 'p2']))).toBe(false);
+    expect(custom(makeAssignment({ p1: 1, p2: 1 }))).toBe(false);
+    expect(custom(makeAssignment({ p1: 2, p2: 1 }))).toBe(true);
+    expect(custom(makeAssignment({ p1: 1 }, 1))).toBe(true);
+    expect(custom(makeAssignment({ p1: 2, p2: 1 }), 'p3')).toBe(false);
   });
 
   it('falls back to the first person when the active person no longer exists', () => {
@@ -127,7 +129,7 @@ describe('resolveClaimView', () => {
   });
 
   it("gives the active person's slice and lists who has the item in people order", () => {
-    const receipt = makeReceipt('r1', [makeItem('i1', '9.00', { personIds: ['p3', 'p1', 'p2'] })]);
+    const receipt = makeReceipt('r1', [makeItem('i1', '9.00', equalShares(['p3', 'p1', 'p2']))]);
 
     const [item] = items([receipt]);
 
@@ -139,13 +141,10 @@ describe('resolveClaimView', () => {
 
   it('offers to split evenly or take the item alone only when that would change it', () => {
     const receipt = makeReceipt('r1', [
-      makeItem('even', '9.00', { personIds: ['p1', 'p2', 'p3'] }),
-      makeItem('weighted', '9.00', {
-        personIds: ['p1', 'p2', 'p3'],
-        weights: { p1: 2, p2: 1, p3: 1 },
-      }),
-      makeItem('solo', '9.00', { personIds: ['p1'] }),
-      makeItem('half', '9.00', { personIds: ['p1'], weights: { p1: 1 }, unassignedWeight: 1 }),
+      makeItem('even', '9.00', equalShares(['p1', 'p2', 'p3'])),
+      makeItem('weighted', '9.00', makeAssignment({ p1: 2, p2: 1, p3: 1 })),
+      makeItem('solo', '9.00', equalShares(['p1'])),
+      makeItem('half', '9.00', makeAssignment({ p1: 1 }, 1)),
     ]);
 
     const shares = Object.fromEntries(items([receipt]).map((item) => [item.id, item.share]));
@@ -157,9 +156,7 @@ describe('resolveClaimView', () => {
   });
 
   it('says how much of a half-claimed item is still left', () => {
-    const receipt = makeReceipt('r1', [
-      makeItem('i1', '6.00', { personIds: ['p1'], weights: { p1: 1 }, unassignedWeight: 1 }),
-    ]);
+    const receipt = makeReceipt('r1', [makeItem('i1', '6.00', makeAssignment({ p1: 1 }, 1))]);
 
     const [item] = items([receipt], 'p2');
 
@@ -168,7 +165,7 @@ describe('resolveClaimView', () => {
   });
 
   it('ignores stale person ids on an assignment', () => {
-    const receipt = makeReceipt('r1', [makeItem('i1', '6.00', { personIds: ['p2', 'removed'] })]);
+    const receipt = makeReceipt('r1', [makeItem('i1', '6.00', equalShares(['p2', 'removed']))]);
 
     expect(items([receipt])[0].claimants.map((person) => person.id)).toEqual(['p2']);
   });
@@ -181,7 +178,10 @@ describe('resolveClaimView', () => {
   });
 
   it('leaves out blank rows without a price and names untitled items', () => {
-    const receipt = makeReceipt('r1', [makeItem('blank', ''), makeItem('i1', '4.00', {}, '  ')]);
+    const receipt = makeReceipt('r1', [
+      makeItem('blank', ''),
+      makeItem('i1', '4.00', NOBODY, '  '),
+    ]);
 
     const result = items([receipt]);
 
@@ -191,7 +191,7 @@ describe('resolveClaimView', () => {
 
   it('lists every receipt as its own section and counts what is left', () => {
     const receipts = [
-      makeReceipt('r1', [makeItem('a', '5.00', { personIds: ['p1'] }), makeItem('b', '6.00')]),
+      makeReceipt('r1', [makeItem('a', '5.00', equalShares(['p1'])), makeItem('b', '6.00')]),
       makeReceipt('r2', [makeItem('c', '7.00'), makeItem('d', '2.00'), makeItem('blank', '')]),
     ];
 
@@ -201,7 +201,6 @@ describe('resolveClaimView', () => {
       ['r1', 2],
       ['r2', 2],
     ]);
-    expect(result.people.map((person) => person.itemCount)).toEqual([1, 0, 0]);
   });
 });
 
@@ -209,9 +208,9 @@ describe('countItemsLeft', () => {
   it('counts unassigned, stale and half-claimed items as left', () => {
     const receipts = [
       makeReceipt('r1', [
-        makeItem('a', '5.00', { personIds: ['removed'] }),
-        makeItem('b', '5.00', { personIds: ['p1'], unassignedWeight: 1 }),
-        makeItem('c', '5.00', { personIds: ['p1'] }),
+        makeItem('a', '5.00', equalShares(['removed'])),
+        makeItem('b', '5.00', makeAssignment({ p1: 1 }, 1)),
+        makeItem('c', '5.00', equalShares(['p1'])),
       ]),
     ];
 

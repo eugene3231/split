@@ -38,11 +38,8 @@ describe('buildReceiptOcrReplacement', () => {
     expect(patch.items[0]).toMatchObject({
       name: 'Laksa',
       amountInput: '12.50',
-      assignment: {
-        mode: 'equal',
-        personId: '',
-        personIds: [],
-      },
+      discountPercentInput: '',
+      assignment: { shares: {}, unassignedShare: 0 },
     });
     expect(patch.serviceCharge).toMatchObject({
       enabled: true,

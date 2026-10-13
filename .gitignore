@@ -38,3 +38,7 @@ PRD.md
 *.njsproj
 *.sln
 *.sw?
+
+# In-repo git worktrees
+.worktrees
+.claude/worktrees

@@ -2,11 +2,12 @@ import { cn } from '@shared/utils/cn';
 import { BottomNavStatus } from './BottomNav';
 import { CountUpAmount } from './shared/CountUpAmount';
 import { CheckIcon } from './shared/CheckIcon';
+import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
   label: string;
   cents: number;
-  currency: string;
+  currency: CurrencyCode;
   complete: boolean;
 }
 

@@ -10,6 +10,18 @@ import {
   seedStore,
 } from './testHelpers';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
+import {
+  exportDraftToJson,
+  importDraftFromJson,
+} from '@features/split-workspace/logic/draftStorage';
+import { equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
+
+/** What the workspace menu does with a chosen file: parse it, then swap it into the store. */
+function importWorkspaceJson(json: string) {
+  const draft = importDraftFromJson(json);
+  if (!draft) throw new Error('Workspace JSON did not parse');
+  useReceiptStore.getState().loadWorkspace(draft);
+}
 
 beforeEach(() => {
   resetAllStores();
@@ -25,7 +37,7 @@ describe('Persistence integration', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
       serviceCharge: percentCharge('10'),
@@ -35,14 +47,14 @@ describe('Persistence integration', () => {
       items: [
         makeItem({
           amountInput: '20.00',
-          assignment: { mode: 'equal', personId: '', personIds: [alice.id, bob.id] },
+          assignment: equalShares([alice.id, bob.id]),
         }),
       ],
       discount: amountCharge('5.00'),
     });
 
     seedStore([alice, bob], [r1, r2]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
     expect(json).toBeTruthy();
 
     const parsed = JSON.parse(json);
@@ -55,7 +67,7 @@ describe('Persistence integration', () => {
     expect(parsed.receipts[1].discount.amountInput).toBe('5.00');
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.people).toHaveLength(2);
@@ -72,16 +84,16 @@ describe('Persistence integration', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
     });
 
     seedStore([alice], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].currency).toBe('USD');
@@ -95,16 +107,16 @@ describe('Persistence integration', () => {
         makeItem({
           amountInput: '10.00',
           discountPercentInput: '50',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
     });
 
     seedStore([alice], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].items[0].discountPercentInput).toBe('50');
@@ -116,17 +128,17 @@ describe('Persistence integration', () => {
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
       serviceCharge: amountCharge('5.00'),
     });
 
     seedStore([alice], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].serviceCharge.enabled).toBe(true);
@@ -134,35 +146,32 @@ describe('Persistence integration', () => {
     expect(restored.receipts[0].serviceCharge.amountInput).toBe('5.00');
   });
 
-  it('assignment mode preservation — targets and personIds round-trip correctly', () => {
+  it('assignments round-trip — the people on each item survive export and import', () => {
     const alice = makePerson('Alice');
     const bob = makePerson('Bob');
     const r1 = makeReceipt({
       items: [
         makeItem({
           amountInput: '10.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
         makeItem({
           amountInput: '20.00',
-          assignment: { mode: 'equal', personId: '', personIds: [alice.id, bob.id] },
+          assignment: equalShares([alice.id, bob.id]),
         }),
       ],
     });
 
     seedStore([alice, bob], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     expect(restored.receipts[0].items).toHaveLength(2);
-    expect(restored.receipts[0].items[0].assignment.mode).toBe('equal');
-    expect(restored.receipts[0].items[0].assignment.personIds).toContain(alice.id);
-    expect(restored.receipts[0].items[1].assignment.mode).toBe('equal');
-    expect(restored.receipts[0].items[1].assignment.personIds).toContain(alice.id);
-    expect(restored.receipts[0].items[1].assignment.personIds).toContain(bob.id);
+    expect(restored.receipts[0].items[0].assignment).toEqual(equalShares([alice.id]));
+    expect(restored.receipts[0].items[1].assignment).toEqual(equalShares([alice.id, bob.id]));
   });
 
   it('empty items fallback — receipt with no valid items gets a fallback item', () => {
@@ -172,7 +181,7 @@ describe('Persistence integration', () => {
       items: [
         makeItem({
           amountInput: '5.00',
-          assignment: { mode: 'single', personId: alice.id, personIds: [alice.id] },
+          assignment: equalShares([alice.id]),
         }),
       ],
     });
@@ -183,10 +192,10 @@ describe('Persistence integration', () => {
     const state = useReceiptStore.getState();
     expect(state.receipts.find((r) => r.id === r1.id)!.items).toHaveLength(0);
 
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
     const restoredR1 = restored.receipts.find((r) => r.id === r1.id)!;
@@ -200,27 +209,21 @@ describe('Persistence integration', () => {
       items: [
         makeItem({
           amountInput: '30.00',
-          assignment: {
-            mode: 'equal',
-            personId: '',
-            personIds: [alice.id, bob.id],
-            weights: { [alice.id]: 2, [bob.id]: 1 },
-          },
+          assignment: makeAssignment({ [alice.id]: 2, [bob.id]: 1 }),
         }),
       ],
     });
 
     seedStore([alice, bob], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState();
-    expect(restored.receipts[0].items[0].assignment.weights).toEqual({
-      [alice.id]: 2,
-      [bob.id]: 1,
-    });
+    expect(restored.receipts[0].items[0].assignment).toEqual(
+      makeAssignment({ [alice.id]: 2, [bob.id]: 1 }),
+    );
   });
 
   it('a half-claimed item keeps its unassigned share through export and import', () => {
@@ -229,26 +232,19 @@ describe('Persistence integration', () => {
       items: [
         makeItem({
           amountInput: '6.00',
-          assignment: {
-            mode: 'equal',
-            personId: '',
-            personIds: [alice.id],
-            weights: { [alice.id]: 1 },
-            unassignedWeight: 1,
-          },
+          assignment: makeAssignment({ [alice.id]: 1 }, 1),
         }),
       ],
     });
 
     seedStore([alice], [r1]);
-    const json = useReceiptStore.getState().getExportJson();
+    const json = exportDraftToJson(useReceiptStore.getState());
 
     resetAllStores();
-    useReceiptStore.getState().importFromJson(json);
+    importWorkspaceJson(json);
 
     const restored = useReceiptStore.getState().receipts[0].items[0].assignment;
-    expect(restored.weights).toEqual({ [alice.id]: 1 });
-    expect(restored.unassignedWeight).toBe(1);
+    expect(restored).toEqual({ shares: { [alice.id]: 1 }, unassignedShare: 1 });
   });
 
   it('wizard state persists and restores via localStorage', () => {

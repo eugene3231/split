@@ -1,19 +1,11 @@
+import { BASE_CURRENCY, currencyInfo, type CurrencyCode } from '@shared/constants';
+
 export function toNullableNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
   }
 
-  if (typeof value === 'string') {
-    const normalized = value.trim().replace(/,/g, '');
-    if (!normalized) {
-      return null;
-    }
-
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
+  return typeof value === 'string' ? parseNumber(value) : null;
 }
 
 export function roundMoney(value: number): number {
@@ -40,30 +32,20 @@ export function parseCurrencyToCents(input: string): number | null {
   return Math.round(parsed * 100);
 }
 
-import { CURRENCY_SYMBOLS } from '@shared/constants';
-
-export function getCurrencySymbol(currency: string): string {
-  return CURRENCY_SYMBOLS[currency] ?? currency;
+export function getCurrencySymbol(currency: CurrencyCode): string {
+  return currencyInfo(currency).symbol;
 }
 
-// Currencies that are written without minor units even where ISO 4217 lists some, such as
-// rupiah prices on Indonesian receipts. Intl already drops them for JPY, KRW, VND and similar.
-const WHOLE_UNIT_CURRENCIES = new Set(['IDR']);
-
-function fractionDigitsFor(currency: string): number {
-  if (WHOLE_UNIT_CURRENCIES.has(currency)) return 0;
-  try {
-    return (
-      new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions()
-        .maximumFractionDigits ?? 2
-    );
-  } catch {
-    return 2;
-  }
+function fractionDigitsFor(currency: CurrencyCode): number {
+  if (currencyInfo(currency).wholeUnits) return 0;
+  return (
+    new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions()
+      .maximumFractionDigits ?? 2
+  );
 }
 
 /** The amount without its symbol, grouped and rounded the way the currency is usually written. */
-export function formatMoneyAmount(cents: number, currency = 'SGD'): string {
+export function formatMoneyAmount(cents: number, currency: CurrencyCode): string {
   const digits = fractionDigitsFor(currency);
   return new Intl.NumberFormat('en', {
     minimumFractionDigits: digits,
@@ -75,7 +57,7 @@ export function formatMoneyAmount(cents: number, currency = 'SGD'): string {
  * A typed amount regrouped the way the currency is written, keeping up to two decimals that were
  * typed: 71,750 for rupiah, 12.50 for dollars. Text that isn't a number comes back unchanged.
  */
-export function formatMoneyInput(input: string, currency = 'SGD'): string {
+export function formatMoneyInput(input: string, currency: CurrencyCode): string {
   const parsed = parseNumber(input);
   if (parsed === null) return input;
   const digits = fractionDigitsFor(currency);
@@ -94,7 +76,10 @@ export function formatPercentInput(input: string): string {
   );
 }
 
-export function formatCurrencyFromCents(cents: number, currency = 'SGD'): string {
+export function formatCurrencyFromCents(
+  cents: number,
+  currency: CurrencyCode = BASE_CURRENCY,
+): string {
   return `${getCurrencySymbol(currency)}${formatMoneyAmount(cents, currency)}`;
 }
 

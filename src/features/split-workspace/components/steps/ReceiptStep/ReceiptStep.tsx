@@ -11,7 +11,11 @@ import { ReceiptNameField } from '@features/split-workspace/components/shared/Re
 import { CurrencySelector } from '@features/split-workspace/components/shared/CurrencySelector';
 import { ExchangeRateDisplay } from '@features/split-workspace/components/shared/ExchangeRateDisplay';
 import { useReceiptImport } from './useReceiptImport';
-import { useReceiptStepModel } from './useReceiptStepModel';
+import { useShallow } from 'zustand/shallow';
+import {
+  selectActiveReceipt,
+  useReceiptStore,
+} from '@features/split-workspace/stores/receiptStore';
 import { BASE_CURRENCY } from '@shared/constants';
 
 type Props = {
@@ -21,37 +25,31 @@ type Props = {
 export function ReceiptStep({ onAddReceipt }: Props) {
   const {
     receipts,
-    activeReceiptId,
-    activeReceipt,
-    items,
-    discount,
-    serviceCharge,
-    gst,
-    receiptTotalInput,
-    activeCurrency,
-    hasItems,
-    activeSplit,
-    reconciliation,
     addItem,
     removeItem,
     updateItem,
-    setDiscount,
-    setServiceCharge,
-    setGst,
-    setReceiptTotalInput,
-    removeRounding,
     setActiveReceiptId,
     removeReceipt,
     renameReceipt,
     setReceiptCurrency,
-  } = useReceiptStepModel();
+  } = useReceiptStore(
+    useShallow((state) => ({
+      receipts: state.receipts,
+      addItem: state.addItem,
+      removeItem: state.removeItem,
+      updateItem: state.updateItem,
+      setActiveReceiptId: state.setActiveReceiptId,
+      removeReceipt: state.removeReceipt,
+      renameReceipt: state.renameReceipt,
+      setReceiptCurrency: state.setReceiptCurrency,
+    })),
+  );
+  const receipt = useReceiptStore(selectActiveReceipt);
   const { handleReceiptFileChange, handleScanReceipt } = useReceiptImport({
-    activeReceiptId,
+    activeReceiptId: receipt.id,
   });
-
-  if (!activeReceipt || !discount || !serviceCharge || !gst) {
-    return null;
-  }
+  const { items, currency } = receipt;
+  const hasItems = items.length > 0;
 
   return (
     <div>
@@ -62,18 +60,18 @@ export function ReceiptStep({ onAddReceipt }: Props) {
       />
 
       <ReceiptTabs
-        value={activeReceiptId}
+        value={receipt.id}
         onValueChange={setActiveReceiptId}
         className="mb-8"
         action={<AddReceiptButton data-testid="receipt-add-receipt-btn" onClick={onAddReceipt} />}
       >
-        {receipts.map((receipt) => (
+        {receipts.map((tab) => (
           <ReceiptTab
-            key={receipt.id}
-            value={receipt.id}
-            label={receipt.name}
-            onRename={(name) => renameReceipt(receipt.id, name)}
-            onRemove={receipts.length > 1 ? () => removeReceipt(receipt.id) : undefined}
+            key={tab.id}
+            value={tab.id}
+            label={tab.name}
+            onRename={(name) => renameReceipt(tab.id, name)}
+            onRemove={receipts.length > 1 ? () => removeReceipt(tab.id) : undefined}
           />
         ))}
       </ReceiptTabs>
@@ -94,21 +92,21 @@ export function ReceiptStep({ onAddReceipt }: Props) {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <ReceiptNameField
-                  key={activeReceiptId}
-                  name={activeReceipt.name}
-                  onRename={(name) => renameReceipt(activeReceiptId, name)}
+                  key={receipt.id}
+                  name={receipt.name}
+                  onRename={(name) => renameReceipt(receipt.id, name)}
                 />
                 <CurrencySelector
-                  value={activeCurrency}
-                  onChange={(currency) => setReceiptCurrency(activeReceiptId, currency)}
+                  value={currency}
+                  onChange={(next) => setReceiptCurrency(receipt.id, next)}
                 />
               </div>
-              {activeCurrency !== BASE_CURRENCY ? (
+              {currency !== BASE_CURRENCY ? (
                 <div className="mt-1">
                   <ExchangeRateDisplay
-                    receiptId={activeReceiptId}
-                    currency={activeCurrency}
-                    exchangeRateOverride={activeReceipt.exchangeRateOverride}
+                    receiptId={receipt.id}
+                    currency={currency}
+                    exchangeRateOverride={receipt.exchangeRateOverride}
                   />
                 </div>
               ) : (
@@ -137,17 +135,17 @@ export function ReceiptStep({ onAddReceipt }: Props) {
                   <LineItemCard
                     key={item.id}
                     item={item}
-                    discount={discount}
-                    currency={activeCurrency}
-                    onUpdate={(updater) => updateItem(item.id, updater)}
-                    onRemove={() => removeItem(item.id)}
+                    discount={receipt.discount}
+                    currency={currency}
+                    onUpdate={(update) => updateItem(receipt.id, item.id, update)}
+                    onRemove={() => removeItem(receipt.id, item.id)}
                   />
                 ))}
 
                 <button
                   type="button"
                   data-testid="receipt-add-item-btn"
-                  onClick={addItem}
+                  onClick={() => addItem(receipt.id)}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant p-4 text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
                 >
                   <span className="material-symbols-outlined">add_circle</span>
@@ -165,7 +163,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
                 <button
                   type="button"
                   data-testid="receipt-add-item-btn"
-                  onClick={addItem}
+                  onClick={() => addItem(receipt.id)}
                   className="mt-2 flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary transition-transform active:scale-95"
                 >
                   <span className="material-symbols-outlined text-sm">add</span>
@@ -177,22 +175,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
         </div>
 
         <div className="lg:col-span-4">
-          <GlobalChargesPanel
-            split={activeSplit}
-            discount={discount}
-            serviceCharge={serviceCharge}
-            gst={gst}
-            reconciliationCents={reconciliation.cents}
-            receiptTotalInput={receiptTotalInput}
-            onApplyDiscount={reconciliation.applyCorrectiveDiscount}
-            onAddRounding={reconciliation.addRounding}
-            onRemoveRounding={removeRounding}
-            onDiscountChange={setDiscount}
-            onServiceChargeChange={setServiceCharge}
-            onGstChange={setGst}
-            onReceiptTotalInputChange={setReceiptTotalInput}
-            currency={activeCurrency}
-          />
+          <GlobalChargesPanel receipt={receipt} />
         </div>
       </div>
     </div>

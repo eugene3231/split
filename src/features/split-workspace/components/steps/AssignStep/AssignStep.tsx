@@ -3,7 +3,8 @@ import { applyAssignmentCommand } from '@features/split-workspace/logic/assignme
 import type { AssignmentCommand } from '@features/split-workspace/logic/assignmentInteraction';
 import { resolveClaimView } from '@features/split-workspace/logic/claim';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import { useReceiptSplit } from '@features/split-workspace/hooks/useReceiptSplit';
+import { useSplits } from '@features/split-workspace/hooks/useSplits';
+import { centsByPerson } from '@features/split-workspace/logic/split/amounts';
 import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { BASE_CURRENCY } from '@shared/constants';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
@@ -19,27 +20,27 @@ interface Props {
 }
 
 export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
-  const { receipts, people, updateReceiptItem } = useReceiptStore(
+  const { receipts, people, updateItem } = useReceiptStore(
     useShallow((state) => ({
       receipts: state.receipts,
       people: state.people,
-      updateReceiptItem: state.updateReceiptItem,
+      updateItem: state.updateItem,
     })),
   );
-  const { consolidated } = useReceiptSplit();
+  const { consolidated } = useSplits();
 
   const view = resolveClaimView({
     receipts,
     people,
     activePersonId,
-    totalByPersonCents: consolidated.split.totalByPersonCents,
+    totalByPersonCents: centsByPerson(consolidated, 'total'),
     totalsCurrency: BASE_CURRENCY,
   });
   const sections = view.sections.filter((section) => section.items.length > 0);
   const personDirection = useSlideDirection(view.people.findIndex((person) => person.isActive));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
-    updateReceiptItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
+    updateItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));
 
   const { activePerson } = view;
   if (!activePerson) {

@@ -44,7 +44,6 @@ export const geminiReceiptSchema = z.object({
 });
 
 export type GeminiChargePayload = z.infer<typeof geminiChargeSchema>;
-export type GeminiReceiptPayload = z.infer<typeof geminiReceiptSchema>;
 
 // Zod emits these, but Gemini's API rejects a responseSchema containing them.
 const UNSUPPORTED_KEYS = new Set(['$schema', 'additionalProperties']);

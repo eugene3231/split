@@ -35,7 +35,6 @@ vi.mock('zustand/shallow', () => ({
 
 const defaultScanStateMock = {
   isScanning: false,
-  scanStatus: '',
   scanError: null,
   scanWarnings: [],
   loadingMessage: '',

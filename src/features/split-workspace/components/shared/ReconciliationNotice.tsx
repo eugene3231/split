@@ -1,19 +1,19 @@
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { CheckIcon } from './CheckIcon';
+import type {
+  Reconciliation,
+  ReconciliationFix,
+} from '@features/split-workspace/logic/reconciliation';
+import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
-  reconciliationCents: number | null;
-  onApplyDiscount?: () => void;
-  onAddRounding?: () => void;
-  currency?: string;
+  reconciliation: Reconciliation;
+  currency: CurrencyCode;
+  onApplyFix: (fix: ReconciliationFix) => void;
 }
 
-export function ReconciliationNotice({
-  reconciliationCents,
-  onApplyDiscount,
-  onAddRounding,
-  currency,
-}: Props) {
+export function ReconciliationNotice({ reconciliation, currency, onApplyFix }: Props) {
+  const { cents: reconciliationCents, fix } = reconciliation;
   if (reconciliationCents === null) return null;
 
   const isMatch = reconciliationCents === 0;
@@ -37,48 +37,44 @@ export function ReconciliationNotice({
     );
   }
 
+  // Stacked in the receipt step's narrow panel; one row where the summary gives it the width.
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-error-container/30 bg-error-container/20 p-4">
-      <div className="flex items-center gap-4">
-        <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-error p-1 text-on-error">
-          <span
-            className="material-symbols-outlined text-sm"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            priority_high
-          </span>
+    <div className="@container">
+      <div className="flex flex-col gap-3 rounded-2xl border border-error-container/30 bg-error-container/20 p-4 @2xl:flex-row @2xl:items-center @2xl:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-error p-1 text-on-error">
+            <span
+              className="material-symbols-outlined text-sm"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              priority_high
+            </span>
+          </div>
+          <div>
+            <p className="text-xs leading-tight font-extrabold text-on-error-container">
+              Mismatch found ({formatCurrencyFromCents(Math.abs(reconciliationCents), currency)})
+            </p>
+            <p className="mt-0.5 text-xs text-on-error-container/80">
+              {isOver
+                ? 'Computed total is lower than receipt.'
+                : 'Computed total is higher than receipt.'}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs leading-tight font-extrabold text-on-error-container">
-            Mismatch found ({formatCurrencyFromCents(Math.abs(reconciliationCents), currency)})
-          </p>
-          <p className="mt-0.5 text-xs text-on-error-container/80">
-            {isOver
-              ? 'Computed total is lower than receipt.'
-              : 'Computed total is higher than receipt.'}
-          </p>
-        </div>
+        {/* The discount button stays up even when no discount can close the gap (#193). */}
+        <button
+          type="button"
+          data-testid={isOver ? 'add-rounding-reconcile-btn' : 'apply-discount-reconcile-btn'}
+          onClick={() => {
+            if (fix) onApplyFix(fix);
+          }}
+          className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90 @2xl:w-auto @2xl:px-6 @2xl:whitespace-nowrap"
+        >
+          {isOver
+            ? `Add ${formatCurrencyFromCents(reconciliationCents, currency)} as rounding`
+            : 'Resolve Difference (Apply Discount)'}
+        </button>
       </div>
-      {!isOver && onApplyDiscount && (
-        <button
-          type="button"
-          data-testid="apply-discount-reconcile-btn"
-          onClick={onApplyDiscount}
-          className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
-        >
-          Resolve Difference (Apply Discount)
-        </button>
-      )}
-      {isOver && onAddRounding && (
-        <button
-          type="button"
-          data-testid="add-rounding-reconcile-btn"
-          onClick={onAddRounding}
-          className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90"
-        >
-          Add {formatCurrencyFromCents(reconciliationCents, currency)} as rounding
-        </button>
-      )}
     </div>
   );
 }

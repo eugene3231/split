@@ -4,7 +4,7 @@ import {
   saveExchangeRates,
 } from '@features/split-workspace/logic/exchangeRateStorage';
 import { fetchExchangeRates } from '@features/split-workspace/api/exchangeRateApi';
-import { FALLBACK_RATES_TO_SGD } from '@features/split-workspace/logic/exchangeRates';
+import { FALLBACK_RATES } from '@features/split-workspace/logic/exchangeRates';
 
 type CurrencyStore = {
   exchangeRates: Record<string, number>;
@@ -12,7 +12,7 @@ type CurrencyStore = {
   fetchAndSetExchangeRates: () => Promise<void>;
 };
 
-const initialRates = loadExchangeRates() ?? FALLBACK_RATES_TO_SGD;
+const initialRates = loadExchangeRates() ?? FALLBACK_RATES;
 
 export const useCurrencyStore = create<CurrencyStore>((set) => ({
   exchangeRates: initialRates,
