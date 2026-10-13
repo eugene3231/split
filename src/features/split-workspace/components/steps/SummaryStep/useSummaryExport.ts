@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { generateReceiptSplitImageLight } from '@features/sharing/logic/receiptSplitImageLight';
-import { generateOverviewTableImage } from '@features/sharing/logic/overviewTableImage';
+import { generatePersonBreakdownImage } from '@features/sharing/logic/personBreakdownImage';
+import { generateOverviewImage } from '@features/sharing/logic/overviewImage';
 import {
   buildDownloadFilename,
   buildSplitShareText,
@@ -52,8 +52,8 @@ export function useSummaryExport({ model, includeItemDetails, mode }: UseSummary
   // The image follows whichever view is on screen: the person cards or the overview table.
   const generateImage = () =>
     mode === 'overview'
-      ? generateOverviewTableImage({ overview: model.summaryOverview, title: receiptName })
-      : generateReceiptSplitImageLight({
+      ? generateOverviewImage({ overview: model.summaryOverview, title: receiptName })
+      : generatePersonBreakdownImage({
           summaryBreakdown: model.summaryBreakdown,
           includeItemDetails,
           receiptName,

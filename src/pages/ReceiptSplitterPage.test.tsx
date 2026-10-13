@@ -6,12 +6,12 @@ import { LOCAL_STORAGE_OCR_SETTINGS_KEY } from '@features/split-workspace/consta
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 
-const { generateReceiptSplitImageLightMock } = vi.hoisted(() => ({
-  generateReceiptSplitImageLightMock: vi.fn(),
+const { generatePersonBreakdownImageMock } = vi.hoisted(() => ({
+  generatePersonBreakdownImageMock: vi.fn(),
 }));
 
-vi.mock('../features/sharing/logic/receiptSplitImageLight', () => ({
-  generateReceiptSplitImageLight: generateReceiptSplitImageLightMock,
+vi.mock('../features/sharing/logic/personBreakdownImage', () => ({
+  generatePersonBreakdownImage: generatePersonBreakdownImageMock,
 }));
 
 import { ReceiptSplitterPage } from '@pages/ReceiptSplitterPage';
@@ -113,8 +113,8 @@ beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   resetStore();
-  generateReceiptSplitImageLightMock.mockReset();
-  generateReceiptSplitImageLightMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }));
+  generatePersonBreakdownImageMock.mockReset();
+  generatePersonBreakdownImageMock.mockResolvedValue(new Blob(['image'], { type: 'image/png' }));
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
   Object.defineProperty(URL, 'createObjectURL', {
@@ -733,7 +733,7 @@ describe('ReceiptSplitterPage integration', () => {
     it('triggers image generation when save image is clicked', async () => {
       await navigateToFinal();
       fireEvent.click(screen.getByTestId('export-save-image-btn'));
-      await waitFor(() => expect(generateReceiptSplitImageLightMock).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(generatePersonBreakdownImageMock).toHaveBeenCalledTimes(1));
     });
 
     it('triggers clipboard write when copy text is clicked', async () => {

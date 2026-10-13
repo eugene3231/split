@@ -24,7 +24,7 @@ const ITEM_COLUMN = 'w-32 sm:w-56';
 const TABLE_WIDTH =
   'w-full min-w-[calc(8rem+var(--people)*5rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)]';
 
-// `features/sharing/logic/overviewTableImage.ts` draws the same table for the PNG export.
+// `features/sharing/logic/overviewImage.ts` draws the same table for the PNG export.
 export function OverviewTable({ overview }: Props) {
   const { people, sections } = overview;
   const showSectionHeadings = sections.length > 1;

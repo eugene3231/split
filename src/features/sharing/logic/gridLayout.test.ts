@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chooseGridLayout, layoutGrid } from './receiptSplitImageLayout';
+import { chooseGridLayout, layoutGrid } from './gridLayout';
 
 describe('layoutGrid', () => {
   it('fills rows left to right and lines each row up to its tallest card', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OverviewReceiptSection, SummaryOverview } from '@shared/types/summaryOverview';
-import { buildOverviewImageRows, measureOverviewImage } from './overviewTableLayout';
+import { buildOverviewImageRows, measureOverviewImage } from './overviewLayout';
 
 function section(id: string): OverviewReceiptSection {
   return {

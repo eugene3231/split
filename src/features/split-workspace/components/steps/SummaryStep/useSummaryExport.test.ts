@@ -1,8 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { generateReceiptSplitImageLight } from '@features/sharing/logic/receiptSplitImageLight';
-import { generateOverviewTableImage } from '@features/sharing/logic/overviewTableImage';
+import { generatePersonBreakdownImage } from '@features/sharing/logic/personBreakdownImage';
+import { generateOverviewImage } from '@features/sharing/logic/overviewImage';
 import {
   makeItem,
   makePerson,
@@ -15,12 +15,12 @@ import { useSummaryExport } from './useSummaryExport';
 import type { SummaryMode } from './SummaryModeToggle';
 import { equalShares } from '@features/split-workspace/logic/assignment';
 
-vi.mock('@features/sharing/logic/receiptSplitImageLight', () => ({
-  generateReceiptSplitImageLight: vi.fn(),
+vi.mock('@features/sharing/logic/personBreakdownImage', () => ({
+  generatePersonBreakdownImage: vi.fn(),
 }));
 
-vi.mock('@features/sharing/logic/overviewTableImage', () => ({
-  generateOverviewTableImage: vi.fn(),
+vi.mock('@features/sharing/logic/overviewImage', () => ({
+  generateOverviewImage: vi.fn(),
 }));
 
 vi.mock('@features/payments', () => ({
@@ -65,8 +65,8 @@ function renderExporter(strictMode = false, mode: SummaryMode = 'by-person') {
 beforeEach(() => {
   resetAllStores();
   seedReceipts();
-  vi.mocked(generateReceiptSplitImageLight).mockReset();
-  vi.mocked(generateOverviewTableImage).mockReset();
+  vi.mocked(generatePersonBreakdownImage).mockReset();
+  vi.mocked(generateOverviewImage).mockReset();
 });
 
 afterEach(() => {
@@ -213,7 +213,7 @@ describe('useSummaryExport', () => {
     vi.useFakeTimers();
     vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
     let rejectImage!: (error: Error) => void;
-    vi.mocked(generateReceiptSplitImageLight).mockImplementation(
+    vi.mocked(generatePersonBreakdownImage).mockImplementation(
       () => new Promise<Blob>((_resolve, reject) => (rejectImage = reject)),
     );
     const { result } = renderExporter();
@@ -243,20 +243,20 @@ describe('useSummaryExport', () => {
       createObjectURL: vi.fn().mockReturnValue('blob:x'),
       revokeObjectURL: vi.fn(),
     });
-    vi.mocked(generateOverviewTableImage).mockResolvedValue(new Blob(['image']));
+    vi.mocked(generateOverviewImage).mockResolvedValue(new Blob(['image']));
     const { result } = renderExporter(false, 'overview');
 
     await act(async () => result.current.preview());
 
-    expect(generateReceiptSplitImageLight).not.toHaveBeenCalled();
-    expect(generateOverviewTableImage).toHaveBeenCalledWith(
+    expect(generatePersonBreakdownImage).not.toHaveBeenCalled();
+    expect(generateOverviewImage).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Dinner' }),
     );
     expect(result.current.previewUrl).toBe('blob:x');
   });
 
   it('preserves image preview error feedback', async () => {
-    vi.mocked(generateReceiptSplitImageLight).mockRejectedValue(new Error('Preview failed'));
+    vi.mocked(generatePersonBreakdownImage).mockRejectedValue(new Error('Preview failed'));
     const { result } = renderExporter();
 
     await act(async () => result.current.preview());
@@ -273,7 +273,7 @@ describe('useSummaryExport', () => {
       const createObjectURL = vi.fn().mockReturnValue('blob:late');
       vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
       let resolveImage!: (blob: Blob) => void;
-      vi.mocked(generateReceiptSplitImageLight).mockImplementation(
+      vi.mocked(generatePersonBreakdownImage).mockImplementation(
         () => new Promise<Blob>((resolve) => (resolveImage = resolve)),
       );
       const { result, unmount } = renderExporter(strictMode);

@@ -1,16 +1,8 @@
 import type { Person } from '@shared/types';
 import { formatMoneyAmount } from '@shared/logic/core/money';
+import { loadImage } from '@shared/utils/loadImage';
 import { renderQrCanvas } from '@features/payments/qr/logic/renderQrCanvas';
 import { buildPaynowString, normalizeMobile } from './paynow';
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
 
 function overlayLogo(canvas: HTMLCanvasElement, logo: HTMLImageElement, canvasSize: number) {
   const ctx = canvas.getContext('2d');

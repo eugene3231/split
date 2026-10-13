@@ -6,28 +6,26 @@ import type {
   ReceiptBreakdownSection,
   SummaryBreakdown,
 } from '@shared/types/summaryBreakdown';
+import { loadImage } from '@shared/utils/loadImage';
+import { formatConversionLines, formatRateLine } from '@features/sharing/logic/breakdownFormat';
 import {
   canvasToBlob,
-  drawLightCardShell,
+  drawCardShell,
   drawPersonAvatar,
   drawRoundedRect,
+  drawTitle,
   ellipsizeText,
-  formatConversionLines,
-  formatGeneratedAt,
-  formatRateLine,
   wrapText,
-} from '@features/sharing/logic/receiptSplitImageLightHelpers';
-import { chooseGridLayout } from '@features/sharing/logic/receiptSplitImageLayout';
+} from '@features/sharing/logic/canvas/draw';
+import { FONT, INK, INSET, MUTED, PAGE } from '@features/sharing/logic/canvas/theme';
+import { chooseGridLayout } from '@features/sharing/logic/gridLayout';
 
-type GenerateReceiptSplitImageLightOptions = {
+interface GeneratePersonBreakdownImageOptions {
   summaryBreakdown: SummaryBreakdown;
   includeItemDetails: boolean;
   receiptName?: string;
-};
+}
 
-const FONT = 'Inter, system-ui, -apple-system, sans-serif';
-const INK = '#18181b';
-const MUTED = '#52525b';
 const RULE = 'rgba(202,196,208,0.45)';
 
 const PAD = 48;
@@ -60,8 +58,8 @@ const COLLAPSED_ROW_H = 40;
 const QR_GAP = 24;
 const QR_SIZE = 240;
 
-export async function generateReceiptSplitImageLight(
-  options: GenerateReceiptSplitImageLightOptions,
+export async function generatePersonBreakdownImage(
+  options: GeneratePersonBreakdownImageOptions,
 ): Promise<Blob> {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -88,11 +86,11 @@ export async function generateReceiptSplitImageLight(
   canvas.width = canvasWidthFor(layout.columns);
   canvas.height = heightFor(layout.height);
 
-  ctx.fillStyle = '#f5f5f5';
+  ctx.fillStyle = PAGE;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const contentWidth = canvas.width - PAD * 2;
-  drawTitle(ctx, options.receiptName);
+  drawTitle(ctx, options.receiptName || 'Receipt Splitter', PAD, PAD + 40);
   drawGrandTotalBand(ctx, {
     y: PAD + TITLE_H,
     width: contentWidth,
@@ -118,15 +116,6 @@ function canvasWidthFor(columns: number): number {
   return PAD * 2 + columns * COLUMN_WIDTH + (columns - 1) * COLUMN_GAP;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
 async function preloadQrImages(
   summaryBreakdown: SummaryBreakdown,
 ): Promise<Map<string, HTMLImageElement>> {
@@ -136,16 +125,6 @@ async function preloadQrImages(
       .map(async (person) => [person.person.id, await loadImage(person.qrDataUrl!)] as const),
   );
   return new Map(entries);
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, receiptName?: string): void {
-  ctx.fillStyle = INK;
-  ctx.font = `700 44px ${FONT}`;
-  ctx.fillText(receiptName || 'Receipt Splitter', PAD, PAD + 40);
-
-  ctx.fillStyle = MUTED;
-  ctx.font = `500 22px ${FONT}`;
-  ctx.fillText(`Generated ${formatGeneratedAt(new Date())}`, PAD, PAD + 76);
 }
 
 interface GrandTotalBandArgs {
@@ -256,7 +235,7 @@ interface PersonCardArgs {
 
 function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): void {
   const { breakdown } = args;
-  drawLightCardShell(ctx, args.x, args.y, COLUMN_WIDTH, args.height);
+  drawCardShell(ctx, args.x, args.y, COLUMN_WIDTH, args.height);
 
   const innerX = args.x + CARD_PAD;
   drawPersonHeader(ctx, breakdown, innerX, args.y + CARD_PAD);
@@ -345,7 +324,7 @@ function drawSection(
   y: number,
   height: number,
 ): void {
-  ctx.fillStyle = '#f0f0f0';
+  ctx.fillStyle = INSET;
   drawRoundedRect(ctx, x, y, INNER_WIDTH, height, 14);
   ctx.fill();
 

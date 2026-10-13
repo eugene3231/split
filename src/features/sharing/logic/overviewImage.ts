@@ -3,12 +3,13 @@ import { personColor } from '@shared/utils/personColors';
 import type { SummaryOverview } from '@shared/types/summaryOverview';
 import {
   canvasToBlob,
-  drawLightCardShell,
+  drawCardShell,
   drawPersonAvatar,
   drawRoundedRect,
+  drawTitle,
   ellipsizeText,
-  formatGeneratedAt,
-} from '@features/sharing/logic/receiptSplitImageLightHelpers';
+} from '@features/sharing/logic/canvas/draw';
+import { FONT, INK, INSET, MUTED, PAGE } from '@features/sharing/logic/canvas/theme';
 import {
   CARD_PAD_X,
   FOOTER_H,
@@ -21,12 +22,9 @@ import {
   TITLE_H,
   measureOverviewImage,
   type OverviewImageRow,
-} from '@features/sharing/logic/overviewTableLayout';
+} from '@features/sharing/logic/overviewLayout';
 import type { CurrencyCode } from '@shared/constants';
 
-const FONT = 'Inter, system-ui, -apple-system, sans-serif';
-const INK = '#18181b';
-const MUTED = '#52525b';
 const DIVIDER = 'rgba(202,196,208,0.40)';
 
 interface GenerateOverviewImageOptions {
@@ -34,7 +32,7 @@ interface GenerateOverviewImageOptions {
   title?: string;
 }
 
-export async function generateOverviewTableImage({
+export async function generateOverviewImage({
   overview,
   title,
 }: GenerateOverviewImageOptions): Promise<Blob> {
@@ -45,14 +43,14 @@ export async function generateOverviewTableImage({
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Unable to initialize canvas renderer.');
 
-  ctx.fillStyle = '#f5f5f5';
+  ctx.fillStyle = PAGE;
   ctx.fillRect(0, 0, width, height);
 
-  drawTitle(ctx, title);
+  drawTitle(ctx, title || 'Who had what', PAD, PAD + 36);
 
   const cardY = PAD + TITLE_H + TITLE_AFTER_GAP;
   const cardWidth = width - PAD * 2;
-  drawLightCardShell(ctx, PAD, cardY, cardWidth, height - cardY - PAD);
+  drawCardShell(ctx, PAD, cardY, cardWidth, height - cardY - PAD);
 
   const table: TableGeometry = {
     left: PAD + CARD_PAD_X,
@@ -78,16 +76,6 @@ interface TableGeometry {
   left: number;
   right: number;
   columnCenter: (personIndex: number) => number;
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, title?: string) {
-  ctx.fillStyle = INK;
-  ctx.font = `700 44px ${FONT}`;
-  ctx.fillText(title || 'Who had what', PAD, PAD + 36);
-
-  ctx.fillStyle = MUTED;
-  ctx.font = `500 22px ${FONT}`;
-  ctx.fillText(`Generated ${formatGeneratedAt(new Date())}`, PAD, PAD + 72);
 }
 
 function drawHeader(
@@ -125,7 +113,7 @@ function drawRow(
   const labelWidth = ITEM_COL_W - 24;
 
   if (row.kind === 'heading') {
-    ctx.fillStyle = '#f0f0f0';
+    ctx.fillStyle = INSET;
     ctx.fillRect(table.left - CARD_PAD_X, y, table.right - table.left + CARD_PAD_X * 2, rowHeight);
     ctx.fillStyle = MUTED;
     ctx.font = `700 18px ${FONT}`;
