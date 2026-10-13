@@ -20,7 +20,7 @@ import { OverviewTable } from './OverviewTable';
 import { MixedCurrencyNote } from './MixedCurrencyNote';
 import { cn } from '@shared/utils/cn';
 import { SummaryDetailToggle } from './SummaryDetailToggle';
-import type { SummaryDetail } from './SummaryDetailToggle';
+import type { SummaryDetail } from '@shared/types/summaryBreakdown';
 
 export type SummaryStepProps = {
   onAddReceipt: () => void;
@@ -36,20 +36,12 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
   const [showBaseCurrency, setShowBaseCurrency] = useState(false);
   const [mode, setMode] = useState<SummaryMode>('by-person');
 
-  const model = useSummaryModel({
-    activeTab,
-    showBaseCurrency,
-    showAllItems: detail === 'all-items',
-  });
+  const model = useSummaryModel({ activeTab, showBaseCurrency, detail });
   const { people, receipts, renameReceipt, view, summaryBreakdown, summaryOverview } = model;
   const { cents: reconciliationCents, fix } = model.reconciliation;
   const patchReceipt = useReceiptStore((state) => state.patchReceipt);
   const { exportState, text, previewUrl, download, preview, share, closePreview } =
-    useSummaryExport({
-      model,
-      includeItemDetails: detail !== 'totals',
-      mode,
-    });
+    useSummaryExport({ model, mode });
 
   const receiptForExport = soleReceipt(view);
   const nativeCurrency = receiptForExport?.currency ?? BASE_CURRENCY;
@@ -165,11 +157,7 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
               className="flex flex-col gap-6 motion-safe:animate-fade-in"
             >
               {summaryBreakdown.personBreakdowns.map((breakdown) => (
-                <PersonBreakdownCard
-                  key={breakdown.person.id}
-                  breakdown={breakdown}
-                  showDetails={detail !== 'totals'}
-                />
+                <PersonBreakdownCard key={breakdown.person.id} breakdown={breakdown} />
               ))}
             </div>
           )}

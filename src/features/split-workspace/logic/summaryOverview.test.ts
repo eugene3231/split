@@ -86,10 +86,13 @@ describe('resolveSummaryOverview', () => {
     expect(rounding).toMatchObject({ kind: 'rounding', label: 'Rounding', totalCents: 5 });
     expect(rounding?.sharesByPerson).toEqual({ alice: 2, bob: 2, cara: 1 });
     expect(
-      breakdown.personBreakdowns.map(
-        (person) =>
-          person.sections[0].chargeRows.find((row) => row.kind === 'rounding')?.amountCents,
-      ),
+      breakdown.personBreakdowns.map((person) => {
+        if (person.body.kind !== 'sections') return null;
+        const rounding = person.body.sections[0].rows.find(
+          (row) => row.kind === 'charge' && row.charge === 'rounding',
+        );
+        return rounding?.kind === 'charge' ? rounding.amountCents : null;
+      }),
     ).toEqual([2, 2, 1]);
   });
 

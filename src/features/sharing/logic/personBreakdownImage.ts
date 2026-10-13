@@ -2,12 +2,18 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type {
   BreakdownChargeRow,
   BreakdownItemRow,
+  BreakdownRow,
   PersonBreakdown,
-  ReceiptBreakdownSection,
+  ReceiptBreakdownTotal,
   SummaryBreakdown,
 } from '@shared/types/summaryBreakdown';
 import { loadImage } from '@shared/utils/loadImage';
-import { formatConversionLines, formatRateLine } from '@features/sharing/logic/breakdownFormat';
+import {
+  formatChargeAmount,
+  formatConversionAmount,
+  formatItemAmount,
+  formatRateLine,
+} from '@features/sharing/logic/breakdownFormat';
 import {
   canvasToBlob,
   drawCardShell,
@@ -15,67 +21,58 @@ import {
   drawRoundedRect,
   drawTitle,
   ellipsizeText,
-  wrapText,
 } from '@features/sharing/logic/canvas/draw';
 import { FONT, INK, INSET, MUTED, PAGE } from '@features/sharing/logic/canvas/theme';
 import { chooseGridLayout } from '@features/sharing/logic/gridLayout';
+import {
+  CARD_PAD,
+  COLUMN_WIDTH,
+  HEADER_CONVERSION_H,
+  INNER_WIDTH,
+  ITEM_WRAP_H,
+  QR_SIZE,
+  SECTION_INNER_WIDTH,
+  SECTION_PAD,
+  SECTION_RULE_H,
+  itemLabelLines,
+  layoutCard,
+  type BodyLayout,
+  type CardLayout,
+  type SectionLayout,
+} from '@features/sharing/logic/personBreakdownLayout';
 
 interface GeneratePersonBreakdownImageOptions {
   summaryBreakdown: SummaryBreakdown;
-  includeItemDetails: boolean;
   receiptName?: string;
 }
 
 const RULE = 'rgba(202,196,208,0.45)';
 
 const PAD = 48;
-const COLUMN_WIDTH = 760;
 const COLUMN_GAP = 24;
 const MAX_COLUMNS = 4;
 const TITLE_H = 96;
 const BAND_H = 112;
 const BAND_AFTER_GAP = 28;
-
-const CARD_PAD = 28;
 const AVATAR_RADIUS = 24;
-const HEADER_H = 64;
-const HEADER_CONVERSION_H = 30;
-const BODY_GAP = 20;
 
-const SECTION_PAD = 20;
-const SECTION_GAP = 12;
-const SECTION_TITLE_H = 30;
-const CONVERSION_LINE_H = 26;
-const SECTION_RULE_H = 18;
-const ITEM_H = 38;
-const ITEM_WRAP_H = 28;
-const ITEM_MAX_LINES = 2;
-const CHARGE_RULE_H = 14;
-const CHARGE_H = 34;
-const EMPTY_H = 40;
-const COLLAPSED_ROW_H = 40;
-
-const QR_GAP = 24;
-const QR_SIZE = 240;
-
-export async function generatePersonBreakdownImage(
-  options: GeneratePersonBreakdownImageOptions,
-): Promise<Blob> {
+// `PersonBreakdownCard.tsx` renders the same breakdown on screen. Where the two look
+// different on purpose, a comment at the spot says so and docs/EXPORT-PARITY.md lists it.
+export async function generatePersonBreakdownImage({
+  summaryBreakdown,
+  receiptName,
+}: GeneratePersonBreakdownImageOptions): Promise<Blob> {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Unable to initialize canvas renderer.');
 
-  const { summaryBreakdown, includeItemDetails } = options;
-  const people = summaryBreakdown.personBreakdowns;
   const qrImages = await preloadQrImages(summaryBreakdown);
-  const cardHeights = people.map((person) =>
-    measurePersonCard(ctx, person, includeItemDetails, qrImages.has(person.person.id)),
-  );
+  const cards = summaryBreakdown.personBreakdowns.map((breakdown) => layoutCard(ctx, breakdown));
 
   const bodyTop = PAD + TITLE_H + BAND_H + BAND_AFTER_GAP;
   const heightFor = (bodyHeight: number) => bodyTop + bodyHeight + PAD;
-  const layout = chooseGridLayout({
-    heights: cardHeights,
+  const grid = chooseGridLayout({
+    heights: cards.map((card) => card.height),
     maxColumns: MAX_COLUMNS,
     gap: COLUMN_GAP,
     widthFor: canvasWidthFor,
@@ -83,29 +80,22 @@ export async function generatePersonBreakdownImage(
   });
 
   // Resizing clears the canvas and its state, so it happens once the measuring is done.
-  canvas.width = canvasWidthFor(layout.columns);
-  canvas.height = heightFor(layout.height);
+  canvas.width = canvasWidthFor(grid.columns);
+  canvas.height = heightFor(grid.height);
 
   ctx.fillStyle = PAGE;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const contentWidth = canvas.width - PAD * 2;
-  drawTitle(ctx, options.receiptName || 'Receipt Splitter', PAD, PAD + 40);
-  drawGrandTotalBand(ctx, {
-    y: PAD + TITLE_H,
-    width: contentWidth,
-    summaryBreakdown,
-  });
+  drawTitle(ctx, receiptName || 'Receipt Splitter', PAD, PAD + 40);
+  drawGrandTotalBand(ctx, PAD + TITLE_H, canvas.width - PAD * 2, summaryBreakdown);
 
-  people.forEach((breakdown, index) => {
-    const placement = layout.placements[index];
-    drawPersonCard(ctx, {
+  cards.forEach((card, index) => {
+    const placement = grid.placements[index];
+    drawPersonCard(ctx, card, {
       x: PAD + placement.column * (COLUMN_WIDTH + COLUMN_GAP),
       y: bodyTop + placement.y,
       height: placement.height,
-      breakdown,
-      includeItemDetails,
-      qrImage: qrImages.get(breakdown.person.id),
+      qrImage: qrImages.get(card.breakdown.person.id),
     });
   });
 
@@ -120,154 +110,66 @@ async function preloadQrImages(
   summaryBreakdown: SummaryBreakdown,
 ): Promise<Map<string, HTMLImageElement>> {
   const entries = await Promise.all(
-    summaryBreakdown.personBreakdowns
-      .filter((person) => person.qrDataUrl)
-      .map(async (person) => [person.person.id, await loadImage(person.qrDataUrl!)] as const),
+    summaryBreakdown.personBreakdowns.flatMap(({ person, qrDataUrl }) =>
+      qrDataUrl ? [loadImage(qrDataUrl).then((image) => [person.id, image] as const)] : [],
+    ),
   );
   return new Map(entries);
 }
 
-interface GrandTotalBandArgs {
-  y: number;
-  width: number;
-  summaryBreakdown: SummaryBreakdown;
-}
-
-function drawGrandTotalBand(ctx: CanvasRenderingContext2D, args: GrandTotalBandArgs): void {
+function drawGrandTotalBand(
+  ctx: CanvasRenderingContext2D,
+  y: number,
+  width: number,
+  summaryBreakdown: SummaryBreakdown,
+): void {
   ctx.fillStyle = INK;
-  drawRoundedRect(ctx, PAD, args.y, args.width, BAND_H, 24);
+  drawRoundedRect(ctx, PAD, y, width, BAND_H, 24);
   ctx.fill();
 
   ctx.fillStyle = 'rgba(255,255,255,0.70)';
   ctx.font = `700 18px ${FONT}`;
-  ctx.fillText(args.summaryBreakdown.totalLabel.toUpperCase(), PAD + CARD_PAD, args.y + 38);
+  ctx.fillText(summaryBreakdown.totalLabel.toUpperCase(), PAD + CARD_PAD, y + 38);
 
   ctx.fillStyle = '#ffffff';
   ctx.font = `800 48px ${FONT}`;
   ctx.fillText(
-    formatCurrencyFromCents(args.summaryBreakdown.totalCents, args.summaryBreakdown.currency),
+    formatCurrencyFromCents(summaryBreakdown.totalCents, summaryBreakdown.currency),
     PAD + CARD_PAD,
-    args.y + 90,
+    y + 90,
   );
 
   // Image only: the cards on screen each keep their rate, but side by side in one image
   // the same rate would repeat on every card, so it is said once here.
-  const { exchangeRate } = args.summaryBreakdown;
+  const { exchangeRate } = summaryBreakdown;
   if (!exchangeRate) return;
   ctx.fillStyle = 'rgba(255,255,255,0.70)';
   ctx.font = `500 20px ${FONT}`;
   ctx.textAlign = 'right';
-  ctx.fillText(formatRateLine(exchangeRate), PAD + args.width - CARD_PAD, args.y + 90);
+  ctx.fillText(formatRateLine(exchangeRate), PAD + width - CARD_PAD, y + 90);
   ctx.textAlign = 'left';
 }
 
-const INNER_WIDTH = COLUMN_WIDTH - CARD_PAD * 2;
-const SECTION_INNER_WIDTH = INNER_WIDTH - SECTION_PAD * 2;
-
-function measurePersonCard(
-  ctx: CanvasRenderingContext2D,
-  breakdown: PersonBreakdown,
-  includeItemDetails: boolean,
-  hasQr: boolean,
-): number {
-  return (
-    CARD_PAD +
-    measureHeader(breakdown) +
-    BODY_GAP +
-    measureBody(ctx, breakdown, includeItemDetails) +
-    (hasQr ? QR_GAP + QR_SIZE : 0) +
-    CARD_PAD
-  );
-}
-
-function measureHeader(breakdown: PersonBreakdown): number {
-  return HEADER_H + (breakdown.conversion ? HEADER_CONVERSION_H : 0);
-}
-
-function measureBody(
-  ctx: CanvasRenderingContext2D,
-  breakdown: PersonBreakdown,
-  includeItemDetails: boolean,
-): number {
-  if (!includeItemDetails) return breakdown.collapsedReceiptTotals.length * COLLAPSED_ROW_H;
-  if (breakdown.sections.length === 0) return breakdown.emptyMessage ? EMPTY_H : 0;
-  return breakdown.sections.reduce(
-    (height, section, index) =>
-      height + (index > 0 ? SECTION_GAP : 0) + measureSection(ctx, section),
-    0,
-  );
-}
-
-function measureSection(ctx: CanvasRenderingContext2D, section: ReceiptBreakdownSection): number {
-  const conversionH = section.conversion
-    ? formatConversionLines(section.conversion).length * CONVERSION_LINE_H
-    : 0;
-  const itemsH = section.emptyMessage
-    ? EMPTY_H
-    : section.itemRows.reduce((height, row) => height + measureItemRow(ctx, row), 0);
-  const chargesH =
-    section.chargeRows.length > 0 ? CHARGE_RULE_H + section.chargeRows.length * CHARGE_H : 0;
-  return (
-    SECTION_PAD + SECTION_TITLE_H + conversionH + SECTION_RULE_H + itemsH + chargesH + SECTION_PAD
-  );
-}
-
-function measureItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow): number {
-  return ITEM_H + (itemLabelLines(ctx, row).length - 1) * ITEM_WRAP_H;
-}
-
-/** Long item names wrap onto a second line rather than losing the part that tells items apart. */
-function itemLabelLines(ctx: CanvasRenderingContext2D, row: BreakdownItemRow): string[] {
-  ctx.font = `500 22px ${FONT}`;
-  const valueWidth = ctx.measureText(formatItemAmount(row)).width;
-  ctx.font = `400 22px ${FONT}`;
-  return wrapText(ctx, row.label, SECTION_INNER_WIDTH - valueWidth - 24, ITEM_MAX_LINES);
-}
-
-interface PersonCardArgs {
+interface CardPlacement {
   x: number;
   y: number;
+  /** The grid row's height, which is at least what the card needs. */
   height: number;
-  breakdown: PersonBreakdown;
-  includeItemDetails: boolean;
   qrImage?: HTMLImageElement;
 }
 
-function drawPersonCard(ctx: CanvasRenderingContext2D, args: PersonCardArgs): void {
-  const { breakdown } = args;
-  drawCardShell(ctx, args.x, args.y, COLUMN_WIDTH, args.height);
+function drawPersonCard(
+  ctx: CanvasRenderingContext2D,
+  card: CardLayout,
+  { x, y, height, qrImage }: CardPlacement,
+): void {
+  drawCardShell(ctx, x, y, COLUMN_WIDTH, height);
 
-  const innerX = args.x + CARD_PAD;
-  drawPersonHeader(ctx, breakdown, innerX, args.y + CARD_PAD);
-
-  let y = args.y + CARD_PAD + measureHeader(breakdown) + BODY_GAP;
-  if (!args.includeItemDetails) {
-    for (const total of breakdown.collapsedReceiptTotals) {
-      drawAmountRow(ctx, {
-        x: innerX,
-        y: y + 28,
-        width: INNER_WIDTH,
-        label: total.label,
-        value: formatCurrencyFromCents(total.totalCents, total.currency),
-        font: `400 22px ${FONT}`,
-        valueFont: `500 22px ${FONT}`,
-      });
-      y += COLLAPSED_ROW_H;
-    }
-  } else if (breakdown.sections.length === 0 && breakdown.emptyMessage) {
-    drawEmptyMessage(ctx, breakdown.emptyMessage, innerX, y);
-  } else {
-    breakdown.sections.forEach((section, index) => {
-      if (index > 0) y += SECTION_GAP;
-      const height = measureSection(ctx, section);
-      drawSection(ctx, section, innerX, y, height);
-      y += height;
-    });
-  }
-
-  if (args.qrImage) {
-    drawPaynowQr(ctx, args.qrImage, innerX, args.y + args.height - CARD_PAD - QR_SIZE);
-  }
+  const innerX = x + CARD_PAD;
+  drawPersonHeader(ctx, card.breakdown, innerX, y + CARD_PAD);
+  drawBody(ctx, card.body, innerX, y + card.bodyTop);
+  // Pinned to the bottom of the row, so the codes line up across cards of different lengths.
+  if (qrImage) drawPaynowQr(ctx, qrImage, innerX, y + height - CARD_PAD - QR_SIZE);
 }
 
 function drawPersonHeader(
@@ -278,9 +180,6 @@ function drawPersonHeader(
 ): void {
   const right = x + INNER_WIDTH;
   const total = formatCurrencyFromCents(breakdown.totalCents, breakdown.currency);
-  const conversion = breakdown.conversion
-    ? `≈ ${formatCurrencyFromCents(breakdown.conversion.amountCents, breakdown.conversion.toCurrency)}`
-    : null;
 
   ctx.textAlign = 'right';
   ctx.fillStyle = MUTED;
@@ -294,7 +193,9 @@ function drawPersonHeader(
   const totalWidth = ctx.measureText(total).width;
 
   let conversionWidth = 0;
-  if (conversion) {
+  if (breakdown.conversion) {
+    // Image only: the header gives the converted amount and leaves the rate to the band above.
+    const conversion = formatConversionAmount(breakdown.conversion);
     ctx.fillStyle = MUTED;
     ctx.font = `500 22px ${FONT}`;
     ctx.fillText(conversion, right, y + 56 + HEADER_CONVERSION_H);
@@ -310,6 +211,7 @@ function drawPersonHeader(
     colorIndex: breakdown.colorIndex,
   });
 
+  // Image only: the card is a fixed width, so a long name is cut short where the screen wraps.
   const nameX = x + AVATAR_RADIUS * 2 + 14;
   const nameWidth = right - nameX - Math.max(labelWidth, totalWidth, conversionWidth) - 20;
   ctx.fillStyle = INK;
@@ -317,24 +219,51 @@ function drawPersonHeader(
   ctx.fillText(ellipsizeText(ctx, breakdown.person.name, nameWidth), nameX, y + 45);
 }
 
-function drawSection(
+function drawBody(ctx: CanvasRenderingContext2D, body: BodyLayout, x: number, y: number): void {
+  switch (body.kind) {
+    case 'receiptTotals':
+      for (const total of body.totals) drawReceiptTotal(ctx, total.item, x, y + total.y);
+      return;
+    case 'sections':
+      for (const section of body.sections) drawSection(ctx, section.item, x, y + section.y);
+      return;
+    case 'empty':
+      drawEmptyMessage(ctx, body.message, x, y);
+      return;
+  }
+}
+
+function drawReceiptTotal(
   ctx: CanvasRenderingContext2D,
-  section: ReceiptBreakdownSection,
+  total: ReceiptBreakdownTotal,
   x: number,
   y: number,
-  height: number,
+): void {
+  drawAmountRow(ctx, {
+    x,
+    y: y + 28,
+    width: INNER_WIDTH,
+    label: total.label,
+    value: formatCurrencyFromCents(total.totalCents, total.currency),
+    font: `400 22px ${FONT}`,
+    valueFont: `500 22px ${FONT}`,
+  });
+}
+
+function drawSection(
+  ctx: CanvasRenderingContext2D,
+  { section, conversionLines, ruleY, rows, height }: SectionLayout,
+  x: number,
+  y: number,
 ): void {
   ctx.fillStyle = INSET;
   drawRoundedRect(ctx, x, y, INNER_WIDTH, height, 14);
   ctx.fill();
 
   const innerX = x + SECTION_PAD;
-  const right = innerX + SECTION_INNER_WIDTH;
-  let rowY = y + SECTION_PAD;
-
   drawAmountRow(ctx, {
     x: innerX,
-    y: rowY + 22,
+    y: y + SECTION_PAD + 22,
     width: SECTION_INNER_WIDTH,
     label: section.title,
     value: formatCurrencyFromCents(section.totalCents, section.currency),
@@ -342,50 +271,48 @@ function drawSection(
     valueFont: `700 22px ${FONT}`,
     labelColor: INK,
   });
-  rowY += SECTION_TITLE_H;
 
-  if (section.conversion) {
-    ctx.fillStyle = MUTED;
-    ctx.font = `400 18px ${FONT}`;
-    ctx.textAlign = 'right';
-    for (const line of formatConversionLines(section.conversion)) {
-      ctx.fillText(line, right, rowY + 18);
-      rowY += CONVERSION_LINE_H;
-    }
-    ctx.textAlign = 'left';
+  ctx.fillStyle = MUTED;
+  ctx.font = `400 18px ${FONT}`;
+  ctx.textAlign = 'right';
+  for (const line of conversionLines) {
+    ctx.fillText(line.item, innerX + SECTION_INNER_WIDTH, y + line.y + 18);
   }
+  ctx.textAlign = 'left';
 
-  drawRule(ctx, innerX, rowY + SECTION_RULE_H / 2, SECTION_INNER_WIDTH);
-  rowY += SECTION_RULE_H;
-
-  if (section.emptyMessage) {
-    drawEmptyMessage(ctx, section.emptyMessage, innerX, rowY);
-    rowY += EMPTY_H;
-  } else {
-    for (const row of section.itemRows) {
-      drawItemRow(ctx, row, innerX, rowY);
-      rowY += measureItemRow(ctx, row);
-    }
-  }
-
-  if (section.chargeRows.length === 0) return;
-  drawRule(ctx, innerX, rowY + CHARGE_RULE_H / 2, SECTION_INNER_WIDTH);
-  rowY += CHARGE_RULE_H;
-  for (const row of section.chargeRows) {
-    drawChargeRow(ctx, row, innerX, rowY);
-    rowY += CHARGE_H;
-  }
+  drawRule(ctx, innerX, y + ruleY + SECTION_RULE_H / 2);
+  for (const row of rows) drawRow(ctx, row.item, innerX, y + row.y, row.height);
 }
 
-function formatItemAmount(row: BreakdownItemRow): string {
-  return row.amountCents !== null ? formatCurrencyFromCents(row.amountCents, row.currency) : '—';
+function drawRow(
+  ctx: CanvasRenderingContext2D,
+  row: BreakdownRow,
+  x: number,
+  y: number,
+  height: number,
+): void {
+  switch (row.kind) {
+    case 'item':
+      drawItemRow(ctx, row, x, y);
+      return;
+    case 'rule':
+      drawRule(ctx, x, y + height / 2);
+      return;
+    case 'charge':
+      drawChargeRow(ctx, row, x, y);
+      return;
+    case 'empty':
+      drawEmptyMessage(ctx, row.message, x, y);
+      return;
+  }
 }
 
 function drawItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow, x: number, y: number) {
   const lines = itemLabelLines(ctx, row);
-  const style = row.involved ? '' : 'italic ';
+  const involved = row.amountCents !== null;
+  const style = involved ? '' : 'italic ';
   ctx.save();
-  if (!row.involved) ctx.globalAlpha = 0.4;
+  if (!involved) ctx.globalAlpha = 0.4;
   ctx.fillStyle = INK;
   ctx.font = `${style}400 22px ${FONT}`;
   lines.forEach((line, index) => ctx.fillText(line, x, y + 27 + index * ITEM_WRAP_H));
@@ -396,19 +323,20 @@ function drawItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow, x: nu
   ctx.restore();
 }
 
+// Image only: charges are upright with a green discount, where the screen sets every charge
+// in grey italics. The difference is on record in docs/EXPORT-PARITY.md.
 function drawChargeRow(
   ctx: CanvasRenderingContext2D,
   row: BreakdownChargeRow,
   x: number,
   y: number,
 ) {
-  const sign = row.sign === 'minus' ? '−' : '+';
   drawAmountRow(ctx, {
     x,
     y: y + 25,
     width: SECTION_INNER_WIDTH,
     label: row.label,
-    value: `${sign}${formatCurrencyFromCents(row.amountCents, row.currency)}`,
+    value: formatChargeAmount(row),
     font: `400 20px ${FONT}`,
     valueFont: `400 20px ${FONT}`,
     valueColor: row.sign === 'minus' ? '#16a34a' : MUTED,
@@ -446,9 +374,9 @@ function drawEmptyMessage(ctx: CanvasRenderingContext2D, message: string, x: num
   ctx.fillText(message, x, y + 28);
 }
 
-function drawRule(ctx: CanvasRenderingContext2D, x: number, y: number, width: number): void {
+function drawRule(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   ctx.fillStyle = RULE;
-  ctx.fillRect(x, Math.round(y), width, 1);
+  ctx.fillRect(x, Math.round(y), SECTION_INNER_WIDTH, 1);
 }
 
 /** The image already carries "Pay to" and "Amount" beside the code, so it only needs scaling. */

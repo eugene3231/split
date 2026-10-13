@@ -53,7 +53,7 @@ function renderExporter(strictMode = false, mode: SummaryMode = 'by-person') {
   return renderHook(
     ({ activeTab, showBaseCurrency }) => {
       const model = useSummaryModel({ activeTab, showBaseCurrency });
-      return useSummaryExport({ model, includeItemDetails: true, mode });
+      return useSummaryExport({ model, mode });
     },
     {
       initialProps: { activeTab: 'r1', showBaseCurrency: false },

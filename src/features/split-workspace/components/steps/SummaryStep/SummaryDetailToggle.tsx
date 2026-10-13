@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
+import type { SummaryDetail } from '@shared/types/summaryBreakdown';
 import { ItemListIcon } from './ItemListIcon';
 import { PillToggle } from './PillToggle';
-
-export type SummaryDetail = 'totals' | 'their-items' | 'all-items';
 
 const OPTIONS: { value: SummaryDetail; label: string; icon: ReactNode }[] = [
   { value: 'totals', label: 'Totals', icon: <ItemListIcon rows={1} /> },

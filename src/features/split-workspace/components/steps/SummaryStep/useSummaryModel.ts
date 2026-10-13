@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Person } from '@shared/types';
+import type { SummaryDetail } from '@shared/types/summaryBreakdown';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { generatePaynowQrDataUrls, normalizeMobile } from '@features/payments';
@@ -64,7 +65,8 @@ function useQrDataUrls(
 type UseSummaryModelProps = {
   activeTab: string;
   showBaseCurrency: boolean;
-  showAllItems?: boolean;
+  /** How much each person's card spells out. */
+  detail?: SummaryDetail;
 };
 
 export type SummaryModel = ReturnType<typeof useSummaryModel>;
@@ -72,7 +74,7 @@ export type SummaryModel = ReturnType<typeof useSummaryModel>;
 export function useSummaryModel({
   activeTab,
   showBaseCurrency,
-  showAllItems = false,
+  detail = 'their-items',
 }: UseSummaryModelProps) {
   const people = useReceiptStore((s) => s.people);
   const receipts = useReceiptStore((s) => s.receipts);
@@ -96,7 +98,7 @@ export function useSummaryModel({
     centsByPerson(view.total.baseSplit, 'total'),
     payerMobile,
   );
-  const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls, showAllItems });
+  const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls, detail });
   const summaryOverview = resolveSummaryOverview({ people, view });
 
   return {

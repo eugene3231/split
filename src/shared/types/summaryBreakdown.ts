@@ -1,6 +1,9 @@
 import type { ChargeKind, Person } from '@shared/types';
 import type { CurrencyCode } from '@shared/constants';
 
+/** How much of each receipt a person's card spells out. */
+export type SummaryDetail = 'totals' | 'their-items' | 'all-items';
+
 export interface BreakdownExchangeRate {
   rate: number;
   fromCurrency: CurrencyCode;
@@ -13,23 +16,37 @@ export interface BreakdownConversion extends BreakdownExchangeRate {
   showRate: boolean;
 }
 
-/** An item on the receipt; `involved` is false for one the person had no share of. */
 export interface BreakdownItemRow {
+  kind: 'item';
   id: string;
   label: string;
-  /** Null when the person was not involved. */
+  /** Null for an item the person had no share of, which is listed only under "All items". */
   amountCents: number | null;
-  involved: boolean;
   currency: CurrencyCode;
 }
 
+/** The line between a section's items and its charges. */
+export interface BreakdownRuleRow {
+  kind: 'rule';
+}
+
 export interface BreakdownChargeRow {
-  kind: ChargeKind;
+  kind: 'charge';
+  charge: ChargeKind;
   label: string;
   amountCents: number;
   sign: 'minus' | 'plus';
   currency: CurrencyCode;
 }
+
+export interface BreakdownEmptyRow {
+  kind: 'empty';
+  message: string;
+}
+
+/** One line of a receipt section. A section's rows are shown in the order they are listed. */
+export type BreakdownRow =
+  BreakdownItemRow | BreakdownRuleRow | BreakdownChargeRow | BreakdownEmptyRow;
 
 export interface ReceiptBreakdownTotal {
   id: string;
@@ -44,10 +61,14 @@ export interface ReceiptBreakdownSection {
   totalCents: number;
   currency: CurrencyCode;
   conversion?: BreakdownConversion;
-  itemRows: BreakdownItemRow[];
-  chargeRows: BreakdownChargeRow[];
-  emptyMessage?: string;
+  rows: BreakdownRow[];
 }
+
+/** What a person's card shows under its header: one of these, never a mix. */
+export type PersonBreakdownBody =
+  | { kind: 'receiptTotals'; totals: ReceiptBreakdownTotal[] }
+  | { kind: 'sections'; sections: ReceiptBreakdownSection[] }
+  | { kind: 'empty'; message: string };
 
 export interface PersonBreakdown {
   person: Person;
@@ -57,10 +78,9 @@ export interface PersonBreakdown {
   totalCents: number;
   currency: CurrencyCode;
   conversion?: BreakdownConversion;
+  body: PersonBreakdownBody;
+  /** Goes last in the card, so paying comes after checking the items. */
   qrDataUrl?: string;
-  collapsedReceiptTotals: ReceiptBreakdownTotal[];
-  sections: ReceiptBreakdownSection[];
-  emptyMessage?: string;
 }
 
 export interface SummaryBreakdown {

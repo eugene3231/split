@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ChargeState, Person, SplitLine, SplitResult } from '@shared/types';
+import type {
+  BreakdownRow,
+  PersonBreakdown,
+  ReceiptBreakdownSection,
+} from '@shared/types/summaryBreakdown';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
 import {
   resolveSummaryView,
@@ -73,6 +78,18 @@ function allReceipts(total: Pick<ViewAmounts, 'split'>, receipts: ReceiptView[])
   };
 }
 
+function sectionsOf(person: PersonBreakdown): ReceiptBreakdownSection[] {
+  if (person.body.kind !== 'sections') throw new Error(`The card shows ${person.body.kind}`);
+  return person.body.sections;
+}
+
+function rowsOf<K extends BreakdownRow['kind']>(
+  section: ReceiptBreakdownSection,
+  kind: K,
+): Extract<BreakdownRow, { kind: K }>[] {
+  return section.rows.filter((row): row is Extract<BreakdownRow, { kind: K }> => row.kind === kind);
+}
+
 describe('resolveSummaryBreakdown', () => {
   it.each(['r1', 'total'])(
     'uses allocated SGD cents for conversion copy on the %s tab',
@@ -98,7 +115,7 @@ describe('resolveSummaryBreakdown', () => {
       });
       const breakdowns = resolveSummaryBreakdown({ people, view }).personBreakdowns;
       const conversions = breakdowns.map((person) =>
-        activeTab === 'total' ? person.sections[0].conversion : person.conversion,
+        activeTab === 'total' ? sectionsOf(person)[0].conversion : person.conversion,
       );
       expect(view.total.baseSplit.byPerson).toMatchObject({
         alice: { totalCents: 1352 },
@@ -139,7 +156,7 @@ describe('resolveSummaryBreakdown', () => {
       toCurrency: 'SGD',
       showRate: true,
     });
-    expect(aliceBreakdown.sections.map((section) => section.conversion?.showRate)).toEqual([
+    expect(sectionsOf(aliceBreakdown).map((section) => section.conversion?.showRate)).toEqual([
       false,
       false,
     ]);
@@ -167,13 +184,13 @@ describe('resolveSummaryBreakdown', () => {
     const [aliceBreakdown] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
     expect(aliceBreakdown.currency).toBe('USD');
     expect(aliceBreakdown.conversion).toBeUndefined();
-    expect(aliceBreakdown.sections.map((section) => section.conversion?.showRate)).toEqual([
+    expect(sectionsOf(aliceBreakdown).map((section) => section.conversion?.showRate)).toEqual([
       true,
       true,
     ]);
   });
 
-  it('resolves single-receipt person rows and charge rows', () => {
+  it('lists a receipt as its items, then a rule, then the charges the person paid', () => {
     const view = oneReceipt(
       receiptView({
         receipt: makeReceipt({
@@ -198,37 +215,67 @@ describe('resolveSummaryBreakdown', () => {
     const person = breakdown.personBreakdowns[0];
     expect(person.headerLabel).toBe('Total · this receipt');
     expect(person.totalCents).toBe(1368);
-    expect(person.sections[0].totalCents).toBe(1368);
-    expect(person.collapsedReceiptTotals).toEqual([
-      { id: 'r1', label: 'Dinner', totalCents: 1368, currency: 'SGD' },
-    ]);
     expect(person.qrDataUrl).toBe('data:image/png;base64,qr');
-    expect(person.sections[0].itemRows).toMatchObject([
-      { label: 'Noodles', amountCents: 1200, involved: true, currency: 'SGD' },
-    ]);
-    expect(person.sections[0].chargeRows).toEqual([
-      {
-        kind: 'discount',
-        label: 'Discount (5%)',
-        amountCents: 60,
-        sign: 'minus',
-        currency: 'SGD',
-      },
-      {
-        kind: 'service',
-        label: 'Service Charge (10%)',
-        amountCents: 120,
-        sign: 'plus',
-        currency: 'SGD',
-      },
-      {
-        kind: 'gst',
-        label: 'GST / Tax (9%)',
-        amountCents: 108,
-        sign: 'plus',
-        currency: 'SGD',
-      },
-    ]);
+    expect(person.body).toEqual({
+      kind: 'sections',
+      sections: [
+        {
+          id: 'r1',
+          title: 'Dinner',
+          totalCents: 1368,
+          currency: 'SGD',
+          conversion: undefined,
+          rows: [
+            { kind: 'item', id: 'item-1:0', label: 'Noodles', amountCents: 1200, currency: 'SGD' },
+            { kind: 'rule' },
+            {
+              kind: 'charge',
+              charge: 'discount',
+              label: 'Discount (5%)',
+              amountCents: 60,
+              sign: 'minus',
+              currency: 'SGD',
+            },
+            {
+              kind: 'charge',
+              charge: 'service',
+              label: 'Service Charge (10%)',
+              amountCents: 120,
+              sign: 'plus',
+              currency: 'SGD',
+            },
+            {
+              kind: 'charge',
+              charge: 'gst',
+              label: 'GST / Tax (9%)',
+              amountCents: 108,
+              sign: 'plus',
+              currency: 'SGD',
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('ends a section at its items when the person paid no charges', () => {
+    const view = oneReceipt(receiptView({ receipt: makeReceipt({}), split: split() }));
+
+    const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+
+    expect(sectionsOf(person)[0].rows.map((row) => row.kind)).toEqual(['item']);
+  });
+
+  it('leaves the PayNow code off the card of someone who owes nothing', () => {
+    const view = oneReceipt(receiptView({ receipt: makeReceipt({}), split: split() }));
+
+    const [person] = resolveSummaryBreakdown({
+      people: [alice],
+      view,
+      qrDataUrls: { alice: '' },
+    }).personBreakdowns;
+
+    expect(person.qrDataUrl).toBeUndefined();
   });
 
   it('omits a second SGD conversion when a foreign receipt is displayed in SGD', () => {
@@ -246,7 +293,24 @@ describe('resolveSummaryBreakdown', () => {
     expect(person.conversion).toBeUndefined();
   });
 
-  it('includes receipt charges in expanded and collapsed totals', () => {
+  it('converts a receipt on its own tab once, in the header', () => {
+    const view = oneReceipt(
+      receiptView({
+        receipt: makeReceipt({ currency: 'USD' }),
+        split: split(),
+        baseSplit: split({ subtotalCents: 1620 }),
+        currency: 'USD',
+        rate: 1.35,
+      }),
+    );
+
+    const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+
+    expect(person.conversion).toMatchObject({ amountCents: 1620, showRate: true });
+    expect(sectionsOf(person)[0].conversion).toBeUndefined();
+  });
+
+  it('includes receipt charges in the section total and the receipt total', () => {
     const chargedSplit = split({ discount: 100, service: 200, gst: 90 });
     const view = allReceipts({ split: chargedSplit }, [
       receiptView({
@@ -262,15 +326,25 @@ describe('resolveSummaryBreakdown', () => {
     ]);
 
     const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+    const [section] = sectionsOf(person);
 
     expect(person.totalCents).toBe(1390);
-    expect(person.sections[0].totalCents).toBe(1390);
-    expect(person.collapsedReceiptTotals[0].totalCents).toBe(1390);
-    expect(person.sections[0].itemRows[0].amountCents).toBe(1200);
-    expect(person.sections[0].chargeRows.map((row) => row.amountCents)).toEqual([100, 200, 90]);
+    expect(section.totalCents).toBe(1390);
+    expect(rowsOf(section, 'item')[0].amountCents).toBe(1200);
+    expect(rowsOf(section, 'charge').map((row) => row.amountCents)).toEqual([100, 200, 90]);
+
+    const [totals] = resolveSummaryBreakdown({
+      people: [alice],
+      view,
+      detail: 'totals',
+    }).personBreakdowns;
+    expect(totals.body).toEqual({
+      kind: 'receiptTotals',
+      totals: [{ id: 'dinner', label: 'Dinner', totalCents: 1390, currency: 'SGD' }],
+    });
   });
 
-  it('resolves total-tab receipt sections and collapsed totals per person', () => {
+  it('shows the combined tab as one section per receipt, or one total per receipt', () => {
     const ramenSplit = split({ lines: [line({ itemId: 'ramen', name: 'Ramen' })] });
     const teaSplit = split({
       subtotalCents: 300,
@@ -295,17 +369,26 @@ describe('resolveSummaryBreakdown', () => {
 
     expect(breakdown.totalLabel).toBe('Total · 2 receipts');
     expect(person.headerLabel).toBe('Total · 2 receipts');
-    expect(person.collapsedReceiptTotals).toEqual([
-      { id: 'ramen-shop', label: 'Ramen Shop', totalCents: 1200, currency: 'JPY' },
-      { id: 'tea-stall', label: 'Tea Stall', totalCents: 300, currency: 'SGD' },
-    ]);
-    expect(person.sections.map((section) => section.title)).toEqual(['Ramen Shop', 'Tea Stall']);
-    expect(person.sections[0].conversion).toEqual({
+    expect(sectionsOf(person).map((section) => section.title)).toEqual(['Ramen Shop', 'Tea Stall']);
+    expect(sectionsOf(person)[0].conversion).toEqual({
       amountCents: 11,
       rate: 0.009,
       fromCurrency: 'JPY',
       toCurrency: 'SGD',
       showRate: true,
+    });
+
+    const [totals] = resolveSummaryBreakdown({
+      people: [alice],
+      view,
+      detail: 'totals',
+    }).personBreakdowns;
+    expect(totals.body).toEqual({
+      kind: 'receiptTotals',
+      totals: [
+        { id: 'ramen-shop', label: 'Ramen Shop', totalCents: 1200, currency: 'JPY' },
+        { id: 'tea-stall', label: 'Tea Stall', totalCents: 300, currency: 'SGD' },
+      ],
     });
   });
 
@@ -327,22 +410,29 @@ describe('resolveSummaryBreakdown', () => {
 
     const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
 
-    expect(person.sections.map((section) => section.title)).toEqual(['Dinner']);
-    expect(person.sections[0].itemRows.map((row) => row.label)).toEqual(['Noodles']);
+    expect(sectionsOf(person).map((section) => section.title)).toEqual(['Dinner']);
+    expect(rowsOf(sectionsOf(person)[0], 'item').map((row) => row.label)).toEqual(['Noodles']);
 
     const [everything] = resolveSummaryBreakdown({
       people: [alice],
       view,
-      showAllItems: true,
+      detail: 'all-items',
     }).personBreakdowns;
-    expect(everything.sections.map((section) => section.title)).toEqual(['Dinner', 'Drinks']);
-    expect(everything.sections[0].itemRows).toMatchObject([
-      { label: 'Noodles', amountCents: 1200, involved: true },
-      { label: 'Tea', amountCents: null, involved: false },
+    expect(sectionsOf(everything).map((section) => section.title)).toEqual(['Dinner', 'Drinks']);
+    expect(sectionsOf(everything)[0].rows).toMatchObject([
+      { kind: 'item', label: 'Noodles', amountCents: 1200 },
+      { kind: 'item', label: 'Tea', amountCents: null },
     ]);
+
+    const [totals] = resolveSummaryBreakdown({
+      people: [alice],
+      view,
+      detail: 'totals',
+    }).personBreakdowns;
+    expect(totals.body).toMatchObject({ kind: 'receiptTotals', totals: [{ label: 'Dinner' }] });
   });
 
-  it('marks a person with no assigned sections as empty', () => {
+  it('says so when a person had nothing on any receipt', () => {
     const nothingForBob = makeSplit({ bob: {} });
     const view = allReceipts({ split: nothingForBob }, [
       receiptView({ receipt: makeReceipt({ id: 'dinner', name: 'Dinner' }), split: nothingForBob }),
@@ -350,16 +440,28 @@ describe('resolveSummaryBreakdown', () => {
 
     const [person] = resolveSummaryBreakdown({ people: [bob], view }).personBreakdowns;
 
-    expect(person.sections).toEqual([]);
-    expect(person.emptyMessage).toBe('No items assigned.');
+    expect(person.body).toEqual({ kind: 'empty', message: 'No items assigned.' });
+  });
+
+  it('keeps a receipt on its own tab for a person with nothing on it, and says so inside', () => {
+    const nothingForBob = makeSplit({ bob: {} });
+    const view = oneReceipt(receiptView({ receipt: makeReceipt({}), split: nothingForBob }));
+
+    const [person] = resolveSummaryBreakdown({ people: [bob], view }).personBreakdowns;
+
+    expect(sectionsOf(person)[0].rows).toEqual([{ kind: 'empty', message: 'No items assigned.' }]);
   });
 
   it('leaves out the receipt total for a person with nothing on a single receipt', () => {
     const nothingForBob = makeSplit({ bob: {} });
     const view = oneReceipt(receiptView({ receipt: makeReceipt({}), split: nothingForBob }));
 
-    const [person] = resolveSummaryBreakdown({ people: [bob], view }).personBreakdowns;
+    const [person] = resolveSummaryBreakdown({
+      people: [bob],
+      view,
+      detail: 'totals',
+    }).personBreakdowns;
 
-    expect(person.collapsedReceiptTotals).toEqual([]);
+    expect(person.body).toEqual({ kind: 'receiptTotals', totals: [] });
   });
 });

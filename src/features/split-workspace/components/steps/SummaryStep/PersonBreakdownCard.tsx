@@ -1,23 +1,30 @@
-import { BASE_CURRENCY } from '@shared/constants';
-import { formatCurrencyFromCents, formatExchangeRate } from '@shared/logic/core/money';
+import type { ReactElement } from 'react';
+import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type {
-  BreakdownChargeRow,
   BreakdownConversion,
-  BreakdownItemRow,
+  BreakdownRow,
   PersonBreakdown,
+  PersonBreakdownBody,
   ReceiptBreakdownSection,
   ReceiptBreakdownTotal,
 } from '@shared/types/summaryBreakdown';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import {
+  formatChargeAmount,
+  formatConversionLines,
+  formatItemAmount,
+} from '@features/sharing/logic/breakdownFormat';
 import { buildDownloadFilename } from '@features/sharing/logic/shareSplit';
 import { cn } from '@shared/utils/cn';
 
 interface Props {
   breakdown: PersonBreakdown;
-  showDetails?: boolean;
 }
 
-export function PersonBreakdownCard({ breakdown, showDetails = false }: Props) {
+// `features/sharing/logic/personBreakdownImage.ts` draws the same breakdown for the PNG export.
+// Where the two look different on purpose, a comment at the spot says so and
+// docs/EXPORT-PARITY.md lists it.
+export function PersonBreakdownCard({ breakdown }: Props) {
   return (
     <div className="flex h-full flex-col rounded-2xl bg-surface-container-lowest p-4 sm:p-6">
       {/* Wraps the total under the name rather than truncating the name when both don't fit.
@@ -36,31 +43,12 @@ export function PersonBreakdownCard({ breakdown, showDetails = false }: Props) {
           <p className="font-headline text-2xl leading-none font-semibold text-on-surface sm:text-3xl">
             {formatCurrencyFromCents(breakdown.totalCents, breakdown.currency)}
           </p>
+          {/* React only: each card keeps its rate; the PNG says it once, above the cards. */}
           {breakdown.conversion && <ConversionLines conversion={breakdown.conversion} />}
         </div>
       </div>
 
-      {!showDetails && breakdown.collapsedReceiptTotals.length > 0 && (
-        <div className="mt-2 space-y-1.5">
-          {breakdown.collapsedReceiptTotals.map((total) => (
-            <CollapsedReceiptTotal key={total.id} total={total} />
-          ))}
-        </div>
-      )}
-
-      {showDetails && (
-        <div className="mt-2 flex-grow space-y-3">
-          {breakdown.emptyMessage ? (
-            <p className="text-sm text-on-surface-variant italic">{breakdown.emptyMessage}</p>
-          ) : (
-            <div className="space-y-3">
-              {breakdown.sections.map((section) => (
-                <ReceiptSection key={section.id} section={section} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      <Body body={breakdown.body} />
 
       {breakdown.qrDataUrl && (
         <PayNowQr qrDataUrl={breakdown.qrDataUrl} personName={breakdown.person.name} />
@@ -69,7 +57,36 @@ export function PersonBreakdownCard({ breakdown, showDetails = false }: Props) {
   );
 }
 
-// Last in the card, as in the PNG, so paying comes after checking the items.
+function Body({ body }: { body: PersonBreakdownBody }): ReactElement | null {
+  switch (body.kind) {
+    case 'receiptTotals':
+      if (body.totals.length === 0) return null;
+      return (
+        <div className="mt-2 space-y-1.5">
+          {body.totals.map((total) => (
+            <ReceiptTotal key={total.id} total={total} />
+          ))}
+        </div>
+      );
+    case 'sections':
+      return (
+        <div className="mt-2 flex-grow space-y-3">
+          <div className="space-y-3">
+            {body.sections.map((section) => (
+              <ReceiptSection key={section.id} section={section} />
+            ))}
+          </div>
+        </div>
+      );
+    case 'empty':
+      return (
+        <div className="mt-2 flex-grow space-y-3">
+          <EmptyMessage message={body.message} />
+        </div>
+      );
+  }
+}
+
 function PayNowQr({ qrDataUrl, personName }: { qrDataUrl: string; personName: string }) {
   return (
     <div className="mt-auto pt-4">
@@ -97,7 +114,7 @@ function PayNowQr({ qrDataUrl, personName }: { qrDataUrl: string; personName: st
   );
 }
 
-function CollapsedReceiptTotal({ total }: { total: ReceiptBreakdownTotal }) {
+function ReceiptTotal({ total }: { total: ReceiptBreakdownTotal }) {
   return (
     <div className="flex justify-between text-base text-on-surface-variant">
       <span className="truncate pr-3">{total.label}</span>
@@ -121,51 +138,59 @@ function ReceiptSection({ section }: { section: ReceiptBreakdownSection }) {
         </div>
       </div>
       <div className="space-y-3 border-t border-outline-variant/15 pt-3">
-        {section.emptyMessage ? (
-          <p className="text-sm text-on-surface-variant italic">{section.emptyMessage}</p>
-        ) : (
-          section.itemRows.map((row) => <ItemRow key={row.id} row={row} />)
-        )}
-        {section.chargeRows.length > 0 && (
-          <>
-            <div className="border-t border-outline-variant/40" />
-            {section.chargeRows.map((row) => (
-              <ChargeRow key={row.kind} row={row} />
-            ))}
-          </>
-        )}
+        {section.rows.map((row) => (
+          <Row key={rowKey(row)} row={row} />
+        ))}
       </div>
     </div>
   );
 }
 
-// Names wrap rather than truncate, so two similar items stay tellable apart on a phone.
-function ItemRow({ row }: { row: BreakdownItemRow }) {
-  return (
-    <div
-      className={cn(
-        'flex justify-between gap-4 text-base text-on-surface-variant sm:pl-4',
-        !row.involved && 'text-on-surface-variant/40 italic',
-      )}
-    >
-      <span className="min-w-0 break-words">{row.label}</span>
-      <span className="flex-shrink-0">
-        {row.amountCents !== null ? formatCurrencyFromCents(row.amountCents, row.currency) : '—'}
-      </span>
-    </div>
-  );
+function rowKey(row: BreakdownRow): string {
+  switch (row.kind) {
+    case 'item':
+      return row.id;
+    case 'charge':
+      return row.charge;
+    case 'rule':
+    case 'empty':
+      return row.kind;
+  }
 }
 
-function ChargeRow({ row }: { row: BreakdownChargeRow }) {
-  return (
-    <div className="flex justify-between gap-4 text-base sm:pl-4">
-      <span className="text-on-surface-variant italic">{row.label}</span>
-      <span className="text-on-surface-variant italic">
-        {row.sign === 'minus' ? '−' : '+'}
-        {formatCurrencyFromCents(row.amountCents, row.currency)}
-      </span>
-    </div>
-  );
+function Row({ row }: { row: BreakdownRow }): ReactElement {
+  switch (row.kind) {
+    case 'item':
+      // Names wrap rather than truncate, so two similar items stay tellable apart on a phone.
+      return (
+        <div
+          className={cn(
+            'flex justify-between gap-4 text-base text-on-surface-variant sm:pl-4',
+            row.amountCents === null && 'text-on-surface-variant/40 italic',
+          )}
+        >
+          <span className="min-w-0 break-words">{row.label}</span>
+          <span className="flex-shrink-0">{formatItemAmount(row)}</span>
+        </div>
+      );
+    case 'rule':
+      return <div className="border-t border-outline-variant/40" />;
+    case 'charge':
+      // React only: every charge is grey italics, where the PNG sets them upright with a green
+      // discount. The difference is on record in docs/EXPORT-PARITY.md.
+      return (
+        <div className="flex justify-between gap-4 text-base sm:pl-4">
+          <span className="text-on-surface-variant italic">{row.label}</span>
+          <span className="text-on-surface-variant italic">{formatChargeAmount(row)}</span>
+        </div>
+      );
+    case 'empty':
+      return <EmptyMessage message={row.message} />;
+  }
+}
+
+function EmptyMessage({ message }: { message: string }) {
+  return <p className="text-sm text-on-surface-variant italic">{message}</p>;
 }
 
 function ConversionLines({
@@ -175,16 +200,15 @@ function ConversionLines({
   conversion: BreakdownConversion;
   compact?: boolean;
 }) {
-  return (
-    <>
-      <span className={`${compact ? 'mt-0.5' : 'mt-1'} block text-xs text-on-surface-variant`}>
-        ≈ {formatCurrencyFromCents(conversion.amountCents, conversion.toCurrency)}
-      </span>
-      {conversion.showRate && (
-        <span className="block text-xs text-on-surface-variant">
-          1 {BASE_CURRENCY} = {formatExchangeRate(1 / conversion.rate)} {conversion.fromCurrency}
-        </span>
+  return formatConversionLines(conversion).map((line, index) => (
+    <span
+      key={line}
+      className={cn(
+        index === 0 && (compact ? 'mt-0.5' : 'mt-1'),
+        'block text-xs text-on-surface-variant',
       )}
-    </>
-  );
+    >
+      {line}
+    </span>
+  ));
 }

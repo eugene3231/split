@@ -20,11 +20,10 @@ export type SummaryExportState =
 
 interface UseSummaryExportArgs {
   model: Pick<SummaryModel, 'people' | 'view' | 'summaryBreakdown' | 'summaryOverview'>;
-  includeItemDetails: boolean;
   mode: SummaryMode;
 }
 
-export function useSummaryExport({ model, includeItemDetails, mode }: UseSummaryExportArgs) {
+export function useSummaryExport({ model, mode }: UseSummaryExportArgs) {
   const [exportState, setExportState] = useState<SummaryExportState>({ kind: 'idle' });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const successTimeoutRef = useRef<number | null>(null);
@@ -53,11 +52,7 @@ export function useSummaryExport({ model, includeItemDetails, mode }: UseSummary
   const generateImage = () =>
     mode === 'overview'
       ? generateOverviewImage({ overview: model.summaryOverview, title: receiptName })
-      : generatePersonBreakdownImage({
-          summaryBreakdown: model.summaryBreakdown,
-          includeItemDetails,
-          receiptName,
-        });
+      : generatePersonBreakdownImage({ summaryBreakdown: model.summaryBreakdown, receiptName });
 
   const beginAction = (action: Extract<SummaryExportState, { kind: 'busy' }>['action']) => {
     if (successTimeoutRef.current !== null) {
