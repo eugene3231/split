@@ -1,6 +1,6 @@
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { personColor } from '@shared/utils/personColors';
-import type { SummaryOverview } from '@shared/types/summaryOverview';
+import type { OverviewRow, SummaryOverview } from '@shared/types/summaryOverview';
 import {
   canvasToBlob,
   drawCardShell,
@@ -21,7 +21,6 @@ import {
   TITLE_AFTER_GAP,
   TITLE_H,
   measureOverviewImage,
-  type OverviewImageRow,
 } from '@features/sharing/logic/overviewLayout';
 import type { CurrencyCode } from '@shared/constants';
 
@@ -106,90 +105,98 @@ function drawRow(
   ctx: CanvasRenderingContext2D,
   table: TableGeometry,
   overview: SummaryOverview,
-  row: OverviewImageRow,
+  row: OverviewRow,
   y: number,
   rowHeight: number,
-) {
+): void {
   const labelWidth = ITEM_COL_W - 24;
 
-  if (row.kind === 'heading') {
-    ctx.fillStyle = INSET;
-    ctx.fillRect(table.left - CARD_PAD_X, y, table.right - table.left + CARD_PAD_X * 2, rowHeight);
-    ctx.fillStyle = MUTED;
-    ctx.font = `700 18px ${FONT}`;
-    ctx.fillText(
-      ellipsizeText(ctx, row.section.title.toUpperCase(), labelWidth),
-      table.left,
-      y + 33,
-    );
-    return;
-  }
-
-  if (row.kind === 'item') {
-    const { name, priceCents, currency, sharesByPerson } = row.row;
-    drawTwoLineLabel(ctx, {
-      x: table.left,
-      y,
-      width: labelWidth,
-      label: name,
-      detail: formatCurrencyFromCents(priceCents, currency),
-      font: `500 22px ${FONT}`,
-    });
-    overview.people.forEach((person, index) => {
-      const cents = sharesByPerson[person.id];
-      if (cents === undefined) return;
-      drawSharePill(ctx, table.columnCenter(index), y + rowHeight / 2, cents, currency, index);
-    });
-    drawDivider(ctx, table, y + rowHeight);
-    return;
-  }
-
-  if (row.kind === 'charge') {
-    const sign = row.row.sign === 'minus' ? '−' : '';
-    drawTwoLineLabel(ctx, {
-      x: table.left,
-      y,
-      width: labelWidth,
-      label: row.row.label,
-      detail: `${sign}${formatCurrencyFromCents(row.row.totalCents, row.currency)}`,
-      font: `italic 400 20px ${FONT}`,
-    });
-    ctx.fillStyle = MUTED;
-    ctx.font = `italic 400 18px ${FONT}`;
-    overview.people.forEach((person, index) => {
-      const cents = row.row.sharesByPerson[person.id];
-      if (cents === undefined) return;
-      drawCentered(
-        ctx,
-        `${sign}${formatCurrencyFromCents(cents, row.currency)}`,
-        table.columnCenter(index),
-        y + rowHeight / 2 + 6,
+  switch (row.kind) {
+    case 'heading':
+      ctx.fillStyle = INSET;
+      ctx.fillRect(
+        table.left - CARD_PAD_X,
+        y,
+        table.right - table.left + CARD_PAD_X * 2,
+        rowHeight,
       );
-    });
-    drawDivider(ctx, table, y + rowHeight);
-    return;
-  }
+      ctx.fillStyle = MUTED;
+      ctx.font = `700 18px ${FONT}`;
+      ctx.fillText(ellipsizeText(ctx, row.title.toUpperCase(), labelWidth), table.left, y + 33);
+      return;
 
-  const { section } = row;
-  drawTwoLineLabel(ctx, {
-    x: table.left,
-    y,
-    width: labelWidth,
-    label: `${section.title} total`,
-    detail: formatCurrencyFromCents(section.totalCents, section.currency),
-    font: `600 20px ${FONT}`,
-  });
-  ctx.fillStyle = INK;
-  ctx.font = `600 18px ${FONT}`;
-  overview.people.forEach((person, index) => {
-    drawCentered(
-      ctx,
-      formatCurrencyFromCents(section.totalByPersonCents[person.id] ?? 0, section.currency),
-      table.columnCenter(index),
-      y + rowHeight / 2 + 6,
-    );
-  });
-  drawDivider(ctx, table, y + rowHeight);
+    case 'item':
+      drawTwoLineLabel(ctx, {
+        x: table.left,
+        y,
+        width: labelWidth,
+        label: row.name,
+        detail: formatCurrencyFromCents(row.priceCents, row.currency),
+        font: `500 22px ${FONT}`,
+      });
+      overview.people.forEach((person, index) => {
+        const cents = row.sharesByPerson[person.id];
+        if (cents === undefined) return;
+        drawSharePill(
+          ctx,
+          table.columnCenter(index),
+          y + rowHeight / 2,
+          cents,
+          row.currency,
+          index,
+        );
+      });
+      drawDivider(ctx, table, y + rowHeight);
+      return;
+
+    case 'charge': {
+      const sign = row.sign === 'minus' ? '−' : '';
+      drawTwoLineLabel(ctx, {
+        x: table.left,
+        y,
+        width: labelWidth,
+        label: row.label,
+        detail: `${sign}${formatCurrencyFromCents(row.totalCents, row.currency)}`,
+        font: `italic 400 20px ${FONT}`,
+      });
+      ctx.fillStyle = MUTED;
+      ctx.font = `italic 400 18px ${FONT}`;
+      overview.people.forEach((person, index) => {
+        const cents = row.sharesByPerson[person.id];
+        if (cents === undefined) return;
+        drawCentered(
+          ctx,
+          `${sign}${formatCurrencyFromCents(cents, row.currency)}`,
+          table.columnCenter(index),
+          y + rowHeight / 2 + 6,
+        );
+      });
+      drawDivider(ctx, table, y + rowHeight);
+      return;
+    }
+
+    case 'sectionTotal':
+      drawTwoLineLabel(ctx, {
+        x: table.left,
+        y,
+        width: labelWidth,
+        label: row.label,
+        detail: formatCurrencyFromCents(row.totalCents, row.currency),
+        font: `600 20px ${FONT}`,
+      });
+      ctx.fillStyle = INK;
+      ctx.font = `600 18px ${FONT}`;
+      overview.people.forEach((person, index) => {
+        drawCentered(
+          ctx,
+          formatCurrencyFromCents(row.totalByPersonCents[person.id] ?? 0, row.currency),
+          table.columnCenter(index),
+          y + rowHeight / 2 + 6,
+        );
+      });
+      drawDivider(ctx, table, y + rowHeight);
+      return;
+  }
 }
 
 function drawFooter(

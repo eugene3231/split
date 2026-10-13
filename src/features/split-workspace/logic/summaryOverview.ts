@@ -6,7 +6,7 @@ import type { ReceiptView, SummaryView } from '@features/split-workspace/logic/s
 import type {
   OverviewChargeRow,
   OverviewItemRow,
-  OverviewReceiptSection,
+  OverviewSectionTotalRow,
   SummaryOverview,
 } from '@shared/types/summaryOverview';
 
@@ -15,27 +15,40 @@ export interface ResolveSummaryOverviewInput {
   view: SummaryView;
 }
 
+/**
+ * Decides every row of the who-had-what table and its order. The table on screen and the
+ * table in the exported image both walk this, so they cannot show different rows.
+ */
 export function resolveSummaryOverview({
   people,
   view,
 }: ResolveSummaryOverviewInput): SummaryOverview {
+  // A receipt is headed and totalled only when there is another to tell it from.
+  const severalReceipts = view.receipts.length > 1;
+
   return {
     people,
-    sections: view.receipts.map((entry) => buildSection(people, entry)),
+    sections: view.receipts.map((entry) => ({
+      id: entry.receipt.id,
+      rows: [
+        ...(severalReceipts ? [{ kind: 'heading' as const, title: entry.name }] : []),
+        ...buildItemRows(people, entry),
+        ...buildChargeRows(entry),
+        ...(severalReceipts ? [buildSectionTotal(entry)] : []),
+      ],
+    })),
     currency: view.total.currency,
     totalCents: view.total.split.totals.totalCents,
     totalByPersonCents: centsByPerson(view.total.split, 'total'),
   };
 }
 
-function buildSection(people: Person[], entry: ReceiptView): OverviewReceiptSection {
+function buildSectionTotal(entry: ReceiptView): OverviewSectionTotalRow {
   return {
-    id: entry.receipt.id,
-    title: entry.name,
-    currency: entry.currency,
-    itemRows: buildItemRows(people, entry),
-    chargeRows: buildChargeRows(entry),
+    kind: 'sectionTotal',
+    label: `${entry.name} total`,
     totalCents: entry.split.totals.totalCents,
+    currency: entry.currency,
     totalByPersonCents: centsByPerson(entry.split, 'total'),
   };
 }
@@ -49,6 +62,7 @@ function buildItemRows(people: Person[], { split, currency }: ReceiptView): Over
   for (const person of people) {
     for (const line of split.byPerson[person.id].lines) {
       const row = rows.get(line.itemId) ?? {
+        kind: 'item',
         id: line.itemId,
         name: line.name,
         priceCents: 0,
@@ -66,12 +80,14 @@ function buildItemRows(people: Person[], { split, currency }: ReceiptView): Over
 }
 
 /** A charge gets a row when the receipt has any of it, listing only the people it touched. */
-function buildChargeRows({ split, receipt }: ReceiptView): OverviewChargeRow[] {
+function buildChargeRows({ split, receipt, currency }: ReceiptView): OverviewChargeRow[] {
   return CHARGE_KINDS.filter((kind) => split.totals.chargeCents[kind] > 0).map((kind) => ({
-    kind,
+    kind: 'charge',
+    charge: kind,
     label: resolveChargeLabel(kind, receipt),
     sign: CHARGE_SIGN[kind],
     totalCents: split.totals.chargeCents[kind],
+    currency,
     sharesByPerson: Object.fromEntries(
       Object.entries(centsByPerson(split, kind)).filter(([, cents]) => cents !== 0),
     ),

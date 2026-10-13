@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { deriveSplits } from '@features/split-workspace/logic/split/deriveSplits';
 import type { NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
 import type { ChargeState, EditableItem, Person, Receipt } from '@shared/types';
+import type { OverviewReceiptSection, OverviewRow } from '@shared/types/summaryOverview';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
 import { resolveSummaryOverview } from './summaryOverview';
 import { resolveSummaryView } from './summaryView';
@@ -67,6 +68,13 @@ function resolve(
   };
 }
 
+function rowsOf<K extends OverviewRow['kind']>(
+  section: OverviewReceiptSection,
+  kind: K,
+): Extract<OverviewRow, { kind: K }>[] {
+  return section.rows.filter((row): row is Extract<OverviewRow, { kind: K }> => row.kind === kind);
+}
+
 const dinner = receipt({
   id: 'dinner',
   serviceCharge: percent('10'),
@@ -82,8 +90,8 @@ describe('resolveSummaryOverview', () => {
   it('lists rounding last, with the same per-person shares as each card', () => {
     const { overview, breakdown } = resolve([{ ...dinner, roundingInput: '0.05' }], 'dinner');
 
-    const rounding = overview.sections[0].chargeRows.at(-1);
-    expect(rounding).toMatchObject({ kind: 'rounding', label: 'Rounding', totalCents: 5 });
+    const rounding = rowsOf(overview.sections[0], 'charge').at(-1);
+    expect(rounding).toMatchObject({ charge: 'rounding', label: 'Rounding', totalCents: 5 });
     expect(rounding?.sharesByPerson).toEqual({ alice: 2, bob: 2, cara: 1 });
     expect(
       breakdown.personBreakdowns.map((person) => {
@@ -96,10 +104,23 @@ describe('resolveSummaryOverview', () => {
     ).toEqual([2, 2, 1]);
   });
 
+  it('lists one receipt as its items then its charges, with no heading or total of its own', () => {
+    const { overview } = resolve([dinner], 'dinner');
+
+    expect(overview.sections).toHaveLength(1);
+    expect(overview.sections[0].rows.map((row) => row.kind)).toEqual([
+      'item',
+      'item',
+      'item',
+      'charge',
+      'charge',
+    ]);
+  });
+
   it('splits each item into shares that add up to its price', () => {
     const { overview } = resolve([dinner], 'dinner');
 
-    const [laksa, rice, fries] = overview.sections[0].itemRows;
+    const [laksa, rice, fries] = rowsOf(overview.sections[0], 'item');
     expect(laksa.priceCents).toBe(1000);
     expect(laksa.sharesByPerson).toEqual({ alice: 334, bob: 333, cara: 333 });
     expect(rice.sharesByPerson).toEqual({ bob: 850 });
@@ -110,8 +131,8 @@ describe('resolveSummaryOverview', () => {
   it('adds a row per charge with each person’s share of it', () => {
     const { overview } = resolve([dinner], 'dinner');
 
-    const rows = overview.sections[0].chargeRows;
-    expect(rows.map((row) => [row.kind, row.label, row.totalCents])).toEqual([
+    const rows = rowsOf(overview.sections[0], 'charge');
+    expect(rows.map((row) => [row.charge, row.label, row.totalCents])).toEqual([
       ['service', 'Service Charge (10%)', 305],
       ['gst', 'GST / Tax (9%)', 302],
     ]);
@@ -124,7 +145,7 @@ describe('resolveSummaryOverview', () => {
 
     const { overview } = resolve([discounted], 'dinner');
 
-    expect(overview.sections[0].chargeRows.map((row) => [row.kind, row.sign])).toEqual([
+    expect(rowsOf(overview.sections[0], 'charge').map((row) => [row.charge, row.sign])).toEqual([
       ['discount', 'minus'],
       ['gst', 'plus'],
     ]);
@@ -154,7 +175,7 @@ describe('resolveSummaryOverview', () => {
 
     const { overview } = resolve([lunch], 'lunch');
 
-    expect(overview.sections[0].itemRows.map((row) => [row.name, row.priceCents])).toEqual([
+    expect(rowsOf(overview.sections[0], 'item').map((row) => [row.name, row.priceCents])).toEqual([
       ['kopi', 220],
       ['teh', 200],
     ]);
@@ -171,11 +192,23 @@ describe('resolveSummaryOverview', () => {
 
     const { overview, breakdown } = resolve([dinner, drinks], 'total');
 
-    expect(overview.sections.map((s) => [s.title, s.currency, s.totalCents])).toEqual([
-      ['dinner', 'SGD', 3657],
-      ['Drinks', 'MYR', 2000],
+    expect(overview.sections.map((section) => section.rows.map((row) => row.kind))).toEqual([
+      ['heading', 'item', 'item', 'item', 'charge', 'charge', 'sectionTotal'],
+      ['heading', 'item', 'sectionTotal'],
     ]);
-    expect(overview.sections[1].totalByPersonCents).toEqual({ alice: 1000, bob: 1000, cara: 0 });
+    expect(overview.sections.map((section) => section.rows[0])).toEqual([
+      { kind: 'heading', title: 'dinner' },
+      { kind: 'heading', title: 'Drinks' },
+    ]);
+    expect(overview.sections.map((section) => section.rows.at(-1))).toMatchObject([
+      { label: 'dinner total', currency: 'SGD', totalCents: 3657 },
+      {
+        label: 'Drinks total',
+        currency: 'MYR',
+        totalCents: 2000,
+        totalByPersonCents: { alice: 1000, bob: 1000, cara: 0 },
+      },
+    ]);
     expect(overview.currency).toBe('SGD');
     expect(overview.totalCents).toBe(3657 + 600);
     for (const personBreakdown of breakdown.personBreakdowns) {
@@ -195,8 +228,8 @@ describe('resolveSummaryOverview', () => {
 
     const { overview } = resolve([dinner, drinks], 'total', {}, true);
 
-    const [beer] = overview.sections[1].itemRows;
-    expect(overview.sections[1].currency).toBe('SGD');
+    const [beer] = rowsOf(overview.sections[1], 'item');
+    expect(rowsOf(overview.sections[1], 'sectionTotal')[0].currency).toBe('SGD');
     expect(beer).toMatchObject({ priceCents: 600, currency: 'SGD' });
     expect(beer.sharesByPerson).toEqual({ alice: 300, bob: 300 });
   });

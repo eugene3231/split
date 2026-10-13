@@ -1,52 +1,58 @@
 import { describe, expect, it } from 'vitest';
-import type { OverviewReceiptSection, SummaryOverview } from '@shared/types/summaryOverview';
-import { buildOverviewImageRows, measureOverviewImage } from './overviewLayout';
+import type { OverviewRow, SummaryOverview } from '@shared/types/summaryOverview';
+import { measureOverviewImage } from './overviewLayout';
 
-function section(id: string): OverviewReceiptSection {
-  return {
-    id,
-    title: id,
-    currency: 'SGD',
-    itemRows: [
-      {
-        id: `${id}-item`,
-        name: 'Laksa',
-        priceCents: 1000,
-        currency: 'SGD',
-        sharesByPerson: { alice: 1000 },
-      },
-    ],
-    chargeRows: [
-      { kind: 'gst', label: 'GST / Tax', sign: 'plus', totalCents: 90, sharesByPerson: {} },
-    ],
-    totalCents: 1090,
-    totalByPersonCents: { alice: 1090 },
-  };
-}
+const item: OverviewRow = {
+  kind: 'item',
+  id: 'laksa',
+  name: 'Laksa',
+  priceCents: 1000,
+  currency: 'SGD',
+  sharesByPerson: { p0: 1000 },
+};
 
-function overview(sections: OverviewReceiptSection[], peopleCount = 2): SummaryOverview {
+const gst: OverviewRow = {
+  kind: 'charge',
+  charge: 'gst',
+  label: 'GST / Tax',
+  sign: 'plus',
+  totalCents: 90,
+  currency: 'SGD',
+  sharesByPerson: {},
+};
+
+const heading: OverviewRow = { kind: 'heading', title: 'Dinner' };
+
+const sectionTotal: OverviewRow = {
+  kind: 'sectionTotal',
+  label: 'Dinner total',
+  totalCents: 1090,
+  currency: 'SGD',
+  totalByPersonCents: { p0: 1090 },
+};
+
+function overview(sections: OverviewRow[][], peopleCount = 2): SummaryOverview {
   return {
     people: Array.from({ length: peopleCount }, (_, index) => ({
       id: `p${index}`,
       name: `Person ${index}`,
     })),
-    sections,
+    sections: sections.map((rows, index) => ({ id: `r${index}`, rows })),
     currency: 'SGD',
     totalCents: 1090 * sections.length,
     totalByPersonCents: {},
   };
 }
 
-describe('buildOverviewImageRows', () => {
-  it('lists one receipt as items then charges, with no heading or subtotal', () => {
-    expect(buildOverviewImageRows(overview([section('dinner')])).map((row) => row.kind)).toEqual([
-      'item',
-      'charge',
-    ]);
-  });
+describe('measureOverviewImage', () => {
+  it('lists every section’s rows in order, one after the next', () => {
+    const { rows } = measureOverviewImage(
+      overview([
+        [heading, item, gst, sectionTotal],
+        [heading, item, sectionTotal],
+      ]),
+    );
 
-  it('heads and totals each receipt when there are several', () => {
-    const rows = buildOverviewImageRows(overview([section('dinner'), section('drinks')]));
     expect(rows.map((row) => row.kind)).toEqual([
       'heading',
       'item',
@@ -54,19 +60,19 @@ describe('buildOverviewImageRows', () => {
       'sectionTotal',
       'heading',
       'item',
-      'charge',
       'sectionTotal',
     ]);
   });
-});
 
-describe('measureOverviewImage', () => {
-  it('widens with each person and grows with each row', () => {
-    const small = measureOverviewImage(overview([section('dinner')], 2));
-    const wide = measureOverviewImage(overview([section('dinner')], 12));
-    const tall = measureOverviewImage(overview([section('dinner'), section('drinks')], 2));
+  it('gives each kind of row its own height', () => {
+    const empty = measureOverviewImage(overview([[]])).height;
+    const heightOf = (row: OverviewRow) => measureOverviewImage(overview([[row]])).height - empty;
 
-    expect(wide.width).toBeGreaterThan(small.width);
-    expect(tall.height).toBeGreaterThan(small.height);
+    expect([heading, item, gst, sectionTotal].map(heightOf)).toEqual([52, 76, 68, 76]);
+  });
+
+  it('widens with each person once they no longer fit the narrowest image', () => {
+    expect(measureOverviewImage(overview([[item]], 2)).width).toBe(1200);
+    expect(measureOverviewImage(overview([[item]], 12)).width).toBe(2816);
   });
 });

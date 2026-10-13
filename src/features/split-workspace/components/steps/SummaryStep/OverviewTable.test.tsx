@@ -1,47 +1,63 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { SummaryOverview } from '@shared/types/summaryOverview';
+import type { OverviewReceiptSection, SummaryOverview } from '@shared/types/summaryOverview';
 import { OverviewTable } from './OverviewTable';
 
 const alice = { id: 'alice', name: 'Alice Tan' };
 const bob = { id: 'bob', name: 'Bob' };
 
-function overview(overrides: Partial<SummaryOverview> = {}): SummaryOverview {
+function dinner(severalReceipts = false): OverviewReceiptSection {
+  return receipt('dinner', 'Dinner', severalReceipts);
+}
+
+function receipt(id: string, title: string, severalReceipts: boolean): OverviewReceiptSection {
+  return {
+    id,
+    rows: [
+      ...(severalReceipts ? [{ kind: 'heading' as const, title }] : []),
+      {
+        kind: 'item',
+        id: 'laksa',
+        name: 'Laksa',
+        priceCents: 1000,
+        currency: 'SGD',
+        sharesByPerson: { alice: 600, bob: 400 },
+      },
+      {
+        kind: 'charge',
+        charge: 'discount',
+        label: 'Discount (10%)',
+        sign: 'minus',
+        totalCents: 100,
+        currency: 'SGD',
+        sharesByPerson: { alice: 60, bob: 40 },
+      },
+      ...(severalReceipts
+        ? [
+            {
+              kind: 'sectionTotal' as const,
+              label: `${title} total`,
+              totalCents: 900,
+              currency: 'SGD' as const,
+              totalByPersonCents: { alice: 540, bob: 360 },
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+function overview(sections: OverviewReceiptSection[] = [dinner()]): SummaryOverview {
   return {
     people: [alice, bob],
-    sections: [
-      {
-        id: 'dinner',
-        title: 'Dinner',
-        currency: 'SGD',
-        itemRows: [
-          {
-            id: 'laksa',
-            name: 'Laksa',
-            priceCents: 1000,
-            currency: 'SGD',
-            sharesByPerson: { alice: 600, bob: 400 },
-          },
-        ],
-        chargeRows: [
-          {
-            kind: 'discount',
-            label: 'Discount (10%)',
-            sign: 'minus',
-            totalCents: 100,
-            sharesByPerson: { alice: 60, bob: 40 },
-          },
-        ],
-        totalCents: 900,
-        totalByPersonCents: { alice: 540, bob: 360 },
-      },
-    ],
+    sections,
     currency: 'SGD',
     totalCents: 900,
     totalByPersonCents: { alice: 540, bob: 360 },
-    ...overrides,
   };
 }
+
+const twoReceipts = () => overview([dinner(true), receipt('drinks', 'Drinks', true)]);
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -60,13 +76,11 @@ describe('OverviewTable', () => {
     expect(screen.getByRole('row', { name: /Discount/ })).toHaveTextContent('−$0.60−$0.40');
   });
 
-  it('adds receipt headings and per-receipt totals only when several receipts are combined', () => {
-    const single = overview();
-    const { rerender } = render(<OverviewTable overview={single} />);
+  it('shows the receipt headings and per-receipt totals the overview lists', () => {
+    const { rerender } = render(<OverviewTable overview={overview()} />);
     expect(screen.queryByRole('rowheader', { name: /Dinner total/ })).toBeNull();
 
-    const drinks = { ...single.sections[0], id: 'drinks', title: 'Drinks' };
-    rerender(<OverviewTable overview={overview({ sections: [single.sections[0], drinks] })} />);
+    rerender(<OverviewTable overview={twoReceipts()} />);
 
     expect(screen.getByRole('rowheader', { name: 'Drinks' })).toBeInTheDocument();
     expect(screen.getByRole('rowheader', { name: /Dinner total/ })).toHaveTextContent('$9.00');
@@ -84,9 +98,7 @@ describe('OverviewTable', () => {
   });
 
   it('pins the receipt being scrolled through under the people row', () => {
-    const dinner = overview().sections[0];
-    const drinks = { ...dinner, id: 'drinks', title: 'Drinks' };
-    render(<OverviewTable overview={overview({ sections: [dinner, drinks] })} />);
+    render(<OverviewTable overview={twoReceipts()} />);
     const tops: Record<string, number> = { Dinner: -200, Drinks: 400 };
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
       this: HTMLElement,

@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import type { Person } from '@shared/types';
 import { cn } from '@shared/utils/cn';
@@ -8,8 +8,10 @@ import { usePinnedSectionTitle } from './usePinnedSectionTitle';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import type {
   OverviewChargeRow,
+  OverviewHeadingRow,
   OverviewItemRow,
-  OverviewReceiptSection,
+  OverviewRow,
+  OverviewSectionTotalRow,
   SummaryOverview,
 } from '@shared/types/summaryOverview';
 import type { CurrencyCode } from '@shared/constants';
@@ -27,7 +29,6 @@ const TABLE_WIDTH =
 // `features/sharing/logic/overviewImage.ts` draws the same table for the PNG export.
 export function OverviewTable({ overview }: Props) {
   const { people, sections } = overview;
-  const showSectionHeadings = sections.length > 1;
   const headerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const pinnedSectionTitle = usePinnedSectionTitle(tableRef, headerRef);
@@ -106,16 +107,9 @@ export function OverviewTable({ overview }: Props) {
           </thead>
           {sections.map((section) => (
             <tbody key={section.id}>
-              {showSectionHeadings && (
-                <SectionHeading section={section} columnCount={people.length + 1} />
-              )}
-              {section.itemRows.map((row) => (
-                <ItemRow key={row.id} row={row} people={people} />
+              {section.rows.map((row) => (
+                <Row key={rowKey(row)} row={row} people={people} />
               ))}
-              {section.chargeRows.map((row) => (
-                <ChargeRow key={row.kind} row={row} people={people} currency={section.currency} />
-              ))}
-              {showSectionHeadings && <SectionTotalRow section={section} people={people} />}
             </tbody>
           ))}
           <tfoot>
@@ -171,17 +165,36 @@ function PersonIdentity({ person, colorIndex }: { person: Person; colorIndex: nu
   );
 }
 
-function SectionHeading({
-  section,
-  columnCount,
-}: {
-  section: OverviewReceiptSection;
-  columnCount: number;
-}) {
+function rowKey(row: OverviewRow): string {
+  switch (row.kind) {
+    case 'item':
+      return row.id;
+    case 'charge':
+      return row.charge;
+    case 'heading':
+    case 'sectionTotal':
+      return row.kind;
+  }
+}
+
+function Row({ row, people }: { row: OverviewRow; people: Person[] }): ReactElement {
+  switch (row.kind) {
+    case 'heading':
+      return <SectionHeading row={row} columnCount={people.length + 1} />;
+    case 'item':
+      return <ItemRow row={row} people={people} />;
+    case 'charge':
+      return <ChargeRow row={row} people={people} />;
+    case 'sectionTotal':
+      return <SectionTotalRow row={row} people={people} />;
+  }
+}
+
+function SectionHeading({ row, columnCount }: { row: OverviewHeadingRow; columnCount: number }) {
   return (
-    <tr data-section-title={section.title} className="bg-surface-container-low">
+    <tr data-section-title={row.title} className="bg-surface-container-low">
       <th scope="rowgroup" colSpan={columnCount} className="p-0 text-left">
-        <SectionTitle className="sticky left-0 inline-block">{section.title}</SectionTitle>
+        <SectionTitle className="sticky left-0 inline-block">{row.title}</SectionTitle>
       </th>
     </tr>
   );
@@ -255,15 +268,8 @@ function ShareCell({ cents, currency, colorIndex, label }: ShareCellProps) {
   );
 }
 
-function ChargeRow({
-  row,
-  people,
-  currency,
-}: {
-  row: OverviewChargeRow;
-  people: Person[];
-  currency: CurrencyCode;
-}) {
+function ChargeRow({ row, people }: { row: OverviewChargeRow; people: Person[] }) {
+  const { currency } = row;
   const sign = row.sign === 'minus' ? '−' : '';
   return (
     <tr className="border-b border-outline-variant/30 text-on-surface-variant italic">
@@ -289,26 +295,20 @@ function ChargeRow({
   );
 }
 
-function SectionTotalRow({
-  section,
-  people,
-}: {
-  section: OverviewReceiptSection;
-  people: Person[];
-}) {
+function SectionTotalRow({ row, people }: { row: OverviewSectionTotalRow; people: Person[] }) {
   return (
     <tr className="border-b border-outline-variant/30 font-semibold text-on-surface tabular-nums">
       <StickyCell as="th" scope="row" className="py-2.5 text-xs">
-        {section.title} total
+        {row.label}
         <span className="block font-medium text-on-surface-variant">
-          {formatCurrencyFromCents(section.totalCents, section.currency)}
+          {formatCurrencyFromCents(row.totalCents, row.currency)}
         </span>
       </StickyCell>
       {people.map((person) => (
         <AmountCell
           key={person.id}
-          cents={section.totalByPersonCents[person.id] ?? 0}
-          currency={section.currency}
+          cents={row.totalByPersonCents[person.id] ?? 0}
+          currency={row.currency}
         />
       ))}
     </tr>

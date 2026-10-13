@@ -1,10 +1,4 @@
-import type {
-  OverviewChargeRow,
-  OverviewItemRow,
-  OverviewReceiptSection,
-  SummaryOverview,
-} from '@shared/types/summaryOverview';
-import type { CurrencyCode } from '@shared/constants';
+import type { OverviewRow, SummaryOverview } from '@shared/types/summaryOverview';
 
 export const PAD = 56;
 export const TITLE_H = 76;
@@ -15,31 +9,15 @@ export const PERSON_COL_W = 180;
 export const MIN_WIDTH = 1200;
 export const HEADER_H = 112;
 export const FOOTER_H = 96;
-export const ROW_HEIGHTS = { heading: 52, item: 76, charge: 68, sectionTotal: 76 } as const;
-
-export type OverviewImageRow =
-  | { kind: 'heading'; section: OverviewReceiptSection }
-  | { kind: 'item'; row: OverviewItemRow }
-  | { kind: 'charge'; row: OverviewChargeRow; currency: CurrencyCode }
-  | { kind: 'sectionTotal'; section: OverviewReceiptSection };
-
-/** The table's body rows in order, matching what `OverviewTable` renders. */
-export function buildOverviewImageRows(overview: SummaryOverview): OverviewImageRow[] {
-  const showSectionHeadings = overview.sections.length > 1;
-  return overview.sections.flatMap((section): OverviewImageRow[] => [
-    ...(showSectionHeadings ? [{ kind: 'heading' as const, section }] : []),
-    ...section.itemRows.map((row) => ({ kind: 'item' as const, row })),
-    ...section.chargeRows.map((row) => ({
-      kind: 'charge' as const,
-      row,
-      currency: section.currency,
-    })),
-    ...(showSectionHeadings ? [{ kind: 'sectionTotal' as const, section }] : []),
-  ]);
-}
+export const ROW_HEIGHTS = {
+  heading: 52,
+  item: 76,
+  charge: 68,
+  sectionTotal: 76,
+} as const satisfies Record<OverviewRow['kind'], number>;
 
 export function measureOverviewImage(overview: SummaryOverview) {
-  const rows = buildOverviewImageRows(overview);
+  const rows = overview.sections.flatMap((section) => section.rows);
   const tableWidth = ITEM_COL_W + overview.people.length * PERSON_COL_W + CARD_PAD_X * 2;
   const bodyHeight = rows.reduce((height, row) => height + ROW_HEIGHTS[row.kind], 0);
   return {
