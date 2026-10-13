@@ -15,7 +15,7 @@ import { FONT } from '@features/split-workspace/summary/canvas/theme';
 
 export const COLUMN_WIDTH = 760;
 export const CARD_PAD = 28;
-export const HEADER_H = 64;
+const HEADER_H = 64;
 export const HEADER_CONVERSION_H = 30;
 const BODY_GAP = 20;
 
@@ -146,7 +146,10 @@ function rowHeight(ctx: CanvasRenderingContext2D, row: BreakdownRow): number {
   }
 }
 
-/** Long item names wrap onto a second line rather than losing the part that tells items apart. */
+/**
+ * Long item names wrap onto a second line rather than losing the part that tells items apart.
+ * Image only: the screen lets a name wrap further.
+ */
 export function itemLabelLines(ctx: CanvasRenderingContext2D, row: BreakdownItemRow): string[] {
   ctx.font = `500 22px ${FONT}`;
   const valueWidth = ctx.measureText(formatItemAmount(row)).width;

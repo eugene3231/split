@@ -199,6 +199,9 @@ function drawRow(
       });
       drawDivider(ctx, table, y + rowHeight);
       return;
+
+    default:
+      row satisfies never;
   }
 }
 

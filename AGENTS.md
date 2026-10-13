@@ -18,7 +18,7 @@ Same rule in components: derive during render. `react-hooks/set-state-in-effect`
 
 ## Summary / export parity
 
-`PersonBreakdownCard.tsx` and `receiptSplitImageLight.ts` render the same breakdown through different technologies, so they drift silently. Read [docs/EXPORT-PARITY.md](docs/EXPORT-PARITY.md) before changing either.
+Everything the summary step shows is in `features/split-workspace/summary/`. Each view is drawn twice, in React and on a canvas for the PNG, from one list of rows. Change what a view contains in `summaryBreakdown.ts` or `summaryOverview.ts`; a change to how one renderer looks has to be made in the other by hand. Read [docs/EXPORT-PARITY.md](docs/EXPORT-PARITY.md) before changing either.
 
 ## Components
 

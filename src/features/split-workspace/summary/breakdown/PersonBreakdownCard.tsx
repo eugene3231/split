@@ -87,6 +87,7 @@ function Body({ body }: { body: PersonBreakdownBody }): ReactElement | null {
   }
 }
 
+// React only: the code is a button that downloads it. The PNG shows the code alone.
 function PayNowQr({ qrDataUrl, personName }: { qrDataUrl: string; personName: string }) {
   return (
     <div className="mt-auto pt-4">
@@ -161,7 +162,8 @@ function rowKey(row: BreakdownRow): string {
 function Row({ row }: { row: BreakdownRow }): ReactElement {
   switch (row.kind) {
     case 'item':
-      // Names wrap rather than truncate, so two similar items stay tellable apart on a phone.
+      // React only: a name wraps as far as it needs, so two similar items stay tellable apart
+      // on a phone. The PNG stops at two lines.
       return (
         <div
           className={cn(

@@ -168,7 +168,8 @@ function drawPersonCard(
   const innerX = x + CARD_PAD;
   drawPersonHeader(ctx, card.breakdown, innerX, y + CARD_PAD);
   drawBody(ctx, card.body, innerX, y + card.bodyTop);
-  // Pinned to the bottom of the row, so the codes line up across cards of different lengths.
+  // Image only: pinned to the bottom of the row, so the codes line up across cards of
+  // different lengths.
   if (qrImage) drawPaynowQr(ctx, qrImage, innerX, y + height - CARD_PAD - QR_SIZE);
 }
 
@@ -230,6 +231,8 @@ function drawBody(ctx: CanvasRenderingContext2D, body: BodyLayout, x: number, y:
     case 'empty':
       drawEmptyMessage(ctx, body.message, x, y);
       return;
+    default:
+      body satisfies never;
   }
 }
 
@@ -304,6 +307,8 @@ function drawRow(
     case 'empty':
       drawEmptyMessage(ctx, row.message, x, y);
       return;
+    default:
+      row satisfies never;
   }
 }
 

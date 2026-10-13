@@ -221,6 +221,7 @@ function ItemRow({ row, people }: { row: OverviewItemRow; people: Person[] }) {
         scope="row"
         className="border-l-2 border-transparent py-2.5 font-medium text-on-surface"
       >
+        {/* React only: a long name is clamped on a phone; the PNG cuts it to one line. */}
         <span className="line-clamp-2 sm:line-clamp-none">{row.name}</span>
         <span className="block text-xs font-normal text-on-surface-variant tabular-nums">
           {formatCurrencyFromCents(row.priceCents, row.currency)}
@@ -250,6 +251,8 @@ function ShareCell({ cents, currency, colorIndex, label }: ShareCellProps) {
   if (cents === undefined) return <td />;
   const amount = formatCurrencyFromCents(cents, currency);
   const color = personColor(colorIndex);
+  // React only: a phone shows a dot in the person's colour and keeps the amount for screen
+  // readers. The PNG always has room for the amount.
   return (
     <td className="px-1 py-1.5 text-center last:pr-3 sm:last:pr-5" title={`${label}: ${amount}`}>
       <span
