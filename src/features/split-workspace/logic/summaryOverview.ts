@@ -1,78 +1,42 @@
 import { CHARGE_KINDS } from '@shared/types';
-import type { Person, SplitResult } from '@shared/types';
-import {
-  resolveChargeLabel,
-  type ReceiptCharges,
-} from '@features/split-workspace/logic/chargeLabels';
+import type { Person } from '@shared/types';
+import { resolveChargeLabel } from '@features/split-workspace/logic/chargeLabels';
 import { CHARGE_SIGN, centsByPerson } from '@features/split-workspace/logic/split/amounts';
-import type { SummaryView } from '@features/split-workspace/logic/summaryView';
+import type { ReceiptView, SummaryView } from '@features/split-workspace/logic/summaryView';
 import type {
   OverviewChargeRow,
   OverviewItemRow,
   OverviewReceiptSection,
   SummaryOverview,
 } from '@shared/types/summaryOverview';
-import type { CurrencyCode } from '@shared/constants';
 
 export interface ResolveSummaryOverviewInput {
   people: Person[];
   view: SummaryView;
 }
 
-interface SectionSource {
-  id: string;
-  title: string;
-  currency: CurrencyCode;
-  split: SplitResult;
-  charges: ReceiptCharges;
-}
-
 export function resolveSummaryOverview({
   people,
   view,
 }: ResolveSummaryOverviewInput): SummaryOverview {
-  const sections = resolveSectionSources(view).map((source) => buildSection(people, source));
-
   return {
     people,
-    sections,
-    currency: view.displayCurrency,
-    totalCents: view.displaySplit.totals.totalCents,
-    totalByPersonCents: centsByPerson(view.displaySplit, 'total'),
+    sections: view.receipts.map((entry) => buildSection(people, entry)),
+    currency: view.total.currency,
+    totalCents: view.total.split.totals.totalCents,
+    totalByPersonCents: centsByPerson(view.total.split, 'total'),
   };
 }
 
-function resolveSectionSources(view: SummaryView): SectionSource[] {
-  if (view.kind === 'receipt') {
-    return [
-      {
-        id: view.receipt.id,
-        title: view.receipt.name || 'Receipt',
-        currency: view.displayCurrency,
-        split: view.displaySplit,
-        charges: view.receipt,
-      },
-    ];
-  }
-
-  return view.receiptBreakdowns.map((entry) => ({
+function buildSection(people: Person[], entry: ReceiptView): OverviewReceiptSection {
+  return {
     id: entry.receipt.id,
     title: entry.name,
     currency: entry.currency,
-    split: entry.split,
-    charges: entry.receipt,
-  }));
-}
-
-function buildSection(people: Person[], source: SectionSource): OverviewReceiptSection {
-  return {
-    id: source.id,
-    title: source.title,
-    currency: source.currency,
-    itemRows: buildItemRows(people, source),
-    chargeRows: buildChargeRows(source),
-    totalCents: source.split.totals.totalCents,
-    totalByPersonCents: centsByPerson(source.split, 'total'),
+    itemRows: buildItemRows(people, entry),
+    chargeRows: buildChargeRows(entry),
+    totalCents: entry.split.totals.totalCents,
+    totalByPersonCents: centsByPerson(entry.split, 'total'),
   };
 }
 
@@ -80,7 +44,7 @@ function buildSection(people: Person[], source: SectionSource): OverviewReceiptS
  * One row per priced item, in receipt order. The wizard opens the summary only once every
  * priced item is assigned, so each of them has a line in the split.
  */
-function buildItemRows(people: Person[], { split, currency }: SectionSource): OverviewItemRow[] {
+function buildItemRows(people: Person[], { split, currency }: ReceiptView): OverviewItemRow[] {
   const rows = new Map<string, OverviewItemRow>();
   for (const person of people) {
     for (const line of split.byPerson[person.id].lines) {
@@ -102,10 +66,10 @@ function buildItemRows(people: Person[], { split, currency }: SectionSource): Ov
 }
 
 /** A charge gets a row when the receipt has any of it, listing only the people it touched. */
-function buildChargeRows({ split, charges }: SectionSource): OverviewChargeRow[] {
+function buildChargeRows({ split, receipt }: ReceiptView): OverviewChargeRow[] {
   return CHARGE_KINDS.filter((kind) => split.totals.chargeCents[kind] > 0).map((kind) => ({
     kind,
-    label: resolveChargeLabel(kind, charges),
+    label: resolveChargeLabel(kind, receipt),
     sign: CHARGE_SIGN[kind],
     totalCents: split.totals.chargeCents[kind],
     sharesByPerson: Object.fromEntries(

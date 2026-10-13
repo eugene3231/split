@@ -6,7 +6,7 @@ import {
   type ReceiptCharges,
 } from '@features/split-workspace/logic/chargeLabels';
 import { CHARGE_SIGN } from '@features/split-workspace/logic/split/amounts';
-import type { SummaryView, TotalTabView } from '@features/split-workspace/logic/summaryView';
+import type { SummaryView, ViewAmounts } from '@features/split-workspace/logic/summaryView';
 
 import type {
   BreakdownConversion,
@@ -33,11 +33,11 @@ export function resolveSummaryBreakdown({
   showAllItems = false,
 }: ResolveSummaryBreakdownInput): SummaryBreakdown {
   return {
-    totalLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'Total',
-    totalCents: view.displaySplit.totals.totalCents,
-    currency: view.displayCurrency,
+    totalLabel: view.scope === 'all' ? allReceiptsLabel(view) : 'Total',
+    totalCents: view.total.split.totals.totalCents,
+    currency: view.total.currency,
     personBreakdowns: resolvePersonBreakdowns({ people, view, qrDataUrls, showAllItems }),
-    exchangeRate: resolveHeaderRate(view),
+    exchangeRate: resolveShownRate(view.total),
   };
 }
 
@@ -47,57 +47,43 @@ function resolvePersonBreakdowns({
   qrDataUrls,
   showAllItems,
 }: Required<ResolveSummaryBreakdownInput>): PersonBreakdown[] {
-  const headerRate = resolveHeaderRate(view);
+  const headerRate = resolveShownRate(view.total);
   return people.map((person, colorIndex) => {
-    const sections =
-      view.kind === 'total'
-        ? view.receiptBreakdowns.flatMap((entry) => {
-            const itemRows = buildItemRows(
-              entry.split.byPerson[person.id].lines,
-              entry.currency,
-              showAllItems,
-            );
-            if (itemRows.length === 0) return [];
-            return buildReceiptSection({
-              id: entry.receipt.id,
-              title: entry.name,
-              charges: entry.receipt,
-              person: entry.split.byPerson[person.id],
-              currency: entry.currency,
-              conversion:
-                entry.effectiveRate !== undefined
-                  ? buildConversion(
-                      entry.baseSplit.byPerson[person.id].totalCents,
-                      { rate: entry.effectiveRate, fromCurrency: entry.currency },
-                      !isSameRate(headerRate, entry.effectiveRate, entry.currency),
-                    )
-                  : undefined,
-              itemRows,
-            });
-          })
-        : [
-            buildReceiptSection({
-              id: view.receipt.id,
-              title: view.receipt.name,
-              charges: view.receipt,
-              person: view.displaySplit.byPerson[person.id],
-              currency: view.displayCurrency,
-              itemRows: buildItemRows(
-                view.displaySplit.byPerson[person.id].lines,
-                view.displayCurrency,
-                showAllItems,
-              ),
-            }),
-          ];
+    const sections = view.receipts.flatMap((entry) => {
+      const itemRows = buildItemRows(
+        entry.split.byPerson[person.id].lines,
+        entry.currency,
+        showAllItems,
+      );
+      // The combined tab leaves out a receipt the person had nothing on.
+      if (view.scope === 'all' && itemRows.length === 0) return [];
+      // A receipt on its own tab is converted once, in the person's header.
+      const sectionRate = view.scope === 'all' ? resolveShownRate(entry) : undefined;
+      return buildReceiptSection({
+        id: entry.receipt.id,
+        title: entry.name,
+        charges: entry.receipt,
+        person: entry.split.byPerson[person.id],
+        currency: entry.currency,
+        conversion: sectionRate
+          ? buildConversion(
+              entry.baseSplit.byPerson[person.id].totalCents,
+              sectionRate,
+              !isSameRate(headerRate, sectionRate),
+            )
+          : undefined,
+        itemRows,
+      });
+    });
 
     return {
       person,
       colorIndex,
-      headerLabel: view.kind === 'total' ? allReceiptsLabel(view) : 'Total · this receipt',
-      totalCents: view.displaySplit.byPerson[person.id].totalCents,
-      currency: view.displayCurrency,
+      headerLabel: view.scope === 'all' ? allReceiptsLabel(view) : 'Total · this receipt',
+      totalCents: view.total.split.byPerson[person.id].totalCents,
+      currency: view.total.currency,
       conversion: headerRate
-        ? buildConversion(view.baseSplit.byPerson[person.id].totalCents, headerRate, true)
+        ? buildConversion(view.total.baseSplit.byPerson[person.id].totalCents, headerRate, true)
         : undefined,
       qrDataUrl: qrDataUrls[person.id],
       collapsedReceiptTotals: sections
@@ -114,23 +100,23 @@ function resolvePersonBreakdowns({
   });
 }
 
-function allReceiptsLabel(view: TotalTabView): string {
-  return `Total · ${view.receiptBreakdowns.length} receipts`;
+function allReceiptsLabel(view: SummaryView): string {
+  return `Total · ${view.receipts.length} receipts`;
 }
 
-function resolveHeaderRate(view: SummaryView): BreakdownExchangeRate | undefined {
-  if (view.displayCurrency === BASE_CURRENCY) return undefined;
-  const rate = view.kind === 'receipt' ? view.effectiveRate : view.billedRate;
-  if (rate === null) return undefined;
-  return { rate, fromCurrency: view.displayCurrency, toCurrency: BASE_CURRENCY };
+/** The rate to show beside amounts, unless they are already in the base currency. */
+function resolveShownRate({ currency, rate }: ViewAmounts): BreakdownExchangeRate | undefined {
+  if (currency === BASE_CURRENCY || rate === null) return undefined;
+  return { rate, fromCurrency: currency, toCurrency: BASE_CURRENCY };
 }
 
 function isSameRate(
   headerRate: BreakdownExchangeRate | undefined,
-  rate: number,
-  fromCurrency: CurrencyCode,
+  sectionRate: BreakdownExchangeRate,
 ): boolean {
-  return headerRate?.rate === rate && headerRate.fromCurrency === fromCurrency;
+  return (
+    headerRate?.rate === sectionRate.rate && headerRate.fromCurrency === sectionRate.fromCurrency
+  );
 }
 
 interface BuildReceiptSectionInput {
@@ -202,14 +188,8 @@ function buildChargeRows(
 
 function buildConversion(
   amountCents: number,
-  { rate, fromCurrency }: Pick<BreakdownExchangeRate, 'rate' | 'fromCurrency'>,
+  rate: BreakdownExchangeRate,
   showRate: boolean,
 ): BreakdownConversion {
-  return {
-    amountCents,
-    rate,
-    fromCurrency,
-    toCurrency: BASE_CURRENCY,
-    showRate,
-  };
+  return { ...rate, amountCents, showRate };
 }

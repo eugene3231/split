@@ -5,16 +5,13 @@ import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { generatePaynowQrDataUrls, normalizeMobile } from '@features/payments';
 import { resolveSummaryBreakdown } from '@features/split-workspace/logic/summaryBreakdown';
 import { resolveSummaryOverview } from '@features/split-workspace/logic/summaryOverview';
-import { resolveSummaryView } from '@features/split-workspace/logic/summaryView';
-import type { SummaryView } from '@features/split-workspace/logic/summaryView';
+import { resolveSummaryView, soleReceipt } from '@features/split-workspace/logic/summaryView';
 import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { centsByPerson } from '@features/split-workspace/logic/split/amounts';
 import {
   resolveReconciliation,
   type Reconciliation,
 } from '@features/split-workspace/logic/reconciliation';
-
-export type { SummaryView };
 
 /** The combined tab checks no printed total: each receipt has its own. */
 const NOTHING_TO_RECONCILE: Reconciliation = { cents: null, fix: null };
@@ -83,11 +80,6 @@ export function useSummaryModel({
   const payerMobile = useReceiptStore((s) => s.payerMobile);
   const exchangeRates = useCurrencyStore((s) => s.exchangeRates);
   const { receiptSplits, consolidated } = useSplits();
-  const activeSummaryReceipt =
-    activeTab === 'total' ? null : (receipts.find((receipt) => receipt.id === activeTab) ?? null);
-  const reconciliation = activeSummaryReceipt
-    ? resolveReconciliation(activeSummaryReceipt, people)
-    : NOTHING_TO_RECONCILE;
 
   const view = resolveSummaryView({
     receiptSplits,
@@ -96,10 +88,12 @@ export function useSummaryModel({
     activeTab,
     showBaseCurrency,
   });
+  const receipt = soleReceipt(view);
+  const reconciliation = receipt ? resolveReconciliation(receipt, people) : NOTHING_TO_RECONCILE;
 
   const { urls: qrDataUrls, status: payNowStatus } = useQrDataUrls(
     people,
-    centsByPerson(view.baseSplit, 'total'),
+    centsByPerson(view.total.baseSplit, 'total'),
     payerMobile,
   );
   const summaryBreakdown = resolveSummaryBreakdown({ people, view, qrDataUrls, showAllItems });

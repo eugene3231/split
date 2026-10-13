@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { ChargeState, Person, SplitLine, SplitResult } from '@shared/types';
 import { resolveSummaryBreakdown } from './summaryBreakdown';
-import { resolveSummaryView, type SummaryView } from './summaryView';
+import {
+  resolveSummaryView,
+  type ReceiptView,
+  type SummaryView,
+  type ViewAmounts,
+} from './summaryView';
 import { deriveSplits } from './split/deriveSplits';
 import { makeItem, makeReceipt, makeSplit } from '../../../tests/integration/testHelpers';
 import { equalShares } from '@features/split-workspace/logic/assignment';
@@ -36,6 +41,38 @@ function split(alice: PersonAmounts = {}): SplitResult {
   return makeSplit({ alice: { subtotalCents: 1200, lines: [line()], ...alice } });
 }
 
+/** A receipt as the view carries it: billed in SGD, so one split serves as both amounts. */
+function receiptView(
+  entry: Partial<ReceiptView> & Pick<ReceiptView, 'receipt' | 'split'>,
+): ReceiptView {
+  return {
+    name: entry.receipt.name,
+    baseSplit: entry.split,
+    currency: 'SGD',
+    rate: null,
+    ...entry,
+  };
+}
+
+function oneReceipt(entry: ReceiptView): SummaryView {
+  return {
+    scope: 'one',
+    receipts: [entry],
+    total: entry,
+    billedCurrencies: [entry.receipt.currency],
+  };
+}
+
+function allReceipts(total: Pick<ViewAmounts, 'split'>, receipts: ReceiptView[]): SummaryView {
+  const [first, ...rest] = receipts;
+  return {
+    scope: 'all',
+    receipts: [first, ...rest],
+    total: { baseSplit: total.split, currency: 'SGD', rate: null, ...total },
+    billedCurrencies: [...new Set(receipts.map((entry) => entry.receipt.currency))],
+  };
+}
+
 describe('resolveSummaryBreakdown', () => {
   it.each(['r1', 'total'])(
     'uses allocated SGD cents for conversion copy on the %s tab',
@@ -63,7 +100,7 @@ describe('resolveSummaryBreakdown', () => {
       const conversions = breakdowns.map((person) =>
         activeTab === 'total' ? person.sections[0].conversion : person.conversion,
       );
-      expect(view.baseSplit.byPerson).toMatchObject({
+      expect(view.total.baseSplit.byPerson).toMatchObject({
         alice: { totalCents: 1352 },
         bob: { totalCents: 1351 },
       });
@@ -137,27 +174,18 @@ describe('resolveSummaryBreakdown', () => {
   });
 
   it('resolves single-receipt person rows and charge rows', () => {
-    const view: SummaryView = {
-      kind: 'receipt',
-      receipt: {
-        id: 'r1',
-        name: 'Dinner',
-        items: [],
-        discount: percentCharge('5'),
-        serviceCharge: percentCharge('10'),
-        gst: percentCharge('9'),
-        receiptTotalInput: '',
-        roundingInput: '',
-        currency: 'SGD',
-        exchangeRateOverride: null,
-      },
-      displaySplit: split({ discount: 60, service: 120, gst: 108 }),
-      displayCurrency: 'SGD',
-      baseSplit: split(),
-      nativeCurrency: 'SGD',
-      isForeign: false,
-      effectiveRate: null,
-    };
+    const view = oneReceipt(
+      receiptView({
+        receipt: makeReceipt({
+          id: 'r1',
+          name: 'Dinner',
+          discount: percentCharge('5'),
+          serviceCharge: percentCharge('10'),
+          gst: percentCharge('9'),
+        }),
+        split: split({ discount: 60, service: 120, gst: 108 }),
+      }),
+    );
 
     const breakdown = resolveSummaryBreakdown({
       people: [alice],
@@ -204,16 +232,13 @@ describe('resolveSummaryBreakdown', () => {
   });
 
   it('omits a second SGD conversion when a foreign receipt is displayed in SGD', () => {
-    const view: SummaryView = {
-      kind: 'receipt',
-      receipt: makeReceipt({ currency: 'USD' }),
-      displaySplit: split({ subtotalCents: 1620 }),
-      displayCurrency: 'SGD',
-      baseSplit: split({ subtotalCents: 1620 }),
-      nativeCurrency: 'USD',
-      isForeign: true,
-      effectiveRate: 1.35,
-    };
+    const view = oneReceipt(
+      receiptView({
+        receipt: makeReceipt({ currency: 'USD' }),
+        split: split({ subtotalCents: 1620 }),
+        rate: 1.35,
+      }),
+    );
 
     const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
 
@@ -223,29 +248,18 @@ describe('resolveSummaryBreakdown', () => {
 
   it('includes receipt charges in expanded and collapsed totals', () => {
     const chargedSplit = split({ discount: 100, service: 200, gst: 90 });
-    const view: SummaryView = {
-      kind: 'total',
-      displaySplit: chargedSplit,
-      displayCurrency: 'SGD',
-      baseSplit: chargedSplit,
-      hasAnyForeign: false,
-      billedCurrencies: ['SGD'],
-      billedRate: null,
-      receiptBreakdowns: [
-        {
-          receipt: makeReceipt({
-            id: 'dinner',
-            discount: percentCharge('8.33'),
-            serviceCharge: percentCharge('16.67'),
-            gst: percentCharge('7.5'),
-          }),
+    const view = allReceipts({ split: chargedSplit }, [
+      receiptView({
+        receipt: makeReceipt({
+          id: 'dinner',
           name: 'Dinner',
-          split: chargedSplit,
-          baseSplit: chargedSplit,
-          currency: 'SGD',
-        },
-      ],
-    };
+          discount: percentCharge('8.33'),
+          serviceCharge: percentCharge('16.67'),
+          gst: percentCharge('7.5'),
+        }),
+        split: chargedSplit,
+      }),
+    ]);
 
     const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
 
@@ -262,33 +276,19 @@ describe('resolveSummaryBreakdown', () => {
       subtotalCents: 300,
       lines: [line({ itemId: 'tea', name: 'Tea', amountCents: 300 })],
     });
-    const view: SummaryView = {
-      kind: 'total',
-      displaySplit: split({ subtotalCents: 1800 }),
-      displayCurrency: 'SGD',
-      baseSplit: split(),
-      hasAnyForeign: true,
-      billedCurrencies: ['JPY'],
-      billedRate: null,
-      receiptBreakdowns: [
-        {
-          receipt: makeReceipt({ id: 'ramen-shop' }),
-          name: 'Ramen Shop',
-          split: ramenSplit,
-          baseSplit: split({ subtotalCents: 11 }),
-          currency: 'JPY',
-          effectiveRate: 0.009,
-        },
-        {
-          receipt: makeReceipt({ id: 'tea-stall' }),
-          name: 'Tea Stall',
-          split: teaSplit,
-          baseSplit: teaSplit,
-          currency: 'SGD',
-          effectiveRate: undefined,
-        },
-      ],
-    };
+    const view = allReceipts({ split: split({ subtotalCents: 1800 }) }, [
+      receiptView({
+        receipt: makeReceipt({ id: 'ramen-shop', name: 'Ramen Shop', currency: 'JPY' }),
+        split: ramenSplit,
+        baseSplit: split({ subtotalCents: 11 }),
+        currency: 'JPY',
+        rate: 0.009,
+      }),
+      receiptView({
+        receipt: makeReceipt({ id: 'tea-stall', name: 'Tea Stall' }),
+        split: teaSplit,
+      }),
+    ]);
 
     const breakdown = resolveSummaryBreakdown({ people: [alice], view });
     const [person] = breakdown.personBreakdowns;
@@ -320,31 +320,10 @@ describe('resolveSummaryBreakdown', () => {
       subtotalCents: 0,
       lines: [line({ itemId: 'beer', name: 'Beer', amountCents: null })],
     });
-    const view: SummaryView = {
-      kind: 'total',
-      displaySplit: dinner,
-      displayCurrency: 'SGD',
-      baseSplit: dinner,
-      hasAnyForeign: false,
-      billedCurrencies: ['SGD'],
-      billedRate: null,
-      receiptBreakdowns: [
-        {
-          receipt: makeReceipt({ id: 'dinner' }),
-          name: 'Dinner',
-          split: dinner,
-          baseSplit: dinner,
-          currency: 'SGD',
-        },
-        {
-          receipt: makeReceipt({ id: 'drinks' }),
-          name: 'Drinks',
-          split: drinks,
-          baseSplit: drinks,
-          currency: 'SGD',
-        },
-      ],
-    };
+    const view = allReceipts({ split: dinner }, [
+      receiptView({ receipt: makeReceipt({ id: 'dinner', name: 'Dinner' }), split: dinner }),
+      receiptView({ receipt: makeReceipt({ id: 'drinks', name: 'Drinks' }), split: drinks }),
+    ]);
 
     const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
 
@@ -365,24 +344,9 @@ describe('resolveSummaryBreakdown', () => {
 
   it('marks a person with no assigned sections as empty', () => {
     const nothingForBob = makeSplit({ bob: {} });
-    const view: SummaryView = {
-      kind: 'total',
-      displaySplit: nothingForBob,
-      displayCurrency: 'SGD',
-      baseSplit: nothingForBob,
-      hasAnyForeign: false,
-      billedCurrencies: ['SGD'],
-      billedRate: null,
-      receiptBreakdowns: [
-        {
-          receipt: makeReceipt({ id: 'dinner' }),
-          name: 'Dinner',
-          split: nothingForBob,
-          baseSplit: nothingForBob,
-          currency: 'SGD',
-        },
-      ],
-    };
+    const view = allReceipts({ split: nothingForBob }, [
+      receiptView({ receipt: makeReceipt({ id: 'dinner', name: 'Dinner' }), split: nothingForBob }),
+    ]);
 
     const [person] = resolveSummaryBreakdown({ people: [bob], view }).personBreakdowns;
 
@@ -392,16 +356,7 @@ describe('resolveSummaryBreakdown', () => {
 
   it('leaves out the receipt total for a person with nothing on a single receipt', () => {
     const nothingForBob = makeSplit({ bob: {} });
-    const view: SummaryView = {
-      kind: 'receipt',
-      receipt: makeReceipt({}),
-      displaySplit: nothingForBob,
-      displayCurrency: 'SGD',
-      baseSplit: nothingForBob,
-      nativeCurrency: 'SGD',
-      isForeign: false,
-      effectiveRate: null,
-    };
+    const view = oneReceipt(receiptView({ receipt: makeReceipt({}), split: nothingForBob }));
 
     const [person] = resolveSummaryBreakdown({ people: [bob], view }).personBreakdowns;
 

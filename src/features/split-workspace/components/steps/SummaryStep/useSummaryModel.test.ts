@@ -12,6 +12,7 @@ import {
 } from '../../../../../tests/integration/testHelpers';
 import { equalShares } from '@features/split-workspace/logic/assignment';
 import type { Reconciliation } from '@features/split-workspace/logic/reconciliation';
+import { soleReceipt } from '@features/split-workspace/logic/summaryView';
 
 const { generatePaynowQrDataUrls } = vi.hoisted(() => ({
   generatePaynowQrDataUrls: vi.fn(),
@@ -92,9 +93,8 @@ describe('useSummaryModel', () => {
     );
 
     expect(useReceiptStore.getState().activeReceiptId).toBe('r1');
-    expect(result.current.view.kind).toBe('receipt');
-    if (result.current.view.kind !== 'receipt') return;
-    expect(result.current.view.receipt).toBe(receipt2);
+    expect(result.current.view.scope).toBe('one');
+    expect(soleReceipt(result.current.view)).toBe(receipt2);
   });
 
   it('reconciles and corrects the selected receipt in its native currency', () => {

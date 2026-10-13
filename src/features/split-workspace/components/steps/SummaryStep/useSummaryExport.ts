@@ -7,6 +7,7 @@ import {
   downloadImage,
   shareText,
 } from '@features/sharing/logic/shareSplit';
+import { soleReceipt } from '@features/split-workspace/logic/summaryView';
 import type { SummaryModel } from './useSummaryModel';
 import type { SummaryMode } from './SummaryModeToggle';
 
@@ -28,12 +29,12 @@ export function useSummaryExport({ model, includeItemDetails, mode }: UseSummary
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const successTimeoutRef = useRef<number | null>(null);
 
-  const receiptName = model.view.kind === 'receipt' ? model.view.receipt.name : undefined;
+  const receiptName = soleReceipt(model.view)?.name;
   const text = buildSplitShareText({
     people: model.people,
     receiptName: receiptName ?? '',
-    split: model.view.displaySplit,
-    currency: model.view.displayCurrency,
+    split: model.view.total.split,
+    currency: model.view.total.currency,
   });
 
   useEffect(() => {

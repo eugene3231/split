@@ -11,6 +11,7 @@ import { GrandTotalCard } from './GrandTotalCard';
 import { ExportActions } from './ExportActions';
 import { ResetSplitAction } from '@features/split-workspace/components/ResetSplitAction';
 import { ImagePreviewModal } from './ImagePreviewModal';
+import { soleReceipt } from '@features/split-workspace/logic/summaryView';
 import { useSummaryModel } from './useSummaryModel';
 import { useSummaryExport } from './useSummaryExport';
 import { SummaryModeToggle } from './SummaryModeToggle';
@@ -50,10 +51,9 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
       mode,
     });
 
-  const receiptForExport = view.kind === 'receipt' ? view.receipt : null;
-  const nativeCurrency = view.kind === 'receipt' ? view.nativeCurrency : BASE_CURRENCY;
-  const showCurrencyControls =
-    (view.kind === 'receipt' && view.isForeign) || (view.kind === 'total' && view.hasAnyForeign);
+  const receiptForExport = soleReceipt(view);
+  const nativeCurrency = receiptForExport?.currency ?? BASE_CURRENCY;
+  const showCurrencyControls = view.billedCurrencies.some((currency) => currency !== BASE_CURRENCY);
 
   const nativeShareSupported = getShareSupport() === 'native';
   const isOverview = mode === 'overview';
@@ -137,15 +137,14 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
                 />
                 {/* On phones the note drops below so both switches share one line. */}
                 <div className="order-last w-full sm:order-none sm:w-auto">
-                  {view.kind === 'total' &&
+                  {!receiptForExport &&
                   !showBaseCurrency &&
-                  view.displayCurrency === BASE_CURRENCY ? (
+                  view.total.currency === BASE_CURRENCY ? (
                     <MixedCurrencyNote currencies={view.billedCurrencies} />
-                  ) : view.kind === 'receipt' && view.effectiveRate ? (
+                  ) : receiptForExport && view.total.rate ? (
                     <p className="text-xs text-on-surface-variant">
-                      1 {BASE_CURRENCY} = {formatExchangeRate(1 / view.effectiveRate)}{' '}
-                      {view.nativeCurrency}
-                      {view.receipt.exchangeRateOverride ? ' (custom rate)' : ''}
+                      1 {BASE_CURRENCY} = {formatExchangeRate(1 / view.total.rate)} {nativeCurrency}
+                      {receiptForExport.exchangeRateOverride ? ' (custom rate)' : ''}
                     </p>
                   ) : null}
                 </div>
@@ -188,8 +187,8 @@ export function SummaryStep({ onAddReceipt, onResetSplit }: SummaryStepProps) {
             <GrandTotalCard
               payNowStatus={model.payNowStatus}
               totalLabel={summaryBreakdown.totalLabel}
-              grandTotal={view.displaySplit.totals.totalCents}
-              displayCurrency={view.displayCurrency}
+              grandTotal={view.total.split.totals.totalCents}
+              displayCurrency={view.total.currency}
               currentReceipt={receiptForExport}
               people={people}
               onRenameReceipt={renameReceipt}
