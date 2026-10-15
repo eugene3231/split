@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import type { EditableItem, Person, Receipt } from '@shared/types';
-import type { SessionDraft, WizardStep } from '@features/split-workspace/types';
+import type { AssignMode, SessionDraft, WizardStep } from '@features/split-workspace/types';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
 import { resolveWizardStep } from '@features/split-workspace/logic/wizardState';
 import { getContinueLabel } from '@features/split-workspace/logic/wizardSteps';
@@ -32,6 +32,9 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const [activePersonIdState, setActivePersonId] = useState(
     initialWizardState?.activePersonId ?? '',
   );
+  const [assignMode, setAssignMode] = useState<AssignMode>(
+    initialWizardState?.assignMode ?? 'person',
+  );
   const [confirmingLeftovers, setConfirmingLeftovers] = useState(false);
 
   const allReceiptItems = receipts.flatMap((receipt) => receipt.items);
@@ -40,15 +43,15 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const activeStep = resolveWizardStep(activeStepState, items, allReceiptItems, people);
   const activePersonId = resolveActivePersonId(activePersonIdState, people);
   const claimContinue = resolveClaimContinue(
-    'person',
+    assignMode,
     people,
     activePersonId,
     countItemsLeft(receipts, people),
   );
 
   useEffect(() => {
-    saveWizardState({ step: activeStep, activePersonId });
-  }, [activeStep, activePersonId]);
+    saveWizardState({ step: activeStep, activePersonId, assignMode });
+  }, [activeStep, activePersonId, assignMode]);
 
   const canContinue = activeStep === 'items' || isStepValid(activeStep, { items, people });
   const continueLabel = getContinueLabel(activeStep, claimContinue.label);
@@ -133,7 +136,8 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
     }
 
     if (activeStep === 'items') {
-      const previousPersonId = resolvePreviousPersonId(people, activePersonId);
+      const previousPersonId =
+        assignMode === 'person' ? resolvePreviousPersonId(people, activePersonId) : null;
       if (previousPersonId) setActivePersonId(previousPersonId);
       else setActiveStep('receipt');
       return;
@@ -148,6 +152,11 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
     addReceipt();
     setActiveStep('receipt');
     if (!geminiApiKeyInput.trim()) setShowApiKeyModal(true);
+  };
+
+  const selectPerson = (personId: string) => {
+    setActivePersonId(personId);
+    setAssignMode('person');
   };
 
   const restartWizard = (step: WizardStep) => {
@@ -172,7 +181,9 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   return {
     activeStep,
     activePersonId,
-    setActivePersonId,
+    selectPerson,
+    assignMode,
+    setAssignMode,
     canContinue,
     continueLabel,
     stepReachability,

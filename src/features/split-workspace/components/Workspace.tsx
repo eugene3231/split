@@ -38,7 +38,7 @@ export function Workspace() {
   const {
     activeStep,
     activePersonId,
-    setActivePersonId,
+    selectPerson,
     canContinue,
     continueLabel,
     stepReachability,
@@ -82,7 +82,7 @@ export function Workspace() {
           {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
 
           {activeStep === 'items' && (
-            <AssignStep activePersonId={activePersonId} onActivePersonChange={setActivePersonId} />
+            <AssignStep activePersonId={activePersonId} onActivePersonChange={selectPerson} />
           )}
 
           {activeStep === 'final' && (
