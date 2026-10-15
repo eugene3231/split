@@ -9,6 +9,7 @@ import type { EditableItem, ItemAssignment, Person, Receipt } from '@shared/type
 import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 import { AssignStep } from './AssignStep';
 import type { CurrencyCode } from '@shared/constants';
+import type { AssignMode } from '@features/split-workspace/types';
 
 interface AssignStepStoreMock {
   receipts: Receipt[];
@@ -97,17 +98,24 @@ function setStoreMock(receipts: Receipt[]) {
   };
 }
 
-function renderStep(activePersonId = 'p1') {
-  const onActivePersonChange = vi.fn();
-  const view = render(
-    <AssignStep activePersonId={activePersonId} onActivePersonChange={onActivePersonChange} />,
+function renderStep(activePersonId = 'p1', initialMode: AssignMode = 'person') {
+  const onSelectPerson = vi.fn();
+  let mode = initialMode;
+  const step = () => (
+    <AssignStep
+      mode={mode}
+      onModeChange={(next) => {
+        mode = next;
+        refresh();
+      }}
+      activePersonId={activePersonId}
+      onSelectPerson={onSelectPerson}
+    />
   );
+  const view = render(step());
   // The store mock is not reactive, so re-render after each action to read the new state.
-  const refresh = () =>
-    view.rerender(
-      <AssignStep activePersonId={activePersonId} onActivePersonChange={onActivePersonChange} />,
-    );
-  return { onActivePersonChange, refresh };
+  const refresh = () => view.rerender(step());
+  return { onSelectPerson, refresh };
 }
 
 function assignmentOf(itemId: string) {
@@ -186,11 +194,11 @@ describe('AssignStep', () => {
   });
 
   it('switches the person from the people rail', () => {
-    const { onActivePersonChange } = renderStep();
+    const { onSelectPerson } = renderStep();
 
     fireEvent.click(screen.getAllByTestId('claim-person-p2')[0]);
 
-    expect(onActivePersonChange).toHaveBeenCalledWith('p2');
+    expect(onSelectPerson).toHaveBeenCalledWith('p2');
   });
 
   it('steps a shared item up to half and down to a third in the row', () => {
@@ -377,5 +385,132 @@ describe('AssignStep', () => {
     renderStep();
 
     expect(screen.getByRole('heading', { level: 2, name: /Receipt r1/ })).toBeVisible();
+  });
+
+  describe('by item', () => {
+    const expanded = (itemId: string) =>
+      screen.getByTestId(`item-claim-toggle-${itemId}`).getAttribute('aria-expanded');
+
+    it('switches from By person to By item with nobody active', () => {
+      renderStep('p2');
+
+      fireEvent.click(screen.getByRole('radio', { name: 'By item' }));
+
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Who had each item?');
+      expect(screen.getByRole('radio', { name: 'By item' })).toHaveAttribute(
+        'aria-checked',
+        'true',
+      );
+      expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.queryByRole('checkbox', { name: /Select all items/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Split all evenly' })).toBeInTheDocument();
+    });
+
+    it('opens the first item left, and one row at a time on tap', () => {
+      renderStep('p1', 'item');
+
+      expect(expanded('open')).toBe('true');
+      expect(within(screen.getByTestId('item-claim-open')).getByText('Nobody yet')).toBeVisible();
+
+      fireEvent.click(screen.getByTestId('item-claim-toggle-shared'));
+      expect(expanded('shared')).toBe('true');
+      expect(expanded('open')).toBe('false');
+
+      fireEvent.click(screen.getByTestId('item-claim-toggle-shared'));
+      expect(expanded('shared')).toBe('false');
+      expect(screen.queryByRole('group', { name: /Who had/ })).not.toBeInTheDocument();
+    });
+
+    it('adds and removes a person with their chip and shows what they pay', () => {
+      const { refresh } = renderStep('p1', 'item');
+      const chip = (personId: string) => screen.getByTestId(`item-claim-chip-open-${personId}`);
+
+      fireEvent.click(chip('p2'));
+      refresh();
+      expect(assignmentOf('open')).toEqual(equalShares(['p2']));
+      expect(chip('p2')).toHaveAttribute('aria-pressed', 'true');
+      expect(chip('p2')).toHaveTextContent('Bob$12.00');
+
+      fireEvent.click(chip('p1'));
+      refresh();
+      expect(assignmentOf('open')).toEqual(equalShares(['p2', 'p1']));
+      expect(chip('p1')).toHaveTextContent('Alice$6.00');
+      expect(screen.getByTestId('item-claim-everyone-open')).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+
+      fireEvent.click(chip('p2'));
+      refresh();
+      expect(assignmentOf('open')).toEqual(equalShares(['p1']));
+      expect(chip('p2')).toHaveAttribute('aria-pressed', 'false');
+      expect(chip('p2')).toHaveTextContent(/^BBob$/);
+    });
+
+    it('splits an item between everyone, and clears it on a second tap', () => {
+      const { refresh } = renderStep('p1', 'item');
+      fireEvent.click(screen.getByTestId('item-claim-toggle-weighted'));
+      const everyone = () => screen.getByTestId('item-claim-everyone-weighted');
+      expect(everyone()).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.click(everyone());
+      refresh();
+      expect(assignmentOf('weighted')).toEqual(equalShares(['p1', 'p2']));
+      expect(everyone()).toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(everyone());
+      refresh();
+      expect(assignmentOf('weighted')).toEqual(NOBODY);
+    });
+
+    it('says when an item has uneven shares instead of offering a stepper', () => {
+      renderStep('p1', 'item');
+
+      fireEvent.click(screen.getByTestId('item-claim-toggle-weighted'));
+
+      expect(screen.getByText(/uneven/)).toBeVisible();
+      expect(screen.queryByTestId('claim-item-share-weighted')).not.toBeInTheDocument();
+      expect(screen.getByTestId('item-claim-chip-weighted-p1')).toHaveTextContent('$8.00');
+    });
+
+    it('moves on to the next item left across receipts, then closes when none is left', () => {
+      setStoreMock([
+        makeReceipt('r1', [makeItem('a'), makeItem('b', equalShares(['p1']))]),
+        makeReceipt('r2', [makeItem('c')]),
+      ]);
+      const { refresh } = renderStep('p1', 'item');
+      expect(expanded('a')).toBe('true');
+
+      fireEvent.click(screen.getByTestId('item-claim-next-a'));
+      expect(expanded('c')).toBe('true');
+      expect(expanded('a')).toBe('false');
+
+      fireEvent.click(screen.getByTestId('item-claim-everyone-c'));
+      refresh();
+      expect(screen.getByTestId('item-claim-next-c')).toHaveTextContent('Next item');
+      fireEvent.click(screen.getByTestId('item-claim-next-c'));
+      expect(expanded('a')).toBe('true');
+
+      fireEvent.click(screen.getByTestId('item-claim-chip-a-p2'));
+      refresh();
+      expect(screen.getByTestId('item-claim-next-a')).toHaveTextContent('Done');
+      fireEvent.click(screen.getByTestId('item-claim-next-a'));
+      expect(screen.queryByRole('group', { name: /Who had/ })).not.toBeInTheDocument();
+    });
+
+    it('opens no row when every item is assigned', () => {
+      setStoreMock([makeReceipt('r1', [makeItem('a', equalShares(['p1']))])]);
+      renderStep('p1', 'item');
+
+      expect(expanded('a')).toBe('false');
+    });
+
+    it('hands a person picked from the rail to By person', () => {
+      const { onSelectPerson } = renderStep('p1', 'item');
+
+      fireEvent.click(screen.getAllByTestId('claim-person-p2')[0]);
+
+      expect(onSelectPerson).toHaveBeenCalledWith('p2');
+    });
   });
 });

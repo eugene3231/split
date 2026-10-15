@@ -126,7 +126,7 @@ describe('useWizard', () => {
   });
 
   it('leaves leftovers alone and stays on the last person when the split is cancelled', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'person' });
     const receipts: [Receipt] = [makeReceipt('r1', ['i1'])];
     receipts[0].items[0].assignment = NOBODY;
     useReceiptStore.setState({ people, receipts, activeReceiptId: 'r1' });
@@ -206,6 +206,8 @@ describe('useWizard', () => {
     expect(result.current.assignMode).toBe('item');
 
     act(() => result.current.handleNext());
+    expect(result.current.leftoversToSplit?.map((item) => item.id)).toEqual(['i2']);
+    act(() => result.current.confirmSplitLeftovers());
     expect(useReceiptStore.getState().receipts[0].items[1].assignment).toEqual(
       equalShares(['p1', 'p2']),
     );

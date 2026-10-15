@@ -1,17 +1,15 @@
+import type { ReactNode } from 'react';
 import { cn } from '@shared/utils/cn';
 import { BottomNavStatus } from './BottomNav';
-import { CountUpAmount } from './shared/CountUpAmount';
 import { CheckIcon } from './shared/CheckIcon';
-import type { CurrencyCode } from '@shared/constants';
 
 interface Props {
   label: string;
-  cents: number;
-  currency: CurrencyCode;
+  value: ReactNode;
   complete: boolean;
 }
 
-export function ClaimStatusReel({ label, cents, currency, complete }: Props) {
+export function ClaimStatusReel({ label, value, complete }: Props) {
   return (
     <div data-testid="claim-status-reel" className="@container h-11 min-w-0 overflow-hidden">
       <div
@@ -25,10 +23,7 @@ export function ClaimStatusReel({ label, cents, currency, complete }: Props) {
           aria-hidden={complete}
           className="flex h-11 flex-col justify-center"
         >
-          <BottomNavStatus
-            label={label}
-            value={<CountUpAmount cents={cents} currency={currency} />}
-          />
+          <BottomNavStatus label={label} value={value} />
         </div>
         <div
           role={complete ? 'status' : undefined}

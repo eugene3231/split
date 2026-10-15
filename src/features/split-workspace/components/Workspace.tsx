@@ -16,6 +16,7 @@ import { BottomNav, BottomNavStatus } from '@features/split-workspace/components
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatusReel';
+import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
@@ -24,7 +25,7 @@ import { SummaryStep } from '@features/split-workspace/summary/SummaryStep';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import type { Person } from '@shared/types';
-import { WIZARD_STEPS, type WizardStep } from '@features/split-workspace/types';
+import { WIZARD_STEPS, type AssignMode, type WizardStep } from '@features/split-workspace/types';
 
 export function Workspace() {
   useReceiptSplitterController();
@@ -39,6 +40,8 @@ export function Workspace() {
     activeStep,
     activePersonId,
     selectPerson,
+    assignMode,
+    setAssignMode,
     canContinue,
     continueLabel,
     stepReachability,
@@ -82,7 +85,12 @@ export function Workspace() {
           {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
 
           {activeStep === 'items' && (
-            <AssignStep activePersonId={activePersonId} onActivePersonChange={selectPerson} />
+            <AssignStep
+              mode={assignMode}
+              onModeChange={setAssignMode}
+              activePersonId={activePersonId}
+              onSelectPerson={selectPerson}
+            />
           )}
 
           {activeStep === 'final' && (
@@ -105,6 +113,7 @@ export function Workspace() {
             key={activeStep}
             leftCount={countItemsLeft(receipts, people)}
             activeStep={activeStep}
+            assignMode={assignMode}
             activePerson={activePerson}
             activePersonTotalCents={
               activePerson ? consolidated.byPerson[activePerson.id].totalCents : 0
@@ -132,6 +141,7 @@ export function Workspace() {
 interface WorkspaceNavStatusProps {
   leftCount: number;
   activeStep: WizardStep;
+  assignMode: AssignMode;
   activePerson: Person | undefined;
   activePersonTotalCents: number;
   receiptTotalCents: number;
@@ -141,18 +151,22 @@ interface WorkspaceNavStatusProps {
 function WorkspaceNavStatus({
   leftCount,
   activeStep,
+  assignMode,
   activePerson,
   activePersonTotalCents,
   receiptTotalCents,
   receiptCurrency,
 }: WorkspaceNavStatusProps) {
   const justFinished = useAllAssignedMoment(leftCount);
+  if (activeStep === 'items' && assignMode === 'item') {
+    return <ClaimStatusReel label="Items left" value={leftCount} complete={justFinished} />;
+  }
+
   if (activeStep === 'items' && activePerson) {
     return (
       <ClaimStatusReel
         label={`${firstName(activePerson.name)} owes`}
-        cents={activePersonTotalCents}
-        currency={BASE_CURRENCY}
+        value={<CountUpAmount cents={activePersonTotalCents} currency={BASE_CURRENCY} />}
         complete={justFinished}
       />
     );
