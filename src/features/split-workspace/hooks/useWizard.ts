@@ -40,6 +40,7 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const activeStep = resolveWizardStep(activeStepState, items, allReceiptItems, people);
   const activePersonId = resolveActivePersonId(activePersonIdState, people);
   const claimContinue = resolveClaimContinue(
+    'person',
     people,
     activePersonId,
     countItemsLeft(receipts, people),

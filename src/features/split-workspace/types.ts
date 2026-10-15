@@ -5,6 +5,11 @@ export const WIZARD_STEPS = ['people', 'receipt', 'items', 'final'] as const;
 
 export type WizardStep = (typeof WIZARD_STEPS)[number];
 
+/** How the Items step assigns: one person's items at a time, or one item's people at a time. */
+export const ASSIGN_MODES = ['person', 'item'] as const;
+
+export type AssignMode = (typeof ASSIGN_MODES)[number];
+
 /** The split itself. The store holds it, and a draft is this plus a version and a timestamp. */
 export interface WorkspaceState {
   people: Person[];
