@@ -52,20 +52,20 @@ export interface ClaimItem extends ClaimItemBase {
   share: ClaimItemShare | null;
 }
 
-export interface ClaimChip {
-  person: ClaimPerson;
-  /** What this person pays for the item; null when they are not on it. */
-  amountLabel: string | null;
-  selected: boolean;
-}
+export type ClaimChip =
+  | { person: ClaimPerson; selected: true; amountLabel: string }
+  | { person: ClaimPerson; selected: false };
 
 export interface ItemClaim extends ClaimItemBase {
-  /** One per person, in people order. */
   chips: ClaimChip[];
-  /** Everyone is on the item in equal shares. */
-  everyoneSelected: boolean;
-  /** The people on the item have different share weights, which chips cannot show. */
+  isSplitEvenly: boolean;
   hasUnevenShares: boolean;
+}
+
+interface PricedClaimItem {
+  base: ClaimItemBase;
+  priceCents: number;
+  isSplitEvenly: boolean;
 }
 
 interface ReceiptClaims<Item> {
@@ -184,7 +184,6 @@ export function resolveClaimView(args: ClaimViewArgs & { activePersonId: string 
   };
 }
 
-/** The item-first view: every person on every item, with no one person active. */
 export function resolveItemClaimView({
   receipts,
   people,
@@ -212,18 +211,16 @@ export function resolveItemClaimView({
   };
 }
 
-/**
- * The first item still left after `fromItemId` in page order, wrapping round to the start and
- * never `fromItemId` itself. With no `fromItemId`, the first item left on the page.
- */
 export function resolveNextOpenItemId(
   sections: ReceiptClaims<Pick<ClaimItemBase, 'id' | 'isLeft'>>[],
   fromItemId: string | null,
 ): string | null {
   const items = sections.flatMap((section) => section.items);
+  if (fromItemId === null) return items.find((item) => item.isLeft)?.id ?? null;
+
   const from = items.findIndex((item) => item.id === fromItemId);
-  const inOrder = [...items.slice(from + 1), ...items.slice(0, Math.max(from, 0))];
-  return inOrder.find((item) => item.isLeft)?.id ?? null;
+  const wrappedAfterFrom = [...items.slice(from + 1), ...items.slice(0, from)];
+  return wrappedAfterFrom.find((item) => item.isLeft)?.id ?? null;
 }
 
 export function resolveClaimContinue(
@@ -270,12 +267,11 @@ function resolveClaimPeople(
   }));
 }
 
-/** What every row shows about a priced item; null for a blank row without a price. */
-function resolveClaimItemBase(
+function resolvePricedClaimItem(
   item: EditableItem,
   receipt: Receipt,
   people: ClaimPerson[],
-): { base: ClaimItemBase; priceCents: number; isSplitEvenly: boolean } | null {
+): PricedClaimItem | null {
   const priceCents = resolveDiscountedAmountCents(item);
   if (priceCents === null) return null;
 
@@ -303,7 +299,7 @@ function resolveClaimItem(
   people: ClaimPerson[],
   activePersonId: string,
 ): ClaimItem | null {
-  const resolved = resolveClaimItemBase(item, receipt, people);
+  const resolved = resolvePricedClaimItem(item, receipt, people);
   if (!resolved) return null;
 
   const { base, priceCents, isSplitEvenly } = resolved;
@@ -326,7 +322,7 @@ function resolveItemClaim(
   receipt: Receipt,
   people: ClaimPerson[],
 ): ItemClaim | null {
-  const resolved = resolveClaimItemBase(item, receipt, people);
+  const resolved = resolvePricedClaimItem(item, receipt, people);
   if (!resolved) return null;
 
   const { base, priceCents, isSplitEvenly } = resolved;
@@ -336,17 +332,12 @@ function resolveItemClaim(
 
   return {
     ...base,
-    chips: people.map((person) => {
-      const selected = Object.hasOwn(shares, person.id);
-      return {
-        person,
-        selected,
-        amountLabel: selected
-          ? formatCurrencyFromCents(amounts[person.id], receipt.currency)
-          : null,
-      };
+    chips: people.map((person): ClaimChip => {
+      if (!Object.hasOwn(shares, person.id)) return { person, selected: false };
+      const amountLabel = formatCurrencyFromCents(amounts[person.id], receipt.currency);
+      return { person, selected: true, amountLabel };
     }),
-    everyoneSelected: isSplitEvenly,
+    isSplitEvenly,
     hasUnevenShares: new Set(weights).size > 1,
   };
 }

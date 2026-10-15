@@ -8,22 +8,21 @@ import { PersonChip } from './PersonChip';
 interface Props {
   item: ItemClaim;
   isOpen: boolean;
-  /** Scroll the row into view as it opens, for a row opened from the one before it. */
-  reveal: boolean;
+  scrollOnOpen: boolean;
   hasNext: boolean;
   onToggleOpen: () => void;
   onNext: () => void;
   onCommand: (command: AssignmentCommand) => void;
 }
 
-function revealRow(element: HTMLLIElement | null) {
+function scrollRowIntoView(element: HTMLLIElement | null) {
   element?.scrollIntoView?.({ behavior: prefersMotion() ? 'smooth' : 'auto', block: 'nearest' });
 }
 
 export function ItemClaimRow({
   item,
   isOpen,
-  reveal,
+  scrollOnOpen,
   hasNext,
   onToggleOpen,
   onNext,
@@ -33,7 +32,7 @@ export function ItemClaimRow({
 
   return (
     <li
-      ref={reveal ? revealRow : undefined}
+      ref={scrollOnOpen ? scrollRowIntoView : undefined}
       data-testid={`item-claim-${item.id}`}
       className={cn(
         'scroll-mt-[calc(var(--app-bar-height)+4rem)] scroll-mb-32 transition-colors',
@@ -72,12 +71,12 @@ export function ItemClaimRow({
             className="flex flex-wrap gap-2 motion-safe:animate-rise-in"
           >
             <EveryoneChip
-              pressed={item.everyoneSelected}
+              pressed={item.isSplitEvenly}
               testId={`item-claim-everyone-${item.id}`}
               onClick={() =>
                 onCommand({
                   type: 'split-evenly',
-                  personIds: item.everyoneSelected ? [] : item.chips.map((chip) => chip.person.id),
+                  personIds: item.isSplitEvenly ? [] : item.chips.map((chip) => chip.person.id),
                 })
               }
             />

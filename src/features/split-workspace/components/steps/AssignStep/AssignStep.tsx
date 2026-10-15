@@ -1,7 +1,12 @@
 import { useShallow } from 'zustand/shallow';
 import { applyAssignmentCommand } from '@features/split-workspace/logic/assignmentInteraction';
 import type { AssignmentCommand } from '@features/split-workspace/logic/assignmentInteraction';
-import { resolveClaimView, resolveItemClaimView } from '@features/split-workspace/logic/claim';
+import {
+  resolveClaimView,
+  resolveItemClaimView,
+  type ClaimView,
+  type ItemClaimView,
+} from '@features/split-workspace/logic/claim';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { centsByPerson } from '@features/split-workspace/logic/split/amounts';
@@ -19,6 +24,11 @@ const MODE_OPTIONS = [
   { value: 'person', label: 'By person' },
   { value: 'item', label: 'By item' },
 ] as const;
+
+function slidePosition(view: ClaimView | ItemClaimView): number {
+  if (view.mode === 'item') return view.people.length;
+  return view.people.findIndex((person) => person.isActive);
+}
 
 interface Props {
   mode: AssignMode;
@@ -45,10 +55,7 @@ export function AssignStep({ mode, onModeChange, activePersonId, onSelectPerson 
   };
   const view =
     mode === 'item' ? resolveItemClaimView(args) : resolveClaimView({ ...args, activePersonId });
-  // By item sits to the right of every person, as it does in the toggle.
-  const direction = useSlideDirection(
-    view.mode === 'item' ? view.people.length : view.people.findIndex((person) => person.isActive),
-  );
+  const direction = useSlideDirection(slidePosition(view));
 
   const applyCommand = (receiptId: string, itemId: string, command: AssignmentCommand) =>
     updateItem(receiptId, itemId, (item) => applyAssignmentCommand(item, command));

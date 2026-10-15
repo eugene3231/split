@@ -5,7 +5,6 @@ interface Props {
   receiptId: string;
   name: string;
   leftCount: number;
-  /** Sits before the receipt name in the sticky header. */
   leading?: ReactNode;
   children: ReactNode;
 }

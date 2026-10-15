@@ -9,7 +9,7 @@ import { ReceiptClaimSection } from './ReceiptClaimSection';
 
 interface OpenRow {
   itemId: string;
-  reveal: boolean;
+  scrollOnOpen: boolean;
 }
 
 interface Props {
@@ -17,8 +17,8 @@ interface Props {
   onCommand: (receiptId: string, itemId: string, command: AssignmentCommand) => void;
 }
 
-function openRow(itemId: string | null, reveal: boolean): OpenRow | null {
-  return itemId === null ? null : { itemId, reveal };
+function openRow(itemId: string | null, scrollOnOpen: boolean): OpenRow | null {
+  return itemId === null ? null : { itemId, scrollOnOpen };
 }
 
 export function ItemClaimList({ sections, onCommand }: Props) {
@@ -39,7 +39,7 @@ export function ItemClaimList({ sections, onCommand }: Props) {
             key={item.id}
             item={item}
             isOpen={isOpen}
-            reveal={isOpen && (open?.reveal ?? false)}
+            scrollOnOpen={isOpen && (open?.scrollOnOpen ?? false)}
             hasNext={nextItemId !== null}
             onToggleOpen={() => setOpen(openRow(isOpen ? null : item.id, false))}
             onNext={() => setOpen(openRow(nextItemId, true))}

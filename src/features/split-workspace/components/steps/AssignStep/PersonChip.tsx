@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function PersonChip({ chip, onToggle, testId }: Props) {
-  const { person, selected, amountLabel } = chip;
+  const { person, selected } = chip;
 
   return (
     <button
@@ -33,9 +33,9 @@ export function PersonChip({ chip, onToggle, testId }: Props) {
         className={cn('h-8 w-8', selected && 'bg-white/25!')}
       />
       {person.firstName}
-      {amountLabel && (
+      {chip.selected && (
         <span className="font-normal tabular-nums opacity-80 motion-safe:animate-fade-in">
-          {amountLabel}
+          {chip.amountLabel}
         </span>
       )}
     </button>

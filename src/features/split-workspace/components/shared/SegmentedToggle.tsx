@@ -14,7 +14,6 @@ interface Props<Value extends string> {
   className?: string;
 }
 
-/** Two options side by side, with a thumb that slides to the chosen one. */
 export function SegmentedToggle<Value extends string>({
   label,
   options,

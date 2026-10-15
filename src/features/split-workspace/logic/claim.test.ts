@@ -17,6 +17,7 @@ import {
   resolveNextOpenItemId,
   resolvePreviousPersonId,
 } from './claim';
+import type { ClaimChip } from './claim';
 import type { CurrencyCode } from '@shared/constants';
 
 const people: Person[] = [
@@ -268,6 +269,10 @@ function itemView(receipts: Receipt[]) {
   });
 }
 
+function amountOf(chip: ClaimChip): string | null {
+  return chip.selected ? chip.amountLabel : null;
+}
+
 function itemClaims(receipts: Receipt[]) {
   return itemView(receipts).sections.flatMap((section) => section.items);
 }
@@ -290,24 +295,22 @@ describe('resolveItemClaimView', () => {
 
     const [item] = itemClaims([receipt]);
 
-    expect(
-      item.chips.map((chip) => [chip.person.firstName, chip.selected, chip.amountLabel]),
-    ).toEqual([
-      ['Eugene', true, '$5.00'],
-      ['Mei', false, null],
-      ['Arjun', true, '$5.00'],
+    expect(item.chips.map((chip) => [chip.person.firstName, amountOf(chip)])).toEqual([
+      ['Eugene', '$5.00'],
+      ['Mei', null],
+      ['Arjun', '$5.00'],
     ]);
     expect(item).toMatchObject({
       priceLabel: '$10.00',
       isLeft: false,
-      everyoneSelected: false,
+      isSplitEvenly: false,
       hasUnevenShares: false,
     });
   });
 
   it('presses Everyone only when every person has an equal share', () => {
     const everyone = (assignment: ItemAssignment) =>
-      itemClaims([makeReceipt('r1', [makeItem('i1', '9.00', assignment)])])[0].everyoneSelected;
+      itemClaims([makeReceipt('r1', [makeItem('i1', '9.00', assignment)])])[0].isSplitEvenly;
 
     expect(everyone(equalShares(['p1', 'p2', 'p3']))).toBe(true);
     expect(everyone(makeAssignment({ p1: 2, p2: 1, p3: 1 }))).toBe(false);
@@ -332,9 +335,9 @@ describe('resolveItemClaimView', () => {
 
     const [weighted, half] = itemClaims([receipt]);
 
-    expect(weighted.chips.map((chip) => chip.amountLabel)).toEqual(['$6.00', '$3.00', null]);
+    expect(weighted.chips.map(amountOf)).toEqual(['$6.00', '$3.00', null]);
     expect(half).toMatchObject({ isLeft: true, leftLabel: '1/2 left' });
-    expect(half.chips.map((chip) => chip.amountLabel)).toEqual([null, '$3.00', null]);
+    expect(half.chips.map(amountOf)).toEqual([null, '$3.00', null]);
   });
 
   it('leaves out blank rows without a price', () => {
