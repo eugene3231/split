@@ -82,7 +82,7 @@ export function ItemClaimRow({
           <div
             role="group"
             aria-label={`Who had ${item.name}`}
-            className="grid grid-cols-3 gap-2 motion-safe:animate-rise-in sm:grid-cols-4"
+            className="grid grid-cols-2 gap-2 motion-safe:animate-rise-in sm:grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))]"
           >
             {item.chips.map((chip) => (
               <PersonChip
