@@ -51,7 +51,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'lcov'],
-      include: ['src/**/*.ts'],
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         '**/*.test.{ts,tsx}',
         '**/*.d.ts',
@@ -61,9 +61,8 @@ export default defineConfig({
         '**/canvas/draw.ts',
         '**/types.ts',
         '**/constants.ts',
-        '**/components/**',
-        '**/pages/components/**',
         '**/testHelpers.ts',
+        'src/main.tsx',
       ],
       thresholds: {
         lines: 80,

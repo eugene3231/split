@@ -67,4 +67,45 @@ describe('HoverLabel', () => {
     act(() => vi.advanceTimersByTime(1000));
     expect(screen.getByTestId('their-label')).not.toHaveClass('opacity-100');
   });
+
+  it('shows the label on a held touch and swallows the tap that ends it', () => {
+    const onClick = vi.fn();
+    render(
+      <HoverLabel label="Alice" testId="alice-label">
+        <button onClick={onClick}>A</button>
+      </HoverLabel>,
+    );
+    const avatar = screen.getByRole('button', { name: 'A' });
+
+    fireEvent.pointerDown(avatar, { pointerType: 'touch' });
+    act(() => vi.advanceTimersByTime(449));
+    expect(screen.getByTestId('alice-label')).not.toHaveClass('opacity-100');
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByTestId('alice-label')).toHaveClass('opacity-100');
+
+    fireEvent.pointerUp(avatar, { pointerType: 'touch' });
+    fireEvent.click(avatar);
+    expect(onClick).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(avatar, { pointerType: 'touch' });
+    fireEvent.pointerUp(avatar, { pointerType: 'touch' });
+    fireEvent.click(avatar);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows nothing when a touch is let go before it counts as held', () => {
+    render(
+      <HoverLabel label="Alice" testId="alice-label">
+        <button>A</button>
+      </HoverLabel>,
+    );
+    const avatar = screen.getByRole('button', { name: 'A' });
+
+    fireEvent.pointerDown(avatar, { pointerType: 'touch' });
+    act(() => vi.advanceTimersByTime(200));
+    fireEvent.pointerLeave(avatar, { pointerType: 'touch' });
+    act(() => vi.advanceTimersByTime(1000));
+
+    expect(screen.getByTestId('alice-label')).not.toHaveClass('opacity-100');
+  });
 });
