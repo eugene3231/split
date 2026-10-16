@@ -10,6 +10,7 @@ import { isStepValid } from '@features/split-workspace/logic/wizardValidation';
 import {
   resolveActivePersonId,
   countItemsLeft,
+  listItemsLeft,
   resolveClaimContinue,
   resolvePreviousPersonId,
 } from '@features/split-workspace/logic/claim';
@@ -31,6 +32,7 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const [activePersonIdState, setActivePersonId] = useState(
     initialWizardState?.activePersonId ?? '',
   );
+  const [confirmingLeftovers, setConfirmingLeftovers] = useState(false);
 
   const allReceiptItems = receipts.flatMap((receipt) => receipt.items);
   const allItemsAssigned = isStepValid('items', { items: allReceiptItems, people });
@@ -109,10 +111,19 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
       return;
     }
     if (claimContinue.kind === 'split-leftovers') {
-      for (const receipt of receipts) updateItems(receipt.id, splitUnassignedItemsEqually);
+      setConfirmingLeftovers(true);
+      return;
     }
     setActiveStep('final');
   };
+
+  const confirmSplitLeftovers = () => {
+    for (const receipt of receipts) updateItems(receipt.id, splitUnassignedItemsEqually);
+    setConfirmingLeftovers(false);
+    setActiveStep('final');
+  };
+
+  const cancelSplitLeftovers = () => setConfirmingLeftovers(false);
 
   const handleBack = () => {
     if (activeStep === 'final') {
@@ -170,5 +181,8 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
     handleAddReceipt,
     handleResetSplit,
     handleLoadWorkspace,
+    leftoversToSplit: confirmingLeftovers ? listItemsLeft(receipts, people) : null,
+    confirmSplitLeftovers,
+    cancelSplitLeftovers,
   };
 }

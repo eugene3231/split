@@ -642,6 +642,12 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Split 1 left evenly');
       clickContinue();
 
+      const dialog = screen.getByRole('alertdialog');
+      expect(within(dialog).getByTestId('split-leftovers-list')).toHaveTextContent(
+        unclaimedItem.name,
+      );
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Split evenly' }));
+
       expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
       const items = useReceiptStore.getState().receipts[0].items;
       expect(items[1].assignment).toEqual(equalShares(['p1', 'p2']));
@@ -686,6 +692,12 @@ describe('ReceiptSplitterPage integration', () => {
       );
       expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Split 1 left evenly');
       clickContinue();
+
+      const dialog = screen.getByRole('alertdialog');
+      expect(within(dialog).getByTestId('split-leftovers-list')).toHaveTextContent(
+        'Only the 1/2 left',
+      );
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Split evenly' }));
 
       expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
       const [item] = useReceiptStore.getState().receipts[0].items;

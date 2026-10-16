@@ -23,7 +23,7 @@ export function ShareAmountField({ label, onCommit, testId }: Props) {
         aria-label={`Your share ${label}, tap to type an amount or percent`}
         data-testid={testId}
         onClick={() => setDraft('')}
-        className="h-11 text-right font-bold whitespace-nowrap tabular-nums underline decoration-outline-variant decoration-dotted underline-offset-4"
+        className="h-9 min-w-18 rounded-lg border border-outline-variant bg-surface-container-lowest px-1.5 text-right font-bold whitespace-nowrap tabular-nums transition-colors hover:border-on-surface-variant"
       >
         {label}
       </button>
@@ -51,7 +51,7 @@ export function ShareAmountField({ label, onCommit, testId }: Props) {
         if (event.key === 'Enter') event.currentTarget.blur();
         if (event.key === 'Escape') setDraft(null);
       }}
-      className="h-11 w-28 rounded-lg border-2 border-primary bg-surface-container-lowest px-2 py-1 text-right font-bold tabular-nums outline-none"
+      className="h-9 w-18 rounded-lg border-2 border-primary bg-surface-container-lowest px-1.5 py-1 text-right font-bold tabular-nums outline-none"
     />
   );
 }

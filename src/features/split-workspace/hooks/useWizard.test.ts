@@ -113,10 +113,36 @@ describe('useWizard', () => {
 
     act(() => result.current.handleNext());
 
+    expect(result.current.activeStep).toBe('items');
+    expect(result.current.leftoversToSplit?.map((item) => item.id)).toEqual(['i1', 'i3']);
+    expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual(NOBODY);
+
+    act(() => result.current.confirmSplitLeftovers());
+
     const state = useReceiptStore.getState();
     expect(state.receipts[0].items[0].assignment).toEqual(equalShares(['p1', 'p2']));
     expect(state.receipts[1].items[1].assignment).toEqual(equalShares(['p1', 'p2']));
     expect(result.current.activeStep).toBe('final');
+  });
+
+  it('leaves leftovers alone and stays on the last person when the split is cancelled', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    const receipts: [Receipt] = [makeReceipt('r1', ['i1'])];
+    receipts[0].items[0].assignment = NOBODY;
+    useReceiptStore.setState({ people, receipts, activeReceiptId: 'r1' });
+
+    const { result } = renderHook(() => {
+      const state = useReceiptStore();
+      return useWizard(state.receipts[0].items, state.people, state.receipts);
+    });
+
+    act(() => result.current.handleNext());
+    act(() => result.current.cancelSplitLeftovers());
+
+    expect(result.current.leftoversToSplit).toBeNull();
+    expect(result.current.activeStep).toBe('items');
+    expect(result.current.activePersonId).toBe('p2');
+    expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual(NOBODY);
   });
 
   it('falls back to the first person when the saved person was removed', () => {

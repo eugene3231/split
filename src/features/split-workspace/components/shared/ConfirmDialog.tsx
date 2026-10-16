@@ -25,8 +25,8 @@ export function ConfirmDialog({
         <AlertDialog.Overlay className="fixed inset-0 z-[70] bg-on-surface/40 motion-safe:animate-fade-in" />
         <AlertDialog.Content className="fixed top-1/2 left-1/2 z-[70] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 text-on-surface shadow-xl motion-safe:animate-rise-in">
           <AlertDialog.Title className="font-headline text-xl font-bold">{title}</AlertDialog.Title>
-          <AlertDialog.Description className="mt-3 text-sm text-on-surface-variant">
-            {children}
+          <AlertDialog.Description asChild>
+            <div className="mt-3 text-sm text-on-surface-variant">{children}</div>
           </AlertDialog.Description>
           <div className="mt-6 flex justify-end gap-3">
             <AlertDialog.Cancel className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold transition-colors hover:bg-surface-container-high">

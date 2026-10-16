@@ -8,10 +8,6 @@ import {
   isItemAssigned,
   totalShare,
 } from '@features/split-workspace/logic/assignment';
-import {
-  getAssignedItemsCount,
-  getDetectedItemsCount,
-} from '@features/split-workspace/logic/wizardValidation';
 import type { CurrencyCode } from '@shared/constants';
 
 export interface ClaimPerson {
@@ -38,6 +34,8 @@ export interface ClaimItem {
   priceLabel: string;
   claimedByActive: boolean;
   isLeft: boolean;
+  /** Fully assigned to other people, so the active person can skip past it. */
+  takenByOthers: boolean;
   /** Everyone on the item, in people order. */
   claimants: ClaimPerson[];
   /** "1/2 left" when part of the item has nobody yet. */
@@ -51,6 +49,8 @@ export interface ClaimSection {
   name: string;
   currency: CurrencyCode;
   items: ClaimItem[];
+  /** Items on the receipt that nobody has yet, or that still have an unassigned share. */
+  leftCount: number;
   /** How many of the receipt's items the active person is on. */
   activeSelection: 'none' | 'some' | 'all';
   /** True when the active person has an uneven share on one of the receipt's items. */
@@ -77,9 +77,38 @@ export function resolveActivePersonId(personId: string, people: Person[]): strin
   return people.some((person) => person.id === personId) ? personId : (people[0]?.id ?? '');
 }
 
+export interface ItemLeft {
+  id: string;
+  receiptName: string;
+  name: string;
+  priceLabel: string;
+  /** "1/2 left" when someone already has part of it; null when nobody is on it. */
+  leftLabel: string | null;
+}
+
+/** Every priced item that the last person's "Split n left evenly" would share out. */
+export function listItemsLeft(receipts: Receipt[], people: Person[]): ItemLeft[] {
+  const validIds = new Set(people.map((person) => person.id));
+  return receipts.flatMap((receipt) =>
+    receipt.items.flatMap((item) => {
+      const priceCents = resolveDiscountedAmountCents(item);
+      if (priceCents === null || isItemAssigned(item, validIds)) return [];
+      const claimants = people.filter((person) => Object.hasOwn(item.assignment.shares, person.id));
+      return [
+        {
+          id: item.id,
+          receiptName: receipt.name,
+          name: item.name.trim() || 'Untitled item',
+          priceLabel: formatCurrencyFromCents(priceCents, receipt.currency),
+          leftLabel: describeLeftShare(item, claimants),
+        },
+      ];
+    }),
+  );
+}
+
 export function countItemsLeft(receipts: Receipt[], people: Person[]): number {
-  const items = receipts.flatMap((receipt) => receipt.items);
-  return getDetectedItemsCount(items) - getAssignedItemsCount(items, people);
+  return listItemsLeft(receipts, people).length;
 }
 
 export function resolveClaimView(args: {
@@ -110,6 +139,7 @@ export function resolveClaimView(args: {
       name: receipt.name,
       currency: receipt.currency,
       items,
+      leftCount: items.filter((item) => item.isLeft).length,
       activeSelection: resolveSelection(items),
       activeHasCustomShare: receipt.items.some((item) => hasCustomShare(item, activePersonId)),
     };
@@ -162,6 +192,7 @@ function resolveClaimItem(
   const claimants = people.filter((person) => Object.hasOwn(shares, person.id));
   const share = resolvePersonShare(item, activePersonId, priceCents);
   const isSplitEvenly = claimants.length === people.length && hasEqualShares(item.assignment);
+  const isLeft = !isItemAssigned(item, validIds);
 
   return {
     id: item.id,
@@ -169,7 +200,8 @@ function resolveClaimItem(
     name: item.name.trim() || 'Untitled item',
     priceLabel: formatCurrencyFromCents(priceCents, receipt.currency),
     claimedByActive: share !== null,
-    isLeft: !isItemAssigned(item, validIds),
+    isLeft,
+    takenByOthers: share === null && !isLeft,
     claimants,
     leftLabel: describeLeftShare(item, claimants),
     share: share && {
@@ -193,7 +225,7 @@ function hasCustomShare(item: EditableItem, personId: string): boolean {
   return resolveDiscountedAmountCents(item) !== null && !hasEqualShares(item.assignment);
 }
 
-function describeLeftShare(item: EditableItem, claimants: ClaimPerson[]): string | null {
+function describeLeftShare(item: EditableItem, claimants: Person[]): string | null {
   const { unassignedShare } = item.assignment;
   if (unassignedShare === 0 || claimants.length === 0) return null;
   return `${formatShareFraction(unassignedShare, totalShare(item.assignment))} left`;

@@ -19,6 +19,7 @@ import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatu
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
+import { SplitLeftoversDialog } from '@features/split-workspace/components/steps/AssignStep/SplitLeftoversDialog';
 import { SummaryStep } from '@features/split-workspace/summary/SummaryStep';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
@@ -47,6 +48,9 @@ export function Workspace() {
     handleAddReceipt,
     handleResetSplit,
     handleLoadWorkspace,
+    leftoversToSplit,
+    confirmSplitLeftovers,
+    cancelSplitLeftovers,
   } = useWizard(activeReceipt.items, people, receipts);
 
   const activePerson = people.find((person) => person.id === activePersonId);
@@ -110,6 +114,15 @@ export function Workspace() {
           />
         }
       />
+
+      {leftoversToSplit && (
+        <SplitLeftoversDialog
+          items={leftoversToSplit}
+          peopleCount={people.length}
+          onCancel={cancelSplitLeftovers}
+          onConfirm={withScrollToTop(confirmSplitLeftovers)}
+        />
+      )}
 
       <AppFooter />
     </div>

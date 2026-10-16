@@ -110,12 +110,15 @@ export function parseShareInput(raw: string): ShareInput | null {
   return cents !== null && cents >= 0 ? { kind: 'amount', cents } : null;
 }
 
-/** "1", "1/3", "1/12", or "2/5" while the denominator stays small, otherwise a rounded percent. */
+/**
+ * "All" for the whole item (a bare "1" reads as a quantity), then "1/3", "1/12", or "2/5" while
+ * the denominator stays small, otherwise a rounded percent.
+ */
 export function formatShareFraction(part: number, total: number): string {
   const divisor = gcd(part, total);
   const numerator = part / divisor;
   const denominator = total / divisor;
-  if (numerator === denominator) return '1';
+  if (numerator === denominator) return 'All';
   if (numerator === 1 || denominator <= MAX_LABEL_DENOMINATOR) return `${numerator}/${denominator}`;
   return `${Math.round((part / total) * 100)}%`;
 }

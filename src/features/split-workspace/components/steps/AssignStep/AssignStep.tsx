@@ -79,6 +79,14 @@ export function AssignStep({ activePersonId, onActivePersonChange }: Props) {
                 personName={activePerson.firstName}
               />
               <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{section.name}</h2>
+              {section.leftCount > 0 && (
+                <span
+                  data-testid={`claim-section-left-${section.receiptId}`}
+                  className="shrink-0 rounded-full bg-warning-container px-2.5 py-1 text-xs font-bold text-on-warning-container tabular-nums"
+                >
+                  {section.leftCount} left
+                </span>
+              )}
               <ReceiptSharingAction receiptId={section.receiptId} />
             </div>
             <ul className="divide-y divide-surface-container-high">

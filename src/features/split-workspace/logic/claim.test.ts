@@ -10,6 +10,7 @@ import {
   firstName,
   resolveActivePersonId,
   countItemsLeft,
+  listItemsLeft,
   resolveClaimContinue,
   resolveClaimView,
   resolvePreviousPersonId,
@@ -200,6 +201,58 @@ describe('resolveClaimView', () => {
     expect(result.sections.map((section) => [section.receiptId, section.items.length])).toEqual([
       ['r1', 2],
       ['r2', 2],
+    ]);
+    expect(result.sections.map((section) => section.leftCount)).toEqual([1, 2]);
+  });
+
+  it('marks an item as taken only when other people have all of it', () => {
+    const receipt = makeReceipt('r1', [
+      makeItem('theirs', '5.00', equalShares(['p2', 'p3'])),
+      makeItem('shared', '5.00', equalShares(['p1', 'p2'])),
+      makeItem('open', '5.00'),
+      makeItem('half', '5.00', makeAssignment({ p2: 1 }, 1)),
+    ]);
+
+    const taken = Object.fromEntries(items([receipt]).map((item) => [item.id, item.takenByOthers]));
+
+    expect(taken).toEqual({ theirs: true, shared: false, open: false, half: false });
+  });
+
+  it('labels a share of the whole item as All', () => {
+    const receipt = makeReceipt('r1', [makeItem('i1', '4.00', equalShares(['p1']))]);
+
+    expect(items([receipt])[0].share?.label).toBe('All');
+  });
+});
+
+describe('listItemsLeft', () => {
+  it('lists what the last person would split, with any part already taken', () => {
+    const receipts = [
+      makeReceipt('r1', [
+        makeItem('a', '5.00', NOBODY, 'Carrot Cake'),
+        makeItem('b', '18.00', makeAssignment({ p1: 1 }, 1), 'Sambal Stingray'),
+        makeItem('c', '5.00', equalShares(['p1'])),
+        makeItem('blank', ''),
+      ]),
+      makeReceipt('r2', [makeItem('d', '3.00', equalShares(['removed']), 'Kopi')], 'USD'),
+    ];
+
+    expect(listItemsLeft(receipts, people)).toEqual([
+      {
+        id: 'a',
+        receiptName: 'Receipt r1',
+        name: 'Carrot Cake',
+        priceLabel: '$5.00',
+        leftLabel: null,
+      },
+      {
+        id: 'b',
+        receiptName: 'Receipt r1',
+        name: 'Sambal Stingray',
+        priceLabel: '$18.00',
+        leftLabel: '1/2 left',
+      },
+      { id: 'd', receiptName: 'Receipt r2', name: 'Kopi', priceLabel: 'US$3.00', leftLabel: null },
     ]);
   });
 });

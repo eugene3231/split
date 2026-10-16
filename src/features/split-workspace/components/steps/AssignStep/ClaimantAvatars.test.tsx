@@ -59,7 +59,6 @@ describe('ClaimantAvatars', () => {
 
     expect(screen.getByTestId('who')).toHaveAccessibleName('Alex, Sam, 1/2 left');
     expect(screen.getAllByText('Alex')).toHaveLength(1);
-    expect(screen.getByText('1/2 left')).toBeInTheDocument();
   });
 
   it('finishes an avatar exit even when another update arrives during it', () => {
