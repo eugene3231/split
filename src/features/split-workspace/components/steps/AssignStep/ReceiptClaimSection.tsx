@@ -5,7 +5,8 @@ interface Props {
   receiptId: string;
   name: string;
   leftCount: number;
-  leading?: ReactNode;
+  /** What sits left of the name, in the same column as each row's leading mark. */
+  leading: ReactNode;
   children: ReactNode;
 }
 
@@ -13,7 +14,9 @@ export function ReceiptClaimSection({ receiptId, name, leftCount, leading, child
   return (
     <section aria-label={name} data-testid={`claim-section-${receiptId}`}>
       <div className="sticky top-(--app-bar-height) z-10 -mx-6 flex flex-wrap items-center justify-between gap-2 border-b border-surface-container-high bg-surface px-6 pt-4 pb-2 md:mx-0 md:px-1">
-        {leading}
+        <span className="-mr-0.5 -ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center md:-ml-2.5">
+          {leading}
+        </span>
         <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{name}</h2>
         {leftCount > 0 && (
           <span

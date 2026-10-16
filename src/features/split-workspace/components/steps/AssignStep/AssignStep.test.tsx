@@ -498,11 +498,14 @@ describe('AssignStep', () => {
       expect(screen.queryByRole('group', { name: /Who had/ })).not.toBeInTheDocument();
     });
 
-    it('opens no row when every item is assigned', () => {
-      setStoreMock([makeReceipt('r1', [makeItem('a', equalShares(['p1']))])]);
+    it('opens the first row when every item is assigned', () => {
+      setStoreMock([
+        makeReceipt('r1', [makeItem('a', equalShares(['p1'])), makeItem('b', equalShares(['p2']))]),
+      ]);
       renderStep('p1', 'item');
 
-      expect(expanded('a')).toBe('false');
+      expect(expanded('a')).toBe('true');
+      expect(expanded('b')).toBe('false');
     });
 
     it('hands a person picked from the rail to By person', () => {

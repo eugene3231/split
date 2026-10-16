@@ -719,14 +719,14 @@ describe('ReceiptSplitterPage integration', () => {
       expect(r2.items[0].assignment).toEqual(equalShares(['p1']));
     });
 
-    it('assigns by item with a count of what is left, and keeps that mode after a reload', async () => {
+    it('assigns by item with a count of what is assigned, and keeps that mode after a reload', async () => {
       const receipts = [
         makeReceipt({ id: 'r1', items: [{ ...unclaimedItem, id: 'r1-i1' }, unclaimedItem] }),
       ];
       await navigateToClaim(receipts);
 
       fireEvent.click(screen.getByRole('radio', { name: 'By item' }));
-      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Items left2');
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Assigned0 of 2');
       expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Split 2 left evenly');
 
       fireEvent.click(screen.getByTestId('item-claim-chip-r1-i1-p2'));
@@ -734,7 +734,7 @@ describe('ReceiptSplitterPage integration', () => {
         equalShares(['p2']),
       );
       expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveTextContent('$2.00');
-      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Items left1');
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Assigned1 of 2');
 
       cleanup();
       reloadWorkspace();

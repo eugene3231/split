@@ -12,6 +12,7 @@ import {
   isItemAssigned,
   totalShare,
 } from '@features/split-workspace/logic/assignment';
+import { getDetectedItemsCount } from '@features/split-workspace/logic/wizardValidation';
 import type { CurrencyCode } from '@shared/constants';
 import type { AssignMode } from '@features/split-workspace/types';
 
@@ -151,6 +152,10 @@ export function listItemsLeft(receipts: Receipt[], people: Person[]): ItemLeft[]
   );
 }
 
+export function countItems(receipts: Receipt[]): number {
+  return getDetectedItemsCount(receipts.flatMap((receipt) => receipt.items));
+}
+
 export function countItemsLeft(receipts: Receipt[], people: Person[]): number {
   return listItemsLeft(receipts, people).length;
 }
@@ -216,7 +221,7 @@ export function resolveNextOpenItemId(
   fromItemId: string | null,
 ): string | null {
   const items = sections.flatMap((section) => section.items);
-  if (fromItemId === null) return items.find((item) => item.isLeft)?.id ?? null;
+  if (fromItemId === null) return (items.find((item) => item.isLeft) ?? items[0])?.id ?? null;
 
   const from = items.findIndex((item) => item.id === fromItemId);
   const wrappedAfterFrom = [...items.slice(from + 1), ...items.slice(0, from)];

@@ -9,6 +9,7 @@ import {
 import {
   firstName,
   resolveActivePersonId,
+  countItems,
   countItemsLeft,
   listItemsLeft,
   resolveClaimContinue,
@@ -362,6 +363,17 @@ describe('resolveNextOpenItemId', () => {
     expect(resolveNextOpenItemId(sections(), null)).toBe('a');
   });
 
+  it('opens the first item when every item already has someone', () => {
+    const allAssigned = itemView([
+      makeReceipt('r1', [
+        makeItem('a', '1.00', equalShares(['p1'])),
+        makeItem('b', '1.00', equalShares(['p2'])),
+      ]),
+    ]).sections;
+
+    expect(resolveNextOpenItemId(allAssigned, null)).toBe('a');
+  });
+
   it('skips assigned items and carries on into the next receipt', () => {
     expect(resolveNextOpenItemId(sections(), 'a')).toBe('c');
     expect(resolveNextOpenItemId(sections(), 'c')).toBe('e');
@@ -378,6 +390,17 @@ describe('resolveNextOpenItemId', () => {
 
     expect(resolveNextOpenItemId(onlyOne, 'b')).toBeNull();
     expect(resolveNextOpenItemId(onlyOne, 'a')).toBe('b');
+  });
+});
+
+describe('countItems', () => {
+  it('counts every priced item across receipts', () => {
+    const receipts = [
+      makeReceipt('r1', [makeItem('a', '1.00', equalShares(['p1'])), makeItem('b', '')]),
+      makeReceipt('r2', [makeItem('c', '2.00')]),
+    ];
+
+    expect(countItems(receipts)).toBe(2);
   });
 });
 

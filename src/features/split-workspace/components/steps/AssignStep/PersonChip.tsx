@@ -9,6 +9,7 @@ interface Props {
   testId: string;
 }
 
+/** Fills its grid cell, so a tap that adds or changes an amount never moves another chip. */
 export function PersonChip({ chip, onToggle, testId }: Props) {
   const { person, selected } = chip;
 
@@ -20,7 +21,7 @@ export function PersonChip({ chip, onToggle, testId }: Props) {
       data-testid={testId}
       onClick={onToggle}
       className={cn(
-        'flex min-h-10 items-center gap-1.5 rounded-full border-2 py-0.5 pr-3 pl-0.5 text-sm font-semibold transition-colors',
+        'flex h-12 min-w-0 items-center gap-2 rounded-2xl border-2 py-1 pr-2 pl-1 text-left transition-colors',
         selected
           ? 'border-transparent text-white'
           : 'border-surface-container-high bg-surface-container-lowest text-on-surface-variant hover:text-on-surface',
@@ -30,14 +31,16 @@ export function PersonChip({ chip, onToggle, testId }: Props) {
       <PersonAvatar
         name={person.name}
         colorIndex={person.colorIndex}
-        className={cn('h-8 w-8', selected && 'bg-white/25!')}
+        className={cn('h-8 w-8 shrink-0', selected && 'bg-white/25!')}
       />
-      {person.firstName}
-      {chip.selected && (
-        <span className="font-normal tabular-nums opacity-80 motion-safe:animate-fade-in">
-          {chip.amountLabel}
-        </span>
-      )}
+      <span className="min-w-0 leading-tight">
+        <span className="block truncate text-sm font-semibold">{person.firstName}</span>
+        {chip.selected && (
+          <span className="block truncate text-xs tabular-nums opacity-85 motion-safe:animate-fade-in">
+            {chip.amountLabel}
+          </span>
+        )}
+      </span>
     </button>
   );
 }

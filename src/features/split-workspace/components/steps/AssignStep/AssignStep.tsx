@@ -65,7 +65,7 @@ export function AssignStep({ mode, onModeChange, activePersonId, onSelectPerson 
       ? {
           key: 'item',
           title: 'Who had each item?',
-          description: 'Tap everyone who shared it.',
+          description: 'Tap an item, then everyone who had it.',
           list: (
             <ItemClaimList
               sections={view.sections.filter((section) => section.items.length > 0)}
@@ -76,7 +76,7 @@ export function AssignStep({ mode, onModeChange, activePersonId, onSelectPerson 
       : view.activePerson && {
           key: view.activePerson.id,
           title: `What did ${view.activePerson.firstName} have?`,
-          description: 'Select the items they had, including anything shared.',
+          description: 'Tap every item they had, even shared ones.',
           list: (
             <PersonClaimList
               sections={view.sections.filter((section) => section.items.length > 0)}

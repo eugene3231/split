@@ -8,7 +8,7 @@ import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
 import { useAllAssignedMoment } from '@features/split-workspace/hooks/useAllAssignedMoment';
-import { countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
+import { countItems, countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
 import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
@@ -111,6 +111,7 @@ export function Workspace() {
         status={
           <WorkspaceNavStatus
             key={activeStep}
+            itemCount={countItems(receipts)}
             leftCount={countItemsLeft(receipts, people)}
             activeStep={activeStep}
             assignMode={assignMode}
@@ -139,6 +140,7 @@ export function Workspace() {
 }
 
 interface WorkspaceNavStatusProps {
+  itemCount: number;
   leftCount: number;
   activeStep: WizardStep;
   assignMode: AssignMode;
@@ -149,6 +151,7 @@ interface WorkspaceNavStatusProps {
 }
 
 function WorkspaceNavStatus({
+  itemCount,
   leftCount,
   activeStep,
   assignMode,
@@ -159,7 +162,13 @@ function WorkspaceNavStatus({
 }: WorkspaceNavStatusProps) {
   const justFinished = useAllAssignedMoment(leftCount);
   if (activeStep === 'items' && assignMode === 'item') {
-    return <ClaimStatusReel label="Items left" value={leftCount} complete={justFinished} />;
+    return (
+      <ClaimStatusReel
+        label="Assigned"
+        value={`${itemCount - leftCount} of ${itemCount}`}
+        complete={justFinished}
+      />
+    );
   }
 
   if (activeStep === 'items' && activePerson) {

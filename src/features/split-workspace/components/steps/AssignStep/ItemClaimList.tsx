@@ -31,6 +31,11 @@ export function ItemClaimList({ sections, onCommand }: Props) {
       receiptId={section.receiptId}
       name={section.name}
       leftCount={section.leftCount}
+      leading={
+        <span aria-hidden className="material-symbols-outlined text-on-surface-variant">
+          receipt_long
+        </span>
+      }
     >
       {section.items.map((item) => {
         const isOpen = item.id === open?.itemId;
