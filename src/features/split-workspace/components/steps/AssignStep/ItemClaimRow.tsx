@@ -20,7 +20,7 @@ function scrollRowIntoView(element: HTMLLIElement | null) {
 }
 
 /** Laid out like `ClaimItemRow`, so switching modes leaves every name and price where it was.
- *  An open row drops its claimant line, since its chips already show who has it. */
+ *  An open row drops its avatars, since its chips already show who has it. */
 export function ItemClaimRow({
   item,
   isOpen,
@@ -36,9 +36,13 @@ export function ItemClaimRow({
     <li
       ref={scrollOnOpen ? scrollRowIntoView : undefined}
       data-testid={`item-claim-${item.id}`}
+      data-left={item.isLeft || undefined}
       className={cn(
-        'scroll-mt-[calc(var(--app-bar-height)+4rem)] scroll-mb-32 py-2 transition-colors',
-        isOpen && '-mx-3 rounded-2xl border-transparent bg-surface-container-lowest px-3 shadow-sm',
+        'relative scroll-mt-[calc(var(--app-bar-height)+4rem)] scroll-mb-32 py-1.5 transition-colors',
+        isOpen
+          ? '-mx-3 rounded-2xl border-transparent bg-surface-container-lowest px-3 pb-3 shadow-sm'
+          : item.isLeft &&
+              'before:absolute before:inset-y-2.5 before:-left-3 before:w-1 before:rounded-full before:bg-warning',
       )}
     >
       <button
@@ -47,9 +51,9 @@ export function ItemClaimRow({
         aria-controls={panelId}
         data-testid={`item-claim-toggle-${item.id}`}
         onClick={onToggleOpen}
-        className="group block w-full cursor-pointer text-left"
+        className="group flex w-full cursor-pointer items-center gap-2 text-left md:gap-3"
       >
-        <span className="flex min-h-11 items-center gap-3">
+        <span className="flex min-h-11 min-w-0 flex-1 items-center gap-3">
           <span
             aria-hidden
             className={cn(
@@ -59,26 +63,31 @@ export function ItemClaimRow({
           >
             expand_more
           </span>
-          <span className="min-w-0 flex-1 font-semibold break-words">{item.name}</span>
-          <span className="flex shrink-0 justify-end text-on-surface-variant tabular-nums md:w-28">
-            {item.priceLabel}
+          <span className="min-w-0 leading-tight">
+            <span className="block font-semibold break-words">{item.name}</span>
+            {item.isLeft && !isOpen && (
+              <span
+                data-testid={`item-claim-left-${item.id}`}
+                className="block text-xs font-semibold text-warning"
+              >
+                {item.leftLabel ?? 'Nobody yet'}
+              </span>
+            )}
           </span>
         </span>
         {!isOpen && (
-          <span className="flex h-9 items-center pl-9">
-            <ClaimantAvatars
-              claimants={item.claimants}
-              leftLabel={item.leftLabel}
-              testId={`item-claim-claimants-${item.id}`}
-            />
-            {item.claimants.length === 0 && (
-              <span className="text-xs font-semibold text-warning">Nobody yet</span>
-            )}
-          </span>
+          <ClaimantAvatars
+            claimants={item.claimants}
+            leftLabel={item.leftLabel}
+            testId={`item-claim-claimants-${item.id}`}
+          />
         )}
+        <span className="flex shrink-0 justify-end text-on-surface-variant tabular-nums md:w-24">
+          {item.priceLabel}
+        </span>
       </button>
       {isOpen && (
-        <div id={panelId} className="pt-1 pb-1">
+        <div id={panelId} className="pt-1">
           <div
             role="group"
             aria-label={`Who had ${item.name}`}
