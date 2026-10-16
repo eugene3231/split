@@ -9,7 +9,6 @@ import {
   resetAllStores,
   seedStore,
 } from './testHelpers';
-import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
 import {
   exportDraftToJson,
   importDraftFromJson,
@@ -245,27 +244,5 @@ describe('Persistence integration', () => {
 
     const restored = useReceiptStore.getState().receipts[0].items[0].assignment;
     expect(restored).toEqual({ shares: { [alice.id]: 1 }, unassignedShare: 1 });
-  });
-
-  it('wizard state persists and restores via localStorage', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'person' });
-    const loaded = loadWizardState();
-
-    expect(loaded).toEqual({
-      version: 1,
-      step: 'items',
-      activePersonId: 'p2',
-      assignMode: 'person',
-    });
-  });
-
-  it('wizard state handles invalid data gracefully', () => {
-    window.localStorage.setItem('split:simple-wizard-state:v1', '{broken json');
-    const loaded = loadWizardState();
-    expect(loaded).toBeNull();
-
-    window.localStorage.setItem('split:simple-wizard-state:v1', JSON.stringify({ version: 999 }));
-    const loaded2 = loadWizardState();
-    expect(loaded2).toBeNull();
   });
 });

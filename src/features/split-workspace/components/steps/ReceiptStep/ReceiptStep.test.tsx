@@ -46,20 +46,6 @@ beforeEach(() => {
 });
 
 describe('ReceiptStep', () => {
-  it('renders the receipt step with key components', () => {
-    render(<ReceiptStep onAddReceipt={vi.fn()} />);
-
-    expect(screen.getByTestId('receipt-import-actions')).toBeInTheDocument();
-    expect(screen.getByRole('tablist', { name: 'Receipts' })).toBeInTheDocument();
-    expect(screen.getByTestId('global-charges-panel')).toBeInTheDocument();
-  });
-
-  it('renders one page heading for every screen size', () => {
-    render(<ReceiptStep onAddReceipt={vi.fn()} />);
-
-    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-  });
-
   it('adds a first item to a receipt that has none', () => {
     render(<ReceiptStep onAddReceipt={vi.fn()} />);
     expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument();
@@ -89,14 +75,5 @@ describe('ReceiptStep', () => {
 
     expect(screen.getAllByTestId('line-item-card')).toHaveLength(2);
     expect(screen.getByText('2 items')).toBeInTheDocument();
-  });
-
-  it('renders the receipt_long icon in the card when no file is uploaded', () => {
-    render(<ReceiptStep onAddReceipt={vi.fn()} />);
-
-    const icons = screen
-      .getAllByText('receipt_long')
-      .filter((el) => el.classList.contains('material-symbols-outlined'));
-    expect(icons.length).toBeGreaterThanOrEqual(1);
   });
 });

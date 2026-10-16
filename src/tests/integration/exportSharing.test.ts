@@ -1,12 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
-import {
-  buildSplitShareText,
-  shareText,
-  copyShareText,
-} from '@features/split-workspace/summary/shareSplit';
+import { buildSplitShareText } from '@features/split-workspace/summary/shareSplit';
 import {
   percentCharge,
   resetAllStores,
@@ -132,52 +128,5 @@ describe('Export and sharing integration', () => {
     expect(sumValues(centsByPerson(consolidated, 'total'))).toBe(consolidated.totals.totalCents);
 
     expect(consolidated.byPerson[bob.id].totalCents).toBeGreaterThan(1000);
-  });
-
-  it('native share — shareText returns native when navigator.share available', async () => {
-    const share = vi.fn().mockResolvedValue(undefined);
-
-    const mode = await shareText('summary text', {
-      share,
-      canShare: vi.fn(),
-      clipboard: {} as Navigator['clipboard'],
-    });
-
-    expect(mode).toBe('native');
-    expect(share).toHaveBeenCalledWith({ text: 'summary text' });
-  });
-
-  it('fallback share — shareText falls back to clipboard when navigator.share unavailable', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-
-    const mode = await shareText('summary text', {
-      share: undefined as unknown as Navigator['share'],
-      canShare: vi.fn(),
-      clipboard: { writeText } as unknown as Navigator['clipboard'],
-    });
-
-    expect(mode).toBe('fallback');
-    expect(writeText).toHaveBeenCalledWith('summary text');
-  });
-
-  it('copyShareText — works with clipboard API', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    await copyShareText('test summary', {
-      share: vi.fn(),
-      canShare: vi.fn(),
-      clipboard: { writeText } as unknown as Navigator['clipboard'],
-    });
-
-    expect(writeText).toHaveBeenCalledWith('test summary');
-  });
-
-  it('copyShareText — throws when clipboard unavailable', async () => {
-    await expect(
-      copyShareText('test', {
-        share: vi.fn(),
-        canShare: vi.fn(),
-        clipboard: undefined as unknown as Navigator['clipboard'],
-      }),
-    ).rejects.toThrow('Copy is not available');
   });
 });

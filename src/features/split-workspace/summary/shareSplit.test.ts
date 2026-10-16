@@ -142,6 +142,18 @@ describe('shareText', () => {
 });
 
 describe('copyShareText', () => {
+  it('writes the text to the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+
+    await copyShareText('hello', {
+      share: vi.fn(),
+      canShare: vi.fn(() => false),
+      clipboard: { writeText } as unknown as Navigator['clipboard'],
+    });
+
+    expect(writeText).toHaveBeenCalledWith('hello');
+  });
+
   it('throws when clipboard is not available', async () => {
     await expect(
       copyShareText('hello', {
