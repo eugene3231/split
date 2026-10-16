@@ -248,10 +248,15 @@ describe('Persistence integration', () => {
   });
 
   it('wizard state persists and restores via localStorage', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'person' });
     const loaded = loadWizardState();
 
-    expect(loaded).toEqual({ version: 1, step: 'items', activePersonId: 'p2' });
+    expect(loaded).toEqual({
+      version: 1,
+      step: 'items',
+      activePersonId: 'p2',
+      assignMode: 'person',
+    });
   });
 
   it('wizard state handles invalid data gracefully', () => {

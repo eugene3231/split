@@ -69,7 +69,7 @@ describe('useWizard', () => {
   }
 
   it('starts claiming with the first person when entering from the receipt step', () => {
-    saveWizardState({ step: 'receipt', activePersonId: 'p2' });
+    saveWizardState({ step: 'receipt', activePersonId: 'p2', assignMode: 'person' });
     const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
 
     act(() => result.current.handleNext());
@@ -80,7 +80,7 @@ describe('useWizard', () => {
   });
 
   it('moves to the next person, then the summary once everything is claimed', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p1' });
+    saveWizardState({ step: 'items', activePersonId: 'p1', assignMode: 'person' });
     const { result } = renderWizard([makeReceipt('r1', ['i1']), makeReceipt('r2', ['i2'])]);
 
     act(() => result.current.handleNext());
@@ -93,7 +93,7 @@ describe('useWizard', () => {
   });
 
   it('splits leftovers on every receipt evenly from the last person, then shows the summary', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'person' });
     const receipts: [Receipt, Receipt] = [
       makeReceipt('r1', ['i1']),
       makeReceipt('r2', ['i2', 'i3']),
@@ -126,7 +126,7 @@ describe('useWizard', () => {
   });
 
   it('leaves leftovers alone and stays on the last person when the split is cancelled', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'person' });
     const receipts: [Receipt] = [makeReceipt('r1', ['i1'])];
     receipts[0].items[0].assignment = NOBODY;
     useReceiptStore.setState({ people, receipts, activeReceiptId: 'r1' });
@@ -146,7 +146,7 @@ describe('useWizard', () => {
   });
 
   it('falls back to the first person when the saved person was removed', () => {
-    saveWizardState({ step: 'items', activePersonId: 'gone' });
+    saveWizardState({ step: 'items', activePersonId: 'gone', assignMode: 'person' });
     const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
 
     expect(result.current.activePersonId).toBe('p1');
@@ -161,11 +161,16 @@ describe('useWizard', () => {
 
     expect(result.current.activeStep).toBe('items');
     expect(result.current.activePersonId).toBe('p1');
-    expect(loadWizardState()).toEqual({ version: 1, step: 'items', activePersonId: 'p1' });
+    expect(loadWizardState()).toEqual({
+      version: 1,
+      step: 'items',
+      activePersonId: 'p1',
+      assignMode: 'person',
+    });
   });
 
   it('goes back from the summary to the last person, through each person, then to the receipt', () => {
-    saveWizardState({ step: 'final', activePersonId: 'p2' });
+    saveWizardState({ step: 'final', activePersonId: 'p2', assignMode: 'person' });
     const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
 
     act(() => result.current.handleBack());
@@ -180,8 +185,66 @@ describe('useWizard', () => {
     expect(result.current.activeStep).toBe('receipt');
   });
 
+  it('assigns by item without stepping through people, and goes back to the receipt', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'item' });
+    const receipts: [Receipt] = [makeReceipt('r1', ['i1', 'i2'])];
+    receipts[0].items[1].assignment = NOBODY;
+    useReceiptStore.setState({ people, receipts, activeReceiptId: 'r1' });
+    const { result } = renderHook(() => {
+      const state = useReceiptStore();
+      return useWizard(state.receipts[0].items, state.people, state.receipts);
+    });
+
+    expect(result.current.assignMode).toBe('item');
+    expect(result.current.continueLabel).toBe('Split 1 left evenly');
+
+    act(() => result.current.handleBack());
+    expect(result.current.activeStep).toBe('receipt');
+
+    act(() => result.current.handleNext());
+    expect(result.current.activeStep).toBe('items');
+    expect(result.current.assignMode).toBe('item');
+
+    act(() => result.current.handleNext());
+    expect(result.current.leftoversToSplit?.map((item) => item.id)).toEqual(['i2']);
+    act(() => result.current.confirmSplitLeftovers());
+    expect(useReceiptStore.getState().receipts[0].items[1].assignment).toEqual(
+      equalShares(['p1', 'p2']),
+    );
+    expect(result.current.activeStep).toBe('final');
+  });
+
+  it('switches to by person for the person picked while assigning by item', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p1', assignMode: 'item' });
+    const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
+
+    act(() => result.current.selectPerson('p2'));
+
+    expect(result.current.assignMode).toBe('person');
+    expect(result.current.activePersonId).toBe('p2');
+    expect(loadWizardState()).toEqual({
+      version: 1,
+      step: 'items',
+      activePersonId: 'p2',
+      assignMode: 'person',
+    });
+  });
+
+  it('remembers the assign mode across a reload and a reset', () => {
+    const first = renderWizard([makeReceipt('r1', ['i1'])]);
+    act(() => first.result.current.setAssignMode('item'));
+    first.unmount();
+
+    const { result } = renderWizard([makeReceipt('r1', ['i1'])]);
+    expect(result.current.assignMode).toBe('item');
+
+    act(() => result.current.handleResetSplit());
+    expect(result.current.assignMode).toBe('item');
+    expect(loadWizardState()?.assignMode).toBe('item');
+  });
+
   it('keeps a blank row on another receipt from completing an unassigned purchase', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p1' });
+    saveWizardState({ step: 'items', activePersonId: 'p1', assignMode: 'person' });
     const receipts = [makeReceipt('r1', ['meal']), makeReceipt('r2', ['blank'])];
     receipts[0].items[0].assignment = NOBODY;
     receipts[1].items[0].amountInput = '';
@@ -194,7 +257,7 @@ describe('useWizard', () => {
   });
 
   it('evicts a restored summary with an unassigned purchase and an assigned blank row', () => {
-    saveWizardState({ step: 'final', activePersonId: 'p1' });
+    saveWizardState({ step: 'final', activePersonId: 'p1', assignMode: 'person' });
     const receipts = [makeReceipt('r1', ['meal', 'blank'])];
     receipts[0].items[0].assignment = NOBODY;
     receipts[0].items[1].amountInput = '';
@@ -206,7 +269,7 @@ describe('useWizard', () => {
   });
 
   it('allows summary after claiming the priced item while a blank claimed row remains', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'person' });
     const receipt = makeReceipt('r1', ['i1', 'i2']);
     receipt.items[1].amountInput = '';
 
@@ -219,7 +282,7 @@ describe('useWizard', () => {
   });
 
   it('blocks summary when only the blank row is claimed', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2' });
+    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'person' });
     const receipt = makeReceipt('r1', ['i1', 'i2']);
     receipt.items[0].assignment = NOBODY;
     receipt.items[1].amountInput = '';
@@ -232,7 +295,7 @@ describe('useWizard', () => {
   });
 
   it('starts a blank split and resets navigation without changing Gemini settings', () => {
-    saveWizardState({ step: 'final', activePersonId: 'p2' });
+    saveWizardState({ step: 'final', activePersonId: 'p2', assignMode: 'person' });
     useReceiptStore.setState({
       people,
       receipts: [makeReceipt('r1', ['meal'])],
@@ -261,7 +324,12 @@ describe('useWizard', () => {
     expect(state.receipts[0].items[0].amountInput).toBe('');
     expect(state.receipts[0].currency).toBe('SGD');
     expect(result.current.activeStep).toBe('people');
-    expect(loadWizardState()).toEqual({ version: 1, step: 'people', activePersonId: '' });
+    expect(loadWizardState()).toEqual({
+      version: 1,
+      step: 'people',
+      activePersonId: '',
+      assignMode: 'person',
+    });
     expect(useScanStore.getState().scanStateByReceipt).toEqual({});
     expect(useGeminiStore.getState().geminiApiKeyInput).toBe('test-key');
     expect(useGeminiStore.getState().geminiModel).toBe(DEFAULT_GEMINI_MODEL);

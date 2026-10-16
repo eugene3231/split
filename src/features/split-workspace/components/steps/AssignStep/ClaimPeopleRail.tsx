@@ -46,7 +46,7 @@ export function ClaimPeopleRail({ people, onSelect, layout, currency, className 
           )}
         >
           <PersonAvatar name={person.name} colorIndex={person.colorIndex} className="h-8 w-8" />
-          <span className="min-w-0 flex-1 leading-tight">
+          <span className="min-w-12 flex-1 leading-tight">
             <span
               className={cn('block truncate text-sm font-bold', layout === 'row' && 'max-w-32')}
             >

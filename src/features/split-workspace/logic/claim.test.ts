@@ -9,12 +9,16 @@ import {
 import {
   firstName,
   resolveActivePersonId,
+  countItems,
   countItemsLeft,
   listItemsLeft,
   resolveClaimContinue,
   resolveClaimView,
+  resolveItemClaimView,
+  resolveNextOpenItemId,
   resolvePreviousPersonId,
 } from './claim';
+import type { ClaimChip } from './claim';
 import type { CurrencyCode } from '@shared/constants';
 
 const people: Person[] = [
@@ -257,6 +261,153 @@ describe('listItemsLeft', () => {
   });
 });
 
+function itemView(receipts: Receipt[]) {
+  return resolveItemClaimView({
+    receipts,
+    people,
+    totalByPersonCents: { p1: 1234, p2: 500 },
+    totalsCurrency: 'SGD',
+  });
+}
+
+function amountOf(chip: ClaimChip): string | null {
+  return chip.selected ? chip.amountLabel : null;
+}
+
+function itemClaims(receipts: Receipt[]) {
+  return itemView(receipts).sections.flatMap((section) => section.items);
+}
+
+describe('resolveItemClaimView', () => {
+  it('has every person with their running total and nobody active', () => {
+    const result = itemView([makeReceipt('r1', [makeItem('i1', '8.50')])]);
+
+    expect(result.mode).toBe('item');
+    expect(result.people.map((person) => [person.firstName, person.totalCents])).toEqual([
+      ['Eugene', 1234],
+      ['Mei', 500],
+      ['Arjun', 0],
+    ]);
+    expect(result.people.map((person) => person.isActive)).toEqual([false, false, false]);
+  });
+
+  it('gives each person on an item a pressed chip with what they pay for it', () => {
+    const receipt = makeReceipt('r1', [makeItem('i1', '10.00', equalShares(['p3', 'p1']))]);
+
+    const [item] = itemClaims([receipt]);
+
+    expect(item.chips.map((chip) => [chip.person.firstName, amountOf(chip)])).toEqual([
+      ['Eugene', '$5.00'],
+      ['Mei', null],
+      ['Arjun', '$5.00'],
+    ]);
+    expect(item).toMatchObject({
+      priceLabel: '$10.00',
+      isLeft: false,
+      isSplitEvenly: false,
+      hasUnevenShares: false,
+    });
+  });
+
+  it('presses Everyone only when every person has an equal share', () => {
+    const everyone = (assignment: ItemAssignment) =>
+      itemClaims([makeReceipt('r1', [makeItem('i1', '9.00', assignment)])])[0].isSplitEvenly;
+
+    expect(everyone(equalShares(['p1', 'p2', 'p3']))).toBe(true);
+    expect(everyone(makeAssignment({ p1: 2, p2: 1, p3: 1 }))).toBe(false);
+    expect(everyone(equalShares(['p1', 'p2']))).toBe(false);
+    expect(everyone(NOBODY)).toBe(false);
+  });
+
+  it('flags uneven share weights but not an item that is only partly taken', () => {
+    const uneven = (assignment: ItemAssignment) =>
+      itemClaims([makeReceipt('r1', [makeItem('i1', '9.00', assignment)])])[0].hasUnevenShares;
+
+    expect(uneven(makeAssignment({ p1: 2, p2: 1 }))).toBe(true);
+    expect(uneven(makeAssignment({ p1: 1 }, 1))).toBe(false);
+    expect(uneven(equalShares(['p1', 'p2']))).toBe(false);
+  });
+
+  it('prices a weighted item by share and says what is still left of a half-taken one', () => {
+    const receipt = makeReceipt('r1', [
+      makeItem('weighted', '9.00', makeAssignment({ p1: 2, p2: 1 })),
+      makeItem('half', '6.00', makeAssignment({ p2: 1 }, 1)),
+    ]);
+
+    const [weighted, half] = itemClaims([receipt]);
+
+    expect(weighted.chips.map(amountOf)).toEqual(['$6.00', '$3.00', null]);
+    expect(half).toMatchObject({ isLeft: true, leftLabel: '1/2 left' });
+    expect(half.chips.map(amountOf)).toEqual([null, '$3.00', null]);
+  });
+
+  it('leaves out blank rows without a price', () => {
+    const receipt = makeReceipt('r1', [makeItem('blank', ''), makeItem('i1', '4.00')]);
+
+    expect(itemClaims([receipt]).map((item) => item.id)).toEqual(['i1']);
+  });
+});
+
+describe('resolveNextOpenItemId', () => {
+  const receipts = [
+    makeReceipt('r1', [
+      makeItem('a', '1.00'),
+      makeItem('b', '1.00', equalShares(['p1'])),
+      makeItem('c', '1.00'),
+    ]),
+    makeReceipt('r2', [makeItem('d', '1.00', equalShares(['p2'])), makeItem('e', '1.00')]),
+  ];
+  const sections = () => itemView(receipts).sections;
+
+  it('opens the first item left on the page when nothing is open', () => {
+    expect(resolveNextOpenItemId(sections(), null)).toBe('a');
+  });
+
+  it('opens the first item when every item already has someone', () => {
+    const allAssigned = itemView([
+      makeReceipt('r1', [
+        makeItem('a', '1.00', equalShares(['p1'])),
+        makeItem('b', '1.00', equalShares(['p2'])),
+      ]),
+    ]).sections;
+
+    expect(resolveNextOpenItemId(allAssigned, null)).toBe('a');
+  });
+
+  it('opens nothing when there are no items', () => {
+    expect(resolveNextOpenItemId(itemView([makeReceipt('r1', [])]).sections, null)).toBeNull();
+  });
+
+  it('skips assigned items and carries on into the next receipt', () => {
+    expect(resolveNextOpenItemId(sections(), 'a')).toBe('c');
+    expect(resolveNextOpenItemId(sections(), 'c')).toBe('e');
+  });
+
+  it('wraps round to the start after the last item', () => {
+    expect(resolveNextOpenItemId(sections(), 'e')).toBe('a');
+  });
+
+  it('gives null when no other item is left', () => {
+    const onlyOne = itemView([
+      makeReceipt('r1', [makeItem('a', '1.00', equalShares(['p1'])), makeItem('b', '1.00')]),
+    ]).sections;
+
+    expect(resolveNextOpenItemId(onlyOne, 'b')).toBeNull();
+    expect(resolveNextOpenItemId(onlyOne, 'a')).toBe('b');
+  });
+});
+
+describe('countItems', () => {
+  it('counts every priced item across receipts', () => {
+    const receipts = [
+      makeReceipt('r1', [makeItem('a', '1.00', equalShares(['p1'])), makeItem('b', '')]),
+      makeReceipt('r2', [makeItem('c', '2.00')]),
+    ];
+
+    expect(countItems(receipts)).toBe(2);
+  });
+});
+
 describe('countItemsLeft', () => {
   it('counts unassigned, stale and half-claimed items as left', () => {
     const receipts = [
@@ -273,7 +424,7 @@ describe('countItemsLeft', () => {
 
 describe('resolveClaimContinue', () => {
   it('moves on to the next person by first name', () => {
-    expect(resolveClaimContinue(people, 'p2', 4)).toEqual({
+    expect(resolveClaimContinue('person', people, 'p2', 4)).toEqual({
       kind: 'next-person',
       personId: 'p3',
       label: 'Next: Arjun',
@@ -281,14 +432,25 @@ describe('resolveClaimContinue', () => {
   });
 
   it('offers to split leftovers evenly on the last person', () => {
-    expect(resolveClaimContinue(people, 'p3', 2)).toEqual({
+    expect(resolveClaimContinue('person', people, 'p3', 2)).toEqual({
       kind: 'split-leftovers',
       label: 'Split 2 left evenly',
     });
   });
 
+  it('never moves to a person when assigning by item', () => {
+    expect(resolveClaimContinue('item', people, 'p1', 3)).toEqual({
+      kind: 'split-leftovers',
+      label: 'Split 3 left evenly',
+    });
+    expect(resolveClaimContinue('item', people, 'p1', 0)).toEqual({
+      kind: 'see-summary',
+      label: 'See summary',
+    });
+  });
+
   it('goes to the summary on the last person once everything is claimed', () => {
-    expect(resolveClaimContinue(people, 'p3', 0)).toEqual({
+    expect(resolveClaimContinue('person', people, 'p3', 0)).toEqual({
       kind: 'see-summary',
       label: 'See summary',
     });

@@ -20,9 +20,27 @@ describe('loadWizardState', () => {
     expect(loadWizardState()).toBeNull();
   });
 
-  it('loads a saved step and active person', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2' });
-    expect(loadWizardState()).toEqual({ version: 1, step: 'items', activePersonId: 'p2' });
+  it('loads a saved step, active person and assign mode', () => {
+    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'item' });
+    expect(loadWizardState()).toEqual({
+      version: 1,
+      step: 'items',
+      activePersonId: 'p2',
+      assignMode: 'item',
+    });
+  });
+
+  it('assigns by person when a save from before the mode toggle has no mode', () => {
+    window.localStorage.setItem(
+      LOCAL_STORAGE_WIZARD_STATE_KEY,
+      JSON.stringify({ version: 1, step: 'items', activePersonId: 'p2' }),
+    );
+    expect(loadWizardState()).toEqual({
+      version: 1,
+      step: 'items',
+      activePersonId: 'p2',
+      assignMode: 'person',
+    });
   });
 
   it('keeps the step from an item-by-item save and starts on no particular person', () => {
@@ -30,14 +48,24 @@ describe('loadWizardState', () => {
       LOCAL_STORAGE_WIZARD_STATE_KEY,
       JSON.stringify({ version: 1, step: 'items', itemsSubPhase: 'review', activeItemIndex: 3 }),
     );
-    expect(loadWizardState()).toEqual({ version: 1, step: 'items', activePersonId: '' });
+    expect(loadWizardState()).toEqual({
+      version: 1,
+      step: 'items',
+      activePersonId: '',
+      assignMode: 'person',
+    });
   });
 
-  it('defaults unknown step to "people"', () => {
+  it('defaults an unknown step to "people" and an unknown mode to by person', () => {
     window.localStorage.setItem(
       LOCAL_STORAGE_WIZARD_STATE_KEY,
-      JSON.stringify({ version: 1, step: 'unknown', activePersonId: 7 }),
+      JSON.stringify({ version: 1, step: 'unknown', activePersonId: 7, assignMode: 'sideways' }),
     );
-    expect(loadWizardState()).toEqual({ version: 1, step: 'people', activePersonId: '' });
+    expect(loadWizardState()).toEqual({
+      version: 1,
+      step: 'people',
+      activePersonId: '',
+      assignMode: 'person',
+    });
   });
 });

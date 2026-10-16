@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from '@features/receipt-scanner/constants';
@@ -717,6 +717,36 @@ describe('ReceiptSplitterPage integration', () => {
 
       const [, r2] = useReceiptStore.getState().receipts;
       expect(r2.items[0].assignment).toEqual(equalShares(['p1']));
+    });
+
+    it('assigns by item with a count of what is assigned, and keeps that mode after a reload', async () => {
+      const receipts = [
+        makeReceipt({ id: 'r1', items: [{ ...unclaimedItem, id: 'r1-i1' }, unclaimedItem] }),
+      ];
+      await navigateToClaim(receipts);
+
+      fireEvent.click(screen.getByRole('radio', { name: 'By item' }));
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Assigned0 of 2');
+      expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Split 2 left evenly');
+
+      fireEvent.click(screen.getByTestId('item-claim-chip-r1-i1-p2'));
+      expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual(
+        equalShares(['p2']),
+      );
+      expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveTextContent('$2.00');
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('Assigned1 of 2');
+
+      cleanup();
+      reloadWorkspace();
+      render(<ReceiptSplitterPage />);
+
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Who had each item?');
+      expect(screen.getByTestId('item-claim-toggle-r1-i2')).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+      clickBack();
+      expectActiveStepNav('receipt');
     });
   });
 

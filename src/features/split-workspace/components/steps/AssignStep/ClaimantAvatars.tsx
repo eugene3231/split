@@ -29,13 +29,19 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
       data-testid={testId}
       className="flex min-w-0 items-center gap-1"
     >
-      <span className="flex shrink-0 -space-x-1">
-        {avatars.map(({ person, isExiting }) => (
+      <span className={cn('flex shrink-0', hidden.length === 0 && 'pr-1')}>
+        {avatars.map(({ person, isExiting, isEntering }) => (
+          // Each slot is narrower than its avatar, so avatars overlap, and a slot can grow or
+          // collapse to move its neighbours smoothly.
           <span
             key={person.id}
             aria-hidden={isExiting || undefined}
             data-testid={isExiting ? `claim-avatar-exiting-${person.id}` : undefined}
-            className={cn('flex', isExiting && 'pointer-events-none motion-safe:animate-pop-out')}
+            className={cn(
+              'flex w-4 shrink-0',
+              isExiting && 'pointer-events-none motion-safe:animate-avatar-out',
+              isEntering && 'motion-safe:animate-avatar-in',
+            )}
           >
             {isExiting ? (
               <ExitingClaimantAvatar person={person} onExit={finishExit} />
@@ -44,7 +50,7 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
                 <PersonAvatar
                   name={person.name}
                   colorIndex={person.colorIndex}
-                  className="h-5 w-5 text-[10px] ring-2 ring-surface motion-safe:animate-pop-in"
+                  className="h-5 w-5 text-[10px] ring-2 ring-surface"
                 />
               </HoverLabel>
             )}

@@ -1,0 +1,57 @@
+import { useState } from 'react';
+import type { AssignmentCommand } from '@features/split-workspace/logic/assignmentInteraction';
+import {
+  resolveNextOpenItemId,
+  type ItemClaimSection,
+} from '@features/split-workspace/logic/claim';
+import { ItemClaimRow } from './ItemClaimRow';
+import { ReceiptClaimSection } from './ReceiptClaimSection';
+
+interface OpenRow {
+  itemId: string;
+  scrollOnOpen: boolean;
+}
+
+interface Props {
+  sections: ItemClaimSection[];
+  onCommand: (receiptId: string, itemId: string, command: AssignmentCommand) => void;
+}
+
+function openRow(itemId: string | null, scrollOnOpen: boolean): OpenRow | null {
+  return itemId === null ? null : { itemId, scrollOnOpen };
+}
+
+export function ItemClaimList({ sections, onCommand }: Props) {
+  const [open, setOpen] = useState(() => openRow(resolveNextOpenItemId(sections, null), false));
+  const nextItemId = open && resolveNextOpenItemId(sections, open.itemId);
+
+  return sections.map((section) => (
+    <ReceiptClaimSection
+      key={section.receiptId}
+      receiptId={section.receiptId}
+      name={section.name}
+      leftCount={section.leftCount}
+      leading={
+        <span aria-hidden className="material-symbols-outlined text-on-surface-variant">
+          receipt_long
+        </span>
+      }
+    >
+      {section.items.map((item) => {
+        const isOpen = item.id === open?.itemId;
+        return (
+          <ItemClaimRow
+            key={item.id}
+            item={item}
+            isOpen={isOpen}
+            scrollOnOpen={isOpen && (open?.scrollOnOpen ?? false)}
+            hasNext={nextItemId !== null}
+            onToggleOpen={() => setOpen(openRow(isOpen ? null : item.id, false))}
+            onNext={() => setOpen(openRow(nextItemId, true))}
+            onCommand={(command) => onCommand(section.receiptId, item.id, command)}
+          />
+        );
+      })}
+    </ReceiptClaimSection>
+  ));
+}

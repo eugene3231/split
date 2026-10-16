@@ -35,7 +35,7 @@ export function ReceiptSelectAllAction({ section, personId, personName }: Props)
           else if (section.activeHasCustomShare) setConfirming(true);
           else deselectAll();
         }}
-        className="-mr-0.5 -ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center md:-ml-2.5"
+        className="flex h-full w-full items-center justify-center"
       >
         <ClaimCheckMark checked={checked} />
       </Checkbox.Root>
