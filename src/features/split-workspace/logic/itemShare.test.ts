@@ -228,6 +228,20 @@ describe('parseShareInput', () => {
     expect(parseShareInput('lots')).toBeNull();
     expect(parseShareInput('abc%')).toBeNull();
   });
+
+  it('reads spaced fractions, longer currency prefixes and zero', () => {
+    expect(parseShareInput('1 / 12')).toEqual({ kind: 'fraction', divisor: 12 });
+    expect(parseShareInput('S$8.50')).toEqual({ kind: 'amount', cents: 850 });
+    expect(parseShareInput('0')).toEqual({ kind: 'amount', cents: 0 });
+    expect(parseShareInput('0%')).toEqual({ kind: 'percent', value: 0 });
+  });
+
+  it('rejects negatives and anything around a fraction', () => {
+    expect(parseShareInput('-2')).toBeNull();
+    expect(parseShareInput('-5%')).toBeNull();
+    expect(parseShareInput('21/3')).toBeNull();
+    expect(parseShareInput('1/3 each')).toBeNull();
+  });
 });
 
 describe('formatShareFraction', () => {

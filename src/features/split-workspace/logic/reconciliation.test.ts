@@ -44,6 +44,18 @@ describe('findReconciliationDiscount', () => {
     },
   );
 
+  it('discounts the whole subtotal for a receipt printed at zero', () => {
+    expect(
+      findReconciliationDiscount({
+        subtotalCents: 2500,
+        currentDiscountCents: 0,
+        serviceCharge: percentCharge('10'),
+        gst: percentCharge('9'),
+        targetTotalCents: 0,
+      }),
+    ).toBe(2500);
+  });
+
   it('keeps the existing discount when it ties for the closest total', () => {
     const input = {
       subtotalCents: 100,
