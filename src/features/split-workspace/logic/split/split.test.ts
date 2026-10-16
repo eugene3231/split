@@ -469,6 +469,35 @@ describe('computeSplit', () => {
     expect(split.totals.totalCents).toBe(1000);
   });
 
+  it('keeps a fixed charge on the people with items when a discount takes the whole subtotal', () => {
+    const people: Person[] = [
+      { id: 'p1', name: 'Alice' },
+      { id: 'p2', name: 'Ben' },
+      { id: 'p3', name: 'Cara' },
+    ];
+    const items: EditableItem[] = [
+      {
+        id: 'meal',
+        name: 'Meal',
+        amountInput: '20.00',
+        discountPercentInput: '',
+        assignment: equalShares(['p1', 'p2']),
+      },
+    ];
+
+    const split = computeSplit(
+      makeReceipt({
+        items,
+        discount: { ...disabledCharge, enabled: true, mode: 'percent', percentInput: '100' },
+        serviceCharge: { ...disabledCharge, enabled: true, mode: 'amount', amountInput: '3.00' },
+        gst: disabledCharge,
+      }),
+      people,
+    );
+
+    expect(centsByPerson(split, 'total')).toEqual({ p1: 150, p2: 150, p3: 0 });
+  });
+
   it('splits a $30 item 2:1 between two people', () => {
     const people: Person[] = [
       { id: 'alice', name: 'Alice' },

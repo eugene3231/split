@@ -74,8 +74,18 @@ export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitRe
     serviceCharge: receipt.serviceCharge,
     gst: receipt.gst,
   });
-  // Each charge is shared in proportion to what it is charged on, and evenly when that is nothing.
-  const discountByPerson = allocateCents(discountCents, personIds, subtotalByPerson);
+  const onReceipt = personIds.filter((personId) =>
+    linesByPerson[personId].some((line) => line.amountCents !== null),
+  );
+  // Each charge is shared in proportion to what it is charged on, and evenly when that is nothing:
+  // between the people on the receipt, or everyone when nobody is on it yet.
+  const chargedIds = onReceipt.length > 0 ? onReceipt : personIds;
+  const shareCharge = (cents: number, base: Record<string, number>) => ({
+    ...Object.fromEntries(personIds.map((personId) => [personId, 0])),
+    ...allocateCents(cents, chargedIds, base),
+  });
+
+  const discountByPerson = shareCharge(discountCents, subtotalByPerson);
 
   const discountedByPerson = Object.fromEntries(
     personIds.map((personId) => [
@@ -83,7 +93,7 @@ export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitRe
       Math.max(0, subtotalByPerson[personId] - discountByPerson[personId]),
     ]),
   );
-  const serviceByPerson = allocateCents(serviceChargeCents, personIds, discountedByPerson);
+  const serviceByPerson = shareCharge(serviceChargeCents, discountedByPerson);
 
   const gstBaseByPerson = Object.fromEntries(
     personIds.map((personId) => [
@@ -91,16 +101,13 @@ export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitRe
       discountedByPerson[personId] + serviceByPerson[personId],
     ]),
   );
-  const gstByPerson = allocateCents(gstCents, personIds, gstBaseByPerson);
+  const gstByPerson = shareCharge(gstCents, gstBaseByPerson);
 
   // Rounding comes after tax and is split evenly between everyone with something on the receipt.
-  const roundedPersonIds = personIds.filter((personId) =>
-    linesByPerson[personId].some((line) => line.amountCents !== null),
-  );
   const roundingByPerson = allocateCents(
     parseCurrencyToCents(receipt.roundingInput) ?? 0,
-    roundedPersonIds,
-    Object.fromEntries(roundedPersonIds.map((personId) => [personId, 1])),
+    onReceipt,
+    Object.fromEntries(onReceipt.map((personId) => [personId, 1])),
   );
 
   const byPerson = Object.fromEntries(
