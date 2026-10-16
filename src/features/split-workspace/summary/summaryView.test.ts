@@ -31,6 +31,7 @@ function makeReceipt(
     discount: makeCharge({ percentInput: '5' }),
     serviceCharge: makeCharge({ enabled: true, percentInput: '10' }),
     gst: makeCharge({ enabled: true, percentInput: '9' }),
+    tip: makeCharge({ enabled: false }),
     receiptTotalInput: '',
     roundingInput: '',
     currency,

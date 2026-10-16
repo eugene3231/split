@@ -5,6 +5,7 @@ import {
   LOCAL_STORAGE_DRAFT_KEY,
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import type { ChargeState, ItemAssignment, Person, Receipt } from '@shared/types';
@@ -102,6 +103,7 @@ const receiptSchema = z.object({
   discount: chargeSchema(defaultDiscountState),
   serviceCharge: chargeSchema(defaultServiceChargeState),
   gst: chargeSchema(defaultGstState),
+  tip: chargeSchema(defaultTipState),
   receiptTotalInput: text,
   roundingInput: text,
   currency: z.enum(CURRENCY_CODES).catch(BASE_CURRENCY),

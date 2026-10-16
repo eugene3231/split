@@ -17,7 +17,7 @@ export function computeReceiptTotals(receipt: ReceiptPricing, people: Person[]):
 export type ReconciliationFix = { discount: ChargeState } | { roundingInput: string };
 
 export interface Reconciliation {
-  /** Printed total minus computed total. Null when no total was entered. */
+  /** Printed total minus computed total before tip. Null when no total was entered. */
   cents: number | null;
   /** Null when the totals agree, or when nothing can close the gap. */
   fix: ReconciliationFix | null;
@@ -35,7 +35,8 @@ export function resolveReconciliation(
   if (receiptTotalCents === null) return { cents: null, fix: null };
 
   const totals = computeReceiptTotals(receipt, people);
-  const cents = receiptTotalCents - totals.totalCents;
+  // The printed total is the bill the tip is added to, so the tip is not part of the check.
+  const cents = receiptTotalCents - (totals.totalCents - totals.chargeCents.tip);
   if (cents === 0) return { cents, fix: null };
   if (cents > 0) {
     return {

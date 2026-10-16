@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { Receipt } from '@shared/types';
 import { equalShares } from '@features/split-workspace/logic/assignment';
 import {
@@ -47,6 +47,7 @@ it('lists the charge toggles in the order they are applied', () => {
     'Global Discount',
     'Service Charge',
     'GST / Tax',
+    'Tip',
   ]);
 });
 
@@ -177,4 +178,80 @@ it('takes the rounding off the receipt', () => {
   fireEvent.click(screen.getByTestId('remove-rounding-btn'));
 
   expect(useReceiptStore.getState().receipts[0].roundingInput).toBe('');
+});
+
+describe('tip', () => {
+  function renderMeal(peopleCount: number, receipt: Partial<Receipt> = {}) {
+    const people = Array.from({ length: peopleCount }, (_, index) => makePerson(`P${index}`));
+    const meal = makeItem({ amountInput: '10.00', assignment: equalShares([people[0].id]) });
+    seedStore(people, [makeReceipt({ id: 'r1', items: [meal], ...receipt })]);
+    render(<ActiveReceiptPanel />);
+  }
+
+  it('starts at 18% and adds the tip to the computed total', () => {
+    renderMeal(2);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Tip' }));
+
+    expect(useReceiptStore.getState().receipts[0].tip).toMatchObject({
+      enabled: true,
+      mode: 'percent',
+      percentInput: '18',
+    });
+    expect(screen.getByRole('radio', { name: '18%' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('Tip (18%)')).toBeInTheDocument();
+    expect(screen.getByText('$11.80')).toBeInTheDocument();
+  });
+
+  it('starts at 20% for a group of six', () => {
+    renderMeal(6);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Tip' }));
+
+    expect(useReceiptStore.getState().receipts[0].tip.percentInput).toBe('20');
+    expect(screen.getByTestId('tip-hint')).toHaveTextContent('6 or more people');
+  });
+
+  it('points out a service charge already on the receipt', () => {
+    renderMeal(2, { serviceCharge: percentCharge('10') });
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Tip' }));
+
+    expect(screen.getByTestId('tip-hint')).toHaveTextContent('already has a service charge');
+  });
+
+  it('sets the tip from a preset', () => {
+    renderMeal(2, { tip: percentCharge('18') });
+
+    fireEvent.click(screen.getByRole('radio', { name: '22%' }));
+
+    expect(useReceiptStore.getState().receipts[0].tip.percentInput).toBe('22');
+    expect(screen.queryByRole('textbox', { name: 'Tip percent' })).toBeNull();
+  });
+
+  it('keeps a custom tip open while typing a value that matches a preset', () => {
+    renderMeal(2, { tip: percentCharge('18') });
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Custom' }));
+    const input = screen.getByRole('textbox', { name: 'Tip percent' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: '20' } });
+
+    expect(useReceiptStore.getState().receipts[0].tip.percentInput).toBe('20');
+    expect(screen.getByRole('textbox', { name: 'Tip percent' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Custom' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('opens on the custom field for a fixed tip', () => {
+    renderMeal(2, { tip: amountCharge('5.00') });
+
+    expect(screen.getByRole('textbox', { name: 'Tip amount' })).toHaveValue('5.00');
+    expect(screen.getByText('$15.00')).toBeInTheDocument();
+  });
+
+  it('checks the printed total without the tip', () => {
+    renderMeal(2, { tip: percentCharge('20'), receiptTotalInput: '10.00' });
+
+    expect(screen.getByText('Totals match!')).toBeInTheDocument();
+  });
 });

@@ -89,6 +89,7 @@ export function convertSplitResult(
   const serviceByPerson = share(totals.chargeCents.service, 'service');
   const gstByPerson = share(totals.chargeCents.gst, 'gst');
   const roundingByPerson = share(totals.chargeCents.rounding, 'rounding');
+  const tipByPerson = share(totals.chargeCents.tip, 'tip');
 
   return {
     totals,
@@ -102,6 +103,7 @@ export function convertSplitResult(
             service: serviceByPerson[id],
             gst: gstByPerson[id],
             rounding: roundingByPerson[id],
+            tip: tipByPerson[id],
           },
           totalCents: totalByPerson[id],
           lines: convertLines(split.byPerson[id].lines, subtotalByPerson[id]),

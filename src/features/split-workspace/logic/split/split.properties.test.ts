@@ -6,6 +6,7 @@ import { CURRENCY_CODES } from '@shared/constants';
 import { makeAssignment } from '@features/split-workspace/logic/assignment';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
 import { allocate, allocateCents } from './allocation';
+import { signedCharge } from './amounts';
 import { resolveDiscountedAmountCents } from './pricing';
 import { computeSplit, type ReceiptPricing } from './split';
 
@@ -46,6 +47,7 @@ const receiptArb: fc.Arbitrary<ReceiptPricing> = fc.record({
   discount: chargeArb(100, 20_000),
   serviceCharge: chargeArb(20, 5_000),
   gst: chargeArb(10, 5_000),
+  tip: chargeArb(25, 5_000),
   roundingInput: fc.oneof(
     fc.constant(''),
     fc.integer({ min: -99, max: 99 }).map((cents) => (cents / 100).toFixed(2)),
@@ -55,12 +57,9 @@ const receiptArb: fc.Arbitrary<ReceiptPricing> = fc.record({
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 
 function personTotal({ subtotalCents, chargeCents }: PersonSplit) {
-  return (
-    subtotalCents -
-    chargeCents.discount +
-    chargeCents.service +
-    chargeCents.gst +
-    chargeCents.rounding
+  return CHARGE_KINDS.reduce(
+    (total, kind) => total + signedCharge(kind, chargeCents[kind]),
+    subtotalCents,
   );
 }
 

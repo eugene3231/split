@@ -1,5 +1,7 @@
 import type { Receipt } from '@shared/types';
 import { ChargeToggle } from '@features/split-workspace/components/shared/ChargeToggle';
+import { TipControl } from '@features/split-workspace/components/shared/TipControl';
+import { resolveTipGuidance } from '@features/split-workspace/logic/tipGuidance';
 import { SummaryTotals } from '@features/split-workspace/components/shared/SummaryTotals';
 import { ReconciliationNotice } from '@features/split-workspace/components/shared/ReconciliationNotice';
 import { formatMoneyAmount, formatMoneyInput, getCurrencySymbol } from '@shared/logic/core/money';
@@ -17,7 +19,7 @@ interface Props {
 export function GlobalChargesPanel({ receipt }: Props) {
   const people = useReceiptStore((state) => state.people);
   const patchReceipt = useReceiptStore((state) => state.patchReceipt);
-  const { id, discount, serviceCharge, gst, currency } = receipt;
+  const { id, discount, serviceCharge, gst, tip, currency } = receipt;
 
   return (
     <div className="sticky top-[calc(var(--app-bar-height)+1.5rem)] rounded-3xl border border-surface-container-highest bg-surface-container-lowest p-6 shadow-lg md:p-8">
@@ -42,6 +44,13 @@ export function GlobalChargesPanel({ receipt }: Props) {
           label="GST / Tax"
           value={gst}
           onChange={(next) => patchReceipt(id, { gst: next })}
+          currency={currency}
+        />
+        <TipControl
+          key={id}
+          tip={tip}
+          onChange={(next) => patchReceipt(id, { tip: next })}
+          guidance={resolveTipGuidance({ partySize: people.length, serviceCharge })}
           currency={currency}
         />
       </div>

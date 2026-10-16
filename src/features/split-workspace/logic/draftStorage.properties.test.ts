@@ -48,6 +48,7 @@ function receiptArb(personIds: string[]): fc.Arbitrary<Omit<Receipt, 'id'>> {
     discount: chargeArb,
     serviceCharge: chargeArb,
     gst: chargeArb,
+    tip: chargeArb,
     receiptTotalInput: inputArb,
     roundingInput: fc.oneof(fc.constant(''), fc.constantFrom('0.02', '-0.03')),
     currency: fc.constantFrom(...CURRENCY_CODES),

@@ -27,6 +27,15 @@ export const defaultGstState: ChargeState = {
   detectedSource: null,
 };
 
+export const defaultTipState: ChargeState = {
+  enabled: false,
+  mode: 'percent',
+  amountInput: '',
+  percentInput: '',
+  detectedConfidence: null,
+  detectedSource: null,
+};
+
 export const LOCAL_STORAGE_DRAFT_KEY = 'split:receipt-draft:v1';
 export const LOCAL_STORAGE_OCR_SETTINGS_KEY = 'split:ocr-settings:v1';
 export const LOCAL_STORAGE_WIZARD_STATE_KEY = 'split:simple-wizard-state:v1';

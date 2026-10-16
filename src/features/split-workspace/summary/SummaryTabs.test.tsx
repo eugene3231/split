@@ -3,35 +3,24 @@ import { describe, expect, it, vi } from 'vitest';
 import { SummaryTabs } from './SummaryTabs';
 import type { Receipt } from '@shared/types';
 
+const offCharge = {
+  enabled: false,
+  mode: 'percent',
+  amountInput: '',
+  percentInput: '',
+  detectedConfidence: null,
+  detectedSource: null,
+} as const;
+
 const makeReceipt = (id: string, name: string): Receipt =>
   ({
     id,
     name,
     items: [],
-    discount: {
-      enabled: false,
-      mode: 'percent',
-      amountInput: '',
-      percentInput: '',
-      detectedConfidence: null,
-      detectedSource: null,
-    },
-    serviceCharge: {
-      enabled: false,
-      mode: 'percent',
-      amountInput: '',
-      percentInput: '',
-      detectedConfidence: null,
-      detectedSource: null,
-    },
-    gst: {
-      enabled: false,
-      mode: 'percent',
-      amountInput: '',
-      percentInput: '',
-      detectedConfidence: null,
-      detectedSource: null,
-    },
+    discount: offCharge,
+    serviceCharge: offCharge,
+    gst: offCharge,
+    tip: offCharge,
     receiptTotalInput: '',
     roundingInput: '',
     currency: 'SGD',

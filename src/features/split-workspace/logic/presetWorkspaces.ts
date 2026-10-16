@@ -2,6 +2,7 @@ import type { SessionDraft } from '@features/split-workspace/types';
 import {
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
@@ -239,6 +240,7 @@ function buildPresetDraft(definition: PresetDefinition): SessionDraft {
     discount: { ...defaultDiscountState },
     serviceCharge: buildCharge(defaultServiceChargeState, receipt.serviceCharge),
     gst: buildCharge(defaultGstState, receipt.gst),
+    tip: { ...defaultTipState },
     receiptTotalInput: receipt.total,
     roundingInput: '',
     currency: receipt.currency ?? BASE_CURRENCY,

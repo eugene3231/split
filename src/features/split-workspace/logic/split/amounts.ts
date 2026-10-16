@@ -5,6 +5,7 @@ export const CHARGE_SIGN: Record<ChargeKind, 'minus' | 'plus'> = {
   service: 'plus',
   gst: 'plus',
   rounding: 'plus',
+  tip: 'plus',
 };
 
 /** A value for every charge. Adding a charge kind fails to compile here until it has one. */
@@ -14,6 +15,7 @@ export function mapCharges<T>(valueOf: (kind: ChargeKind) => T): Record<ChargeKi
     service: valueOf('service'),
     gst: valueOf('gst'),
     rounding: valueOf('rounding'),
+    tip: valueOf('tip'),
   };
 }
 

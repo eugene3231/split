@@ -33,7 +33,7 @@ it('lists each charge once and ends on the computed total', () => {
   render(
     <SummaryTotals
       totals={split.totals}
-      charges={{ discount: disabledCharge, serviceCharge, gst }}
+      charges={{ discount: disabledCharge, serviceCharge, gst, tip: disabledCharge }}
       currency="SGD"
       onRemoveRounding={() => {}}
     />,
@@ -69,7 +69,12 @@ it('shows rounding after tax with a way to remove it', () => {
   render(
     <SummaryTotals
       totals={split.totals}
-      charges={{ discount: disabledCharge, serviceCharge: disabledCharge, gst }}
+      charges={{
+        discount: disabledCharge,
+        serviceCharge: disabledCharge,
+        gst,
+        tip: disabledCharge,
+      }}
       currency="SGD"
       onRemoveRounding={onRemoveRounding}
     />,

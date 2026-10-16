@@ -182,6 +182,29 @@ describe('resolveReconciliation', () => {
     });
   });
 
+  it('checks the printed total against the bill before the tip', () => {
+    const receipt = makeReceipt({
+      items: [meal('10.00')],
+      tip: percentCharge('20'),
+      receiptTotalInput: '10.00',
+    });
+
+    expect(resolveReconciliation(receipt, [alice])).toEqual({ cents: 0, fix: null });
+  });
+
+  it('sizes rounding from the bill before the tip', () => {
+    const receipt = makeReceipt({
+      items: [meal('10.00')],
+      tip: percentCharge('20'),
+      receiptTotalInput: '10.50',
+    });
+
+    expect(resolveReconciliation(receipt, [alice])).toEqual({
+      cents: 50,
+      fix: { roundingInput: '0.50' },
+    });
+  });
+
   it('adds the gap to any rounding already on the receipt', () => {
     const receipt = makeReceipt({
       items: [meal('10.00')],

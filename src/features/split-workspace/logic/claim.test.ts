@@ -4,6 +4,7 @@ import { NOBODY, equalShares, makeAssignment } from './assignment';
 import {
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import {
@@ -50,6 +51,7 @@ function makeReceipt(id: string, items: EditableItem[], currency: CurrencyCode =
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
+    tip: { ...defaultTipState },
     receiptTotalInput: '',
     roundingInput: '',
     currency,

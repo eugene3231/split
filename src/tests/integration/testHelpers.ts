@@ -71,6 +71,7 @@ export function makeReceipt(overrides: Partial<Receipt> & { id?: string }): Rece
     discount: overrides.discount ?? { ...disabledCharge },
     serviceCharge: overrides.serviceCharge ?? { ...disabledCharge },
     gst: overrides.gst ?? { ...disabledCharge },
+    tip: overrides.tip ?? { ...disabledCharge },
     receiptTotalInput: overrides.receiptTotalInput ?? '',
     roundingInput: overrides.roundingInput ?? '',
     currency: overrides.currency ?? 'SGD',
@@ -84,6 +85,7 @@ interface PersonSplitInput {
   service?: number;
   gst?: number;
   rounding?: number;
+  tip?: number;
   /** Left out, it is the subtotal less the discount plus the other charges. */
   totalCents?: number;
   lines?: SplitLine[];
@@ -99,6 +101,7 @@ export function makeSplit(people: Record<string, PersonSplitInput>): SplitResult
         service: person.service ?? 0,
         gst: person.gst ?? 0,
         rounding: person.rounding ?? 0,
+        tip: person.tip ?? 0,
       };
       const totalCents =
         person.totalCents ??
@@ -106,7 +109,8 @@ export function makeSplit(people: Record<string, PersonSplitInput>): SplitResult
           chargeCents.discount +
           chargeCents.service +
           chargeCents.gst +
-          chargeCents.rounding;
+          chargeCents.rounding +
+          chargeCents.tip;
       return [personId, { subtotalCents, chargeCents, totalCents, lines: person.lines ?? [] }];
     }),
   );

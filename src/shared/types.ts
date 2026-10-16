@@ -50,9 +50,9 @@ export type OcrResponse = {
   warnings: string[];
 };
 
-export const CHARGE_KINDS = ['discount', 'service', 'gst', 'rounding'] as const;
+export const CHARGE_KINDS = ['discount', 'service', 'gst', 'rounding', 'tip'] as const;
 
-/** What changes a subtotal into a total, in the order it is applied. */
+/** What changes a subtotal into a total, in the order it is applied. The tip comes after the printed total. */
 export type ChargeKind = (typeof CHARGE_KINDS)[number];
 
 /** What a receipt, or one person's part of it, comes to. */
@@ -88,6 +88,8 @@ export type Receipt = {
   discount: ChargeState;
   serviceCharge: ChargeState;
   gst: ChargeState;
+  /** Added on top of the printed total, as a percent of the subtotal before tax. */
+  tip: ChargeState;
   receiptTotalInput: string;
   /** A fixed amount the store added to reach its printed total, split evenly and never taxed. */
   roundingInput: string;

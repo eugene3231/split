@@ -3,6 +3,7 @@ import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import {
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
   LOCAL_STORAGE_DRAFT_KEY,
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
@@ -544,6 +545,7 @@ describe('receiptStore additional coverage', () => {
         discount: { ...defaultDiscountState },
         serviceCharge: { ...defaultServiceChargeState },
         gst: { ...defaultGstState },
+        tip: { ...defaultTipState },
         receiptTotalInput: '',
         roundingInput: '',
         currency: 'SGD',
@@ -564,6 +566,7 @@ describe('receiptStore additional coverage', () => {
         discount: { ...defaultDiscountState },
         serviceCharge: { ...defaultServiceChargeState },
         gst: { ...defaultGstState },
+        tip: { ...defaultTipState },
         receiptTotalInput: '',
         roundingInput: '',
         currency: 'SGD',

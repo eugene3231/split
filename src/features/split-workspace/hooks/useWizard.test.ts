@@ -10,6 +10,7 @@ import {
   LOCAL_STORAGE_WIZARD_STATE_KEY,
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import { resolveWizardStep } from '../logic/wizardState';
@@ -39,6 +40,7 @@ function makeReceipt(id: string, itemIds: string[]): Receipt {
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
+    tip: { ...defaultTipState },
     receiptTotalInput: '',
     roundingInput: '',
     currency: 'SGD',

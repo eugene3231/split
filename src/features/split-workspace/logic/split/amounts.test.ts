@@ -17,12 +17,13 @@ describe('signedCharge', () => {
 });
 
 describe('mapCharges', () => {
-  it('builds a value for each of the four charges', () => {
+  it('builds a value for each charge', () => {
     expect(mapCharges((kind) => kind.length)).toEqual({
       discount: 8,
       service: 7,
       gst: 3,
       rounding: 8,
+      tip: 3,
     });
   });
 });
@@ -30,21 +31,21 @@ describe('mapCharges', () => {
 describe('sumAmounts', () => {
   it('adds the subtotal, each charge and the total', () => {
     const { byPerson } = makeSplit({
-      alice: { subtotalCents: 1000, discount: 100, service: 90, gst: 89, rounding: 1 },
+      alice: { subtotalCents: 1000, discount: 100, service: 90, gst: 89, rounding: 1, tip: 180 },
       bob: { subtotalCents: 500, discount: 50, service: 45, gst: 45 },
     });
 
     expect(sumAmounts(Object.values(byPerson))).toEqual({
       subtotalCents: 1500,
-      chargeCents: { discount: 150, service: 135, gst: 134, rounding: 1 },
-      totalCents: 1620,
+      chargeCents: { discount: 150, service: 135, gst: 134, rounding: 1, tip: 180 },
+      totalCents: 1800,
     });
   });
 
   it('is zero for nothing', () => {
     expect(sumAmounts([])).toEqual({
       subtotalCents: 0,
-      chargeCents: { discount: 0, service: 0, gst: 0, rounding: 0 },
+      chargeCents: { discount: 0, service: 0, gst: 0, rounding: 0, tip: 0 },
       totalCents: 0,
     });
   });
