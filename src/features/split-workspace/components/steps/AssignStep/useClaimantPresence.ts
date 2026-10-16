@@ -6,6 +6,8 @@ interface AvatarPresence {
   source: ClaimPerson[];
   visible: ClaimPerson[];
   displayed: ClaimPerson[];
+  /** Avatars added by the latest change. Avatars there on first render do not animate in. */
+  entering: ReadonlySet<string>;
 }
 
 export function useClaimantPresence(claimants: ClaimPerson[], maxAvatars: number) {
@@ -14,6 +16,7 @@ export function useClaimantPresence(claimants: ClaimPerson[], maxAvatars: number
     source: claimants,
     visible,
     displayed: visible,
+    entering: new Set(),
   });
 
   if (presence.source !== claimants) {
@@ -23,9 +26,13 @@ export function useClaimantPresence(claimants: ClaimPerson[], maxAvatars: number
       (person) => current.has(person.id) || !claimedIds.has(person.id),
     );
     const retainedIds = new Set(retained.map((person) => person.id));
+    const previousIds = new Set(presence.displayed.map((person) => person.id));
     setPresence({
       source: claimants,
       visible,
+      entering: new Set(
+        visible.filter((person) => !previousIds.has(person.id)).map((person) => person.id),
+      ),
       displayed:
         prefersMotion() && retained.some((person) => !current.has(person.id))
           ? [
@@ -53,6 +60,7 @@ export function useClaimantPresence(claimants: ClaimPerson[], maxAvatars: number
     avatars: presence.displayed.map((person) => ({
       person,
       isExiting: !visible.some((current) => current.id === person.id),
+      isEntering: presence.entering.has(person.id),
     })),
   };
 }
