@@ -19,7 +19,8 @@ function scrollRowIntoView(element: HTMLLIElement | null) {
   element?.scrollIntoView?.({ behavior: prefersMotion() ? 'smooth' : 'auto', block: 'nearest' });
 }
 
-/** Laid out like `ClaimItemRow`, so switching modes leaves every name and price where it was. */
+/** Laid out like `ClaimItemRow`, so switching modes leaves every name and price where it was.
+ *  An open row drops its claimant line, since its chips already show who has it. */
 export function ItemClaimRow({
   item,
   isOpen,
@@ -63,16 +64,18 @@ export function ItemClaimRow({
             {item.priceLabel}
           </span>
         </span>
-        <span className="flex h-9 items-center pl-9">
-          <ClaimantAvatars
-            claimants={item.claimants}
-            leftLabel={item.leftLabel}
-            testId={`item-claim-claimants-${item.id}`}
-          />
-          {item.claimants.length === 0 && (
-            <span className="text-xs font-semibold text-warning">Nobody yet</span>
-          )}
-        </span>
+        {!isOpen && (
+          <span className="flex h-9 items-center pl-9">
+            <ClaimantAvatars
+              claimants={item.claimants}
+              leftLabel={item.leftLabel}
+              testId={`item-claim-claimants-${item.id}`}
+            />
+            {item.claimants.length === 0 && (
+              <span className="text-xs font-semibold text-warning">Nobody yet</span>
+            )}
+          </span>
+        )}
       </button>
       {isOpen && (
         <div id={panelId} className="pt-1 pb-1">

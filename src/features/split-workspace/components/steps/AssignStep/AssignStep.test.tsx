@@ -410,11 +410,14 @@ describe('AssignStep', () => {
       renderStep('p1', 'item');
 
       expect(expanded('open')).toBe('true');
-      expect(within(screen.getByTestId('item-claim-open')).getByText('Nobody yet')).toBeVisible();
+      expect(
+        within(screen.getByTestId('item-claim-open')).queryByText('Nobody yet'),
+      ).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('item-claim-toggle-shared'));
       expect(expanded('shared')).toBe('true');
       expect(expanded('open')).toBe('false');
+      expect(within(screen.getByTestId('item-claim-open')).getByText('Nobody yet')).toBeVisible();
 
       fireEvent.click(screen.getByTestId('item-claim-toggle-shared'));
       expect(expanded('shared')).toBe('false');
