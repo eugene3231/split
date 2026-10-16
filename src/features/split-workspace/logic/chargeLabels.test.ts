@@ -19,6 +19,7 @@ function charges(overrides: Partial<ReceiptCharges> = {}): ReceiptCharges {
     discount: disabledCharge,
     serviceCharge: disabledCharge,
     gst: disabledCharge,
+    tip: disabledCharge,
     ...overrides,
   };
 }

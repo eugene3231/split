@@ -20,6 +20,10 @@ _Avoid_: Remainder, leftover weight
 A fixed amount a store adds to reach its printed receipt total. It comes after tax and is split evenly between everyone with something on that receipt.
 _Avoid_: Adjustment, top-up
 
+**Tip**:
+An amount the group adds on top of the printed total, usually a percent of the bill before tax. It is shared in proportion to what each person had, and is left out when checking a receipt against its printed total.
+_Avoid_: Gratuity, which on a receipt is a service charge
+
 **Unassigned item**:
 A receipt item that has no currently valid person selected for its assignment, or still has an unassigned share.
 _Avoid_: Orphan item, missing split

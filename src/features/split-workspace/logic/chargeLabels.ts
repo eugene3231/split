@@ -1,20 +1,22 @@
 import { formatPercentInput, parseNumber } from '@shared/logic/core/money';
 import type { ChargeKind, ChargeState, Receipt } from '@shared/types';
 
-/** The charges a receipt lets you set. Rounding is the fourth charge and has no setting. */
-export type ReceiptCharges = Pick<Receipt, 'discount' | 'serviceCharge' | 'gst'>;
+/** The charges a receipt lets you set. Rounding has no setting. */
+export type ReceiptCharges = Pick<Receipt, 'discount' | 'serviceCharge' | 'gst' | 'tip'>;
 
 const CHARGE_NAME: Record<ChargeKind, string> = {
   discount: 'Discount',
   service: 'Service Charge',
   gst: 'GST / Tax',
   rounding: 'Rounding',
+  tip: 'Tip',
 };
 
 export function chargeSetting(kind: ChargeKind, charges: ReceiptCharges): ChargeState | null {
   if (kind === 'discount') return charges.discount;
   if (kind === 'service') return charges.serviceCharge;
   if (kind === 'gst') return charges.gst;
+  if (kind === 'tip') return charges.tip;
   return null;
 }
 

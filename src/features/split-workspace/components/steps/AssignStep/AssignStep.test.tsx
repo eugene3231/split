@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import type { EditableItem, ItemAssignment, Person, Receipt } from '@shared/types';
@@ -54,6 +55,7 @@ function makeReceipt(id: string, items: EditableItem[], currency: CurrencyCode =
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
+    tip: { ...defaultTipState },
     receiptTotalInput: '',
     roundingInput: '',
     currency,

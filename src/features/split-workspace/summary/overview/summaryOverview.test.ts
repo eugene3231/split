@@ -45,6 +45,7 @@ function receipt(overrides: Partial<Receipt> & Pick<Receipt, 'id' | 'items'>): R
     discount: offCharge,
     serviceCharge: offCharge,
     gst: offCharge,
+    tip: offCharge,
     receiptTotalInput: '',
     roundingInput: '',
     currency: 'SGD',
@@ -129,6 +130,24 @@ describe('resolveSummaryOverview', () => {
     expect(rice.sharesByPerson).toEqual({ bob: 850 });
     expect(fries.priceCents).toBe(1200);
     expect(fries.sharesByPerson).toEqual({ alice: 600, cara: 600 });
+  });
+
+  it('lists the tip after rounding, shared by what each person had, as on each card', () => {
+    const { overview, breakdown } = resolve(
+      [{ ...dinner, roundingInput: '0.05', tip: percent('20') }],
+      'dinner',
+    );
+
+    const tip = rowsOf(overview.sections[0], 'charge').at(-1);
+    expect(tip).toMatchObject({ charge: 'tip', label: 'Tip (20%)', totalCents: 610 });
+    expect(tip?.sharesByPerson).toEqual({ alice: 187, bob: 237, cara: 186 });
+    expect(
+      breakdown.personBreakdowns.map((person) => {
+        if (person.body.kind !== 'sections') return null;
+        const row = person.body.sections[0].rows.at(-1);
+        return row?.kind === 'charge' && row.charge === 'tip' ? row.amountCents : null;
+      }),
+    ).toEqual([187, 237, 186]);
   });
 
   it('adds a row per charge with each person’s share of it', () => {

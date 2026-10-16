@@ -1,6 +1,9 @@
 import type { Person, PersonSplit, Receipt, ReceiptSplit, SplitResult } from '@shared/types';
 import { parseCurrencyToCents } from '@shared/logic/core/money';
-import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
+import {
+  resolveChargeCents,
+  resolveReceiptCharges,
+} from '@features/split-workspace/logic/split/charges';
 import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
 import { allocateCents } from '@features/split-workspace/logic/split/allocation';
@@ -12,7 +15,7 @@ import type { NonEmptyArray } from '@features/split-workspace/logic/nonEmpty';
 /** What it takes to price a receipt. */
 export type ReceiptPricing = Pick<
   Receipt,
-  'items' | 'discount' | 'serviceCharge' | 'gst' | 'roundingInput'
+  'items' | 'discount' | 'serviceCharge' | 'gst' | 'tip' | 'roundingInput'
 >;
 
 interface ResolvedItem {
@@ -68,12 +71,13 @@ export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitRe
   );
 
   const subtotalCents = sumMapValues(subtotalByPerson);
-  const { discountCents, serviceChargeCents, gstCents } = resolveReceiptCharges({
-    subtotalCents,
-    discount: receipt.discount,
-    serviceCharge: receipt.serviceCharge,
-    gst: receipt.gst,
-  });
+  const { discountCents, discountedSubtotalCents, serviceChargeCents, gstCents } =
+    resolveReceiptCharges({
+      subtotalCents,
+      discount: receipt.discount,
+      serviceCharge: receipt.serviceCharge,
+      gst: receipt.gst,
+    });
   const onReceipt = personIds.filter((personId) =>
     linesByPerson[personId].some((line) => line.amountCents !== null),
   );
@@ -110,6 +114,12 @@ export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitRe
     Object.fromEntries(onReceipt.map((personId) => [personId, 1])),
   );
 
+  // The tip goes on top of the printed total, and is worked out on the bill before tax.
+  const tipByPerson = shareCharge(
+    resolveChargeCents(receipt.tip, discountedSubtotalCents),
+    discountedByPerson,
+  );
+
   const byPerson = Object.fromEntries(
     personIds.map((personId): [string, PersonSplit] => {
       const chargeCents = {
@@ -117,6 +127,7 @@ export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitRe
         service: serviceByPerson[personId],
         gst: gstByPerson[personId],
         rounding: roundingByPerson[personId] ?? 0,
+        tip: tipByPerson[personId],
       };
       return [
         personId,
@@ -127,7 +138,8 @@ export function computeSplit(receipt: ReceiptPricing, people: Person[]): SplitRe
             discountedByPerson[personId] +
             chargeCents.service +
             chargeCents.gst +
-            chargeCents.rounding,
+            chargeCents.rounding +
+            chargeCents.tip,
           lines: linesByPerson[personId],
         },
       ];

@@ -258,6 +258,26 @@ describe('resolveSummaryBreakdown', () => {
     });
   });
 
+  it('lists the tip last, after the charges on the printed bill', () => {
+    const view = oneReceipt(
+      receiptView({
+        receipt: makeReceipt({ gst: percentCharge('9'), tip: percentCharge('20') }),
+        split: split({ gst: 108, rounding: 2, tip: 240 }),
+      }),
+    );
+
+    const [person] = resolveSummaryBreakdown({ people: [alice], view }).personBreakdowns;
+
+    expect(person.totalCents).toBe(1550);
+    expect(
+      rowsOf(sectionsOf(person)[0], 'charge').map(({ label, amountCents }) => [label, amountCents]),
+    ).toEqual([
+      ['GST / Tax (9%)', 108],
+      ['Rounding', 2],
+      ['Tip (20%)', 240],
+    ]);
+  });
+
   it('ends a section at its items when the person paid no charges', () => {
     const view = oneReceipt(receiptView({ receipt: makeReceipt({}), split: split() }));
 

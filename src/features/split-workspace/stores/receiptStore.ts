@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   defaultDiscountState,
   defaultGstState,
+  defaultTipState,
   defaultServiceChargeState,
 } from '@features/split-workspace/constants';
 import {
@@ -41,6 +42,7 @@ function createBlankReceipt(name: string): Receipt {
     discount: { ...defaultDiscountState },
     serviceCharge: { ...defaultServiceChargeState },
     gst: { ...defaultGstState },
+    tip: { ...defaultTipState },
     receiptTotalInput: '',
     roundingInput: '',
     currency: BASE_CURRENCY,

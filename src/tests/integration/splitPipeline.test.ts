@@ -159,6 +159,35 @@ describe('Split pipeline integration', () => {
       totals: { Alice: 1002, Bob: 2001, Cara: 0 },
     },
     {
+      scenario: 'tips on the bill before tax, by what each person had',
+      people: [alice, bob],
+      receipt: {
+        items: [solo(alice, '10.00'), solo(bob, '30.00')],
+        gst: percentCharge('9'),
+        tip: percentCharge('20'),
+      },
+      totals: { Alice: 1290, Bob: 3870 },
+    },
+    {
+      scenario: 'tips on the bill after the receipt discount',
+      people: [alice, bob],
+      receipt: {
+        items: [solo(alice, '10.00'), solo(bob, '10.00')],
+        discount: percentCharge('50'),
+        tip: percentCharge('20'),
+      },
+      totals: { Alice: 600, Bob: 600 },
+    },
+    {
+      scenario: 'spreads a fixed tip by what each person had, not evenly like rounding',
+      people: [alice, bob, cara],
+      receipt: {
+        items: [solo(alice, '10.00'), solo(bob, '30.00')],
+        tip: amountCharge('8.00'),
+      },
+      totals: { Alice: 1200, Bob: 3600, Cara: 0 },
+    },
+    {
       scenario: 'charges nothing to someone who had nothing',
       people: [alice, bob],
       receipt: { items: [solo(alice, '10.00')] },
@@ -204,6 +233,7 @@ describe('Split pipeline integration', () => {
         service: 100,
         gst: 180,
         rounding: 0,
+        tip: 0,
       });
     });
 
