@@ -77,4 +77,8 @@ Integration tests use the helpers in `src/tests/integration/testHelpers.ts` — 
 
 ## Coverage
 
-80% lines, functions, branches, statements. `pnpm test:coverage`.
+`pnpm test:coverage` counts components and hooks as well as logic. It leaves out the PNG renderers and `canvas/draw.ts`, which need a real canvas, and files with no code to run: types, constants and `index.ts` barrels. It fails below 90% lines, statements and functions, and 85% branches. These floors only catch a large loss, such as a module's tests deleted or a big feature added untested; they sit well under where the suite stands so ordinary changes never trip them.
+
+The gate that applies to every change is Codecov, on pull requests. It fails a change that drops project coverage more than one point below its base, or that covers less than 85% of its own changed lines. That check moves with the suite, so the vitest floors rarely need changing.
+
+Coverage counts lines run, not lines checked. A test that runs code without asserting the result raises coverage and catches nothing, so meet these gates with tests that assert exact values.
