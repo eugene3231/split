@@ -374,6 +374,10 @@ describe('resolveNextOpenItemId', () => {
     expect(resolveNextOpenItemId(allAssigned, null)).toBe('a');
   });
 
+  it('opens nothing when there are no items', () => {
+    expect(resolveNextOpenItemId(itemView([makeReceipt('r1', [])]).sections, null)).toBeNull();
+  });
+
   it('skips assigned items and carries on into the next receipt', () => {
     expect(resolveNextOpenItemId(sections(), 'a')).toBe('c');
     expect(resolveNextOpenItemId(sections(), 'c')).toBe('e');
