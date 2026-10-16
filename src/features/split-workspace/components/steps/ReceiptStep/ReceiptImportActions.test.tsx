@@ -149,7 +149,7 @@ describe('ReceiptImportActions – Object URL lifecycle (F003)', () => {
     setStoreReceiptFile(file);
 
     const { unmount } = render(<ReceiptImportActions {...makeProps()} />);
-    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(URL.createObjectURL).toHaveBeenCalledWith(file);
 
     unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:unmount-test');
@@ -173,7 +173,7 @@ describe('ReceiptImportActions – Object URL lifecycle (F003)', () => {
     setStoreReceiptFile(file);
 
     const { rerender } = render(<ReceiptImportActions {...makeProps()} />);
-    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(URL.createObjectURL).toHaveBeenCalledWith(file);
 
     setStoreReceiptFile(null);
     rerender(<ReceiptImportActions {...makeProps()} />);

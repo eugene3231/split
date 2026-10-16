@@ -160,6 +160,18 @@ describe('resolveClaimView', () => {
     expect(shares.half).toMatchObject({ canSplitEvenly: true, canTakeAlone: true });
   });
 
+  it('never offers an even split to someone splitting the bill alone', () => {
+    const [item] = resolveClaimView({
+      receipts: [makeReceipt('r1', [makeItem('i1', '9.00', makeAssignment({ p1: 1 }, 1))])],
+      people: [people[0]],
+      activePersonId: 'p1',
+      totalByPersonCents: { p1: 450 },
+      totalsCurrency: 'SGD',
+    }).sections.flatMap((section) => section.items);
+
+    expect(item.share).toMatchObject({ canSplitEvenly: false, canTakeAlone: true });
+  });
+
   it('says how much of a half-claimed item is still left', () => {
     const receipt = makeReceipt('r1', [makeItem('i1', '6.00', makeAssignment({ p1: 1 }, 1))]);
 
