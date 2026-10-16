@@ -104,7 +104,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                   aria-current={isCurrent ? 'step' : undefined}
                   aria-label={`Step ${i + 1}: ${STEP_LABELS[step]}`}
                   className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-xl transition-all',
+                    'flex h-9 w-9 items-center justify-center rounded-full transition-all',
                     disabled
                       ? 'cursor-not-allowed opacity-45'
                       : isCurrent
