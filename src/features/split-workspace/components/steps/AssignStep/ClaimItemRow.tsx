@@ -28,12 +28,25 @@ export function ClaimItemRow({
   onTakeAlone,
 }: Props) {
   const { share } = item;
+  // Outside the toggle, so tapping an avatar names the person instead of ticking the item.
+  const avatars = (
+    <ClaimantAvatars
+      claimants={item.claimants}
+      leftLabel={item.leftLabel}
+      testId={`claim-item-claimants-${item.id}`}
+    />
+  );
 
   return (
     <li
       data-testid={`claim-item-${item.id}`}
       data-taken={item.takenByOthers || undefined}
-      className="py-1.5"
+      data-left={item.isLeft || undefined}
+      className={cn(
+        'relative py-1.5',
+        item.isLeft &&
+          'before:absolute before:inset-y-2.5 before:-left-3 before:w-1 before:rounded-full before:bg-warning',
+      )}
     >
       <div className="flex items-center gap-2 md:gap-3">
         <Checkbox.Root
@@ -53,18 +66,22 @@ export function ClaimItemRow({
             >
               {item.name}
             </span>
-            {item.leftLabel && (
-              <span className="block text-xs text-on-surface-variant">{item.leftLabel}</span>
+            {item.isLeft && (
+              <span
+                data-testid={`claim-item-left-${item.id}`}
+                className="block text-xs font-semibold text-warning"
+              >
+                {item.leftLabel ?? 'Nobody yet'}
+              </span>
             )}
           </span>
         </Checkbox.Root>
-        {/* Outside the toggle, so tapping an avatar names the person instead of ticking the item. */}
-        <ClaimantAvatars
-          claimants={item.claimants}
-          leftLabel={item.leftLabel}
-          testId={`claim-item-claimants-${item.id}`}
-        />
-        <div className="flex shrink-0 justify-end md:w-28">
+        {share ? (
+          <ShareStepper share={share} onStep={onStepShare} testId={`claim-item-share-${item.id}`} />
+        ) : (
+          avatars
+        )}
+        <div className="flex shrink-0 justify-end md:w-24">
           {share ? (
             <ShareAmountField
               label={share.amountLabel}
@@ -77,26 +94,24 @@ export function ClaimItemRow({
         </div>
       </div>
       {share && (
-        <div className="flex items-center gap-2 pb-1 pl-9 motion-safe:animate-rise-in">
-          <ShareStepper share={share} onStep={onStepShare} testId={`claim-item-share-${item.id}`} />
-          <div className="flex min-w-0 flex-1 justify-end gap-1.5">
-            <ItemActionChip
-              icon="groups"
-              label="Everyone"
-              description="Split evenly with everyone"
-              disabled={!share.canSplitEvenly}
-              testId={`claim-item-split-evenly-${item.id}`}
-              onClick={onSplitEvenly}
-            />
-            <ItemActionChip
-              icon="person"
-              label={`Only ${personName}`}
-              description={`Only ${personName} had this`}
-              disabled={!share.canTakeAlone}
-              testId={`claim-item-take-alone-${item.id}`}
-              onClick={onTakeAlone}
-            />
-          </div>
+        <div className="flex items-center gap-1.5 pb-1 pl-9 motion-safe:animate-rise-in">
+          <div className="mr-auto">{avatars}</div>
+          <ItemActionChip
+            icon="groups"
+            label="Everyone"
+            description="Split evenly with everyone"
+            disabled={!share.canSplitEvenly}
+            testId={`claim-item-split-evenly-${item.id}`}
+            onClick={onSplitEvenly}
+          />
+          <ItemActionChip
+            icon="person"
+            label={`Only ${personName}`}
+            description={`Only ${personName} had this`}
+            disabled={!share.canTakeAlone}
+            testId={`claim-item-take-alone-${item.id}`}
+            onClick={onTakeAlone}
+          />
         </div>
       )}
     </li>

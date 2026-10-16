@@ -109,14 +109,22 @@ describe('ClaimItemRow', () => {
     expect(callbacks.onToggle).not.toHaveBeenCalled();
   });
 
-  it('keeps the name and amount on the first line and the share controls on a second', () => {
-    renderRow();
+  it('keeps the stepper beside the amount, and moves who else has it under the name', () => {
+    const alice = {
+      id: 'a',
+      name: 'Alice',
+      firstName: 'Alice',
+      colorIndex: 0,
+      totalCents: 0,
+      isActive: true,
+    };
+    renderRow({ ...item, claimants: [alice] });
     const nameLine = screen.getByTestId('claim-item-toggle-bread').parentElement!;
-    const shareLine = screen.getByTestId('claim-item-share-bread').closest('div')!.parentElement!;
+    const actionLine = screen.getByTestId('claim-item-split-evenly-bread').parentElement!;
+    expect(within(nameLine).getByTestId('claim-item-share-bread')).toBeInTheDocument();
     expect(within(nameLine).getByTestId('claim-item-amount-bread')).toBeInTheDocument();
-    expect(within(nameLine).queryByTestId('claim-item-share-bread')).not.toBeInTheDocument();
-    expect(nameLine).not.toBe(shareLine);
-    expect(within(shareLine).getByTestId('claim-item-split-evenly-bread')).toBeInTheDocument();
+    expect(within(nameLine).queryByTestId('claim-item-claimants-bread')).not.toBeInTheDocument();
+    expect(within(actionLine).getByTestId('claim-item-claimants-bread')).toBeInTheDocument();
   });
 
   it('names the share as a share, and the whole item as All rather than a quantity', () => {
@@ -124,10 +132,23 @@ describe('ClaimItemRow', () => {
     expect(screen.getByTestId('claim-item-share-bread')).toHaveTextContent('Your share: All');
   });
 
-  it('shows how much is still open under the name', () => {
+  it('flags how much is still open under the name', () => {
     renderRow({ ...item, isLeft: true, leftLabel: '1/2 left' });
-    expect(screen.getByTestId('claim-item-toggle-bread')).toHaveTextContent('1/2 left');
+    expect(screen.getByTestId('claim-item-bread')).toHaveAttribute('data-left');
+    expect(screen.getByTestId('claim-item-left-bread')).toHaveTextContent('1/2 left');
     expect(screen.getByTestId('claim-item-toggle-bread')).toHaveAccessibleName(item.name);
+  });
+
+  it('flags an item nobody has yet', () => {
+    renderRow({ ...item, share: null, claimedByActive: false, isLeft: true });
+    expect(screen.getByTestId('claim-item-bread')).toHaveAttribute('data-left');
+    expect(screen.getByTestId('claim-item-left-bread')).toHaveTextContent('Nobody yet');
+  });
+
+  it('does not flag an item that is fully claimed', () => {
+    renderRow();
+    expect(screen.getByTestId('claim-item-bread')).not.toHaveAttribute('data-left');
+    expect(screen.queryByTestId('claim-item-left-bread')).not.toBeInTheDocument();
   });
 
   it('marks an item someone else has in full, and gives it a single line', () => {
