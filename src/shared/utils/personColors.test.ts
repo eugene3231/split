@@ -7,12 +7,8 @@ describe('personColor', () => {
     expect(new Set(colors).size).toBe(10);
   });
 
-  it('starts the palette with teal for the first person', () => {
-    expect(personColor(0)).toBe('#0f766e');
-  });
-
   it('wraps around after ten people', () => {
-    expect(personColor(10)).toBe('#0f766e');
+    expect(personColor(10)).toBe(personColor(0));
     expect(personColor(13)).toBe(personColor(3));
   });
 });

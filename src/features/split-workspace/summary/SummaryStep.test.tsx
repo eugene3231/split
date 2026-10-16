@@ -303,13 +303,6 @@ describe('SummaryStep', () => {
     expect(screen.getAllByRole('button', { name: 'Reset split' })).toHaveLength(1);
   });
 
-  it('renders one page heading for every screen size', () => {
-    seedDinner();
-    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
-
-    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-  });
-
   it('adds a receipt from the receipt tabs row', () => {
     seedDinner();
     const onAddReceipt = vi.fn();

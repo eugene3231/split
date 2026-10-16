@@ -231,6 +231,11 @@ describe('ocr settings storage', () => {
     expect(loadPersistedOcrSettings()).toBeNull();
   });
 
+  it('returns null for malformed ocr settings JSON', () => {
+    window.localStorage.setItem(LOCAL_STORAGE_OCR_SETTINGS_KEY, '{invalid');
+    expect(loadPersistedOcrSettings()).toBeNull();
+  });
+
   it('returns null for unsupported ocr settings version', () => {
     window.localStorage.setItem(LOCAL_STORAGE_OCR_SETTINGS_KEY, JSON.stringify({ version: 2 }));
     expect(loadPersistedOcrSettings()).toBeNull();
@@ -948,24 +953,5 @@ describe('loadExchangeRates', () => {
     );
     const rates = loadExchangeRates();
     expect(rates).toEqual({ USD: 1.35 });
-  });
-});
-
-describe('loadPersistedOcrSettings', () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-  });
-
-  it('returns null for malformed JSON', () => {
-    window.localStorage.setItem(LOCAL_STORAGE_OCR_SETTINGS_KEY, '{invalid');
-    expect(loadPersistedOcrSettings()).toBeNull();
-  });
-
-  it('returns null for non-v1 version', () => {
-    window.localStorage.setItem(
-      LOCAL_STORAGE_OCR_SETTINGS_KEY,
-      JSON.stringify({ version: 2, geminiModel: 'test', savedAt: '' }),
-    );
-    expect(loadPersistedOcrSettings()).toBeNull();
   });
 });

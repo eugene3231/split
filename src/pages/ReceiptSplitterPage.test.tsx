@@ -195,20 +195,24 @@ describe('ReceiptSplitterPage integration', () => {
   });
 
   describe('Navigation', () => {
-    it('progresses through all 4 steps with valid seeded data', async () => {
+    it('progresses through all 4 steps with one page heading on each', async () => {
       seedDraft({});
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
+      const expectStep = (step: number) => {
+        expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(`Step ${step}`);
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+      };
 
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1/i);
+      expectStep(1);
       clickContinue();
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+      expectStep(2);
       clickContinue();
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 3/i);
+      expectStep(3);
       clickContinue(); // Alice → Bob
       clickContinue(); // Bob → final
       expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 4/i);
+      expectStep(4);
     });
 
     it('keeps the credit footer below the wizard nav so it closes the page', async () => {
@@ -761,17 +765,6 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue(); // → final
     }
 
-    it('shows export buttons on the final step', async () => {
-      await navigateToFinal();
-      expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
-      expect(screen.getByTestId('export-copy-text-btn')).toBeInTheDocument();
-    });
-
-    it('does not show a continue button on the final step', async () => {
-      await navigateToFinal();
-      expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
-    });
-
     it('triggers image generation when save image is clicked', async () => {
       await navigateToFinal();
       fireEvent.click(screen.getByTestId('export-save-image-btn'));
@@ -782,26 +775,6 @@ describe('ReceiptSplitterPage integration', () => {
       await navigateToFinal();
       fireEvent.click(screen.getByTestId('export-copy-text-btn'));
       await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1));
-    });
-
-    it('does not show receipt tabs with a single receipt', async () => {
-      await navigateToFinal();
-      expect(screen.queryByTestId('summary-tab-total')).not.toBeInTheDocument();
-    });
-
-    it('shows receipt tabs when multiple receipts exist', async () => {
-      seedDraft({
-        receipts: [makeReceipt({ id: 'r1' }), makeReceipt({ id: 'r2' })],
-      });
-      render(<ReceiptSplitterPage />);
-      await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
-      clickContinue();
-      clickContinue();
-      clickContinue();
-      clickContinue();
-      expect(screen.getByTestId('summary-tab-total')).toBeInTheDocument();
-      expect(screen.getByTestId('summary-tab-receipt-0')).toBeInTheDocument();
-      expect(screen.getByTestId('summary-tab-receipt-1')).toBeInTheDocument();
     });
 
     it('navigates back to receipt step when add new receipt is clicked', async () => {

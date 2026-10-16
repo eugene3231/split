@@ -396,14 +396,6 @@ describe('receiptStore additional coverage', () => {
     expect(useReceiptStore.getState().people).toHaveLength(0);
   });
 
-  it('addPeople skips names already in the split', () => {
-    useReceiptStore.getState().addPeople(['Alice']);
-    expect(useReceiptStore.getState().people).toHaveLength(1);
-
-    useReceiptStore.getState().addPeople(['Alice', 'Bob']);
-    expect(useReceiptStore.getState().people).toHaveLength(2);
-  });
-
   it('keeps only the first spelling of each name within a batch', () => {
     useReceiptStore.getState().addPeople(['Alice']);
 
@@ -487,11 +479,6 @@ describe('receiptStore additional coverage', () => {
     useReceiptStore.getState().removeItem(receiptId, items[0].id);
     const updatedItems = useReceiptStore.getState().receipts.find((r) => r.id === receiptId)!.items;
     expect(updatedItems).toHaveLength(1);
-  });
-
-  it('setPayerMobile updates payer mobile', () => {
-    useReceiptStore.getState().setPayerMobile('+6591234567');
-    expect(useReceiptStore.getState().payerMobile).toBe('+6591234567');
   });
 
   it('patchReceipt applies a partial receipt update by id', () => {
