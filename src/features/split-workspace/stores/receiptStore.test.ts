@@ -449,10 +449,11 @@ describe('receiptStore additional coverage', () => {
 
   it('addPeople leaves the split unchanged when every name is already in it', () => {
     useReceiptStore.getState().addPeople(['Alice']);
-    expect(useReceiptStore.getState().people).toHaveLength(1);
+    const before = useReceiptStore.getState();
 
-    useReceiptStore.getState().addPeople(['Alice']);
-    expect(useReceiptStore.getState().people).toHaveLength(1);
+    useReceiptStore.getState().addPeople(['alice', ' Alice ']);
+
+    expect(useReceiptStore.getState()).toBe(before);
   });
 
   it('setReceiptCurrency clears exchangeRateOverride', () => {

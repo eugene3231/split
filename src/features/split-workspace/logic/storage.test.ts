@@ -298,14 +298,16 @@ const minimalDraftState: WorkspaceState = {
 
 describe('exportDraftToJson', () => {
   it('produces valid JSON with all required fields', () => {
+    vi.useFakeTimers({ now: new Date('2026-10-16T09:30:00.000Z') });
     const json = exportDraftToJson(minimalDraftState);
+    vi.useRealTimers();
     const parsed = JSON.parse(json);
     expect(parsed.version).toBe(3);
     expect(parsed.people).toEqual(minimalDraftState.people);
     expect(parsed.receipts).toHaveLength(1);
     expect(parsed.receipts[0].name).toBe('Dinner');
     expect(parsed.activeReceiptId).toBe('r1');
-    expect(parsed.savedAt).toBeTruthy();
+    expect(parsed.savedAt).toBe('2026-10-16T09:30:00.000Z');
   });
 
   it('leaves out a picked receipt photo, which JSON cannot carry', () => {
