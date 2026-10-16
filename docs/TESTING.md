@@ -56,6 +56,8 @@ expect(split.subtotalCents).toBe(1000); // ✅
 expect(split.subtotalCents).toBe(total); // ❌
 ```
 
+For a rule that must hold on every bill, such as every cent being handed out or each person's charges adding up to their total, write a [fast-check](https://fast-check.dev) property next to the examples, as in `split.properties.test.ts`. Generated receipts reach corners a hand-picked one misses. Keep an example test for each specific amount a person should pay: a property cannot tell a wrong split from a right one when both add up.
+
 Assert on actions, visible states, aria/state attributes, and meaningful outputs. Exact copy is only worth asserting when that wording is the contract; broad snapshots of interactive screens break on harmless tweaks.
 
 ## Mocking
