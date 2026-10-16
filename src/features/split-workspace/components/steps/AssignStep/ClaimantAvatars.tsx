@@ -58,7 +58,6 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
           </HoverLabel>
         )}
       </span>
-      {leftLabel && <span className="truncate text-xs text-on-surface-variant">{leftLabel}</span>}
     </span>
   );
 }

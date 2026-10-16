@@ -18,6 +18,7 @@ export function ShareStepper({ share, onStep, testId }: Props) {
         testId={`${testId}-decrease`}
       />
       <span data-testid={testId} className="flex-1 text-center text-sm font-bold tabular-nums">
+        <span className="sr-only">Your share: </span>
         {share.label}
       </span>
       <StepButton

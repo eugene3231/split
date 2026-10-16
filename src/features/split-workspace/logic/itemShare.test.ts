@@ -71,7 +71,7 @@ describe('resolvePersonShare', () => {
 
   it('labels a solo item as 1 with + disabled, and an odd typed split as a percent', () => {
     expect(resolvePersonShare(buildItem({ a: 1 }), 'a', 1200)).toMatchObject({
-      label: '1',
+      label: 'All',
       canIncrease: false,
       canDecrease: true,
     });
@@ -232,7 +232,7 @@ describe('parseShareInput', () => {
 
 describe('formatShareFraction', () => {
   it('reduces small fractions and falls back to a percent', () => {
-    expect(formatShareFraction(3, 3)).toBe('1');
+    expect(formatShareFraction(3, 3)).toBe('All');
     expect(formatShareFraction(3, 12)).toBe('1/4');
     expect(formatShareFraction(4, 6)).toBe('2/3');
     expect(formatShareFraction(1, 11)).toBe('1/11');

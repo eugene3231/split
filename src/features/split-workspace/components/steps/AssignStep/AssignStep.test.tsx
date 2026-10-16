@@ -145,6 +145,16 @@ describe('AssignStep', () => {
     expect(screen.queryByTestId('claim-all-assigned')).not.toBeInTheDocument();
   });
 
+  it("counts what is left in the receipt's header, and drops the count once nothing is", () => {
+    const { refresh } = renderStep('p2');
+    expect(screen.getByTestId('claim-section-left-r1')).toHaveTextContent('1 left');
+
+    fireEvent.click(screen.getByTestId('claim-item-toggle-open'));
+    refresh();
+
+    expect(screen.queryByTestId('claim-section-left-r1')).not.toBeInTheDocument();
+  });
+
   it('ticks the active person on and off an item', () => {
     const { refresh } = renderStep('p2');
     const toggle = () => screen.getByTestId('claim-item-toggle-open');
@@ -153,7 +163,7 @@ describe('AssignStep', () => {
     refresh();
     expect(Object.keys(assignmentOf('open').shares)).toEqual(['p2']);
     expect(toggle()).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent('1');
+    expect(screen.getByTestId('claim-item-share-open')).toHaveTextContent('Your share: All');
     expect(screen.getByTestId('claim-item-share-open-increase')).toBeDisabled();
     expect(screen.getByTestId('claim-item-share-open-decrease')).toBeEnabled();
     expect(screen.getByTestId('claim-item-amount-open')).toHaveTextContent('$12.00');
@@ -259,7 +269,8 @@ describe('AssignStep', () => {
     const takeAlone = () => screen.getByTestId('claim-item-take-alone-weighted');
 
     expect(screen.queryByTestId('claim-item-split-evenly-open')).not.toBeInTheDocument();
-    expect(takeAlone()).toHaveAccessibleName('Alice only');
+    expect(takeAlone()).toHaveAccessibleName('Only Alice had this');
+    expect(takeAlone()).toHaveTextContent('Only Alice');
 
     fireEvent.click(splitEvenly());
     refresh();

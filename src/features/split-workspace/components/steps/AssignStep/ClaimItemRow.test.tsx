@@ -10,6 +10,7 @@ const item: ClaimItem = {
   priceLabel: '$12.00',
   claimedByActive: true,
   isLeft: false,
+  takenByOthers: false,
   claimants: [],
   leftLabel: null,
   share: {
@@ -45,8 +46,8 @@ describe('ClaimItemRow', () => {
     expect(screen.getByTestId('claim-item-share-bread')).toHaveTextContent('1/2');
     expect(screen.getByRole('button', { name: 'Take a smaller share' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Take a bigger share' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Split evenly' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Alice only' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Split evenly with everyone' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Only Alice had this' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Take a bigger share' }));
     expect(callbacks.onStepShare).toHaveBeenCalledWith('increase');
   });
@@ -93,25 +94,54 @@ describe('ClaimItemRow', () => {
     expect(toggle.querySelector('button, input')).toBeNull();
   });
 
-  it('shows split evenly and person-only as direct icon buttons, not a menu', () => {
+  it('shows split evenly and person-only as labelled buttons, not a menu', () => {
     const callbacks = renderRow({
       ...item,
       share: item.share && { ...item.share, canSplitEvenly: false },
     });
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'More share options' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Split evenly' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Alice only' }));
+    expect(screen.getByTestId('claim-item-split-evenly-bread')).toHaveTextContent('Everyone');
+    expect(screen.getByTestId('claim-item-take-alone-bread')).toHaveTextContent('Only Alice');
+    expect(screen.getByRole('button', { name: 'Split evenly with everyone' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Only Alice had this' }));
     expect(callbacks.onTakeAlone).toHaveBeenCalledOnce();
     expect(callbacks.onToggle).not.toHaveBeenCalled();
   });
 
-  it('puts the share stepper on the same line as the item name and price', () => {
+  it('keeps the name and amount on the first line and the share controls on a second', () => {
     renderRow();
     const nameLine = screen.getByTestId('claim-item-toggle-bread').parentElement!;
-    expect(within(nameLine).getByTestId('claim-item-share-bread')).toHaveTextContent('1/2');
+    const shareLine = screen.getByTestId('claim-item-share-bread').closest('div')!.parentElement!;
     expect(within(nameLine).getByTestId('claim-item-amount-bread')).toBeInTheDocument();
-    expect(within(nameLine).queryByTestId('claim-item-split-evenly-bread')).not.toBeInTheDocument();
+    expect(within(nameLine).queryByTestId('claim-item-share-bread')).not.toBeInTheDocument();
+    expect(nameLine).not.toBe(shareLine);
+    expect(within(shareLine).getByTestId('claim-item-split-evenly-bread')).toBeInTheDocument();
+  });
+
+  it('names the share as a share, and the whole item as All rather than a quantity', () => {
+    renderRow({ ...item, share: item.share && { ...item.share, label: 'All' } });
+    expect(screen.getByTestId('claim-item-share-bread')).toHaveTextContent('Your share: All');
+  });
+
+  it('shows how much is still open under the name', () => {
+    renderRow({ ...item, isLeft: true, leftLabel: '1/2 left' });
+    expect(screen.getByTestId('claim-item-toggle-bread')).toHaveTextContent('1/2 left');
+    expect(screen.getByTestId('claim-item-toggle-bread')).toHaveAccessibleName(item.name);
+  });
+
+  it('marks an item someone else has in full, and gives it a single line', () => {
+    renderRow({ ...item, share: null, claimedByActive: false, takenByOthers: true });
+    expect(screen.getByTestId('claim-item-bread')).toHaveAttribute('data-taken');
+    expect(screen.queryByTestId('claim-item-share-bread')).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+  });
+
+  it('labels the amount as something to tap and type into', () => {
+    renderRow();
+    expect(screen.getByTestId('claim-item-amount-bread')).toHaveAccessibleName(
+      'Your share $6.00, tap to type an amount or percent',
+    );
   });
 
   it('offers no share controls for an unclaimed item', () => {
