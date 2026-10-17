@@ -69,6 +69,20 @@
   --color-inverse-surface: #27272a;
   --color-inverse-on-surface: #f4f4f5;
 
+  /* UX prototypes */
+  --font-prototype-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #18181b;
+  --color-on-ink: #ffffff;
+
+  /* UX prototype: Overview */
+  --color-overview-bg: #fbfbfa;
+  --color-overview-panel: #ffffff;
+  --color-overview-ink: #16181d;
+  --color-overview-muted: #6b7079;
+  --color-overview-line: #e8e8e5;
+  --color-overview-warn: #b45309;
+  --color-overview-warn-bg: #fff7e8;
+
   /* Font families */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-headline: var(--font-sans);
