@@ -12,6 +12,7 @@ export function GeminiApiKeyModal() {
   const setGeminiApiKeyInput = useGeminiStore((state) => state.setGeminiApiKeyInput);
   const setGeminiModel = useGeminiStore((state) => state.setGeminiModel);
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
+  const onKeySaved = useGeminiStore((state) => state.onKeySaved);
 
   if (!isOpen) return null;
 
@@ -24,6 +25,7 @@ export function GeminiApiKeyModal() {
         setGeminiApiKeyInput(key);
         setGeminiModel(model);
         setShowApiKeyModal(false);
+        if (key) onKeySaved?.(key, model);
       }}
       onClose={() => setShowApiKeyModal(false)}
     />
