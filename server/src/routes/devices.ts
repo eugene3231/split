@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { deviceMintRequestSchema } from '@shared/api/devices';
 import type { DeviceMintResponse } from '@shared/api/devices';
 import type { AppContext, Services } from '../app';
@@ -6,9 +7,15 @@ import { resolveClientIp } from '../http/clientIp';
 import { verifyTurnstile } from '../turnstile/verifyTurnstile';
 import { failWith } from './errors';
 
+const MAX_MINT_BODY_BYTES = 8 * 1024;
+
 export function devicesRoute({ env, counters, devices, fetchImpl }: Services): Hono<AppContext> {
   const route = new Hono<AppContext>();
-  route.post('/', async (c) => {
+  const capBody = bodyLimit({
+    maxSize: MAX_MINT_BODY_BYTES,
+    onError: (c) => failWith(c, 413, 'unknown'),
+  });
+  route.post('/', capBody, async (c) => {
     const client = resolveClientIp({
       trustCfConnectingIp: env.TRUST_CF_CONNECTING_IP,
       cfConnectingIp: c.req.header('CF-Connecting-IP') ?? null,

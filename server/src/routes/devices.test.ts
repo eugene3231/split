@@ -61,4 +61,37 @@ describe('minting a device pass', () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ kind: 'unknown' });
   });
+
+  it('refuses a body over the cap by Content-Length', async () => {
+    harness = await startHarness();
+    const response = await harness.app.request('/api/v1/devices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ turnstileToken: PASS_TOKEN, pad: 'x'.repeat(20_000) }),
+    });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ kind: 'unknown' });
+    expect(harness.db.prepare('SELECT COUNT(*) AS n FROM devices').get()).toEqual({ n: 0 });
+  });
+
+  it('refuses a chunked body that grows past the cap', async () => {
+    harness = await startHarness();
+    const chunk = new TextEncoder().encode('x'.repeat(4096));
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent++ < 100) controller.enqueue(chunk);
+        else controller.close();
+      },
+    });
+    const response = await harness.app.request('/api/v1/devices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      duplex: 'half',
+    } as RequestInit);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ kind: 'unknown' });
+    expect(sent).toBeLessThan(10);
+  });
 });
