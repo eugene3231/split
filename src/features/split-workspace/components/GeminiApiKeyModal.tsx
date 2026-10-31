@@ -8,9 +8,11 @@ export function GeminiApiKeyModal() {
   const isOpen = useGeminiStore((state) => state.showApiKeyModal);
   const geminiApiKeyInput = useGeminiStore((state) => state.geminiApiKeyInput);
   const geminiModel = useGeminiStore((state) => state.geminiModel);
+  const reason = useGeminiStore((state) => state.apiKeyModalReason);
   const setGeminiApiKeyInput = useGeminiStore((state) => state.setGeminiApiKeyInput);
   const setGeminiModel = useGeminiStore((state) => state.setGeminiModel);
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
+  const onKeySaved = useGeminiStore((state) => state.onKeySaved);
 
   if (!isOpen) return null;
 
@@ -18,10 +20,12 @@ export function GeminiApiKeyModal() {
     <GeminiApiKeyModalContent
       initialKey={geminiApiKeyInput}
       initialModel={geminiModel}
+      reason={reason}
       onSave={(key, model) => {
         setGeminiApiKeyInput(key);
         setGeminiModel(model);
         setShowApiKeyModal(false);
+        if (key) onKeySaved?.(key, model);
       }}
       onClose={() => setShowApiKeyModal(false)}
     />
@@ -31,6 +35,7 @@ export function GeminiApiKeyModal() {
 interface GeminiApiKeyModalContentProps {
   initialKey: string;
   initialModel: string;
+  reason: string | null;
   onSave: (key: string, model: string) => void;
   onClose: () => void;
 }
@@ -38,6 +43,7 @@ interface GeminiApiKeyModalContentProps {
 function GeminiApiKeyModalContent({
   initialKey,
   initialModel,
+  reason,
   onSave,
   onClose,
 }: GeminiApiKeyModalContentProps) {
@@ -77,6 +83,14 @@ function GeminiApiKeyModalContent({
               Gemini reads the items, prices and charges from your receipt photo. Skip this to add
               items yourself.
             </Dialog.Description>
+            {reason && (
+              <p
+                role="status"
+                className="mt-3 rounded-xl bg-secondary-container px-4 py-3 font-body text-sm font-medium text-on-secondary-fixed-variant"
+              >
+                {reason}
+              </p>
+            )}
           </div>
 
           <div className="space-y-5 px-7 pb-7">

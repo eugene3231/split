@@ -15,10 +15,13 @@ import {
   resolvePreviousPersonId,
 } from '@features/split-workspace/logic/claim';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
+import { resolveScanTransport } from '@features/receipt-scanner/logic/scanTransport';
 import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
 
 export function useWizard(items: EditableItem[], people: Person[], receipts: Receipt[]) {
-  const geminiApiKeyInput = useGeminiStore((state) => state.geminiApiKeyInput);
+  const hasNoScanner = useGeminiStore(
+    (state) => resolveScanTransport(state.geminiApiKeyInput).kind === 'none',
+  );
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
   const resetSplit = useReceiptStore((state) => state.resetSplit);
@@ -82,7 +85,7 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
 
     if (targetStep === 'receipt') {
       setActiveStep('receipt');
-      if (activeStep === 'people' && !geminiApiKeyInput.trim()) setShowApiKeyModal(true);
+      if (activeStep === 'people' && hasNoScanner) setShowApiKeyModal(true);
       return;
     }
 
@@ -98,7 +101,7 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
     if (activeStep === 'people') {
       if (!isStepValid('people', { items, people })) return;
       setActiveStep('receipt');
-      if (!geminiApiKeyInput.trim()) setShowApiKeyModal(true);
+      if (hasNoScanner) setShowApiKeyModal(true);
       return;
     }
 
@@ -151,7 +154,7 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const handleAddReceipt = () => {
     addReceipt();
     setActiveStep('receipt');
-    if (!geminiApiKeyInput.trim()) setShowApiKeyModal(true);
+    if (hasNoScanner) setShowApiKeyModal(true);
   };
 
   const selectPerson = (personId: string) => {

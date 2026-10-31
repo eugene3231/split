@@ -9,6 +9,7 @@ interface UseReceiptImportArgs {
 
 export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
   const patchReceipt = useReceiptStore((state) => state.patchReceipt);
+  const openApiKeyModalFor = useGeminiStore((state) => state.openApiKeyModalFor);
   const { geminiApiKeyInput, geminiModel } = useGeminiStore(
     useShallow((state) => ({
       geminiApiKeyInput: state.geminiApiKeyInput,
@@ -21,20 +22,30 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
     useScanStore.getState().clearScanFeedback(activeReceiptId);
   };
 
-  const handleScanReceipt = async () => {
+  const runScan = async (apiKeyInput: string, model: string, canRetryOnSave: boolean) => {
     const { receipts, people } = useReceiptStore.getState();
     const receipt = receipts.find((candidate) => candidate.id === activeReceiptId);
     if (!receipt) return;
     const scannedFile = receipt.receiptFile ?? null;
+    const isScannedFileCurrent = () =>
+      useReceiptStore.getState().receipts.find((candidate) => candidate.id === activeReceiptId)
+        ?.receiptFile === scannedFile;
 
     const payload = await scanReceipt({
       receiptId: activeReceiptId,
       receiptFile: scannedFile,
-      apiKeyInput: geminiApiKeyInput,
-      model: geminiModel,
-      isCurrent: () =>
-        useReceiptStore.getState().receipts.find((candidate) => candidate.id === activeReceiptId)
-          ?.receiptFile === scannedFile,
+      apiKeyInput,
+      model,
+      onNeedsKey: (reason) =>
+        openApiKeyModalFor(
+          reason,
+          canRetryOnSave
+            ? (key, savedModel) => {
+                if (isScannedFileCurrent()) void runScan(key, savedModel, false);
+              }
+            : undefined,
+        ),
+      isCurrent: isScannedFileCurrent,
     });
 
     if (!payload) {
@@ -72,6 +83,8 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
         );
     }
   };
+
+  const handleScanReceipt = () => runScan(geminiApiKeyInput, geminiModel, true);
 
   return {
     handleReceiptFileChange,
