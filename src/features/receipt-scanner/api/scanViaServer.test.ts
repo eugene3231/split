@@ -116,6 +116,7 @@ describe('scanViaServer', () => {
     [403, 'bot-check-failed'],
     [413, 'bad-image'],
     [415, 'bad-image'],
+    [422, 'bad-image'],
     [429, 'over-limit'],
     [408, 'unreachable'],
     [500, 'unknown'],
