@@ -3,7 +3,7 @@ import {
   SCAN_ERROR_KINDS,
   apiErrorBodySchema,
   asksForKey,
-  kindFromStatus,
+  fallbackKindFromStatus,
   scanResponseSchema,
 } from './scan';
 
@@ -30,7 +30,7 @@ describe('reading a status when the body is not ours', () => {
     [500, 'unknown'],
     [404, 'unknown'],
   ])('maps %i to %s', (status, kind) => {
-    expect(kindFromStatus(status)).toBe(kind);
+    expect(fallbackKindFromStatus(status)).toBe(kind);
   });
 });
 

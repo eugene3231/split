@@ -66,8 +66,7 @@ const ocrResponseSchema = z.object({
 export const scanResponseSchema = z.object({ receipt: ocrResponseSchema });
 export type ScanResponse = z.infer<typeof scanResponseSchema>;
 
-/** Used only when an error body does not parse, such as a Cloudflare error page. */
-export function kindFromStatus(status: number): ScanErrorKind {
+export function fallbackKindFromStatus(status: number): ScanErrorKind {
   switch (status) {
     case 401:
       return 'needs-device';
