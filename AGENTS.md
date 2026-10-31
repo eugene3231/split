@@ -1,12 +1,13 @@
 # Split
 
-Browser-only bill-splitting app: scan a receipt with a vision model, assign items to people, show each person's total, export as PNG or text. No backend, no auth — state lives in Zustand stores and persists to `localStorage`. Run commands with `pnpm`.
+Bill-splitting app that runs in the browser: scan a receipt with a vision model, assign items to people, show each person's total, export as PNG or text. No auth — state lives in Zustand stores and persists to `localStorage`. The only server is the receipt scan server in `server/` ([docs/SERVER.md](docs/SERVER.md)). Run commands with `pnpm`.
 
 ## Where code goes
 
 - `pages/` — route shells only. No workflow logic, step logic, or feature-owned hooks.
 - `features/<name>/` — one capability, whole: components, hooks, logic, stores, persistence, UI.
-- `shared/` — only primitives already reused by two or more features. Holds true cross-feature types, logic, constants, and utilities.
+- `shared/` — only primitives already reused by two or more features. Holds true cross-feature types, logic, constants, and utilities. `shared/api/` is the request and response contract the browser and the scan server both import.
+- `server/` — the scan server, in Node. It imports no DOM, React, or `pages/` code, and a lint rule and `tsconfig.server.json` fail the build if it does.
 
 Layering, step structure, and summary data flow: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

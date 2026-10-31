@@ -44,3 +44,7 @@ Editing is keyed by `activeReceiptId`, but summary rendering follows `activeTab`
 Row order and content are decided once and both renderers walk the same rows; styling is not shared. [EXPORT-PARITY.md](EXPORT-PARITY.md) says what is guaranteed and lists the differences that are meant.
 
 Corrective discounts use `logic/reconciliation.ts` to search for the closest total after rounded service charge and tax. The solver and the split engine share the charge evaluator in `logic/split/charges.ts`. When a receipt's printed total is higher than its items and charges, the gap can be added as the receipt's `roundingInput`, which the split adds after tax.
+
+## Server
+
+`server/` is the receipt scan server, bundled into one file by `vite.server.config.ts` and run as the `split-api` container. It has its own tsconfig (`tsconfig.server.json`, no DOM lib) and ESLint block, so importing browser code fails `pnpm typecheck` or `pnpm lint`. It reaches shared code only through the `@shared` and `@features` aliases, and the request and response shapes the browser and the server both use live in `src/shared/api/`. Routes, limits, the database and the variables are in [SERVER.md](SERVER.md).
