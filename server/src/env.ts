@@ -32,6 +32,7 @@ const envSchema = z.object({
   ALLOWED_ORIGIN_PATTERN: anchoredPattern.optional(),
   TRUST_CF_CONNECTING_IP: flag.default(false),
   DATA_DIR: z.string().min(1).default('/data'),
+  APP_VERSION: z.string().min(1).default('dev'),
   PORT: z.coerce.number().int().min(1).max(65535).default(8080),
   SCAN_LIMIT_PER_DEVICE: count.default(20),
   SCAN_LIMIT_GLOBAL: count.default(200),

@@ -12,6 +12,7 @@ describe('reading the environment', () => {
       GEMINI_BASE_URL: 'https://generativelanguage.googleapis.com',
       ALLOWED_ORIGINS: [],
       TRUST_CF_CONNECTING_IP: false,
+      APP_VERSION: 'dev',
       DATA_DIR: '/data',
       PORT: 8080,
       SCAN_LIMIT_PER_DEVICE: 20,

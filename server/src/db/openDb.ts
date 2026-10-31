@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { accessSync, constants, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -20,5 +20,18 @@ export function inTransaction<T>(db: DatabaseSync, work: () => T): T {
   } catch (error) {
     db.exec('ROLLBACK');
     throw error;
+  }
+}
+
+export function assertWritableDir(dir: string): void {
+  try {
+    mkdirSync(dir, { recursive: true });
+    accessSync(dir, constants.W_OK);
+  } catch {
+    const uid = process.getuid?.();
+    const gid = process.getgid?.();
+    throw new Error(
+      `${dir} is not writable by uid ${uid} gid ${gid}: chown ${uid}:${gid} the data folder`,
+    );
   }
 }
