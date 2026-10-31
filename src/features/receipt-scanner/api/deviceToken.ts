@@ -21,7 +21,7 @@ export function saveDeviceToken(token: string): void {
   try {
     window.localStorage.setItem(DEVICE_TOKEN_KEY, token);
   } catch {
-    // Storage is full or blocked; the next scan asks for a new pass.
+    // Storage is full or blocked.
   }
 }
 
@@ -29,7 +29,7 @@ export function clearDeviceToken(): void {
   try {
     window.localStorage.removeItem(DEVICE_TOKEN_KEY);
   } catch {
-    // Storage is blocked.
+    // Storage is full or blocked.
   }
 }
 

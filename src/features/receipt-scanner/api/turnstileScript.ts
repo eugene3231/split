@@ -21,7 +21,6 @@ declare global {
 
 let loading: Promise<TurnstileApi> | null = null;
 
-/** Adds the Turnstile script on first call. A failed load is not cached, so the next scan retries. */
 export function loadTurnstile(): Promise<TurnstileApi> {
   if (window.turnstile) return Promise.resolve(window.turnstile);
   if (loading) return loading;
