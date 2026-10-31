@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
+import { ScanError } from '@features/receipt-scanner/logic/scanError';
 import { scanReceipt } from './scanReceipt';
 
 const { analyzeReceiptWithGemini: analyzeReceiptWithGeminiMock } = vi.hoisted(() => ({
@@ -11,7 +12,14 @@ vi.mock('@features/receipt-scanner/api/geminiApi', async (importActual) => {
   return { ...actual, analyzeReceiptWithGemini: analyzeReceiptWithGeminiMock };
 });
 
+const { scanViaServer: scanViaServerMock } = vi.hoisted(() => ({ scanViaServer: vi.fn() }));
+
+vi.mock('@features/receipt-scanner/api/scanViaServer', () => ({
+  scanViaServer: scanViaServerMock,
+}));
+
 beforeEach(() => {
+  vi.unstubAllEnvs();
   useScanStore.setState({ scanStateByReceipt: {} });
   vi.restoreAllMocks();
 });
@@ -105,5 +113,96 @@ describe('scanReceipt', () => {
     const scanState = useScanStore.getState().scanStateByReceipt.r1;
     expect(scanState.scanError).toBe('rate limited');
     expect(scanState.isScanning).toBe(false);
+  });
+
+  describe('with no key and a configured server', () => {
+    const file = new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' });
+    const scan = (onNeedsKey = vi.fn()) =>
+      scanReceipt({
+        receiptId: 'r1',
+        receiptFile: file,
+        apiKeyInput: '',
+        model: 'gemini-2.5-flash',
+        onNeedsKey,
+      });
+
+    beforeEach(() => {
+      vi.stubEnv('VITE_API_URL', 'https://api.test/');
+      scanViaServerMock.mockReset();
+      analyzeReceiptWithGeminiMock.mockReset();
+    });
+
+    it('scans through the server and never calls Gemini', async () => {
+      scanViaServerMock.mockResolvedValue({ items: [], warnings: ['Blurry'] });
+
+      const result = await scan();
+
+      expect(result?.warnings).toEqual(['Blurry']);
+      expect(scanViaServerMock).toHaveBeenCalledWith(file, 'https://api.test');
+      expect(analyzeReceiptWithGeminiMock).not.toHaveBeenCalled();
+      expect(useScanStore.getState().scanStateByReceipt.r1.scanWarnings).toEqual(['Blurry']);
+    });
+
+    it('goes direct instead when a key is typed', async () => {
+      analyzeReceiptWithGeminiMock.mockResolvedValue({ items: [], warnings: [] });
+
+      await scanReceipt({
+        receiptId: 'r1',
+        receiptFile: file,
+        apiKeyInput: 'typed',
+        model: 'gemini-2.5-flash',
+      });
+
+      expect(scanViaServerMock).not.toHaveBeenCalled();
+    });
+
+    it('asks for a key with the reason when the shared scanner is over its limit', async () => {
+      scanViaServerMock.mockRejectedValue(new ScanError('over-limit', 'global'));
+      const onNeedsKey = vi.fn();
+
+      expect(await scan(onNeedsKey)).toBeNull();
+
+      const reason =
+        "Split's shared scanner has reached today's limit. Add your own Gemini key to keep scanning.";
+      expect(onNeedsKey).toHaveBeenCalledWith(reason);
+      expect(useScanStore.getState().scanStateByReceipt.r1.scanError).toBe(reason);
+    });
+
+    it('asks for a key when the server cannot be reached', async () => {
+      scanViaServerMock.mockRejectedValue(new ScanError('unreachable'));
+      const onNeedsKey = vi.fn();
+
+      await scan(onNeedsKey);
+
+      expect(onNeedsKey).toHaveBeenCalledOnce();
+    });
+
+    it('shows a bad photo without asking for a key', async () => {
+      scanViaServerMock.mockRejectedValue(new ScanError('bad-image'));
+      const onNeedsKey = vi.fn();
+
+      await scan(onNeedsKey);
+
+      expect(onNeedsKey).not.toHaveBeenCalled();
+      expect(useScanStore.getState().scanStateByReceipt.r1.scanError).toContain(
+        "This file can't be scanned",
+      );
+    });
+
+    it('stays quiet when the receipt changed during the scan', async () => {
+      scanViaServerMock.mockRejectedValue(new ScanError('unreachable'));
+      const onNeedsKey = vi.fn();
+
+      await scanReceipt({
+        receiptId: 'r1',
+        receiptFile: file,
+        apiKeyInput: '',
+        model: 'gemini-2.5-flash',
+        isCurrent: () => false,
+        onNeedsKey,
+      });
+
+      expect(onNeedsKey).not.toHaveBeenCalled();
+    });
   });
 });

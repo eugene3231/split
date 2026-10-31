@@ -75,6 +75,8 @@ vi.mock('@features/receipt-scanner/api/geminiApi', async (importActual) => {
 });
 ```
 
+Server scans stub `fetch` with `vi.stubGlobal` and set the build variables with `vi.stubEnv('VITE_API_URL', ...)`, because the scan route is read at call time. To pass the Turnstile check without a widget, subscribe to `useTurnstileStore` and call `pending.resolve('token')`, as `src/tests/integration/serverScan.test.ts` does.
+
 Integration tests use the helpers in `src/tests/integration/testHelpers.ts` — `makePerson`, `makeItem`, `makeReceipt`, `seedStore`, `resetAllStores`, `reloadWorkspace`, `sumValues` — with `resetAllStores` in `beforeEach`. The receipt store reads its saved draft once, when the module loads, so a test that writes a draft to `localStorage` or simulates a page reload calls `reloadWorkspace` to make the store read it.
 
 ## Coverage

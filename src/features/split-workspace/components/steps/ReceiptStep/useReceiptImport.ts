@@ -9,6 +9,7 @@ interface UseReceiptImportArgs {
 
 export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
   const patchReceipt = useReceiptStore((state) => state.patchReceipt);
+  const openApiKeyModalFor = useGeminiStore((state) => state.openApiKeyModalFor);
   const { geminiApiKeyInput, geminiModel } = useGeminiStore(
     useShallow((state) => ({
       geminiApiKeyInput: state.geminiApiKeyInput,
@@ -32,6 +33,7 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
       receiptFile: scannedFile,
       apiKeyInput: geminiApiKeyInput,
       model: geminiModel,
+      onNeedsKey: openApiKeyModalFor,
       isCurrent: () =>
         useReceiptStore.getState().receipts.find((candidate) => candidate.id === activeReceiptId)
           ?.receiptFile === scannedFile,

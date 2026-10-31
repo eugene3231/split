@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReceiptImportActions } from './ReceiptImportActions';
 
 let storeMock: Record<string, unknown>;
@@ -307,5 +307,54 @@ describe('ReceiptImportActions – Fullscreen modal (F002)', () => {
     expect(screen.getByRole('dialog', { name: 'Receipt image preview' })).toContainElement(
       screen.getByAltText('Receipt fullscreen'),
     );
+  });
+});
+
+describe('ReceiptImportActions – scan source', () => {
+  const openKeyModal = geminiStoreMock.setShowApiKeyModal as ReturnType<typeof vi.fn>;
+
+  function renderWithKey(key: string, apiUrl: string) {
+    geminiStoreMock.geminiApiKeyInput = key;
+    vi.stubEnv('VITE_API_URL', apiUrl);
+    setStoreReceiptFile(new File(['img'], 'r.jpg', { type: 'image/jpeg' }));
+    const props = makeProps();
+    render(<ReceiptImportActions {...props} />);
+    return props;
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    geminiStoreMock.geminiApiKeyInput = 'test-key';
+  });
+
+  it('enables scanning with no key when the server is configured', () => {
+    const props = renderWithKey('', 'https://api.test');
+
+    const scanButton = screen.getByTestId('scan-receipt-btn');
+    expect(scanButton).toBeEnabled();
+    fireEvent.click(scanButton);
+    expect(props.onScanReceipt).toHaveBeenCalledOnce();
+  });
+
+  it('offers an optional own-key action that opens the key modal', () => {
+    renderWithKey('', 'https://api.test');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use your own key' }));
+
+    expect(openKeyModal).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps scanning disabled and asks for a key with no key and no server', () => {
+    renderWithKey('', '');
+
+    expect(screen.getByTestId('scan-receipt-btn')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add Key' })).toBeInTheDocument();
+  });
+
+  it('shows the key as set when one is typed, server or not', () => {
+    renderWithKey('typed', 'https://api.test');
+
+    expect(screen.getByText('Gemini API key set')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
   });
 });

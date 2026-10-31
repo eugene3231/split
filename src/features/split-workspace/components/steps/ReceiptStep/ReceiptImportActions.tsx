@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { useScanStore, getScanState } from '@features/receipt-scanner/stores/scanStore';
+import { resolveScanTransport } from '@features/receipt-scanner/logic/scanTransport';
+import { TurnstileCheck } from '@features/receipt-scanner/components/TurnstileCheck';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { Dialog } from 'radix-ui';
+import { ScanKeyRow } from './ScanKeyRow';
 import { cn } from '@shared/utils/cn';
 
 interface Props {
@@ -14,7 +17,8 @@ interface Props {
 export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const hasApiKey = useGeminiStore((s) => s.geminiApiKeyInput.trim().length > 0);
+  const transport = useGeminiStore((s) => resolveScanTransport(s.geminiApiKeyInput).kind);
+  const canScan = transport !== 'none';
   const receiptFile = useReceiptStore(
     useShallow((s) => s.receipts.find((r) => r.id === s.activeReceiptId)?.receiptFile ?? null),
   );
@@ -54,7 +58,7 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
     <div
       className={cn(
         'space-y-4 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm',
-        receiptFile && !hasApiKey && 'ring-2 ring-error',
+        receiptFile && !canScan && 'ring-2 ring-error',
       )}
     >
       <h4 className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
@@ -124,43 +128,16 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
               <span className="material-symbols-outlined text-sm">close</span>
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                'material-symbols-outlined text-sm',
-                hasApiKey ? 'text-secondary' : 'text-error',
-              )}
-            >
-              {hasApiKey ? 'key' : 'key_off'}
-            </span>
-            <p
-              className={cn(
-                'text-xs font-medium',
-                hasApiKey ? 'text-on-surface-variant' : 'text-error',
-              )}
-            >
-              {hasApiKey ? 'Gemini API key set' : 'Gemini API key required.'}
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowApiKeyModal(true)}
-              className={cn(
-                'cursor-pointer text-xs font-bold underline',
-                hasApiKey ? 'text-on-surface-variant hover:text-primary' : 'text-error',
-              )}
-            >
-              {hasApiKey ? 'Edit' : 'Add Key'}
-            </button>
-          </div>
+          <ScanKeyRow transport={transport} onEditKey={() => setShowApiKeyModal(true)} />
           <button
             type="button"
             data-testid="scan-receipt-btn"
             onClick={onScanReceipt}
-            disabled={scan.isScanning || !hasApiKey}
+            disabled={scan.isScanning || !canScan}
             className={cn(
               'relative flex w-full items-center justify-center overflow-hidden rounded-xl py-3 text-sm font-bold transition-all active:scale-95',
               scan.isScanning ? 'flex-col gap-2 px-4 py-4' : 'gap-2',
-              scan.isScanning || !hasApiKey
+              scan.isScanning || !canScan
                 ? 'cursor-not-allowed bg-surface-container-high text-on-surface-variant opacity-50'
                 : 'bg-primary text-on-primary shadow-lg shadow-primary/20',
             )}
@@ -181,6 +158,7 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
               {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan Receipt'}
             </span>
           </button>
+          <TurnstileCheck />
           <p className="text-xs text-on-surface-variant">
             Existing items and charges are replaced only after a successful scan.
           </p>

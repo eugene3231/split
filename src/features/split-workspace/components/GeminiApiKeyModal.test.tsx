@@ -10,6 +10,7 @@ describe('GeminiApiKeyModal', () => {
       geminiApiKeyInput: '',
       geminiModel: DEFAULT_GEMINI_MODEL,
       showApiKeyModal: true,
+      apiKeyModalReason: null,
     });
   });
 
@@ -37,5 +38,25 @@ describe('GeminiApiKeyModal', () => {
       'href',
       'https://aistudio.google.com/app/api-keys',
     );
+  });
+
+  it('shows why it opened after a scan fell back, and drops the reason when closed', () => {
+    useGeminiStore
+      .getState()
+      .openApiKeyModalFor("Split's shared scanner has reached today's limit.");
+    render(<GeminiApiKeyModal />);
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "Split's shared scanner has reached today's limit.",
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    expect(useGeminiStore.getState().apiKeyModalReason).toBeNull();
+  });
+
+  it('shows no reason when opened by hand', () => {
+    render(<GeminiApiKeyModal />);
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

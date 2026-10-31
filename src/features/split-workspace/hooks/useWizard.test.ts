@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
@@ -56,6 +56,32 @@ describe('useWizard', () => {
     });
     useReceiptStore.getState().resetSplit();
     useScanStore.setState({ scanStateByReceipt: {} });
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  describe('asking for a key on the way to the receipt step', () => {
+    function goToReceiptStepWithoutKey() {
+      useGeminiStore.setState({ geminiApiKeyInput: '' });
+      saveWizardState({ step: 'people', activePersonId: '', assignMode: 'person' });
+      const { result } = renderWizard([makeReceipt('r1', [])]);
+      act(() => result.current.handleNext());
+      return result;
+    }
+
+    it('opens the key modal when there is no key and no server', () => {
+      goToReceiptStepWithoutKey();
+
+      expect(useGeminiStore.getState().showApiKeyModal).toBe(true);
+    });
+
+    it('stays quiet when the server can scan without a key', () => {
+      vi.stubEnv('VITE_API_URL', 'https://api.test');
+      const result = goToReceiptStepWithoutKey();
+
+      expect(result.current.activeStep).toBe('receipt');
+      expect(useGeminiStore.getState().showApiKeyModal).toBe(false);
+    });
   });
 
   function renderWizard(receipts: Receipt[], activeReceiptId = receipts[0].id) {
