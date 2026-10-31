@@ -6,9 +6,12 @@ import { createDeviceTokens } from './devices/deviceTokens';
 import type { Env } from './env';
 import { corsFor } from './http/cors';
 import { createDailyCounters } from './limits/dailyCounters';
+import { createInFlightLimiter } from './limits/inFlight';
 import { devicesRoute } from './routes/devices';
 import { healthRoute } from './routes/health';
 import { scanRoute } from './routes/scan';
+
+const MAX_SCANS_IN_FLIGHT = 4;
 
 export interface RequestLog {
   kind?: ScanErrorKind;
@@ -37,6 +40,7 @@ export interface Services {
   db: DatabaseSync;
   counters: ReturnType<typeof createDailyCounters>;
   devices: ReturnType<typeof createDeviceTokens>;
+  inFlight: ReturnType<typeof createInFlightLimiter>;
   fetchImpl: typeof fetch;
   bodyTimeoutMs: number;
   geminiTimeoutMs: number;
@@ -50,6 +54,7 @@ export function createApp(deps: AppDeps): Hono<AppContext> {
     db: deps.db,
     counters: createDailyCounters(deps.db, now),
     devices: createDeviceTokens(deps.db, now),
+    inFlight: createInFlightLimiter(MAX_SCANS_IN_FLIGHT),
     fetchImpl: deps.fetchImpl ?? fetch,
     bodyTimeoutMs: deps.bodyTimeoutMs ?? 30_000,
     geminiTimeoutMs: deps.geminiTimeoutMs ?? 45_000,

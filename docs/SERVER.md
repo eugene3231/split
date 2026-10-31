@@ -49,7 +49,9 @@ Every error body carries a `kind`, and the browser decides on that kind. Only a 
 
 ## Limits
 
-A day is a calendar day in Singapore time (UTC+8), so limits reset at 16:00 UTC. Counts live in `daily_counters`. A scan reserves one count from the phone and one from the global total before Gemini is called, in one transaction. It gives both back when Gemini did not answer (network error, timeout, or any non-success status such as 429 or 5xx). It keeps them when Gemini answered but the output could not be read, because Gemini billed for that call. Rows older than two days are removed at startup and at the first request of a new day.
+A day is a calendar day in Singapore time (UTC+8), so limits reset at 16:00 UTC. Counts live in `daily_counters`. A scan reserves one count from the phone and one from the global total before Gemini is called, in one transaction. It gives both back when the failure is not the phone's doing: a network error, a timeout, Gemini 429 or 5xx, or Gemini 401, 403 or 404 (the server key or model is wrong). It keeps them when Gemini rejected the photo with another 4xx such as 400 (answered 422 `bad-image`), and when Gemini answered but the output could not be read, because Gemini billed for that call or the phone supplied the input.
+
+Before the body is read, a scan checks both daily limits without counting (429 `over-limit` when either is used up), then takes an in-flight slot: one scan at a time per phone and four in all. A refused scan gets 503 `unreachable` with `Retry-After: 5`. The slot is released when the scan ends, however it ends. Rows older than two days are removed at startup and at the first request of a new day.
 
 Mint limits count by `sha256(day + address)`, so no raw address is stored or logged.
 

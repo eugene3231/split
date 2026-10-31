@@ -74,6 +74,7 @@ export function fallbackKindFromStatus(status: number): ScanErrorKind {
       return 'bot-check-failed';
     case 413:
     case 415:
+    case 422:
       return 'bad-image';
     case 429:
       return 'over-limit';

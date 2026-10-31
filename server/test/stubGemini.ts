@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
 
-export type StubMode = 'ok' | '429' | '503' | 'hang' | 'junk';
+export type StubMode = 'ok' | '400' | '401' | '429' | '503' | 'hang' | 'junk';
 
 export const STUB_RECEIPT = {
   items: [
@@ -71,7 +71,7 @@ export function startStubGemini({ port, delayMs = 200 }: StubOptions): Promise<S
       if (mode === 'hang') return;
       setTimeout(() => {
         res.setHeader('Content-Type', 'application/json');
-        if (mode === '429' || mode === '503') {
+        if (mode === '400' || mode === '401' || mode === '429' || mode === '503') {
           res.statusCode = Number(mode);
           res.end(JSON.stringify({ error: { message: 'stub secret upstream detail' } }));
           return;

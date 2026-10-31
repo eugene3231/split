@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { JPEG, PDF, startHarness } from '../../test/harness';
 import type { Harness } from '../../test/harness';
 import { countsOn } from '../../test/testDb';
@@ -198,6 +198,38 @@ describe('POST /api/v1/scan, when Gemini fails', () => {
     expect(globalCount(harness)).toBe(0);
   });
 
+  it('keeps the count and answers 422 bad-image when Gemini rejects the photo with 400', async () => {
+    harness = await startHarness();
+    const token = await harness.mintToken();
+    harness.stub.setMode('400');
+    const response = await harness.scan(token, JPEG);
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({ kind: 'bad-image' });
+    expect(deviceCount(harness)).toBe(1);
+    expect(globalCount(harness)).toBe(1);
+  });
+
+  it('runs a pass out of scans when every photo makes Gemini answer 400', async () => {
+    harness = await startHarness({ SCAN_LIMIT_PER_DEVICE: '3' });
+    const token = await harness.mintToken();
+    harness.stub.setMode('400');
+    const statuses: number[] = [];
+    for (let i = 0; i < 5; i++) statuses.push((await harness.scan(token, JPEG)).status);
+    expect(statuses).toEqual([422, 422, 422, 429, 429]);
+    expect(harness.stub.requests()).toBe(3);
+  });
+
+  it('refunds the scan and asks for a key when Gemini rejects the server key', async () => {
+    harness = await startHarness();
+    const token = await harness.mintToken();
+    harness.stub.setMode('401');
+    const response = await harness.scan(token, JPEG);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ kind: 'unreachable' });
+    expect(deviceCount(harness)).toBe(0);
+    expect(globalCount(harness)).toBe(0);
+  });
+
   it('refunds the scan and answers 504 when Gemini hangs past the timeout', async () => {
     harness = await startHarness({}, { geminiTimeoutMs: 100 });
     const token = await harness.mintToken();
@@ -233,6 +265,80 @@ describe('POST /api/v1/scan, when Gemini fails', () => {
     harness.stub.setMode('503');
     const response = await harness.scan(token, JPEG);
     expect(await response.text()).not.toContain('secret upstream detail');
+  });
+});
+
+describe('POST /api/v1/scan, load', () => {
+  it('lets one of 10 concurrent scans from a pass through and refuses 9 before Gemini', async () => {
+    harness = await startHarness({}, { geminiTimeoutMs: 1_500 });
+    const token = await harness.mintToken();
+    harness.stub.setMode('hang');
+    const first = harness.scan(token, JPEG);
+    await vi.waitFor(() => expect(harness.stub.requests()).toBe(1));
+    const refused = await Promise.all(Array.from({ length: 9 }, () => harness.scan(token, JPEG)));
+    for (const response of refused) {
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({ kind: 'unreachable' });
+      expect(response.headers.get('Retry-After')).toBe('5');
+    }
+    expect(harness.stub.requests()).toBe(1);
+    expect((await first).status).toBe(504);
+  });
+
+  it('allows 4 scans in flight in total and refuses the 5th from another pass', async () => {
+    harness = await startHarness({}, { geminiTimeoutMs: 1_500 });
+    harness.stub.setMode('hang');
+    const running = [];
+    for (let i = 0; i < 4; i++) running.push(harness.scan(await harness.mintToken(), JPEG));
+    await vi.waitFor(() => expect(harness.stub.requests()).toBe(4));
+    const refused = await harness.scan(await harness.mintToken(), JPEG);
+    expect(refused.status).toBe(503);
+    expect(refused.headers.get('Retry-After')).toBe('5');
+    expect(harness.stub.requests()).toBe(4);
+    for (const response of await Promise.all(running)) expect(response.status).toBe(504);
+  });
+
+  it('frees the slot when a scan ends, so the next scan from the pass goes through', async () => {
+    harness = await startHarness();
+    const token = await harness.mintToken();
+    harness.stub.setMode('400');
+    expect((await harness.scan(token, JPEG)).status).toBe(422);
+    harness.stub.setMode('ok');
+    expect((await harness.scan(token, JPEG)).status).toBe(200);
+  });
+
+  it('refuses a used-up pass with 429 without reading the body', async () => {
+    harness = await startHarness({ SCAN_LIMIT_PER_DEVICE: '1' }, { bodyTimeoutMs: 60_000 });
+    const token = await harness.mintToken();
+    expect((await harness.scan(token, JPEG)).status).toBe(200);
+    const response = await harness.app.request(
+      new Request('http://localhost/api/v1/scan', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/jpeg' },
+        body: streamThatStalls(JPEG.slice(0, 100)),
+        duplex: 'half',
+      } as RequestInit),
+    );
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({ kind: 'over-limit', scope: 'device' });
+  });
+
+  it('refuses any pass with scope global without reading the body when the day is full', async () => {
+    harness = await startHarness({ SCAN_LIMIT_GLOBAL: '1' }, { bodyTimeoutMs: 60_000 });
+    expect((await harness.scan(await harness.mintToken(), JPEG)).status).toBe(200);
+    const response = await harness.app.request(
+      new Request('http://localhost/api/v1/scan', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${await harness.mintToken()}`,
+          'Content-Type': 'image/jpeg',
+        },
+        body: streamThatStalls(JPEG.slice(0, 100)),
+        duplex: 'half',
+      } as RequestInit),
+    );
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({ kind: 'over-limit', scope: 'global' });
   });
 });
 

@@ -12,6 +12,7 @@ export interface TokenUsage {
 export type GeminiScan =
   | { outcome: 'scanned'; receipt: OcrResponse; usage: TokenUsage }
   | { outcome: 'unreadable'; usage: TokenUsage }
+  | { outcome: 'bad-image' }
   | { outcome: 'unavailable'; reason: 'timeout' | 'network' | 'rejected' };
 
 interface ScanWithGeminiOptions {
@@ -43,6 +44,13 @@ const generateContentResponse = z.object({
 });
 
 const NO_USAGE: TokenUsage = { promptTokens: null, outputTokens: null };
+
+const NOT_THE_PHOTOS_FAULT = new Set([401, 403, 404, 408, 429]);
+
+function classifyFailure(status: number): GeminiScan {
+  const photoRejected = status >= 400 && status < 500 && !NOT_THE_PHOTOS_FAULT.has(status);
+  return photoRejected ? { outcome: 'bad-image' } : { outcome: 'unavailable', reason: 'rejected' };
+}
 
 export async function scanWithGemini(options: ScanWithGeminiOptions): Promise<GeminiScan> {
   const url = `${options.baseUrl.replace(/\/$/, '')}/v1beta/models/${options.model}:generateContent`;
@@ -80,7 +88,7 @@ export async function scanWithGemini(options: ScanWithGeminiOptions): Promise<Ge
     return { outcome: 'unavailable', reason: timedOut ? 'timeout' : 'network' };
   }
 
-  if (!response.ok) return { outcome: 'unavailable', reason: 'rejected' };
+  if (!response.ok) return classifyFailure(response.status);
 
   let payload: z.infer<typeof generateContentResponse>;
   try {

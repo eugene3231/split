@@ -24,6 +24,8 @@ export type ReserveResult =
   | { ok: true; reservation: Reservation }
   | { ok: false; scope: LimitScope; retryAfterSeconds: number };
 
+export type LimitCheck = { ok: true } | { ok: false; scope: LimitScope; retryAfterSeconds: number };
+
 export function singaporeDay(now: Date): string {
   return new Date(now.getTime() + SINGAPORE_OFFSET_MS).toISOString().slice(0, 10);
 }
@@ -38,6 +40,7 @@ export function hashForDay(day: string, value: string): string {
 }
 
 export interface DailyCounters {
+  check(deviceKey: string, limits: ScanLimits): LimitCheck;
   reserve(deviceKey: string, limits: ScanLimits): ReserveResult;
   refund(reservation: Reservation): void;
   reserveMint(ip: string, limit: number): { ok: true } | { ok: false; retryAfterSeconds: number };
@@ -69,21 +72,34 @@ export function createDailyCounters(db: DatabaseSync, now: () => Date): DailyCou
     prunedOn = today;
   }
 
+  function checkLimits(
+    day: string,
+    moment: Date,
+    deviceKey: string,
+    limits: ScanLimits,
+  ): LimitCheck {
+    const retryAfterSeconds = secondsUntilNextDay(moment);
+    if (countOf(day, DEVICE_BUCKET, deviceKey) >= limits.perDevice) {
+      return { ok: false, scope: 'device', retryAfterSeconds };
+    }
+    if (countOf(day, GLOBAL_BUCKET, '') >= limits.global) {
+      return { ok: false, scope: 'global', retryAfterSeconds };
+    }
+    return { ok: true };
+  }
+
   pruneOnNewDay(singaporeDay(now()));
 
   return {
+    check: (deviceKey, limits) => checkLimits(singaporeDay(now()), now(), deviceKey, limits),
+
     reserve(deviceKey, limits) {
       const moment = now();
       const day = singaporeDay(moment);
       pruneOnNewDay(day);
-      const retryAfterSeconds = secondsUntilNextDay(moment);
       return inTransaction(db, (): ReserveResult => {
-        if (countOf(day, DEVICE_BUCKET, deviceKey) >= limits.perDevice) {
-          return { ok: false, scope: 'device', retryAfterSeconds };
-        }
-        if (countOf(day, GLOBAL_BUCKET, '') >= limits.global) {
-          return { ok: false, scope: 'global', retryAfterSeconds };
-        }
+        const check = checkLimits(day, moment, deviceKey, limits);
+        if (!check.ok) return check;
         increment.run(day, DEVICE_BUCKET, deviceKey);
         increment.run(day, GLOBAL_BUCKET, '');
         return { ok: true, reservation: { day, deviceKey } };
