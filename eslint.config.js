@@ -23,4 +23,37 @@ export default defineConfig([
       },
     },
   },
+  {
+    files: ['server/**/*.ts'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['window', 'document', 'navigator', 'localStorage', 'sessionStorage'].map((name) => ({
+          name,
+          message: 'The server runs in Node and has no browser globals.',
+        })),
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                'react',
+                'react/*',
+                'react-dom',
+                'react-dom/*',
+                'radix-ui',
+                'zustand',
+                'zustand/*',
+                '@pages/*',
+              ],
+              message: 'The server must not import UI code.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
