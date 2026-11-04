@@ -11,6 +11,7 @@ interface Props {
   onTabChange: (id: string) => void;
   onRenameReceipt: (id: string, name: string) => void;
   onAddReceipt?: () => void;
+  className?: string;
 }
 
 export function SummaryTabs({
@@ -19,11 +20,13 @@ export function SummaryTabs({
   onTabChange,
   onRenameReceipt,
   onAddReceipt,
+  className,
 }: Props) {
   return (
     <ReceiptTabs
       value={activeTab}
       onValueChange={onTabChange}
+      className={className}
       action={
         onAddReceipt && (
           <AddReceiptButton data-testid="summary-add-receipt-btn" onClick={onAddReceipt} />
@@ -33,7 +36,7 @@ export function SummaryTabs({
       {receipts.length > 1 && (
         <ReceiptTab
           value="total"
-          label={`Total · ${receipts.length} receipts`}
+          label={`All ${receipts.length} receipts`}
           data-testid="summary-tab-total"
         />
       )}

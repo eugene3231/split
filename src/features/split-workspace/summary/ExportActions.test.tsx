@@ -9,7 +9,6 @@ describe('ExportActions', () => {
         exportState={{ kind: 'text-success', method: 'native' }}
         text="Dinner total: $10.00"
         nativeShareSupported
-        onDownload={vi.fn()}
         onShare={vi.fn()}
       />,
     );
@@ -24,7 +23,6 @@ describe('ExportActions', () => {
         exportState={{ kind: 'text-success', method: 'fallback' }}
         text="Dinner total: $10.00"
         nativeShareSupported
-        onDownload={vi.fn()}
         onShare={vi.fn()}
       />,
     );
@@ -39,7 +37,6 @@ describe('ExportActions', () => {
         exportState={{ kind: 'manual-copy', message: 'Select the text below and copy it.' }}
         text={text}
         nativeShareSupported={false}
-        onDownload={vi.fn()}
         onShare={vi.fn()}
       />,
     );

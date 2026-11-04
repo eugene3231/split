@@ -120,7 +120,7 @@ describe('ClaimItemRow', () => {
     };
     renderRow({ ...item, claimants: [alice] });
     const nameLine = screen.getByTestId('claim-item-toggle-bread').parentElement!;
-    const actionLine = screen.getByTestId('claim-item-split-evenly-bread').parentElement!;
+    const actionLine = screen.getByTestId('claim-item-actions-bread');
     expect(within(nameLine).getByTestId('claim-item-share-bread')).toBeInTheDocument();
     expect(within(nameLine).getByTestId('claim-item-amount-bread')).toBeInTheDocument();
     expect(within(nameLine).queryByTestId('claim-item-claimants-bread')).not.toBeInTheDocument();

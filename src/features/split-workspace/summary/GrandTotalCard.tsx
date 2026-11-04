@@ -36,17 +36,17 @@ export function GrandTotalCard({
   return (
     <div
       data-testid="grand-total-card"
-      className="rounded-3xl bg-primary p-6 text-left text-on-primary shadow-md"
+      className="rounded-card bg-primary px-4 py-3.5 text-left text-on-primary sm:px-5 sm:py-4"
     >
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <span className="min-w-0 flex-1 text-sm font-bold tracking-widest text-white uppercase">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="min-w-0 flex-1 text-sm font-semibold text-white/80">
           {currentReceipt ? (
             <ReceiptNameField
               key={currentReceipt.id}
               name={currentReceipt.name}
               onRename={(name) => onRenameReceipt(currentReceipt.id, name)}
-              className="text-white placeholder:text-white/40"
-              iconClassName="text-white"
+              className="text-white/80 placeholder:text-white/40"
+              iconClassName="text-white/60"
             />
           ) : (
             totalLabel
@@ -86,7 +86,7 @@ export function GrandTotalCard({
             aria-controls={showPayNow ? 'payer-mobile' : undefined}
             onClick={() => setShowPayNow((open) => !open)}
             className={cn(
-              'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-colors',
+              'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition-colors',
               showPayNow || hasPayNowNumber ? 'bg-white/25' : 'bg-white/10 hover:bg-white/20',
             )}
           >
@@ -95,17 +95,29 @@ export function GrandTotalCard({
           </button>
         </div>
       </div>
-      <div className="mb-5 flex items-baseline gap-1">
-        <span className="text-xl font-semibold text-white/60">
-          {getCurrencySymbol(displayCurrency)}
-        </span>
-        <span className="font-headline text-4xl leading-none font-extrabold tracking-tight text-white tabular-nums">
-          {formatMoneyAmount(grandTotal, displayCurrency)}
-        </span>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="flex min-w-0 items-baseline gap-1">
+          <span className="text-lg font-semibold text-white/60">
+            {getCurrencySymbol(displayCurrency)}
+          </span>
+          <span className="font-headline text-[2rem] leading-none font-bold tracking-tight text-white tabular-nums">
+            {formatMoneyAmount(grandTotal, displayCurrency)}
+          </span>
+        </p>
+        <p className="flex shrink-0 items-center gap-1.5 text-sm text-white/70">
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined !text-base"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            group
+          </span>
+          Split across {people.length} {people.length === 1 ? 'person' : 'people'}
+        </p>
       </div>
 
       {(showPayNow || statusMessage) && (
-        <div className="mb-4">
+        <div className="mt-3">
           {showPayNow && <PayNowField invalid={payNowStatus === 'invalid'} />}
           {(statusMessage || showPayNow) && (
             <p
@@ -127,18 +139,6 @@ export function GrandTotalCard({
           )}
         </div>
       )}
-
-      <div className="flex items-center gap-2.5 border-t border-white/10 pt-4">
-        <span
-          className="material-symbols-outlined !text-sm text-white/60"
-          style={{ fontVariationSettings: "'FILL' 1" }}
-        >
-          group
-        </span>
-        <span className="text-sm font-medium text-white">
-          Split across {people.length} {people.length === 1 ? 'person' : 'people'}
-        </span>
-      </div>
     </div>
   );
 }

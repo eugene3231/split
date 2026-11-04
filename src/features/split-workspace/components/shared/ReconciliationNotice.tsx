@@ -21,16 +21,16 @@ export function ReconciliationNotice({ reconciliation, currency, onApplyFix }: P
 
   if (isMatch) {
     return (
-      <div className="flex items-center gap-4 rounded-2xl border border-secondary-container/30 bg-secondary-container/20 p-4">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-on-secondary">
-          <CheckIcon className="h-4.5 w-4.5" />
+      <div className="flex items-center gap-3 rounded-xl bg-secondary-container/40 px-3.5 py-3">
+        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-on-secondary">
+          <CheckIcon className="h-3.5 w-3.5" />
         </div>
-        <div>
-          <p className="text-xs leading-tight font-extrabold text-on-secondary-container">
+        <div className="min-w-0">
+          <p className="text-sm leading-tight font-semibold text-on-secondary-container">
             Totals match!
           </p>
           <p className="mt-0.5 text-xs text-on-secondary-container/80">
-            Verified against computed items.
+            The items and charges add up to the printed total.
           </p>
         </div>
       </div>
@@ -40,18 +40,15 @@ export function ReconciliationNotice({ reconciliation, currency, onApplyFix }: P
   // Stacked in the receipt step's narrow panel; one row where the summary gives it the width.
   return (
     <div className="@container">
-      <div className="flex flex-col gap-3 rounded-2xl border border-error-container/30 bg-error-container/20 p-4 @2xl:flex-row @2xl:items-center @2xl:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-error p-1 text-on-error">
-            <span
-              className="material-symbols-outlined text-sm"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
+      <div className="flex flex-col gap-3 rounded-xl bg-error-container/45 px-3.5 py-3 @2xl:flex-row @2xl:items-center @2xl:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-error text-on-error">
+            <span aria-hidden="true" className="material-symbols-outlined text-base!">
               priority_high
             </span>
           </div>
-          <div>
-            <p className="text-xs leading-tight font-extrabold text-on-error-container">
+          <div className="min-w-0">
+            <p className="text-sm leading-tight font-semibold text-on-error-container">
               Mismatch found ({formatCurrencyFromCents(Math.abs(reconciliationCents), currency)})
             </p>
             <p className="mt-0.5 text-xs text-on-error-container/80">
@@ -68,11 +65,11 @@ export function ReconciliationNotice({ reconciliation, currency, onApplyFix }: P
           onClick={() => {
             if (fix) onApplyFix(fix);
           }}
-          className="w-full rounded-lg bg-on-error-container py-2 text-xs font-bold tracking-wide text-on-primary uppercase transition-opacity hover:opacity-90 @2xl:w-auto @2xl:px-6 @2xl:whitespace-nowrap"
+          className="min-h-10 w-full rounded-lg bg-on-error-container px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90 @2xl:w-auto @2xl:whitespace-nowrap"
         >
           {isOver
             ? `Add ${formatCurrencyFromCents(reconciliationCents, currency)} as rounding`
-            : 'Resolve Difference (Apply Discount)'}
+            : 'Apply a discount to match'}
         </button>
       </div>
     </div>

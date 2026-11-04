@@ -57,11 +57,11 @@ function GeminiApiKeyModalContent({
             event.preventDefault();
             inputRef.current?.focus();
           }}
-          className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-surface-container-highest bg-surface-container-lowest/90 shadow-[0_8px_24px_rgba(25,28,29,0.12)] backdrop-blur-[20px] motion-safe:animate-rise-in"
+          className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-surface-container-highest bg-surface-container-lowest shadow-[0_24px_48px_-12px_rgba(23,28,39,0.25)] motion-safe:animate-rise-in"
         >
-          <div className="px-7 pt-7 pb-5">
+          <div className="px-6 pt-6 pb-5 sm:px-7 sm:pt-7">
             <div className="flex items-center justify-between gap-4">
-              <Dialog.Title className="font-headline text-xl font-extrabold tracking-tight text-primary">
+              <Dialog.Title className="font-headline text-xl font-bold text-on-surface">
                 Gemini API key
               </Dialog.Title>
               <Dialog.Close
@@ -79,13 +79,10 @@ function GeminiApiKeyModalContent({
             </Dialog.Description>
           </div>
 
-          <div className="space-y-5 px-7 pb-7">
+          <div className="space-y-5 px-6 pb-6 sm:px-7 sm:pb-7">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <label
-                  htmlFor="new-modal-gemini-api-key"
-                  className="block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
-                >
+                <label htmlFor="new-modal-gemini-api-key" className="block section-label">
                   API key
                 </label>
                 <a
@@ -93,7 +90,7 @@ function GeminiApiKeyModalContent({
                   target="_blank"
                   rel="noreferrer"
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full bg-secondary-container px-3 py-1 font-body text-xs font-bold text-on-secondary-fixed-variant transition-opacity hover:opacity-80',
+                    'inline-flex items-center gap-1 rounded-md text-sm font-medium text-on-surface-variant underline-offset-2 transition-colors hover:text-on-surface hover:underline',
                     !initialKey && 'motion-safe:animate-nudge motion-safe:[animation-delay:400ms]',
                   )}
                 >
@@ -120,7 +117,7 @@ function GeminiApiKeyModalContent({
                     if (e.key === 'Enter') handleSave();
                   }}
                   placeholder="AIza…"
-                  className="w-full rounded-xl border-2 border-transparent bg-surface-container-high py-2.5 pr-12 pl-5 font-body text-sm text-on-surface transition-all outline-none placeholder:text-outline focus:border-primary/20"
+                  className="h-11 w-full field py-2.5 pr-12 pl-4 font-body text-sm text-on-surface outline-none placeholder:text-outline"
                 />
                 <button
                   type="button"
@@ -146,38 +143,43 @@ function GeminiApiKeyModalContent({
             </div>
 
             <div className="space-y-2">
-              <label
-                htmlFor="new-modal-gemini-model"
-                className="block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
-              >
+              <label htmlFor="new-modal-gemini-model" className="block section-label">
                 Model
               </label>
-              <select
-                id="new-modal-gemini-model"
-                value={localModel}
-                onChange={(e) => setLocalModel(e.target.value)}
-                className="w-full cursor-pointer rounded-xl border-2 border-transparent bg-surface-container-high px-5 py-2.5 font-body text-sm text-on-surface transition-all outline-none focus:border-primary/20"
-              >
-                {GEMINI_MODELS.map((model) => (
-                  <option key={model} value={model}>
-                    {model === DEFAULT_GEMINI_MODEL ? `${model} (default)` : model}
-                  </option>
-                ))}
-              </select>
+              <div className="relative flex items-center field">
+                <select
+                  id="new-modal-gemini-model"
+                  value={localModel}
+                  onChange={(e) => setLocalModel(e.target.value)}
+                  className="h-11 w-full cursor-pointer appearance-none bg-transparent pr-10 pl-4 font-body text-sm text-on-surface outline-none"
+                >
+                  {GEMINI_MODELS.map((model) => (
+                    <option key={model} value={model}>
+                      {model === DEFAULT_GEMINI_MODEL ? `${model} (default)` : model}
+                    </option>
+                  ))}
+                </select>
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined pointer-events-none absolute right-3 text-xl text-on-surface-variant"
+                >
+                  expand_more
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl px-5 py-3 font-label text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+                className="h-11 rounded-xl px-5 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
               >
                 Skip
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="rounded-xl bg-primary px-6 py-3 font-label text-sm font-bold text-on-primary shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
+                className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-container active:scale-[0.98]"
               >
                 Save
               </button>

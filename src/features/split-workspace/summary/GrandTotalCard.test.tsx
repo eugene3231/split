@@ -20,13 +20,13 @@ describe('GrandTotalCard PayNow status', () => {
     render(<GrandTotalCard {...props} payNowStatus="ready" />);
     expect(screen.getByRole('status')).toHaveTextContent(/bottom of each person.s card/i);
     expect(screen.getByLabelText('PayNow QR codes ready')).toBeInTheDocument();
-    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+    expect(screen.queryByLabelText('PayNow number')).toBeNull();
   });
 
   it('replaces the number-field helper with QR-location guidance after generation', () => {
     render(<GrandTotalCard {...props} payNowStatus="ready" />);
     fireEvent.click(screen.getByRole('button', { name: 'PayNow' }));
-    expect(screen.getByLabelText('PayNow Number')).toHaveAccessibleDescription(
+    expect(screen.getByLabelText('PayNow number')).toHaveAccessibleDescription(
       /bottom of each person.s card/i,
     );
     expect(screen.queryByText(/Enter the bill payer.s number/)).toBeNull();
@@ -36,8 +36,8 @@ describe('GrandTotalCard PayNow status', () => {
     useReceiptStore.getState().setPayerMobile('123');
     render(<GrandTotalCard {...props} payNowStatus="invalid" />);
     fireEvent.click(screen.getByRole('button', { name: 'PayNow' }));
-    expect(screen.getByLabelText('PayNow Number')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByLabelText('PayNow Number')).toHaveAccessibleDescription(
+    expect(screen.getByLabelText('PayNow number')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('PayNow number')).toHaveAccessibleDescription(
       /valid SG mobile number/,
     );
     fireEvent.click(screen.getByRole('button', { name: 'PayNow' }));

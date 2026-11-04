@@ -53,37 +53,48 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
   return (
     <div
       className={cn(
-        'space-y-4 rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-6 shadow-sm',
+        'space-y-4 surface-card p-4 md:p-5',
         receiptFile && !hasApiKey && 'ring-2 ring-error',
       )}
     >
-      <h4 className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
-        Scan Receipt
-      </h4>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <h2 className="font-headline text-lg leading-tight font-bold text-on-surface">
+            Scan a receipt
+          </h2>
+          <p className="mt-0.5 text-sm text-on-surface-variant">
+            Gemini reads the items and charges for you.
+          </p>
+        </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl bg-surface-container-low p-4 transition-colors hover:bg-surface-container-high">
-          <span className="material-symbols-outlined mb-2 text-primary">upload_file</span>
-          <span className="text-xs font-bold text-primary">UPLOAD</span>
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            data-testid="receipt-file-input"
-            className="sr-only"
-            onChange={handleFileChange}
-          />
-        </label>
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl bg-surface-container-low p-4 transition-colors hover:bg-surface-container-high">
-          <span className="material-symbols-outlined mb-2 text-primary">photo_camera</span>
-          <span className="text-xs font-bold text-primary">CAPTURE</span>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            onChange={handleFileChange}
-          />
-        </label>
+        <div className="grid shrink-0 grid-cols-2 gap-2">
+          <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-on-primary transition-colors focus-within:ring-2 focus-within:ring-primary/30 focus-within:ring-offset-2 hover:bg-primary-container">
+            <span aria-hidden="true" className="material-symbols-outlined text-xl">
+              upload_file
+            </span>
+            Upload
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              data-testid="receipt-file-input"
+              className="sr-only"
+              onChange={handleFileChange}
+            />
+          </label>
+          <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface transition-colors focus-within:ring-2 focus-within:ring-primary/30 hover:bg-surface-container-low">
+            <span aria-hidden="true" className="material-symbols-outlined text-xl">
+              photo_camera
+            </span>
+            Take photo
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={handleFileChange}
+            />
+          </label>
+        </div>
       </div>
 
       {receiptFile && (
@@ -145,11 +156,11 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
               type="button"
               onClick={() => setShowApiKeyModal(true)}
               className={cn(
-                'cursor-pointer text-xs font-bold underline',
+                'cursor-pointer text-xs font-semibold underline underline-offset-2',
                 hasApiKey ? 'text-on-surface-variant hover:text-primary' : 'text-error',
               )}
             >
-              {hasApiKey ? 'Edit' : 'Add Key'}
+              {hasApiKey ? 'Edit' : 'Add key'}
             </button>
           </div>
           <button
@@ -158,11 +169,11 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
             onClick={onScanReceipt}
             disabled={scan.isScanning || !hasApiKey}
             className={cn(
-              'relative flex w-full items-center justify-center overflow-hidden rounded-xl py-3 text-sm font-bold transition-all active:scale-95',
+              'relative flex min-h-11 w-full items-center justify-center overflow-hidden rounded-xl py-3 text-sm font-semibold transition-all active:scale-[0.98]',
               scan.isScanning ? 'flex-col gap-2 px-4 py-4' : 'gap-2',
               scan.isScanning || !hasApiKey
                 ? 'cursor-not-allowed bg-surface-container-high text-on-surface-variant opacity-50'
-                : 'bg-primary text-on-primary shadow-lg shadow-primary/20',
+                : 'bg-primary text-on-primary hover:bg-primary-container',
             )}
           >
             {scan.isScanning && (
@@ -178,7 +189,7 @@ export function ReceiptImportActions({ onReceiptFileSelected, onScanReceipt }: P
               {scan.isScanning ? 'progress_activity' : 'document_scanner'}
             </span>
             <span className={cn(scan.isScanning && 'text-center text-xs')}>
-              {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan Receipt'}
+              {scan.isScanning ? scan.loadingMessage || 'Scanning…' : 'Scan receipt'}
             </span>
           </button>
           <p className="text-xs text-on-surface-variant">

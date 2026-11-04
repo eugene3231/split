@@ -40,7 +40,7 @@ export function ItemClaimRow({
       className={cn(
         'relative scroll-mt-[calc(var(--app-bar-height)+4rem)] scroll-mb-32 py-1.5 transition-colors',
         isOpen
-          ? '-mx-3 rounded-2xl border-transparent bg-surface-container-lowest px-3 pb-3 shadow-sm'
+          ? '-mx-4 bg-surface-container-low px-4 pb-4'
           : item.isLeft &&
               'before:absolute before:inset-y-2.5 before:-left-3 before:w-1 before:rounded-full before:bg-warning',
       )}
@@ -113,7 +113,7 @@ export function ItemClaimRow({
               Shares here are uneven. Change them in By person.
             </p>
           )}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex justify-between gap-2">
             <EveryoneButton
               pressed={item.isSplitEvenly}
               testId={`item-claim-everyone-${item.id}`}
@@ -128,9 +128,14 @@ export function ItemClaimRow({
               type="button"
               data-testid={`item-claim-next-${item.id}`}
               onClick={onNext}
-              className="h-11 flex-1 rounded-full bg-primary text-sm font-bold text-on-primary transition-opacity hover:opacity-90"
+              className="flex h-11 items-center gap-1 rounded-full border border-outline-variant bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition-colors hover:border-outline"
             >
               {hasNext ? 'Next item' : 'Done'}
+              {hasNext && (
+                <span aria-hidden className="material-symbols-outlined text-lg">
+                  arrow_downward
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -153,10 +158,10 @@ function EveryoneButton({ pressed, testId, onClick }: EveryoneButtonProps) {
       data-testid={testId}
       onClick={onClick}
       className={cn(
-        'flex h-11 shrink-0 items-center gap-1.5 rounded-full border-2 px-4 text-sm font-bold transition-colors',
+        'flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors',
         pressed
-          ? 'border-primary bg-surface-container-high text-on-surface'
-          : 'border-outline-variant text-on-surface-variant hover:text-on-surface',
+          ? 'border-primary bg-surface-container-lowest text-on-surface ring-1 ring-primary'
+          : 'border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-on-surface',
       )}
     >
       <span aria-hidden className="material-symbols-outlined text-lg">

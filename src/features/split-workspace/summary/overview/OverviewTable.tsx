@@ -22,9 +22,20 @@ interface Props {
 
 // Both the pinned header and the table lay columns out from these, so they line up without
 // measuring: the Item column is fixed and the people share the rest, never below a minimum.
-const ITEM_COLUMN = 'w-32 sm:w-56';
+const ITEM_COLUMN = 'w-36 sm:w-56';
 const TABLE_WIDTH =
-  'w-full min-w-[calc(8rem+var(--people)*5rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)]';
+  'w-full min-w-[calc(9rem+var(--people)*4rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)]';
+// Every amount column, the people above it included, shares one right edge.
+const AMOUNT_CELL = 'px-1 text-right whitespace-nowrap tabular-nums last:pr-4 sm:px-3 sm:last:pr-6';
+
+// A shadow at the right edge while there are more columns to scroll to. The white cover scrolls
+// with the table and hides it once the edge is reached; Tailwind can't layer attached backgrounds.
+const SCROLL_CUE: CSSProperties = {
+  background: [
+    'linear-gradient(to left, var(--color-surface-container-lowest) 0.875rem, transparent) right / 2rem 100% no-repeat local',
+    'radial-gradient(farthest-side at 100% 50%, rgb(23 28 39 / 0.14), transparent) right / 0.875rem 100% no-repeat scroll',
+  ].join(', '),
+};
 
 // `overviewImage.ts`, beside this file, draws the same table for the PNG export.
 export function OverviewTable({ overview }: Props) {
@@ -36,12 +47,12 @@ export function OverviewTable({ overview }: Props) {
   return (
     <section
       aria-labelledby="overview-heading"
-      className="min-w-0 overflow-clip rounded-2xl bg-surface-container-lowest"
+      className="min-w-0 overflow-clip surface-card"
       style={{ '--people': people.length } as CSSProperties}
     >
       <h2
         id="overview-heading"
-        className="px-4 pt-5 pb-3 text-lg font-bold text-on-surface sm:px-6"
+        className="px-4 pt-5 pb-3 text-lg font-semibold text-on-surface sm:px-6"
       >
         Who had what
       </h2>
@@ -53,13 +64,13 @@ export function OverviewTable({ overview }: Props) {
         <div
           ref={headerRef}
           data-testid="overview-pinned-people"
-          className="overflow-hidden border-y border-outline-variant/40 bg-surface-container-lowest text-xs text-on-surface-variant"
+          className="overflow-hidden border-y border-surface-container-high bg-surface-container-lowest text-xs text-on-surface-variant"
         >
           <div className={cn('flex', TABLE_WIDTH)}>
             <div
               className={cn(
                 ITEM_COLUMN,
-                'sticky left-0 flex shrink-0 items-center bg-surface-container-lowest px-4 font-medium shadow-[inset_-1px_0_0_var(--color-outline-variant)] sm:px-6 sm:shadow-none',
+                'sticky left-0 flex shrink-0 items-center bg-surface-container-lowest px-4 font-medium shadow-[inset_-1px_0_0_var(--color-surface-container-high)] sm:px-6 sm:shadow-none',
               )}
             >
               Item
@@ -68,7 +79,7 @@ export function OverviewTable({ overview }: Props) {
               <div
                 key={person.id}
                 title={person.name}
-                className="flex min-w-0 flex-1 basis-0 justify-center px-1 py-2 font-medium last:pr-3 sm:last:pr-5"
+                className="flex min-w-0 flex-1 basis-0 justify-end px-1 py-2 font-medium last:pr-4 sm:px-3 sm:last:pr-6"
               >
                 <PersonIdentity person={person} colorIndex={index} />
               </div>
@@ -76,7 +87,7 @@ export function OverviewTable({ overview }: Props) {
           </div>
         </div>
         {pinnedSectionTitle && (
-          <SectionTitle className="absolute inset-x-0 top-full border-b border-outline-variant/40 bg-surface-container-low">
+          <SectionTitle className="absolute inset-x-0 top-full border-b border-surface-container-high bg-surface-container-low">
             {pinnedSectionTitle}
           </SectionTitle>
         )}
@@ -84,6 +95,7 @@ export function OverviewTable({ overview }: Props) {
       <div
         data-testid="overview-table-scroll"
         className="relative overflow-x-auto"
+        style={SCROLL_CUE}
         onScroll={(event) => {
           if (headerRef.current) headerRef.current.scrollLeft = event.currentTarget.scrollLeft;
         }}
@@ -113,7 +125,7 @@ export function OverviewTable({ overview }: Props) {
             </tbody>
           ))}
           <tfoot>
-            <tr className="border-t-2 border-on-surface/80 font-bold text-on-surface tabular-nums">
+            <tr className="border-t-2 border-on-surface/70 font-bold text-on-surface tabular-nums">
               <StickyCell as="th" scope="row" className="py-3">
                 <span className="block">Owes</span>
                 <span className="block text-xs font-medium text-on-surface-variant">
@@ -147,7 +159,7 @@ function StickyCell({ as: Cell, scope, className, children }: StickyCellProps) {
     <Cell
       scope={scope}
       className={cn(
-        'sticky left-0 z-10 w-32 min-w-32 bg-surface-container-lowest px-4 text-left shadow-[inset_-1px_0_0_var(--color-outline-variant)] sm:w-56 sm:min-w-56 sm:px-6 sm:shadow-none',
+        'sticky left-0 z-10 w-36 min-w-36 bg-surface-container-lowest px-4 text-left shadow-[inset_-1px_0_0_var(--color-surface-container-high)] sm:w-56 sm:min-w-56 sm:px-6 sm:shadow-none',
         className,
       )}
     >
@@ -158,7 +170,7 @@ function StickyCell({ as: Cell, scope, className, children }: StickyCellProps) {
 
 function PersonIdentity({ person, colorIndex }: { person: Person; colorIndex: number }) {
   return (
-    <span className="flex min-w-0 flex-col items-center gap-1 text-on-surface">
+    <span className="flex min-w-0 flex-col items-end gap-1 text-on-surface">
       <PersonAvatar name={person.name} colorIndex={colorIndex} size="sm" />
       <span className="block max-w-full truncate">{person.name.trim().split(/\s+/)[0]}</span>
     </span>
@@ -203,10 +215,7 @@ function SectionHeading({ row, columnCount }: { row: OverviewHeadingRow; columnC
 function SectionTitle({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <span
-      className={cn(
-        'px-4 py-2 text-xs font-bold tracking-widest text-on-surface-variant uppercase sm:px-6',
-        className,
-      )}
+      className={cn('px-4 py-2 text-sm font-semibold text-on-surface-variant sm:px-6', className)}
     >
       {children}
     </span>
@@ -215,14 +224,14 @@ function SectionTitle({ className, children }: { className?: string; children: R
 
 function ItemRow({ row, people }: { row: OverviewItemRow; people: Person[] }) {
   return (
-    <tr className="border-b border-outline-variant/30">
+    <tr className="border-b border-surface-container-high">
       <StickyCell
         as="th"
         scope="row"
         className="border-l-2 border-transparent py-2.5 font-medium text-on-surface"
       >
         {/* React only: a long name is clamped on a phone; the PNG cuts it to one line. */}
-        <span className="line-clamp-2 sm:line-clamp-none">{row.name}</span>
+        <span className="line-clamp-2 text-[13px] sm:line-clamp-none sm:text-sm">{row.name}</span>
         <span className="block text-xs font-normal text-on-surface-variant tabular-nums">
           {formatCurrencyFromCents(row.priceCents, row.currency)}
         </span>
@@ -251,17 +260,11 @@ function ShareCell({ cents, currency, colorIndex, label }: ShareCellProps) {
   if (cents === undefined) return <td />;
   const amount = formatCurrencyFromCents(cents, currency);
   const color = personColor(colorIndex);
-  // React only: a phone shows a dot in the person's colour and keeps the amount for screen
-  // readers. The PNG always has room for the amount.
   return (
-    <td className="px-1 py-1.5 text-center last:pr-3 sm:last:pr-5" title={`${label}: ${amount}`}>
+    <td className={cn(AMOUNT_CELL, 'py-1.5')} title={`${label}: ${amount}`}>
+      {/* Pulled right by its own padding, so the figure meets the column's right edge. */}
       <span
-        aria-hidden
-        className="mx-auto block h-2.5 w-2.5 rounded-full sm:hidden"
-        style={{ backgroundColor: color }}
-      />
-      <span
-        className="sr-only text-xs font-semibold text-on-surface tabular-nums sm:not-sr-only sm:inline-block sm:min-w-14 sm:rounded-md sm:px-2 sm:py-1.5"
+        className="-mr-1.5 inline-block rounded-md px-1.5 py-1 text-xs font-semibold text-on-surface sm:-mr-2 sm:px-2 sm:py-1.5"
         // A 12% tint of the person's colour; Tailwind can't build it from a runtime hex.
         style={{ backgroundColor: `${color}1f` }}
       >
@@ -275,7 +278,7 @@ function ChargeRow({ row, people }: { row: OverviewChargeRow; people: Person[] }
   const { currency } = row;
   const sign = row.sign === 'minus' ? '−' : '';
   return (
-    <tr className="border-b border-outline-variant/30 text-on-surface-variant italic">
+    <tr className="border-b border-surface-container-high text-on-surface-variant">
       <StickyCell as="th" scope="row" className="py-2 font-normal">
         <span className="block text-xs sm:text-sm">{row.label}</span>
         <span className="block text-xs tabular-nums">
@@ -286,10 +289,7 @@ function ChargeRow({ row, people }: { row: OverviewChargeRow; people: Person[] }
       {people.map((person) => {
         const cents = row.sharesByPerson[person.id];
         return (
-          <td
-            key={person.id}
-            className="px-1 py-2 text-center text-[11px] whitespace-nowrap tabular-nums sm:text-xs"
-          >
+          <td key={person.id} className={cn(AMOUNT_CELL, 'py-2 text-[11px] sm:text-xs')}>
             {cents !== undefined && `${sign}${formatCurrencyFromCents(cents, currency)}`}
           </td>
         );
@@ -300,7 +300,7 @@ function ChargeRow({ row, people }: { row: OverviewChargeRow; people: Person[] }
 
 function SectionTotalRow({ row, people }: { row: OverviewSectionTotalRow; people: Person[] }) {
   return (
-    <tr className="border-b border-outline-variant/30 font-semibold text-on-surface tabular-nums">
+    <tr className="border-b border-surface-container-high font-semibold text-on-surface tabular-nums">
       <StickyCell as="th" scope="row" className="py-2.5 text-xs">
         {row.label}
         <span className="block font-medium text-on-surface-variant">
@@ -320,7 +320,7 @@ function SectionTotalRow({ row, people }: { row: OverviewSectionTotalRow; people
 
 function AmountCell({ cents, currency }: { cents: number; currency: CurrencyCode }) {
   return (
-    <td className="px-1 py-2.5 text-center text-xs whitespace-nowrap">
+    <td className={cn(AMOUNT_CELL, 'py-2.5 text-xs')}>
       {formatCurrencyFromCents(cents, currency)}
     </td>
   );

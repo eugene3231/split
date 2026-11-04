@@ -67,7 +67,7 @@ export interface SectionLayout {
   section: ReceiptBreakdownSection;
   conversionLines: Placed<string>[];
   /** Top of the rule under the section's heading. */
-  ruleY: number;
+  ruleY: number | null;
   rows: Placed<BreakdownRow>[];
   height: number;
 }
@@ -117,6 +117,16 @@ function layoutSection(
   ctx: CanvasRenderingContext2D,
   section: ReceiptBreakdownSection,
 ): SectionLayout {
+  if (!section.showTitle) {
+    const rows = stack(section.rows, SECTION_PAD, (row) => rowHeight(ctx, row));
+    return {
+      section,
+      conversionLines: [],
+      ruleY: null,
+      rows: rows.placed,
+      height: rows.bottom + SECTION_PAD,
+    };
+  }
   const conversionLines = stack(
     section.conversion ? formatConversionLines(section.conversion) : [],
     SECTION_PAD + SECTION_TITLE_H,

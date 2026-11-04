@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { ConfirmDialog } from '@features/split-workspace/components/shared/ConfirmDialog';
+import { cn } from '@shared/utils/cn';
 
 interface ResetSplitActionProps {
   onConfirm: () => void;
+  className?: string;
 }
 
-export function ResetSplitAction({ onConfirm }: ResetSplitActionProps) {
+export function ResetSplitAction({ onConfirm, className }: ResetSplitActionProps) {
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   return (
@@ -13,7 +15,10 @@ export function ResetSplitAction({ onConfirm }: ResetSplitActionProps) {
       <button
         type="button"
         onClick={() => setShowConfirmation(true)}
-        className="flex shrink-0 items-center justify-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold whitespace-nowrap text-error transition-colors hover:bg-error-container md:px-4"
+        className={cn(
+          'flex shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap text-on-surface-variant transition-colors hover:bg-error-container hover:text-error',
+          className,
+        )}
       >
         <span aria-hidden="true" className="material-symbols-outlined text-base">
           restart_alt
@@ -32,7 +37,7 @@ export function ResetSplitAction({ onConfirm }: ResetSplitActionProps) {
           }}
         >
           This removes everyone and every receipt, and can&apos;t be undone. To keep a copy, use
-          Export split in the menu at the top, or Save Image or Copy Text below.
+          Export to file in the menu at the top, or Save image above.
         </ConfirmDialog>
       )}
     </>

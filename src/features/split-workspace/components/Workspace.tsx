@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import {
   selectActiveReceipt,
@@ -29,6 +30,7 @@ import { WIZARD_STEPS, type AssignMode, type WizardStep } from '@features/split-
 
 export function Workspace() {
   useReceiptSplitterController();
+  const [finalActionSlot, setFinalActionSlot] = useState<HTMLDivElement | null>(null);
 
   const { people, receipts } = useReceiptStore(
     useShallow((state) => ({ people: state.people, receipts: state.receipts })),
@@ -95,6 +97,7 @@ export function Workspace() {
 
           {activeStep === 'final' && (
             <SummaryStep
+              actionSlot={finalActionSlot}
               onAddReceipt={handleAddReceipt}
               onResetSplit={withScrollToTop(handleResetSplit)}
             />
@@ -108,6 +111,7 @@ export function Workspace() {
         canContinue={canContinue}
         onBack={withScrollToTop(handleBack)}
         onNext={withScrollToTop(handleNext)}
+        finalActionRef={setFinalActionSlot}
         status={
           <WorkspaceNavStatus
             key={activeStep}
@@ -121,6 +125,7 @@ export function Workspace() {
             }
             receiptTotalCents={computeReceiptTotals(activeReceipt, people).totalCents}
             receiptCurrency={activeReceipt.currency}
+            peopleCount={people.length}
           />
         }
       />
@@ -148,6 +153,7 @@ interface WorkspaceNavStatusProps {
   activePersonTotalCents: number;
   receiptTotalCents: number;
   receiptCurrency: CurrencyCode;
+  peopleCount: number;
 }
 
 function WorkspaceNavStatus({
@@ -159,6 +165,7 @@ function WorkspaceNavStatus({
   activePersonTotalCents,
   receiptTotalCents,
   receiptCurrency,
+  peopleCount,
 }: WorkspaceNavStatusProps) {
   const justFinished = useAllAssignedMoment(leftCount);
   if (activeStep === 'items' && assignMode === 'item') {
@@ -186,16 +193,19 @@ function WorkspaceNavStatus({
       <BottomNavStatus
         label="Receipt total"
         value={formatCurrencyFromCents(receiptTotalCents, receiptCurrency)}
-        className="hidden md:block"
       />
     );
   }
 
   if (activeStep === 'people') {
+    if (peopleCount === 0) {
+      return <p className="truncate text-sm text-white/60">Add someone first</p>;
+    }
     return (
-      <p className="hidden truncate text-sm text-white/60 md:block">
-        Add at least one person to continue
-      </p>
+      <BottomNavStatus
+        label="Splitting between"
+        value={peopleCount === 1 ? '1 person' : `${peopleCount} people`}
+      />
     );
   }
 

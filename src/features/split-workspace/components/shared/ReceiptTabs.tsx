@@ -37,7 +37,7 @@ export function ReceiptTabs({
     <Tabs.Root
       value={value}
       onValueChange={onValueChange}
-      className={cn('flex items-end gap-2 border-b border-outline-variant', className)}
+      className={cn('flex items-end gap-2 border-b border-surface-container-highest', className)}
     >
       <Tabs.List
         ref={listRef}
@@ -91,9 +91,9 @@ export function ReceiptTab({
       <div
         onDoubleClick={startRenaming}
         className={cn(
-          'group flex flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-t-xl border px-4 py-2 text-sm transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset',
-          'border-transparent border-b-outline-variant bg-surface-container-high/60 font-semibold text-on-surface-variant data-[state=inactive]:hover:bg-surface-container-high data-[state=inactive]:hover:text-on-surface',
-          'data-[state=active]:border-outline-variant data-[state=active]:border-b-surface data-[state=active]:bg-surface data-[state=active]:font-bold data-[state=active]:text-on-surface',
+          'group flex flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-t-lg border-b-2 px-3 pt-2 pb-2.5 text-[0.9375rem] font-semibold transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset',
+          'border-transparent text-on-surface-variant data-[state=inactive]:hover:border-outline-variant data-[state=inactive]:hover:text-on-surface',
+          'data-[state=active]:border-primary data-[state=active]:text-on-surface',
         )}
       >
         {draftName !== null ? (
@@ -164,18 +164,23 @@ function TabIconButton({
   );
 }
 
-export function AddReceiptButton(props: ComponentProps<'button'>) {
+interface AddReceiptButtonProps extends ComponentProps<'button'> {
+  /** Beside the tabs a phone shows only the icon; on its own line there is room to say it. */
+  labelOnPhones?: boolean;
+}
+
+export function AddReceiptButton({ labelOnPhones = false, ...props }: AddReceiptButtonProps) {
   return (
     <button
       type="button"
       aria-label="Add receipt"
-      className="mb-1 flex flex-shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-semibold whitespace-nowrap text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
+      className="mb-1.5 flex flex-shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-semibold whitespace-nowrap text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
       {...props}
     >
       <span aria-hidden="true" className="material-symbols-outlined text-lg leading-none">
         add
       </span>
-      <span aria-hidden="true" className="hidden md:inline">
+      <span aria-hidden="true" className={cn(!labelOnPhones && 'hidden md:inline')}>
         Add receipt
       </span>
     </button>

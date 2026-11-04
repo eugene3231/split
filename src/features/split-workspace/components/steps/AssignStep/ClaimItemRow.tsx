@@ -43,18 +43,20 @@ export function ClaimItemRow({
       data-taken={item.takenByOthers || undefined}
       data-left={item.isLeft || undefined}
       className={cn(
-        'relative py-1.5',
+        'relative flex flex-wrap items-center gap-x-2 py-1.5 md:gap-x-3',
         item.isLeft &&
           'before:absolute before:inset-y-2.5 before:-left-3 before:w-1 before:rounded-full before:bg-warning',
       )}
     >
-      <div className="flex items-center gap-2 md:gap-3">
+      {/* Both lines are `contents`, so one flex row lays them out and `order` moves the stepper
+          to the second line on phones, where the item name needs the width. */}
+      <div className="contents">
         <Checkbox.Root
           aria-label={item.name}
           checked={item.claimedByActive}
           data-testid={`claim-item-toggle-${item.id}`}
           onCheckedChange={onToggle}
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
+          className="order-1 flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
         >
           <ClaimCheckMark checked={item.claimedByActive} />
           <span className="min-w-0 leading-tight">
@@ -77,11 +79,17 @@ export function ClaimItemRow({
           </span>
         </Checkbox.Root>
         {share ? (
-          <ShareStepper share={share} onStep={onStepShare} testId={`claim-item-share-${item.id}`} />
+          <div className="order-5 mb-1.5 ml-9 md:order-2 md:mb-0 md:ml-0">
+            <ShareStepper
+              share={share}
+              onStep={onStepShare}
+              testId={`claim-item-share-${item.id}`}
+            />
+          </div>
         ) : (
-          avatars
+          <div className="order-2">{avatars}</div>
         )}
-        <div className="flex shrink-0 justify-end md:w-24">
+        <div className="order-3 flex shrink-0 justify-end md:w-24">
           {share ? (
             <ShareAmountField
               label={share.amountLabel}
@@ -89,29 +97,33 @@ export function ClaimItemRow({
               testId={`claim-item-amount-${item.id}`}
             />
           ) : (
-            <span className="text-on-surface-variant tabular-nums">{item.priceLabel}</span>
+            <span className="pr-2 text-on-surface-variant tabular-nums">{item.priceLabel}</span>
           )}
         </div>
       </div>
       {share && (
-        <div className="flex items-center gap-1.5 pb-1 pl-9 motion-safe:animate-rise-in">
-          <div className="mr-auto">{avatars}</div>
-          <ItemActionChip
-            icon="groups"
-            label="Everyone"
-            description="Split evenly with everyone"
-            disabled={!share.canSplitEvenly}
-            testId={`claim-item-split-evenly-${item.id}`}
-            onClick={onSplitEvenly}
-          />
-          <ItemActionChip
-            icon="person"
-            label={`Only ${personName}`}
-            description={`Only ${personName} had this`}
-            disabled={!share.canTakeAlone}
-            testId={`claim-item-take-alone-${item.id}`}
-            onClick={onTakeAlone}
-          />
+        <div data-testid={`claim-item-actions-${item.id}`} className="contents">
+          <div aria-hidden className="order-4 basis-full" />
+          <div className="order-2 md:order-5 md:mr-auto md:ml-9">{avatars}</div>
+          {/* A shortcut that is already in effect can't be pressed, so it reads as the selected side. */}
+          <div className="order-6 mb-1.5 ml-auto flex rounded-full bg-surface-container p-0.5 motion-safe:animate-rise-in">
+            <ItemActionChip
+              icon="groups"
+              label="Everyone"
+              description="Split evenly with everyone"
+              disabled={!share.canSplitEvenly}
+              testId={`claim-item-split-evenly-${item.id}`}
+              onClick={onSplitEvenly}
+            />
+            <ItemActionChip
+              icon="person"
+              label={`Only ${personName}`}
+              description={`Only ${personName} had this`}
+              disabled={!share.canTakeAlone}
+              testId={`claim-item-take-alone-${item.id}`}
+              onClick={onTakeAlone}
+            />
+          </div>
         </div>
       )}
     </li>

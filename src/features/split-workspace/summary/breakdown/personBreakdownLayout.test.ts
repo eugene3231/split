@@ -42,6 +42,7 @@ function section(rows: BreakdownRow[], overrides: Partial<ReceiptBreakdownSectio
   return {
     id: 'lunch',
     title: 'Lunch',
+    showTitle: true,
     totalCents: 1200,
     currency: 'SGD' as const,
     rows,
@@ -115,6 +116,16 @@ describe('layoutCard', () => {
       ['charge', 120, 34],
     ]);
     expect(lunch.item.height).toBe(174);
+  });
+
+  it('starts the rows at the top of a section that has no heading', () => {
+    const [lunch] = onlySections(
+      card(sections(section([item('Laksa'), { kind: 'rule' }, gst], { showTitle: false }))),
+    );
+
+    expect(lunch.item.ruleY).toBeNull();
+    expect(lunch.item.rows.map((row) => row.y)).toEqual([20, 58, 72]);
+    expect(lunch.item.height).toBe(126);
   });
 
   it('pushes the rows down by a line for each conversion line', () => {

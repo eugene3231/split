@@ -1,5 +1,6 @@
 import { CURRENCY_CODES, isCurrencyCode, type CurrencyCode } from '@shared/constants';
 import { getCurrencySymbol } from '@shared/logic/core/money';
+import { cn } from '@shared/utils/cn';
 
 interface Props {
   value: CurrencyCode;
@@ -9,18 +10,27 @@ interface Props {
 
 export function CurrencySelector({ value, onChange, className }: Props) {
   return (
-    <select
-      value={value}
-      onChange={(e) => {
-        if (isCurrencyCode(e.target.value)) onChange(e.target.value);
-      }}
-      className={`cursor-pointer rounded-lg border border-outline-variant/40 bg-surface-container px-2 py-1 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/40 focus:outline-none ${className ?? ''}`}
-    >
-      {CURRENCY_CODES.map((code) => (
-        <option key={code} value={code}>
-          {code} {getCurrencySymbol(code)}
-        </option>
-      ))}
-    </select>
+    <div className={cn('relative inline-flex items-center field', className)}>
+      <select
+        aria-label="Receipt currency"
+        value={value}
+        onChange={(e) => {
+          if (isCurrencyCode(e.target.value)) onChange(e.target.value);
+        }}
+        className="h-9 cursor-pointer appearance-none bg-transparent py-1 pr-8 pl-3 text-sm font-semibold text-on-surface outline-none"
+      >
+        {CURRENCY_CODES.map((code) => (
+          <option key={code} value={code}>
+            {code} {getCurrencySymbol(code)}
+          </option>
+        ))}
+      </select>
+      <span
+        aria-hidden="true"
+        className="material-symbols-outlined pointer-events-none absolute right-2 text-lg text-on-surface-variant"
+      >
+        expand_more
+      </span>
+    </div>
   );
 }

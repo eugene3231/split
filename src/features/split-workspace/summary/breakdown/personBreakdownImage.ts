@@ -22,7 +22,7 @@ import {
   drawTitle,
   ellipsizeText,
 } from '@features/split-workspace/summary/canvas/draw';
-import { FONT, INK, INSET, MUTED, PAGE } from '@features/split-workspace/summary/canvas/theme';
+import { FONT, INK, MUTED, PAGE, SUCCESS } from '@features/split-workspace/summary/canvas/theme';
 import { chooseGridLayout } from '@features/split-workspace/summary/breakdown/gridLayout';
 import {
   CARD_PAD,
@@ -46,7 +46,7 @@ interface GeneratePersonBreakdownImageOptions {
   receiptName?: string;
 }
 
-const RULE = 'rgba(202,196,208,0.45)';
+const RULE = '#e4e8ed';
 
 const PAD = 48;
 const COLUMN_GAP = 24;
@@ -128,8 +128,8 @@ function drawGrandTotalBand(
   ctx.fill();
 
   ctx.fillStyle = 'rgba(255,255,255,0.70)';
-  ctx.font = `700 18px ${FONT}`;
-  ctx.fillText(summaryBreakdown.totalLabel.toUpperCase(), PAD + CARD_PAD, y + 38);
+  ctx.font = `600 20px ${FONT}`;
+  ctx.fillText(summaryBreakdown.totalLabel, PAD + CARD_PAD, y + 38);
 
   ctx.fillStyle = '#ffffff';
   ctx.font = `800 48px ${FONT}`;
@@ -255,24 +255,27 @@ function drawReceiptTotal(
 
 function drawSection(
   ctx: CanvasRenderingContext2D,
-  { section, conversionLines, ruleY, rows, height }: SectionLayout,
+  { section, conversionLines, ruleY, rows }: SectionLayout,
   x: number,
   y: number,
 ): void {
-  ctx.fillStyle = INSET;
-  drawRoundedRect(ctx, x, y, INNER_WIDTH, height, 14);
-  ctx.fill();
+  // A hairline above each receipt, like the screen card, instead of a filled panel.
+  ctx.fillStyle = RULE;
+  ctx.fillRect(x, Math.round(y), INNER_WIDTH, 1);
 
   const innerX = x + SECTION_PAD;
+  for (const row of rows) drawRow(ctx, row.item, innerX, y + row.y, row.height);
+  if (ruleY === null) return;
+
   drawAmountRow(ctx, {
     x: innerX,
     y: y + SECTION_PAD + 22,
     width: SECTION_INNER_WIDTH,
     label: section.title,
     value: formatCurrencyFromCents(section.totalCents, section.currency),
-    font: `700 22px ${FONT}`,
-    valueFont: `700 22px ${FONT}`,
-    labelColor: INK,
+    font: `500 22px ${FONT}`,
+    valueFont: `500 22px ${FONT}`,
+    valueColor: MUTED,
   });
 
   ctx.fillStyle = MUTED;
@@ -284,7 +287,6 @@ function drawSection(
   ctx.textAlign = 'left';
 
   drawRule(ctx, innerX, y + ruleY + SECTION_RULE_H / 2);
-  for (const row of rows) drawRow(ctx, row.item, innerX, y + row.y, row.height);
 }
 
 function drawRow(
@@ -328,8 +330,6 @@ function drawItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow, x: nu
   ctx.restore();
 }
 
-// Image only: charges are upright with a green discount, where the screen sets every charge
-// in grey italics. The difference is on record in docs/EXPORT-PARITY.md.
 function drawChargeRow(
   ctx: CanvasRenderingContext2D,
   row: BreakdownChargeRow,
@@ -344,7 +344,7 @@ function drawChargeRow(
     value: formatChargeAmount(row),
     font: `400 20px ${FONT}`,
     valueFont: `400 20px ${FONT}`,
-    valueColor: row.sign === 'minus' ? '#16a34a' : MUTED,
+    valueColor: row.sign === 'minus' ? SUCCESS : MUTED,
   });
 }
 

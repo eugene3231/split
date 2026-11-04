@@ -1,4 +1,5 @@
 import { cn } from '@shared/utils/cn';
+import { personColor } from '@shared/utils/personColors';
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
 import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
 import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
@@ -37,18 +38,37 @@ export function ClaimPeopleRail({ people, onSelect, layout, currency, className 
           aria-pressed={person.isActive}
           data-testid={`claim-person-${person.id}`}
           onClick={() => onSelect(person.id)}
+          style={
+            person.isActive && layout === 'row'
+              ? {
+                  borderColor: personColor(person.colorIndex),
+                  boxShadow: `0 0 0 1px ${personColor(person.colorIndex)}`,
+                }
+              : undefined
+          }
           className={cn(
-            'flex shrink-0 items-center gap-3 rounded-2xl border-2 bg-surface-container-lowest py-1.5 pr-3.5 pl-1.5 text-left transition-all',
-            layout === 'column' && 'w-full',
+            'flex shrink-0 items-center gap-3 rounded-xl border py-1.5 pr-3.5 pl-1.5 text-left transition-colors',
+            layout === 'column' ? 'w-full' : 'bg-surface-container-lowest',
             person.isActive
-              ? 'border-primary shadow-md'
-              : 'border-transparent opacity-70 hover:opacity-100',
+              ? layout === 'column'
+                ? 'border-transparent bg-surface-container'
+                : ''
+              : cn(
+                  'text-on-surface-variant hover:text-on-surface',
+                  layout === 'column'
+                    ? 'border-transparent hover:bg-surface-container-low'
+                    : 'border-surface-container-highest',
+                ),
           )}
         >
           <PersonAvatar name={person.name} colorIndex={person.colorIndex} className="h-8 w-8" />
           <span className="min-w-12 flex-1 leading-tight">
             <span
-              className={cn('block truncate text-sm font-bold', layout === 'row' && 'max-w-32')}
+              className={cn(
+                'block truncate text-sm',
+                person.isActive ? 'font-bold' : 'font-semibold',
+                layout === 'row' && 'max-w-32',
+              )}
             >
               {layout === 'row' ? person.firstName : person.name}
             </span>

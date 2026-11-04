@@ -41,7 +41,7 @@ export function resolveSummaryBreakdown({
   qrDataUrls = {},
   detail = 'their-items',
 }: ResolveSummaryBreakdownInput): SummaryBreakdown {
-  const allReceiptsLabel = `Total · ${view.receipts.length} receipts`;
+  const allReceiptsLabel = `All ${view.receipts.length} receipts`;
   const headerRate = resolveShownRate(view.total);
 
   return {
@@ -51,7 +51,7 @@ export function resolveSummaryBreakdown({
     personBreakdowns: people.map((person, colorIndex) => ({
       person,
       colorIndex,
-      headerLabel: view.scope === 'all' ? allReceiptsLabel : 'Total · this receipt',
+      headerLabel: view.scope === 'all' ? allReceiptsLabel : 'Total',
       totalCents: view.total.split.byPerson[person.id].totalCents,
       currency: view.total.currency,
       conversion: headerRate && {
@@ -114,6 +114,8 @@ function buildSection(
   return {
     id: entry.receipt.id,
     title: entry.name,
+    // On a receipt's own tab the person's header already gives this total.
+    showTitle: scope === 'all',
     totalCents: personSplit.totalCents,
     currency: entry.currency,
     conversion: rate && {

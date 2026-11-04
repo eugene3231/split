@@ -7,7 +7,6 @@ import {
   ReceiptTab,
   ReceiptTabs,
 } from '@features/split-workspace/components/shared/ReceiptTabs';
-import { ReceiptNameField } from '@features/split-workspace/components/shared/ReceiptNameField';
 import { CurrencySelector } from '@features/split-workspace/components/shared/CurrencySelector';
 import { ExchangeRateDisplay } from '@features/split-workspace/components/shared/ExchangeRateDisplay';
 import { useReceiptImport } from './useReceiptImport';
@@ -62,7 +61,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
       <ReceiptTabs
         value={receipt.id}
         onValueChange={setActiveReceiptId}
-        className="mb-8"
+        className="mb-6"
         action={<AddReceiptButton data-testid="receipt-add-receipt-btn" onClick={onAddReceipt} />}
       >
         {receipts.map((tab) => (
@@ -76,102 +75,91 @@ export function ReceiptStep({ onAddReceipt }: Props) {
         ))}
       </ReceiptTabs>
 
-      <div className="mb-6">
-        <ReceiptImportActions
-          onReceiptFileSelected={handleReceiptFileChange}
-          onScanReceipt={handleScanReceipt}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
         <div className="space-y-6 lg:col-span-8">
-          <div className="flex items-center gap-4 rounded-2xl bg-surface-container-lowest px-5 py-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-surface-container">
-              <span className="material-symbols-outlined text-2xl text-outline">receipt_long</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <ReceiptNameField
-                  key={receipt.id}
-                  name={receipt.name}
-                  onRename={(name) => renameReceipt(receipt.id, name)}
-                />
-                <CurrencySelector
-                  value={currency}
-                  onChange={(next) => setReceiptCurrency(receipt.id, next)}
+          <ReceiptImportActions
+            onReceiptFileSelected={handleReceiptFileChange}
+            onScanReceipt={handleScanReceipt}
+          />
+
+          <section aria-labelledby="receipt-items-heading" className="overflow-hidden surface-card">
+            <header className="flex items-center justify-between gap-3 border-b border-surface-container-high px-4 py-3 md:px-5">
+              <h2
+                id="receipt-items-heading"
+                className="font-headline text-lg leading-tight font-bold text-on-surface"
+              >
+                Items{' '}
+                {hasItems && (
+                  <span className="ml-2 font-body text-sm font-medium text-on-surface-variant">
+                    {items.length}
+                  </span>
+                )}
+              </h2>
+              <CurrencySelector
+                value={currency}
+                onChange={(next) => setReceiptCurrency(receipt.id, next)}
+              />
+            </header>
+
+            {currency !== BASE_CURRENCY && (
+              <div className="border-b border-surface-container-high bg-surface-container-low px-4 py-2.5 md:px-5">
+                <ExchangeRateDisplay
+                  receiptId={receipt.id}
+                  currency={currency}
+                  exchangeRateOverride={receipt.exchangeRateOverride}
                 />
               </div>
-              {currency !== BASE_CURRENCY ? (
-                <div className="mt-1">
-                  <ExchangeRateDisplay
-                    receiptId={receipt.id}
-                    currency={currency}
-                    exchangeRateOverride={receipt.exchangeRateOverride}
-                  />
-                </div>
-              ) : (
-                <p className="text-xs text-on-surface-variant">
-                  Upload or scan to extract line items
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold tracking-widest text-on-surface-variant uppercase">
-                Line Items
-              </h3>
-              {hasItems && (
-                <span className="text-sm font-medium text-outline">
-                  {items.length} item{items.length !== 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
+            )}
 
             {hasItems ? (
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <LineItemCard
-                    key={item.id}
-                    item={item}
-                    discount={receipt.discount}
-                    currency={currency}
-                    onUpdate={(update) => updateItem(receipt.id, item.id, update)}
-                    onRemove={() => removeItem(receipt.id, item.id)}
-                  />
-                ))}
-
+              <>
+                <ul className="divide-y divide-surface-container-high">
+                  {items.map((item) => (
+                    <LineItemCard
+                      key={item.id}
+                      item={item}
+                      discount={receipt.discount}
+                      currency={currency}
+                      onUpdate={(update) => updateItem(receipt.id, item.id, update)}
+                      onRemove={() => removeItem(receipt.id, item.id)}
+                    />
+                  ))}
+                </ul>
                 <button
                   type="button"
                   data-testid="receipt-add-item-btn"
                   onClick={() => addItem(receipt.id)}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant p-4 text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
+                  className="flex w-full items-center gap-2 border-t border-surface-container-high px-4 py-3.5 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface md:px-5"
                 >
-                  <span className="material-symbols-outlined">add_circle</span>
-                  <span className="text-sm font-bold tracking-widest uppercase">Add New Item</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                    add
+                  </span>
+                  Add item
                 </button>
-              </div>
+              </>
             ) : (
               <div
                 data-testid="receipt-empty-state"
-                className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-outline-variant/30 bg-surface-bright py-12 text-center"
+                className="flex flex-col items-center justify-center gap-1 px-6 py-10 text-center"
               >
-                <span className="material-symbols-outlined text-3xl text-outline">receipt</span>
-                <p className="text-sm font-semibold text-on-surface-variant">No items yet</p>
-                <p className="text-sm text-outline">Scan a receipt or add items manually below.</p>
+                <p className="text-sm font-semibold text-on-surface">No items yet</p>
+                <p className="text-sm text-on-surface-variant">
+                  Scan a receipt above, or add the items yourself.
+                </p>
                 <button
                   type="button"
                   data-testid="receipt-add-item-btn"
                   onClick={() => addItem(receipt.id)}
-                  className="mt-2 flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary transition-transform active:scale-95"
+                  className="mt-3 flex h-10 items-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-container"
                 >
-                  <span className="material-symbols-outlined text-sm">add</span>
-                  Add Item
+                  <span aria-hidden="true" className="material-symbols-outlined text-lg">
+                    add
+                  </span>
+                  Add item
                 </button>
               </div>
             )}
-          </div>
+          </section>
         </div>
 
         <div className="lg:col-span-4">

@@ -21,10 +21,10 @@ export function PersonChip({ chip, onToggle, testId }: Props) {
       data-testid={testId}
       onClick={onToggle}
       className={cn(
-        'flex h-12 min-w-0 items-center gap-2 rounded-2xl border-2 py-1 pr-2 pl-1 text-left transition-colors',
+        'flex h-12 min-w-0 items-center gap-2 rounded-xl border py-1 pr-2 pl-1 text-left transition-colors',
         selected
           ? 'border-transparent text-white'
-          : 'border-surface-container-high bg-surface-container-lowest text-on-surface-variant hover:text-on-surface',
+          : 'border-surface-container-highest bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant hover:text-on-surface',
       )}
       style={selected ? { backgroundColor: personColor(person.colorIndex) } : undefined}
     >

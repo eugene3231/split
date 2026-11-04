@@ -28,14 +28,14 @@ export function SegmentedToggle<Value extends string>({
       value={value}
       onValueChange={(next: Value | '') => next && onValueChange(next)}
       className={cn(
-        'relative inline-grid grid-cols-2 rounded-full bg-surface-container-high p-1 text-sm font-semibold',
+        'relative inline-grid grid-cols-2 rounded-full bg-surface-container p-1 text-sm font-semibold',
         className,
       )}
     >
       <span
         aria-hidden
         className={cn(
-          'absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-surface-container-lowest shadow-sm motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-(--ease-out-quart)',
+          'absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-surface-container-lowest shadow-[0_1px_2px_rgba(23,28,39,0.08)] ring-1 ring-surface-container-highest motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-(--ease-out-quart)',
           value === options[1].value && 'translate-x-full',
         )}
       />
