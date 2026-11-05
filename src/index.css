@@ -2,22 +2,22 @@
 
 @theme {
   /* Surface hierarchy */
-  --color-surface: #fafafa;
-  --color-surface-bright: #fafafa;
-  --color-surface-dim: #d4d4d8;
+  --color-surface: #f4f5f7;
+  --color-surface-bright: #f8f9fa;
+  --color-surface-dim: #d5dae1;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f4f4f5;
-  --color-surface-container: #efeff1;
-  --color-surface-container-high: #e9e9ec;
-  --color-surface-container-highest: #e4e4e7;
-  --color-surface-variant: #e4e4e7;
-  --color-surface-tint: #52525b;
+  --color-surface-container-low: #f5f6f8;
+  --color-surface-container: #eef0f3;
+  --color-surface-container-high: #e7eaee;
+  --color-surface-container-highest: #e0e4e9;
+  --color-surface-variant: #e0e4e9;
+  --color-surface-tint: #565e6e;
 
   /* Primary: ink */
-  --color-primary: #18181b;
-  --color-primary-container: #27272a;
+  --color-primary: #1b2130;
+  --color-primary-container: #2a3142;
   --color-on-primary: #ffffff;
-  --color-on-primary-container: #d4d4d8;
+  --color-on-primary-container: #d5dae1;
   --color-on-primary-fixed: #18181b;
   --color-on-primary-fixed-variant: #3f3f46;
   --color-primary-fixed: #e4e4e7;
@@ -25,10 +25,10 @@
   --color-inverse-primary: #d4d4d8;
 
   /* Secondary: success / assigned */
-  --color-secondary: #1b6d24;
-  --color-secondary-container: #a0f399;
+  --color-secondary: #16794a;
+  --color-secondary-container: #c8f0d9;
   --color-on-secondary: #ffffff;
-  --color-on-secondary-container: #217128;
+  --color-on-secondary-container: #11603a;
   --color-on-secondary-fixed: #002204;
   --color-on-secondary-fixed-variant: #005312;
   --color-secondary-fixed: #a3f69c;
@@ -56,22 +56,25 @@
   --color-on-error-container: #93000a;
 
   /* On-surface */
-  --color-on-surface: #18181b;
-  --color-on-surface-variant: #52525b;
-  --color-on-background: #18181b;
-  --color-background: #fafafa;
+  --color-on-surface: #171c27;
+  --color-on-surface-variant: #586071;
+  --color-on-background: #171c27;
+  --color-background: #f4f5f7;
 
   /* Outlines */
-  --color-outline: #71717a;
-  --color-outline-variant: #d4d4d8;
+  --color-outline: #868e9d;
+  --color-outline-variant: #d6dbe2;
 
   /* Inverse */
-  --color-inverse-surface: #27272a;
+  --color-inverse-surface: #2a3142;
   --color-inverse-on-surface: #f4f4f5;
+
+  /* Radii: controls use rounded-xl (12px); cards use rounded-card. */
+  --radius-card: 1.25rem;
 
   /* Font families */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-headline: var(--font-sans);
+  --font-headline: 'Bricolage Grotesque', var(--font-sans);
   --font-body: var(--font-sans);
   --font-label: var(--font-sans);
 
@@ -85,7 +88,6 @@
   --animate-avatar-out: avatar-out 180ms ease-in forwards;
   --animate-avatar-in: avatar-in 200ms var(--ease-out-quart) backwards;
   --animate-pop-in: pop-in 200ms var(--ease-out-quart) backwards;
-  --animate-step-pulse: step-pulse 2.4s ease-out infinite;
   --animate-person-in: person-in 280ms var(--ease-out-quart) backwards;
   --animate-shrink-out: shrink-out 240ms ease-in forwards;
   --animate-nudge: nudge 420ms var(--ease-out-quart);
@@ -117,16 +119,6 @@
     from {
       opacity: 0;
       transform: translateY(0.375rem) scale(0.98);
-    }
-  }
-
-  @keyframes step-pulse {
-    0% {
-      box-shadow: 0 0 0 0 --alpha(var(--color-primary) / 30%);
-    }
-    70%,
-    100% {
-      box-shadow: 0 0 0 0.5rem --alpha(var(--color-primary) / 0%);
     }
   }
 
@@ -221,6 +213,32 @@
   }
 }
 
+/* The one card surface: white, a hairline border, no shadow. Shadow is for floating layers only
+   (the bottom bar, menus and dialogs). */
+@utility surface-card {
+  border: 1px solid var(--color-surface-container-highest);
+  border-radius: var(--radius-card);
+  background-color: var(--color-surface-container-lowest);
+}
+
+/* The one label style for a section or field. Sentence case, never uppercase. */
+@utility section-label {
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+
+/* The one text-field surface: a soft fill that takes a ring on focus. */
+@utility field {
+  border-radius: var(--radius-xl);
+  background-color: var(--color-surface-container);
+  transition: box-shadow 150ms;
+  &:focus-within {
+    box-shadow: 0 0 0 2px --alpha(var(--color-primary) / 20%);
+  }
+}
+
 html,
 body,
 #root {
@@ -238,6 +256,8 @@ body,
 
 body {
   margin: 0;
+  background-color: var(--color-surface);
+  font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

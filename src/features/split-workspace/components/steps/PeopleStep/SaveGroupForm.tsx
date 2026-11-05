@@ -16,7 +16,7 @@ export function SaveGroupForm() {
         type="button"
         data-testid="save-group-btn"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1 text-sm font-semibold text-primary"
+        className="flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
       >
         <span className="material-symbols-outlined !text-base leading-none">bookmark_add</span>
         Save as group
@@ -40,7 +40,7 @@ export function SaveGroupForm() {
         );
         close();
       }}
-      className="flex w-full gap-2"
+      className="order-last flex basis-full gap-2 px-3 sm:px-0"
     >
       <input
         data-testid="save-group-name-input"

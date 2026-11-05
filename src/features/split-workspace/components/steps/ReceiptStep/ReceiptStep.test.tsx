@@ -54,15 +54,7 @@ function activeReceipt() {
 }
 
 function computedTotal() {
-  return screen.getByText('Computed Total').parentElement;
-}
-
-function receiptTitle() {
-  const title = screen
-    .getAllByText('Lunch')
-    .find((element) => element.getAttribute('contenteditable') === 'true');
-  if (!title) throw new Error('The receipt title is not editable');
-  return title;
+  return screen.getByText('Total', { exact: true }).parentElement;
 }
 
 beforeEach(resetAllStores);
@@ -96,7 +88,7 @@ describe('ReceiptStep', () => {
     act(() => useReceiptStore.getState().setActiveReceiptId('r2'));
 
     expect(screen.getAllByRole('button', { name: 'Remove item' })).toHaveLength(2);
-    expect(screen.getByText('2 items')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Items 2' })).toBeInTheDocument();
   });
 
   it('edits an item’s name, price and line discount, and totals them', () => {
@@ -157,23 +149,14 @@ describe('ReceiptStep', () => {
     expect(computedTotal()).toHaveTextContent('$10.00');
   });
 
-  it('renames the receipt from its title, and keeps the name on Escape or a blank title', () => {
+  it('renames the receipt from its tab', () => {
     renderReceipt();
-    const title = receiptTitle();
 
-    title.textContent = '  ';
-    fireEvent.blur(title);
-    expect(activeReceipt().name).toBe('Lunch');
-    expect(title).toHaveTextContent('Lunch');
+    fireEvent.click(screen.getByRole('button', { name: 'Rename receipt' }));
+    const input = screen.getByDisplayValue('Lunch');
+    fireEvent.change(input, { target: { value: 'Team lunch' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
 
-    title.textContent = 'Brunch';
-    fireEvent.keyDown(title, { key: 'Escape' });
-    expect(activeReceipt().name).toBe('Lunch');
-    expect(title).toHaveTextContent('Lunch');
-
-    title.focus();
-    title.textContent = 'Team lunch';
-    fireEvent.keyDown(title, { key: 'Enter' });
     expect(activeReceipt().name).toBe('Team lunch');
   });
 

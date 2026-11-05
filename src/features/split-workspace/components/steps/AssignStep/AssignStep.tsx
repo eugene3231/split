@@ -91,43 +91,41 @@ export function AssignStep({ mode, onModeChange, activePersonId, onSelectPerson 
   }
 
   return (
-    <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
-      <div className="min-w-0">
-        <header className="-mx-6 -mt-4 bg-surface-container-low px-6 pt-5 pb-5 md:mx-0 md:mt-0 md:rounded-3xl md:px-8 md:pt-6 md:pb-6">
+    <div className="xl:grid xl:grid-cols-12 xl:gap-8">
+      <div className="min-w-0 xl:col-span-8">
+        <header className="mb-4 md:mb-6">
           <SegmentedToggle
             label="Assign items"
             options={MODE_OPTIONS}
             value={mode}
             onValueChange={onModeChange}
-            className="mb-5"
+            className="mb-4 md:mb-6"
           />
           <ClaimPeopleRail
             people={view.people}
             onSelect={onSelectPerson}
             layout="row"
             currency={view.totalsCurrency}
-            className="-mx-6 overflow-x-auto px-6 pb-1 md:-mx-8 md:px-8 lg:hidden"
+            className="-mx-6 overflow-x-auto mask-r-from-[calc(100%-2rem)] px-6 py-1 md:-mx-8 md:px-8 xl:hidden"
           />
-          <SlideIn key={content.key} direction={direction} className="mt-6 lg:mt-0">
+          <SlideIn key={content.key} direction={direction} className="mt-5 xl:mt-0">
             <StepHeader title={content.title} description={content.description} />
           </SlideIn>
         </header>
 
-        <SlideIn key={view.mode} direction={direction}>
+        <SlideIn key={view.mode} direction={direction} className="space-y-4">
           {content.list}
         </SlideIn>
       </div>
 
-      <aside className="hidden lg:sticky lg:top-[calc(var(--app-bar-height)+1.5rem)] lg:block lg:self-start">
-        <h2 className="mb-3 text-xs font-bold tracking-widest text-on-surface-variant uppercase">
-          Who had what
-        </h2>
+      <aside className="hidden surface-card p-2 xl:sticky xl:top-[calc(var(--app-bar-height)+1.5rem)] xl:col-span-4 xl:block xl:self-start">
+        <h2 className="px-2 pt-2 pb-3 section-label">Who had what</h2>
         <ClaimPeopleRail
           people={view.people}
           onSelect={onSelectPerson}
           layout="column"
           currency={view.totalsCurrency}
-          className="max-h-[calc(100vh-17rem)] overflow-y-auto p-1"
+          className="max-h-[calc(100dvh-var(--app-bar-height)-7rem)] overflow-y-auto mask-b-from-[calc(100%-2.5rem)] pb-8"
         />
       </aside>
     </div>

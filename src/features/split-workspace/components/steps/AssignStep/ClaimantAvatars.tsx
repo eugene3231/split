@@ -38,7 +38,7 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
             aria-hidden={isExiting || undefined}
             data-testid={isExiting ? `claim-avatar-exiting-${person.id}` : undefined}
             className={cn(
-              'flex w-4 shrink-0',
+              'flex w-[18px] shrink-0',
               isExiting && 'pointer-events-none motion-safe:animate-avatar-out',
               isEntering && 'motion-safe:animate-avatar-in',
             )}
@@ -50,7 +50,7 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
                 <PersonAvatar
                   name={person.name}
                   colorIndex={person.colorIndex}
-                  className="h-5 w-5 text-[10px] ring-2 ring-surface"
+                  className="h-5 w-5 text-[10px] ring-2 ring-surface-container-lowest"
                 />
               </HoverLabel>
             )}
@@ -58,7 +58,7 @@ export function ClaimantAvatars({ claimants, leftLabel, testId }: Props) {
         ))}
         {hidden.length > 0 && (
           <HoverLabel label={hidden.map((person) => person.name).join(', ')} showOnTap>
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-container-high px-1 text-[10px] font-bold text-on-surface-variant ring-2 ring-surface">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-container-high px-1 text-[10px] font-bold text-on-surface-variant ring-2 ring-surface-container-lowest">
               +{hidden.length}
             </span>
           </HoverLabel>

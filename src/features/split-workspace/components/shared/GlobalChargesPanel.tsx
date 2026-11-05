@@ -19,13 +19,20 @@ export function GlobalChargesPanel({ receipt }: Props) {
   const patchReceipt = useReceiptStore((state) => state.patchReceipt);
   const { id, discount, serviceCharge, gst, currency } = receipt;
 
+  // Below xl the card spans the page, so the switches and the totals sit side by side.
   return (
-    <div className="sticky top-[calc(var(--app-bar-height)+1.5rem)] rounded-3xl border border-surface-container-highest bg-surface-container-lowest p-6 shadow-lg md:p-8">
-      <h3 className="mb-6 border-b border-surface-container-high pb-4 font-headline text-xl font-bold text-primary">
-        Global Charges
-      </h3>
+    <section
+      aria-labelledby="receipt-charges-heading"
+      className="surface-card p-5 md:p-6 md:max-xl:grid md:max-xl:grid-cols-2 md:max-xl:gap-x-10 xl:sticky xl:top-[calc(var(--app-bar-height)+1.5rem)]"
+    >
+      <h2
+        id="receipt-charges-heading"
+        className="mb-3 font-headline text-lg leading-tight font-bold text-on-surface md:max-xl:col-span-2"
+      >
+        Charges
+      </h2>
 
-      <div className="mb-8 space-y-6">
+      <div className="space-y-2">
         <ChargeToggle
           label="Global Discount"
           value={discount}
@@ -51,18 +58,19 @@ export function GlobalChargesPanel({ receipt }: Props) {
         charges={receipt}
         currency={currency}
         onRemoveRounding={() => patchReceipt(id, { roundingInput: '' })}
+        className="mt-4 mb-5 border-t border-surface-container-high pt-4 md:max-xl:my-0 md:max-xl:self-start md:max-xl:border-t-0 md:max-xl:pt-3"
       />
 
-      <div className="space-y-4">
+      <div className="space-y-3 border-t border-surface-container-high pt-5 md:max-xl:col-span-2 md:max-xl:mt-5 md:max-xl:grid md:max-xl:grid-cols-2 md:max-xl:items-end md:max-xl:space-y-0 md:max-xl:gap-x-10">
         <div>
-          <label
-            htmlFor="receipt-total-new"
-            className="mb-2 block font-label text-xs font-extrabold tracking-widest text-on-surface-variant uppercase"
-          >
-            Receipt Total (Override)
+          <label htmlFor="receipt-total-new" className="block section-label">
+            Printed total
           </label>
-          <div className="flex items-center gap-2 rounded-2xl border-2 border-transparent bg-surface-container-high px-4 transition-all focus-within:border-primary/20">
-            <span className="font-bold text-on-surface-variant">{getCurrencySymbol(currency)}</span>
+          <p className="mb-2 text-xs text-on-surface-variant">
+            The total on the receipt, to check the items against.
+          </p>
+          <div className="flex h-12 items-center gap-2 field px-4">
+            <span className="text-on-surface-variant">{getCurrencySymbol(currency)}</span>
             <FormattedNumberInput
               id="receipt-total-new"
               data-testid="receipt-total-input"
@@ -70,7 +78,7 @@ export function GlobalChargesPanel({ receipt }: Props) {
               format={(input) => formatMoneyInput(input, currency)}
               onValueChange={(value) => patchReceipt(id, { receiptTotalInput: value })}
               placeholder={formatMoneyAmount(0, currency)}
-              className="min-w-0 flex-1 border-none bg-transparent py-3 font-headline text-xl font-extrabold text-on-surface outline-none placeholder:text-outline"
+              className="min-w-0 flex-1 border-none bg-transparent font-headline text-xl font-bold text-on-surface tabular-nums outline-none placeholder:text-outline"
             />
           </div>
         </div>
@@ -81,6 +89,6 @@ export function GlobalChargesPanel({ receipt }: Props) {
           onApplyFix={(fix) => patchReceipt(id, fix)}
         />
       </div>
-    </div>
+    </section>
   );
 }

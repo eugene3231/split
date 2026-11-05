@@ -57,7 +57,7 @@ export async function generateOverviewImage({
   const table: TableGeometry = {
     left: PAD + CARD_PAD_X,
     right: PAD + cardWidth - CARD_PAD_X,
-    columnCenter: (index) => PAD + CARD_PAD_X + ITEM_COL_W + PERSON_COL_W * (index + 0.5),
+    columnRight: (index) => PAD + CARD_PAD_X + ITEM_COL_W + PERSON_COL_W * (index + 1) - CELL_INSET,
   };
 
   let y = cardY;
@@ -74,10 +74,15 @@ export async function generateOverviewImage({
   return canvasToBlob(canvas);
 }
 
+/** Space between a column's right edge and the amounts in it. */
+const CELL_INSET = 20;
+const PILL_PAD_X = 12;
+
 interface TableGeometry {
   left: number;
   right: number;
-  columnCenter: (personIndex: number) => number;
+  /** Where every amount in a person's column ends, like the right-aligned columns on screen. */
+  columnRight: (personIndex: number) => number;
 }
 
 function drawHeader(
@@ -91,14 +96,17 @@ function drawHeader(
   ctx.fillText('Item', table.left, y + 68);
 
   overview.people.forEach((person, index) => {
-    const cx = table.columnCenter(index);
-    drawPersonAvatar(ctx, { cx, cy: y + 40, radius: 22, name: person.name, colorIndex: index });
+    const right = table.columnRight(index);
+    drawPersonAvatar(ctx, {
+      cx: right - 22,
+      cy: y + 40,
+      radius: 22,
+      name: person.name,
+      colorIndex: index,
+    });
     ctx.fillStyle = INK;
     ctx.font = `600 18px ${FONT}`;
-    ctx.textAlign = 'center';
-    const firstName = person.name.trim().split(/\s+/)[0] ?? '';
-    ctx.fillText(ellipsizeText(ctx, firstName, PERSON_COL_W - 16), cx, y + 92);
-    ctx.textAlign = 'left';
+    drawRight(ctx, person.name.trim().split(/\s+/)[0] ?? '', right, y + 92);
   });
 
   drawDivider(ctx, table, y + HEADER_H);
@@ -124,8 +132,8 @@ function drawRow(
         rowHeight,
       );
       ctx.fillStyle = MUTED;
-      ctx.font = `700 18px ${FONT}`;
-      ctx.fillText(ellipsizeText(ctx, row.title.toUpperCase(), labelWidth), table.left, y + 33);
+      ctx.font = `600 20px ${FONT}`;
+      ctx.fillText(ellipsizeText(ctx, row.title, labelWidth), table.left, y + 33);
       return;
 
     case 'item':
@@ -140,14 +148,7 @@ function drawRow(
       overview.people.forEach((person, index) => {
         const cents = row.sharesByPerson[person.id];
         if (cents === undefined) return;
-        drawSharePill(
-          ctx,
-          table.columnCenter(index),
-          y + rowHeight / 2,
-          cents,
-          row.currency,
-          index,
-        );
+        drawSharePill(ctx, table.columnRight(index), y + rowHeight / 2, cents, row.currency, index);
       });
       drawDivider(ctx, table, y + rowHeight);
       return;
@@ -160,17 +161,17 @@ function drawRow(
         width: labelWidth,
         label: row.label,
         detail: `${sign}${formatCurrencyFromCents(row.totalCents, row.currency)}`,
-        font: `italic 400 20px ${FONT}`,
+        font: `400 20px ${FONT}`,
       });
       ctx.fillStyle = MUTED;
-      ctx.font = `italic 400 18px ${FONT}`;
+      ctx.font = `400 18px ${FONT}`;
       overview.people.forEach((person, index) => {
         const cents = row.sharesByPerson[person.id];
         if (cents === undefined) return;
-        drawCentered(
+        drawRight(
           ctx,
           `${sign}${formatCurrencyFromCents(cents, row.currency)}`,
-          table.columnCenter(index),
+          table.columnRight(index),
           y + rowHeight / 2 + 6,
         );
       });
@@ -190,10 +191,10 @@ function drawRow(
       ctx.fillStyle = INK;
       ctx.font = `600 18px ${FONT}`;
       overview.people.forEach((person, index) => {
-        drawCentered(
+        drawRight(
           ctx,
           formatCurrencyFromCents(row.totalByPersonCents[person.id] ?? 0, row.currency),
-          table.columnCenter(index),
+          table.columnRight(index),
           y + rowHeight / 2 + 6,
         );
       });
@@ -226,10 +227,10 @@ function drawFooter(
   ctx.fillStyle = INK;
   ctx.font = `700 22px ${FONT}`;
   overview.people.forEach((person, index) => {
-    drawCentered(
+    drawRight(
       ctx,
       formatCurrencyFromCents(overview.totalByPersonCents[person.id] ?? 0, overview.currency),
-      table.columnCenter(index),
+      table.columnRight(index),
       y + FOOTER_H / 2 + 8,
     );
   });
@@ -253,9 +254,10 @@ function drawTwoLineLabel(ctx: CanvasRenderingContext2D, args: TwoLineLabelArgs)
   ctx.fillText(ellipsizeText(ctx, args.detail, args.width), args.x, args.y + 58);
 }
 
+/** The pill reaches past the column's right edge by its own padding, so its figure meets it. */
 function drawSharePill(
   ctx: CanvasRenderingContext2D,
-  cx: number,
+  right: number,
   cy: number,
   cents: number,
   currency: CurrencyCode,
@@ -263,18 +265,18 @@ function drawSharePill(
 ) {
   const text = formatCurrencyFromCents(cents, currency);
   ctx.font = `600 18px ${FONT}`;
-  const width = Math.min(PERSON_COL_W - 12, ctx.measureText(text).width + 24);
+  const width = Math.min(PERSON_COL_W - 12, ctx.measureText(text).width + PILL_PAD_X * 2);
   // Matches the 12% tint of the person's colour behind each share in OverviewTable.
   ctx.fillStyle = `${personColor(colorIndex)}1f`;
-  drawRoundedRect(ctx, cx - width / 2, cy - 18, width, 36, 8);
+  drawRoundedRect(ctx, right + PILL_PAD_X - width, cy - 18, width, 36, 8);
   ctx.fill();
   ctx.fillStyle = INK;
-  drawCentered(ctx, text, cx, cy + 6);
+  drawRight(ctx, text, right, cy + 6);
 }
 
-function drawCentered(ctx: CanvasRenderingContext2D, text: string, cx: number, y: number) {
-  ctx.textAlign = 'center';
-  ctx.fillText(ellipsizeText(ctx, text, PERSON_COL_W - 16), cx, y);
+function drawRight(ctx: CanvasRenderingContext2D, text: string, right: number, y: number) {
+  ctx.textAlign = 'right';
+  ctx.fillText(ellipsizeText(ctx, text, PERSON_COL_W - 2 * CELL_INSET), right, y);
   ctx.textAlign = 'left';
 }
 

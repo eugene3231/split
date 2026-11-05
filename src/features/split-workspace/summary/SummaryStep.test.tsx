@@ -115,6 +115,45 @@ describe('SummaryStep', () => {
     // Each card shows its header total plus the receipt's row underneath.
     expect(screen.getAllByText('$10.00')).toHaveLength(2);
     expect(screen.getAllByText('$6.00')).toHaveLength(2);
+    // Two cards side by side already show every total, so there is no list of them.
+    expect(screen.queryByRole('navigation', { name: 'Who owes what' })).toBeNull();
+  });
+
+  it("lists each person's total beside the cards of a large group, jumps to their card, and leaves the overview alone", () => {
+    const [alice, bob, ...others] = ['Alice', 'Bob', 'Charlie', 'David', 'Emma'].map((name) =>
+      makePerson(name),
+    );
+    seedStore(
+      [alice, bob, ...others],
+      [
+        makeReceipt({
+          name: 'Dinner',
+          items: [
+            makeItem({ amountInput: '10.00', assignment: equalShares([alice.id]) }),
+            makeItem({ amountInput: '6.00', assignment: equalShares([bob.id]) }),
+            makeItem({ amountInput: '9.00', assignment: equalShares(others.map((p) => p.id)) }),
+          ],
+        }),
+      ],
+    );
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+
+    const list = within(screen.getByRole('navigation', { name: 'Who owes what' }));
+    expect(list.getByTestId(`person-total-${alice.id}`)).toHaveTextContent('Alice$10.00');
+    expect(list.getByTestId(`person-total-${bob.id}`)).toHaveTextContent('Bob$6.00');
+
+    fireEvent.click(list.getByTestId(`person-total-${bob.id}`));
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    const scrolledTo = scrollIntoView.mock.contexts[0] as HTMLElement;
+    expect(within(scrolledTo).getByRole('heading', { name: 'Bob' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Overview' }));
+
+    expect(screen.queryByRole('navigation', { name: 'Who owes what' })).toBeNull();
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
   });
 
   it('reports the successful native share as shared', async () => {
@@ -173,7 +212,7 @@ describe('SummaryStep', () => {
 
     // Defaults to the consolidated "total" tab when there are multiple receipts.
     const grandTotalLabel = within(screen.getByTestId('grand-total-card')).getByText(
-      'Total · 2 receipts',
+      'All 2 receipts',
     );
     expect(grandTotalLabel.closest('[contenteditable="true"]')).toBeNull();
   });
@@ -352,7 +391,8 @@ describe('SummaryStep', () => {
     expect(table.getByRole('rowheader', { name: /Owes/ })).toHaveTextContent('of $12.20');
     expect(table.getByRole('row', { name: /Owes/ })).toHaveTextContent('$5.00$7.20');
     expect(table.queryByRole('textbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'PayNow' })).toBeNull();
+    // The total card stays in both views, so switching view moves nothing beside the table.
+    expect(screen.getByRole('button', { name: 'PayNow' })).toBeInTheDocument();
     expect(screen.getByTestId('export-copy-text-btn')).toBeInTheDocument();
 
     fireEvent.click(byPerson);
@@ -368,17 +408,17 @@ describe('SummaryStep', () => {
     const payNow = screen.getByRole('button', { name: 'PayNow' });
 
     expect(payNow).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+    expect(screen.queryByLabelText('PayNow number')).toBeNull();
 
     fireEvent.click(payNow);
 
     expect(payNow).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByLabelText('PayNow Number')).toHaveFocus();
+    expect(screen.getByLabelText('PayNow number')).toHaveFocus();
 
     fireEvent.click(payNow);
 
     expect(payNow).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByLabelText('PayNow Number')).toBeNull();
+    expect(screen.queryByLabelText('PayNow number')).toBeNull();
   });
   it('shows QR readiness only after generation and replaces it when the number changes', async () => {
     seedDinner();
@@ -392,18 +432,18 @@ describe('SummaryStep', () => {
     );
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'PayNow' }));
-    fireEvent.change(screen.getByLabelText('PayNow Number'), { target: { value: '91234567' } });
+    fireEvent.change(screen.getByLabelText('PayNow number'), { target: { value: '91234567' } });
     const card = within(screen.getByTestId('grand-total-card'));
     expect(card.getByRole('status')).toHaveTextContent(/Generating/);
     expect(card.queryByLabelText('PayNow QR codes ready')).toBeNull();
     await act(async () => complete({ [aliceId]: 'data:image/png;base64,qr' }));
     expect(card.getByLabelText('PayNow QR codes ready')).toBeInTheDocument();
     expect(screen.getByAltText('PayNow QR for Alice')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('PayNow Number'), { target: { value: '123' } });
+    fireEvent.change(screen.getByLabelText('PayNow number'), { target: { value: '123' } });
     expect(card.queryByLabelText('PayNow QR codes ready')).toBeNull();
     expect(card.getByRole('status')).toHaveTextContent(/valid SG mobile number/);
     expect(screen.queryByAltText('PayNow QR for Alice')).toBeNull();
-    fireEvent.change(screen.getByLabelText('PayNow Number'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('PayNow number'), { target: { value: '' } });
     expect(card.queryByRole('status')).toBeNull();
   });
 });

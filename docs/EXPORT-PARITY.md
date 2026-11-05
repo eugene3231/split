@@ -24,28 +24,23 @@ When you change how one renderer looks, open the other and make the matching cha
 
 ## Differences that are meant
 
-| What                                | On screen                                                          | In the PNG                                                                 | Why                                                                 |
-| ----------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Charge rows on a person's card      | Label and amount in grey italics, the same for every charge        | Upright, with a discount amount in green (`#16a34a`)                       | Not settled. Kept as found on 2026-10-13; see the next section      |
-| Exchange rate on a person's card    | Under each person's total                                          | Once, in the grand total band; a person's header gives only the `≈` amount | Side by side in one image, the same rate would repeat on every card |
-| A name too long for the card header | The total wraps under the name                                     | The name is cut with an ellipsis                                           | The image card is a fixed 760px wide                                |
-| A long item name on a card          | Wraps for as many lines as it needs                                | Wraps to two lines, then an ellipsis                                       | A row in the image has a fixed height per line                      |
-| PayNow code                         | A button that downloads the code, pushed to the bottom of the card | The code alone, lined up along the bottom of the row of cards              | A PNG cannot be clicked; cards in a row share one height            |
-| People row of the overview          | Pinned under the app bar while the page scrolls                    | Drawn once at the top                                                      | The image shows the whole table at once                             |
-| A share in the overview, on a phone | A dot in the person's colour, with the amount for screen readers   | The amount in a tinted pill                                                | The image has room for every amount                                 |
-| A long item name in the overview    | Clamped to two lines on a phone, unclamped above that              | One line, cut with an ellipsis                                             | A row in the image has one fixed height                             |
+| What                                | On screen                                                                | In the PNG                                                                 | Why                                                                 |
+| ----------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Exchange rate on a person's card    | Under each person's total                                                | Once, in the grand total band; a person's header gives only the `≈` amount | Side by side in one image, the same rate would repeat on every card |
+| A name too long for the card header | The total wraps under the name                                           | The name is cut with an ellipsis                                           | The image card is a fixed 760px wide                                |
+| A long item name on a card          | Wraps for as many lines as it needs                                      | Wraps to two lines, then an ellipsis                                       | A row in the image has a fixed height per line                      |
+| PayNow code                         | A button that downloads the code, pushed to the bottom of the card       | The code alone, lined up along the bottom of the row of cards              | A PNG cannot be clicked; cards in a row share one height            |
+| People row of the overview          | Pinned under the app bar while the page scrolls                          | Drawn once at the top                                                      | The image shows the whole table at once                             |
+| A long item name in the overview    | Clamped to two lines on a phone, unclamped above that                    | One line, cut with an ellipsis                                             | A row in the image has one fixed height                             |
+| Who owes what list                  | Beside the By person cards from 1024px wide, each name jumps to its card | Not drawn                                                                  | The image shows every card at once                                  |
 
-## Open: charge row styling
+## Overview columns
 
-The two renderers disagree on charge rows and nobody has decided which is right. The overview table already uses grey italics for charges in both of its renderers, so today three of the four agree with the screen card.
+Every amount in a person's column, the person's name above it included, ends on one right edge in both renderers. A share pill reaches past that edge by its own padding, so the figure inside it lines up with the plain figures below.
 
-To settle it later:
+## Charge rows
 
-1. Pick the treatment. Grey italics everywhere makes all four renderers agree and needs no new colour. Upright with a green discount makes a saving easier to spot, and needs a design token for the green in `src/index.css` and a contrast check against the section background.
-2. Decide whether the overview table follows. It shows the same charges.
-3. Change the renderer that loses: `Row` in `PersonBreakdownCard.tsx`, or `drawChargeRow` in `personBreakdownImage.ts`.
-4. Delete the `React only:` and `Image only:` comments on those two, and the first row of the table above.
-5. Compare the exported PNG and the screen before and after. The canvas drawing has no tests, so a browser capture is the check.
+Settled on 2026-11-04: charges are upright and grey in all four renderers, never italic. On a person's card a discount amount is green, `text-secondary` on screen and `SUCCESS` in `canvas/theme.ts` for the PNG; keep the two the same colour. The overview table shows every charge in grey, discount included.
 
 ## Naming
 

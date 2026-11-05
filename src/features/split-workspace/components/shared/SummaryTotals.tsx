@@ -15,9 +15,10 @@ interface Props {
   charges: ReceiptCharges;
   currency: CurrencyCode;
   onRemoveRounding: () => void;
+  className?: string;
 }
 
-export function SummaryTotals({ totals, charges, currency, onRemoveRounding }: Props) {
+export function SummaryTotals({ totals, charges, currency, onRemoveRounding, className }: Props) {
   // A discount shows once it takes something off. Service charge and tax also show while they
   // are switched on at zero, and rounding shows whichever way it goes.
   const shownCharges = CHARGE_KINDS.filter((kind) => {
@@ -28,10 +29,10 @@ export function SummaryTotals({ totals, charges, currency, onRemoveRounding }: P
   });
 
   return (
-    <div className="mb-8 space-y-4 border-t border-surface-container-high pt-6">
+    <div className={cn('space-y-2.5', className)}>
       <div className="flex items-center justify-between text-sm">
-        <span className="font-medium text-on-surface-variant">Subtotal</span>
-        <span className="font-bold text-on-surface">
+        <span className="text-on-surface-variant">Subtotal</span>
+        <span className="font-medium text-on-surface tabular-nums">
           {formatCurrencyFromCents(totals.subtotalCents, currency)}
         </span>
       </div>
@@ -39,7 +40,7 @@ export function SummaryTotals({ totals, charges, currency, onRemoveRounding }: P
         <div key={kind} className="flex items-center justify-between text-sm">
           <span
             className={cn(
-              'font-medium text-on-surface-variant',
+              'text-on-surface-variant',
               kind === 'rounding' && 'flex items-center gap-1',
             )}
           >
@@ -60,8 +61,8 @@ export function SummaryTotals({ totals, charges, currency, onRemoveRounding }: P
           </span>
           <span
             className={cn(
-              'font-bold',
-              CHARGE_SIGN[kind] === 'minus' ? 'text-secondary' : 'text-primary',
+              'font-medium tabular-nums',
+              CHARGE_SIGN[kind] === 'minus' ? 'text-secondary' : 'text-on-surface',
             )}
           >
             {CHARGE_SIGN[kind] === 'minus' ? '−' : '+'}
@@ -69,9 +70,9 @@ export function SummaryTotals({ totals, charges, currency, onRemoveRounding }: P
           </span>
         </div>
       ))}
-      <div className="flex items-center justify-between pt-2">
-        <span className="text-base font-extrabold text-primary">Computed Total</span>
-        <span className="font-headline text-2xl font-extrabold text-primary">
+      <div className="flex items-baseline justify-between border-t border-dashed border-surface-container-highest pt-3">
+        <span className="text-base font-semibold text-on-surface">Total</span>
+        <span className="font-headline text-2xl font-bold text-on-surface tabular-nums">
           {formatCurrencyFromCents(totals.totalCents, currency)}
         </span>
       </div>

@@ -28,20 +28,20 @@ export function PeopleStep() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-2xl space-y-6">
       <StepHeader
         title="Who's splitting the bill?"
         description="Add everyone sharing the bill."
-        className="mb-6"
+        className="mb-6 md:mb-8"
       />
 
-      <div className="rounded-2xl bg-surface-container-lowest p-5 shadow-[0_8px_24px_rgba(25,28,29,0.06)]">
+      <div className="surface-card p-4 md:p-5">
         <form
           onSubmit={(event) => {
             event.preventDefault();
             addTypedPeople();
           }}
-          className="flex gap-3"
+          className="flex items-center gap-2 field p-1.5 pl-4"
         >
           <input
             id="new-people-input"
@@ -49,19 +49,19 @@ export function PeopleStep() {
             value={peopleInput}
             onChange={(e) => setPeopleInput(e.target.value)}
             placeholder="Names, e.g. Alice, Bob"
-            className="min-w-0 flex-1 rounded-xl border-none bg-surface-container px-4 py-3 text-base text-on-surface outline-none placeholder:text-outline focus:ring-0"
+            className="min-w-0 flex-1 border-none bg-transparent py-2 text-base text-on-surface outline-none placeholder:text-outline focus:ring-0"
           />
           <button
             type="submit"
             data-testid="people-add-btn"
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-3 font-bold text-on-primary transition-transform active:scale-95"
+            className="flex h-10 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-on-primary transition-transform active:scale-95"
           >
-            <span className="material-symbols-outlined">add</span>
+            <span className="material-symbols-outlined text-xl">add</span>
             <span className="hidden sm:inline">Add</span>
           </button>
         </form>
-        <p className="mt-2 px-1 text-xs font-medium text-on-surface-variant/70">
-          Tip: Input multiple names with commas
+        <p className="mt-2 px-1 text-xs text-on-surface-variant">
+          Separate names with commas to add several at once.
         </p>
       </div>
 
@@ -70,25 +70,31 @@ export function PeopleStep() {
       {people.length === 0 ? (
         <div
           data-testid="people-empty-state"
-          className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-outline-variant/30 py-14 text-center"
+          className="flex flex-col items-center justify-center gap-1 rounded-card border border-dashed border-outline-variant py-8 text-center"
         >
-          <span className="material-symbols-outlined text-3xl text-outline">group</span>
-          <p className="text-sm font-semibold text-on-surface-variant">No one added yet.</p>
-          <p className="text-sm text-outline">Type names above to get started.</p>
+          <span className="material-symbols-outlined mb-1 text-2xl text-outline">group</span>
+          <p className="text-sm font-semibold text-on-surface">No one added yet</p>
+          <p className="text-sm text-on-surface-variant">
+            Everyone you add here can be given items on the receipt.
+          </p>
         </div>
       ) : (
         <section aria-label="People in this split" className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-on-surface-variant">
-              People in this split <span className="ml-1 text-outline">{people.length}</span>
+          <div className="flex flex-wrap items-center gap-y-1">
+            <h2 className="basis-full section-label sm:mr-auto sm:basis-auto">
+              People in this split{' '}
+              <span className="ml-1 font-medium text-outline">{people.length}</span>
             </h2>
-            <button
-              type="button"
-              onClick={removeAllPeople}
-              className="min-h-11 rounded-xl px-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
-            >
-              Remove all
-            </button>
+            <div className="-mx-3 -my-1.5 flex flex-1 flex-wrap items-center sm:mx-0 sm:my-0 sm:flex-none">
+              <SaveGroupForm />
+              <button
+                type="button"
+                onClick={removeAllPeople}
+                className="min-h-11 rounded-xl px-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
+              >
+                Remove all
+              </button>
+            </div>
           </div>
           <div data-testid="people-list" className="flex flex-wrap gap-2">
             {people.map((person, index) => (
@@ -107,22 +113,19 @@ export function PeopleStep() {
                   }
                 }}
                 className={cn(
-                  'flex items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest py-1 pr-2.5 pl-1 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95',
+                  'flex h-10 items-center gap-2 rounded-full border border-surface-container-highest bg-surface-container-lowest pr-3 pl-1.5 text-sm font-semibold text-on-surface transition hover:border-outline-variant active:scale-95',
                   leavingIds.includes(person.id)
                     ? 'motion-safe:animate-shrink-out'
                     : 'motion-safe:animate-person-in',
                 )}
               >
-                <PersonAvatar name={person.name} colorIndex={index} size="sm" />
+                <PersonAvatar name={person.name} colorIndex={index} className="h-7 w-7 text-xs" />
                 {person.name}
                 <span className="material-symbols-outlined !text-sm leading-none text-on-surface-variant">
                   close
                 </span>
               </button>
             ))}
-          </div>
-          <div className="flex flex-wrap justify-end">
-            <SaveGroupForm />
           </div>
         </section>
       )}

@@ -18,11 +18,15 @@ export function ClaimCheckMark({ checked }: Props) {
       aria-hidden
       className={cn(
         'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-        checked ? 'border-primary bg-primary' : 'border-outline-variant',
+        checked === 'indeterminate'
+          ? 'border-primary bg-surface-container-lowest'
+          : checked
+            ? 'border-primary bg-primary'
+            : 'border-outline-variant',
       )}
     >
       {checked === 'indeterminate' ? (
-        <span className={cn('h-[3px] w-2.5 rounded-full bg-on-primary', markClass)} />
+        <span className={cn('h-0.5 w-2.5 rounded-full bg-primary', markClass)} />
       ) : (
         <CheckIcon className={cn('h-3.5 w-3.5', markClass)} />
       )}

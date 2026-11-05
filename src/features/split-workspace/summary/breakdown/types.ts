@@ -58,6 +58,8 @@ export interface ReceiptBreakdownTotal {
 export interface ReceiptBreakdownSection {
   id: string;
   title: string;
+  /** False when the card covers one receipt, whose total the header already shows. */
+  showTitle: boolean;
   totalCents: number;
   currency: CurrencyCode;
   conversion?: BreakdownConversion;
@@ -73,7 +75,7 @@ export type PersonBreakdownBody =
 export interface PersonBreakdown {
   person: Person;
   colorIndex: number;
-  /** Which receipts the person's total covers: "Total · 3 receipts" or "Total · this receipt". */
+  /** Which receipts the person's total covers: "All 3 receipts" or "Total". */
   headerLabel: string;
   totalCents: number;
   currency: CurrencyCode;
@@ -84,7 +86,7 @@ export interface PersonBreakdown {
 }
 
 export interface SummaryBreakdown {
-  /** Names the grand total: "Total · 3 receipts" on the combined tab, else "Total". */
+  /** Names the grand total: "All 3 receipts" on the combined tab, else "Total". */
   totalLabel: string;
   totalCents: number;
   currency: CurrencyCode;

@@ -213,7 +213,7 @@ describe('resolveSummaryBreakdown', () => {
     expect(breakdown.totalLabel).toBe('Total');
     expect(breakdown.personBreakdowns).toHaveLength(1);
     const person = breakdown.personBreakdowns[0];
-    expect(person.headerLabel).toBe('Total · this receipt');
+    expect(person.headerLabel).toBe('Total');
     expect(person.totalCents).toBe(1368);
     expect(person.qrDataUrl).toBe('data:image/png;base64,qr');
     expect(person.body).toEqual({
@@ -222,6 +222,7 @@ describe('resolveSummaryBreakdown', () => {
         {
           id: 'r1',
           title: 'Dinner',
+          showTitle: false,
           totalCents: 1368,
           currency: 'SGD',
           conversion: undefined,
@@ -367,9 +368,10 @@ describe('resolveSummaryBreakdown', () => {
     const breakdown = resolveSummaryBreakdown({ people: [alice], view });
     const [person] = breakdown.personBreakdowns;
 
-    expect(breakdown.totalLabel).toBe('Total · 2 receipts');
-    expect(person.headerLabel).toBe('Total · 2 receipts');
+    expect(breakdown.totalLabel).toBe('All 2 receipts');
+    expect(person.headerLabel).toBe('All 2 receipts');
     expect(sectionsOf(person).map((section) => section.title)).toEqual(['Ramen Shop', 'Tea Stall']);
+    expect(sectionsOf(person).every((section) => section.showTitle)).toBe(true);
     expect(sectionsOf(person)[0].conversion).toEqual({
       amountCents: 11,
       rate: 0.009,

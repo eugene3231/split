@@ -12,12 +12,12 @@ interface Props {
 
 export function ReceiptClaimSection({ receiptId, name, leftCount, leading, children }: Props) {
   return (
-    <section aria-label={name} data-testid={`claim-section-${receiptId}`}>
-      <div className="sticky top-(--app-bar-height) z-10 -mx-6 flex flex-wrap items-center justify-between gap-2 border-b border-surface-container-high bg-surface px-6 pt-4 pb-2 md:mx-0 md:px-1">
+    <section aria-label={name} data-testid={`claim-section-${receiptId}`} className="surface-card">
+      <div className="sticky top-(--app-bar-height) z-10 flex flex-wrap items-center justify-between gap-2 rounded-t-card border-b border-surface-container-high bg-surface-container-lowest px-4 pt-3 pb-2">
         <span className="-mr-0.5 -ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center md:-ml-2.5">
           {leading}
         </span>
-        <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{name}</h2>
+        <h2 className="min-w-0 flex-1 truncate font-headline text-lg font-bold">{name}</h2>
         {leftCount > 0 && (
           <span
             data-testid={`claim-section-left-${receiptId}`}
@@ -28,7 +28,7 @@ export function ReceiptClaimSection({ receiptId, name, leftCount, leading, child
         )}
         <ReceiptSharingAction receiptId={receiptId} />
       </div>
-      <ul className="divide-y divide-surface-container-high">{children}</ul>
+      <ul className="divide-y divide-surface-container-high px-4">{children}</ul>
     </section>
   );
 }

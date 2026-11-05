@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import {
   selectActiveReceipt,
@@ -12,7 +13,11 @@ import { countItems, countItemsLeft, firstName } from '@features/split-workspace
 import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
-import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
+import {
+  BottomNav,
+  BottomNavStatus,
+  type BottomNavTrack,
+} from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatusReel';
@@ -27,8 +32,17 @@ import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import type { Person } from '@shared/types';
 import { WIZARD_STEPS, type AssignMode, type WizardStep } from '@features/split-workspace/types';
 
+// Where each step's content sits, so the bar lines up with it.
+const BOTTOM_NAV_TRACK: Record<WizardStep, BottomNavTrack> = {
+  people: 'narrow',
+  receipt: 'beside-rail',
+  items: 'beside-rail',
+  final: 'page',
+};
+
 export function Workspace() {
   useReceiptSplitterController();
+  const [finalActionSlot, setFinalActionSlot] = useState<HTMLDivElement | null>(null);
 
   const { people, receipts } = useReceiptStore(
     useShallow((state) => ({ people: state.people, receipts: state.receipts })),
@@ -95,6 +109,7 @@ export function Workspace() {
 
           {activeStep === 'final' && (
             <SummaryStep
+              actionSlot={finalActionSlot}
               onAddReceipt={handleAddReceipt}
               onResetSplit={withScrollToTop(handleResetSplit)}
             />
@@ -108,6 +123,8 @@ export function Workspace() {
         canContinue={canContinue}
         onBack={withScrollToTop(handleBack)}
         onNext={withScrollToTop(handleNext)}
+        finalActionRef={setFinalActionSlot}
+        track={BOTTOM_NAV_TRACK[activeStep]}
         status={
           <WorkspaceNavStatus
             key={activeStep}
@@ -121,6 +138,7 @@ export function Workspace() {
             }
             receiptTotalCents={computeReceiptTotals(activeReceipt, people).totalCents}
             receiptCurrency={activeReceipt.currency}
+            peopleCount={people.length}
           />
         }
       />
@@ -148,6 +166,7 @@ interface WorkspaceNavStatusProps {
   activePersonTotalCents: number;
   receiptTotalCents: number;
   receiptCurrency: CurrencyCode;
+  peopleCount: number;
 }
 
 function WorkspaceNavStatus({
@@ -159,6 +178,7 @@ function WorkspaceNavStatus({
   activePersonTotalCents,
   receiptTotalCents,
   receiptCurrency,
+  peopleCount,
 }: WorkspaceNavStatusProps) {
   const justFinished = useAllAssignedMoment(leftCount);
   if (activeStep === 'items' && assignMode === 'item') {
@@ -186,16 +206,19 @@ function WorkspaceNavStatus({
       <BottomNavStatus
         label="Receipt total"
         value={formatCurrencyFromCents(receiptTotalCents, receiptCurrency)}
-        className="hidden md:block"
       />
     );
   }
 
   if (activeStep === 'people') {
+    if (peopleCount === 0) {
+      return <p className="truncate text-sm text-white/60">Add someone first</p>;
+    }
     return (
-      <p className="hidden truncate text-sm text-white/60 md:block">
-        Add at least one person to continue
-      </p>
+      <BottomNavStatus
+        label="Splitting between"
+        value={peopleCount === 1 ? '1 person' : `${peopleCount} people`}
+      />
     );
   }
 

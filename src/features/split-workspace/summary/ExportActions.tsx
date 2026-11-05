@@ -1,22 +1,47 @@
 import { useId, useRef } from 'react';
+import { cn } from '@shared/utils/cn';
 import type { SummaryExportState } from './useSummaryExport';
+
+interface SaveImageButtonProps {
+  exportState: SummaryExportState;
+  onDownload: () => void;
+}
+
+/** The summary's primary action. It sits in the bottom bar, where other steps put Continue. */
+export function SaveImageButton({ exportState, onDownload }: SaveImageButtonProps) {
+  const busy = exportState.kind === 'busy' ? exportState.action : null;
+  return (
+    <button
+      type="button"
+      data-testid="export-save-image-btn"
+      onClick={onDownload}
+      disabled={busy !== null}
+      className="flex shrink-0 items-center justify-center gap-1.5 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-primary transition-all active:scale-95 disabled:opacity-60"
+    >
+      <span aria-hidden="true" className="material-symbols-outlined text-lg">
+        image
+      </span>
+      {busy === 'download' ? 'Generating…' : 'Save image'}
+    </button>
+  );
+}
 
 interface Props {
   exportState: SummaryExportState;
   text: string;
   nativeShareSupported: boolean;
-  onDownload: () => void;
   onShare: () => void;
   onPreview?: () => void;
+  className?: string;
 }
 
 export function ExportActions({
   exportState,
   text,
   nativeShareSupported,
-  onDownload,
   onShare,
   onPreview,
+  className,
 }: Props) {
   const textId = useId();
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -34,48 +59,41 @@ export function ExportActions({
         : 'Copying…'
       : nativeShareSupported
         ? 'Share'
-        : 'Copy Text';
+        : 'Copy text';
+
+  const secondaryClass =
+    'flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:border-outline hover:bg-surface-container-low disabled:opacity-60';
 
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        data-testid="export-save-image-btn"
-        onClick={onDownload}
-        disabled={busy !== null}
-        className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-on-primary transition-all hover:bg-primary-container disabled:opacity-60"
-      >
-        <span aria-hidden="true" className="material-symbols-outlined text-base">
-          image
-        </span>
-        {busy === 'download' ? 'Generating…' : 'Save Image'}
-      </button>
-      <button
-        type="button"
-        data-testid="export-copy-text-btn"
-        onClick={onShare}
-        disabled={busy !== null}
-        aria-live="polite"
-        className="flex items-center justify-center gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest px-6 py-3 text-sm font-bold text-primary transition-all hover:border-primary disabled:opacity-60"
-      >
-        <span aria-hidden="true" className="material-symbols-outlined text-base">
-          {textSuccess ? 'check' : nativeShareSupported ? 'share' : 'content_copy'}
-        </span>
-        {shareLabel}
-      </button>
-      {import.meta.env.DEV && onPreview && (
+    <div className={cn('flex flex-col gap-2', className)}>
+      <div className="flex gap-2">
         <button
           type="button"
-          onClick={onPreview}
+          data-testid="export-copy-text-btn"
+          onClick={onShare}
           disabled={busy !== null}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-outline-variant/50 px-6 py-3 text-sm font-bold text-on-surface-variant transition-all hover:border-primary hover:text-primary disabled:opacity-60"
+          aria-live="polite"
+          className={secondaryClass}
         >
-          <span aria-hidden="true" className="material-symbols-outlined text-base">
-            preview
+          <span aria-hidden="true" className="material-symbols-outlined text-lg">
+            {textSuccess ? 'check' : nativeShareSupported ? 'share' : 'content_copy'}
           </span>
-          {busy === 'preview' ? 'Generating…' : 'Preview Image'}
+          {shareLabel}
         </button>
-      )}
+        {import.meta.env.DEV && onPreview && (
+          <button
+            type="button"
+            onClick={onPreview}
+            disabled={busy !== null}
+            className={secondaryClass}
+          >
+            <span aria-hidden="true" className="material-symbols-outlined text-lg">
+              preview
+            </span>
+            {busy === 'preview' ? 'Generating…' : 'Preview'}
+          </button>
+        )}
+      </div>
       {error && (
         <p id={`${textId}-error`} role="alert" className="text-sm text-error">
           {error}

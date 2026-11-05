@@ -20,7 +20,7 @@ export function SavedGroups() {
   return (
     <section data-testid="saved-groups" aria-label="Saved groups" className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-on-surface-variant">Saved groups</h2>
+        <h2 className="section-label">Saved groups</h2>
         <button
           type="button"
           aria-expanded={isManaging}
@@ -33,14 +33,14 @@ export function SavedGroups() {
       {groups.length === 0 ? (
         <p className="py-4 text-sm text-on-surface-variant">No saved groups</p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {groups.map((group) => {
             const missing = namesMissingFromSplit(group, peopleNames);
             if (isManaging) {
               return (
                 <div
                   key={group.id}
-                  className="flex items-center gap-3 rounded-2xl border border-surface-container-highest bg-surface-container-lowest p-4"
+                  className="flex items-center gap-3 rounded-xl border border-surface-container-highest bg-surface-container-lowest p-4"
                 >
                   <GroupDetails group={group} />
                   <button
@@ -63,7 +63,7 @@ export function SavedGroups() {
                 data-testid={`saved-group-${group.id}`}
                 disabled={missing.length === 0}
                 onClick={() => addPeople(missing)}
-                className="flex items-center gap-3 rounded-2xl border border-surface-container-highest bg-surface-container-lowest p-4 text-left transition-colors hover:border-outline-variant disabled:hover:border-surface-container-highest"
+                className="flex items-center gap-3 rounded-xl border border-surface-container-highest bg-surface-container-lowest p-4 text-left transition-colors hover:border-outline-variant disabled:hover:border-surface-container-highest"
               >
                 <GroupDetails group={group} />
                 <span

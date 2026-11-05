@@ -192,6 +192,15 @@ describe('ReceiptSplitterPage integration', () => {
       addPeople('Alice');
       expect(screen.getByTestId('people-input')).toHaveValue('');
     });
+
+    it('counts the people in the bottom bar once someone is added', () => {
+      render(<ReceiptSplitterPage />);
+      expect(screen.getByTestId('wizard-status')).not.toHaveTextContent(/people|person/);
+      addPeople('Alice');
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('1 person');
+      addPeople('Bob, Carol');
+      expect(screen.getByTestId('wizard-status')).toHaveTextContent('3 people');
+    });
   });
 
   describe('Navigation', () => {
@@ -764,6 +773,13 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue(); // → Bob
       clickContinue(); // → final
     }
+
+    it('puts Save image in the bottom bar beside Back', async () => {
+      await navigateToFinal();
+      const bar = screen.getByTestId('wizard-back-btn').closest('footer');
+      expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
+      expect(bar).toContainElement(screen.getByTestId('export-save-image-btn'));
+    });
 
     it('triggers image generation when save image is clicked', async () => {
       await navigateToFinal();

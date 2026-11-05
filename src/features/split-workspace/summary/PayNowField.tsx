@@ -10,11 +10,8 @@ export function PayNowField({ invalid }: Props) {
 
   return (
     <div>
-      <label
-        htmlFor="payer-mobile"
-        className="mb-1.5 block text-xs font-semibold tracking-widest text-white/60 uppercase"
-      >
-        PayNow Number
+      <label htmlFor="payer-mobile" className="mb-1.5 block text-sm font-medium text-white/70">
+        PayNow number
       </label>
       <input
         id="payer-mobile"

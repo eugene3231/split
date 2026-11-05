@@ -46,7 +46,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                     'group flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all',
                     disabled
                       ? 'cursor-not-allowed opacity-45'
-                      : 'hover:bg-surface-container-low active:scale-95',
+                      : !isCurrent && 'hover:bg-surface-container-low active:scale-95',
                   )}
                 >
                   <div
@@ -57,7 +57,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                         : completed
                           ? 'bg-primary text-on-primary'
                           : isCurrent
-                            ? 'bg-primary text-on-primary ring-4 ring-primary/15 motion-safe:animate-step-pulse'
+                            ? 'bg-primary text-on-primary ring-2 ring-primary/25 ring-offset-2 ring-offset-surface'
                             : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >
@@ -88,8 +88,17 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
         </nav>
 
         {/* Mobile: compact interactive step buttons */}
-        <nav aria-label="Wizard steps" className="ml-auto flex flex-1 justify-end md:hidden">
-          <div className="grid grid-cols-4 gap-1">
+        <nav
+          aria-label="Wizard steps"
+          className="ml-auto flex flex-1 items-center justify-end gap-2 md:hidden"
+        >
+          <span
+            aria-hidden
+            className="truncate text-sm font-semibold text-on-surface max-[359px]:hidden"
+          >
+            {STEP_LABELS[activeStep]}
+          </span>
+          <div className="grid shrink-0 grid-cols-4">
             {WIZARD_STEPS.map((step, i) => {
               const completed = i < stepIndex;
               const isCurrent = step === activeStep;
@@ -104,12 +113,8 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                   aria-current={isCurrent ? 'step' : undefined}
                   aria-label={`Step ${i + 1}: ${STEP_LABELS[step]}`}
                   className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-full transition-all',
-                    disabled
-                      ? 'cursor-not-allowed opacity-45'
-                      : isCurrent
-                        ? 'bg-primary/10'
-                        : 'active:scale-95',
+                    'flex h-9 w-8 items-center justify-center rounded-full transition-all',
+                    disabled ? 'cursor-not-allowed opacity-45' : !isCurrent && 'active:scale-95',
                   )}
                 >
                   <span
@@ -120,7 +125,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                         : completed
                           ? 'bg-primary text-on-primary'
                           : isCurrent
-                            ? 'bg-primary text-on-primary ring-4 ring-primary/15 motion-safe:animate-step-pulse'
+                            ? 'bg-primary text-on-primary ring-2 ring-primary/25 ring-offset-2 ring-offset-surface'
                             : 'bg-surface-container-highest text-on-surface-variant',
                     )}
                   >

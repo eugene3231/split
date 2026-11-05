@@ -26,21 +26,21 @@ interface Props {
 // docs/EXPORT-PARITY.md lists it.
 export function PersonBreakdownCard({ breakdown }: Props) {
   return (
-    <div className="flex h-full flex-col rounded-2xl bg-surface-container-lowest p-4 sm:p-6">
+    <div className="flex h-full flex-col surface-card p-4 sm:p-6">
       {/* Wraps the total under the name rather than truncating the name when both don't fit.
           React only: the PNG card is a fixed 760px wide, so its header always fits on one line. */}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 items-center gap-3">
           <PersonAvatar name={breakdown.person.name} colorIndex={breakdown.colorIndex} />
-          <h3 className="truncate text-xl font-bold text-primary sm:text-2xl">
+          <h3 className="truncate text-lg font-semibold text-on-surface sm:text-xl">
             {breakdown.person.name}
           </h3>
         </div>
         <div className="ml-auto flex-shrink-0 text-right">
-          <span className="mb-1 block text-[10px] leading-none font-semibold tracking-widest text-on-surface-variant uppercase">
+          <span className="mb-1 block text-xs leading-none font-medium text-on-surface-variant">
             {breakdown.headerLabel}
           </span>
-          <p className="font-headline text-2xl leading-none font-semibold text-on-surface sm:text-3xl">
+          <p className="font-headline text-3xl leading-none font-bold tracking-tight text-on-surface tabular-nums">
             {formatCurrencyFromCents(breakdown.totalCents, breakdown.currency)}
           </p>
           {/* React only: each card keeps its rate; the PNG says it once, above the cards. */}
@@ -62,7 +62,7 @@ function Body({ body }: { body: PersonBreakdownBody }): ReactElement | null {
     case 'receiptTotals':
       if (body.totals.length === 0) return null;
       return (
-        <div className="mt-2 space-y-1.5">
+        <div className="space-y-1.5 border-t border-surface-container-high pt-4">
           {body.totals.map((total) => (
             <ReceiptTotal key={total.id} total={total} />
           ))}
@@ -70,17 +70,15 @@ function Body({ body }: { body: PersonBreakdownBody }): ReactElement | null {
       );
     case 'sections':
       return (
-        <div className="mt-2 flex-grow space-y-3">
-          <div className="space-y-3">
-            {body.sections.map((section) => (
-              <ReceiptSection key={section.id} section={section} />
-            ))}
-          </div>
+        <div className="flex-grow space-y-4">
+          {body.sections.map((section) => (
+            <ReceiptSection key={section.id} section={section} />
+          ))}
         </div>
       );
     case 'empty':
       return (
-        <div className="mt-2 flex-grow space-y-3">
+        <div className="flex-grow border-t border-surface-container-high pt-4">
           <EmptyMessage message={body.message} />
         </div>
       );
@@ -117,7 +115,7 @@ function PayNowQr({ qrDataUrl, personName }: { qrDataUrl: string; personName: st
 
 function ReceiptTotal({ total }: { total: ReceiptBreakdownTotal }) {
   return (
-    <div className="flex justify-between text-base text-on-surface-variant">
+    <div className="flex justify-between text-[15px] text-on-surface tabular-nums">
       <span className="truncate pr-3">{total.label}</span>
       <span className="flex-shrink-0">
         {formatCurrencyFromCents(total.totalCents, total.currency)}
@@ -128,17 +126,21 @@ function ReceiptTotal({ total }: { total: ReceiptBreakdownTotal }) {
 
 function ReceiptSection({ section }: { section: ReceiptBreakdownSection }) {
   return (
-    <div className="rounded-xl bg-surface-container-low p-3 sm:p-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <span className="min-w-0 text-base font-bold text-on-surface">{section.title}</span>
-        <div className="flex-shrink-0 text-right">
-          <span className="block text-base font-bold text-on-surface">
-            {formatCurrencyFromCents(section.totalCents, section.currency)}
+    <div className="border-t border-surface-container-high pt-4">
+      {section.showTitle && (
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <span className="min-w-0 text-sm font-medium text-on-surface-variant">
+            {section.title}
           </span>
-          {section.conversion && <ConversionLines conversion={section.conversion} compact />}
+          <div className="flex-shrink-0 text-right">
+            <span className="block text-sm font-medium text-on-surface-variant tabular-nums">
+              {formatCurrencyFromCents(section.totalCents, section.currency)}
+            </span>
+            {section.conversion && <ConversionLines conversion={section.conversion} compact />}
+          </div>
         </div>
-      </div>
-      <div className="space-y-3 border-t border-outline-variant/15 pt-3">
+      )}
+      <div className="space-y-2.5">
         {section.rows.map((row) => (
           <Row key={rowKey(row)} row={row} />
         ))}
@@ -167,8 +169,8 @@ function Row({ row }: { row: BreakdownRow }): ReactElement {
       return (
         <div
           className={cn(
-            'flex justify-between gap-4 text-base text-on-surface-variant sm:pl-4',
-            row.amountCents === null && 'text-on-surface-variant/40 italic',
+            'flex justify-between gap-4 text-[15px] text-on-surface tabular-nums',
+            row.amountCents === null && 'text-on-surface-variant/50 italic',
           )}
         >
           <span className="min-w-0 break-words">{row.label}</span>
@@ -176,14 +178,14 @@ function Row({ row }: { row: BreakdownRow }): ReactElement {
         </div>
       );
     case 'rule':
-      return <div className="border-t border-outline-variant/40" />;
+      return <div className="border-t border-dashed border-surface-container-highest" />;
     case 'charge':
-      // React only: every charge is grey italics, where the PNG sets them upright with a green
-      // discount. The difference is on record in docs/EXPORT-PARITY.md.
       return (
-        <div className="flex justify-between gap-4 text-base sm:pl-4">
-          <span className="text-on-surface-variant italic">{row.label}</span>
-          <span className="text-on-surface-variant italic">{formatChargeAmount(row)}</span>
+        <div className="flex justify-between gap-4 text-sm text-on-surface-variant tabular-nums">
+          <span>{row.label}</span>
+          <span className={cn(row.sign === 'minus' && 'text-secondary')}>
+            {formatChargeAmount(row)}
+          </span>
         </div>
       );
     case 'empty':

@@ -19,10 +19,10 @@ function breakdown(body: PersonBreakdownBody): PersonBreakdown {
   };
 }
 
-function lunch(rows: BreakdownRow[]): PersonBreakdownBody {
+function lunch(rows: BreakdownRow[], showTitle = true): PersonBreakdownBody {
   return {
     kind: 'sections',
-    sections: [{ id: 'lunch', title: 'Lunch', totalCents: 1200, currency: 'SGD', rows }],
+    sections: [{ id: 'lunch', title: 'Lunch', showTitle, totalCents: 1200, currency: 'SGD', rows }],
   };
 }
 
@@ -45,6 +45,15 @@ describe('PersonBreakdownCard', () => {
     expect(follows(screen.getByAltText('PayNow QR for Alice'), screen.getByText('Laksa'))).toBe(
       true,
     );
+  });
+
+  it('leaves out the receipt heading when the section has none', () => {
+    const { rerender } = render(<PersonBreakdownCard breakdown={breakdown(lunch([laksa]))} />);
+    expect(screen.getByText('Lunch')).toBeInTheDocument();
+
+    rerender(<PersonBreakdownCard breakdown={breakdown(lunch([laksa], false))} />);
+    expect(screen.queryByText('Lunch')).not.toBeInTheDocument();
+    expect(screen.getByText('Laksa')).toBeInTheDocument();
   });
 
   it('ends with the PayNow QR when only receipt totals show', () => {

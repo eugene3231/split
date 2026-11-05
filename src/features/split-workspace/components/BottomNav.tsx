@@ -9,7 +9,14 @@ interface Props {
   onBack: () => void;
   onNext: () => void;
   status?: ReactNode;
+  /** On the summary, the step renders its own primary action into this element. */
+  finalActionRef?: (element: HTMLDivElement | null) => void;
+  /** The column the bar lines up with: the page, the main track beside a sidebar from xl, or a
+   * narrow centred step. */
+  track?: BottomNavTrack;
 }
+
+export type BottomNavTrack = 'page' | 'beside-rail' | 'narrow';
 
 function getVisualViewportBottomInset() {
   const viewport = window.visualViewport;
@@ -65,6 +72,8 @@ export function BottomNav({
   onBack,
   onNext,
   status,
+  finalActionRef,
+  track = 'page',
 }: Props) {
   const isFirstStep = activeStep === 'people';
   const isFinalStep = activeStep === 'final';
@@ -77,50 +86,66 @@ export function BottomNav({
     >
       <div
         className={cn(
-          'mx-auto flex max-w-3xl items-center gap-2 rounded-3xl bg-primary p-2 text-on-primary shadow-2xl shadow-black/20 md:gap-3',
-          isFinalStep && 'ml-0 w-fit md:mx-auto',
+          'mx-auto max-w-7xl',
+          track === 'beside-rail' && 'xl:grid xl:grid-cols-12 xl:gap-8',
         )}
       >
-        {!isFirstStep && (
-          <button
-            type="button"
-            data-testid="wizard-back-btn"
-            aria-label="Back"
-            onClick={onBack}
-            className="flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <span className="material-symbols-outlined text-xl">arrow_back</span>
-            <span className={cn(!isFinalStep && 'hidden md:inline')}>Back</span>
-          </button>
-        )}
+        <div
+          className={cn(
+            'mx-auto flex max-w-3xl items-center gap-2 rounded-3xl bg-primary p-2 text-on-primary shadow-[0_12px_32px_-8px_rgba(23,28,39,0.45)] md:gap-3',
+            isFinalStep && 'w-fit',
+            track === 'beside-rail' && 'xl:col-span-8 xl:w-full',
+            track === 'narrow' && 'max-w-2xl',
+          )}
+        >
+          {!isFirstStep && (
+            <button
+              type="button"
+              data-testid="wizard-back-btn"
+              aria-label="Back"
+              onClick={onBack}
+              className="flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-xl">arrow_back</span>
+              <span className="hidden md:inline">Back</span>
+            </button>
+          )}
 
-        {!isFinalStep && (
-          <>
+          {isFinalStep ? (
+            <div ref={finalActionRef} className="contents" />
+          ) : (
             <div
               data-testid="wizard-status"
-              className="flex min-w-0 flex-1 flex-col justify-center pl-1 md:pl-3"
+              className={cn(
+                'flex min-h-12 min-w-0 flex-1 flex-col justify-center pl-1 md:pl-3',
+                isFirstStep && 'pl-3',
+              )}
             >
               {status}
             </div>
-            <button
-              type="button"
-              data-testid="wizard-continue-btn"
-              onClick={onNext}
-              disabled={!canContinue}
-              className={cn(
-                'flex max-w-[60%] shrink-0 items-center justify-center gap-1 rounded-2xl px-5 py-3 text-sm font-bold transition-all active:scale-95',
-                canContinue
-                  ? 'bg-white text-primary'
-                  : 'cursor-not-allowed bg-white/15 text-white/50',
-              )}
-            >
-              <span key={continueLabel} className="block truncate motion-safe:animate-nudge">
-                {continueLabel}
-              </span>
-              <span className="material-symbols-outlined text-lg">arrow_forward</span>
-            </button>
-          </>
-        )}
+          )}
+          {!isFinalStep && (
+            <>
+              <button
+                type="button"
+                data-testid="wizard-continue-btn"
+                onClick={onNext}
+                disabled={!canContinue}
+                className={cn(
+                  'flex max-w-[60%] shrink-0 items-center justify-center gap-1 rounded-2xl px-5 py-3 text-sm font-semibold transition-all active:scale-95',
+                  canContinue
+                    ? 'bg-white text-primary'
+                    : 'cursor-not-allowed bg-white/15 text-white/50',
+                )}
+              >
+                <span key={continueLabel} className="block truncate motion-safe:animate-nudge">
+                  {continueLabel}
+                </span>
+                <span className="material-symbols-outlined text-lg">arrow_forward</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </footer>
   );
@@ -138,7 +163,7 @@ export function BottomNavStatus({ label, value, className }: BottomNavStatusProp
       <p aria-live="polite" className="h-4 truncate text-xs text-white/60">
         {label}
       </p>
-      <p className="truncate text-xl leading-tight font-extrabold tabular-nums">{value}</p>
+      <p className="truncate font-headline text-xl leading-tight font-bold tabular-nums">{value}</p>
     </div>
   );
 }

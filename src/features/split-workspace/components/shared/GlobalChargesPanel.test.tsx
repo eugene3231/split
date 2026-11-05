@@ -120,24 +120,24 @@ it('writes charge amounts and the receipt total the way the receipt currency is 
   expect(screen.getByTestId('receipt-total-input')).toHaveValue('1,206,500');
 });
 
-it('shows the receipt currency on the amount toggle and next to the amount', () => {
+it('names the unit once, on the toggle beside the amount', () => {
   renderPanel({ currency: 'IDR', serviceCharge: amountCharge('') });
 
   expect(screen.getByRole('radio', { name: 'Service Charge as an amount' })).toHaveTextContent(
     'Rp',
   );
   const input = screen.getByRole('textbox', { name: 'Service Charge amount' });
-  expect(input.previousElementSibling).toHaveTextContent('Rp');
+  expect(input.parentElement).not.toHaveTextContent('Rp');
   expect(input).toHaveAttribute('placeholder', '0');
 });
 
-it('puts the percent sign after the percent', () => {
+it('shows a percent as a bare number beside the % toggle', () => {
   renderPanel({ gst: percentCharge('9.00') });
 
   const input = screen.getByRole('textbox', { name: 'GST / Tax percent' });
   expect(input).toHaveValue('9');
-  expect(input.previousElementSibling).toBeNull();
-  expect(input.nextElementSibling).toHaveTextContent('%');
+  expect(input.parentElement).not.toHaveTextContent('%');
+  expect(screen.getByRole('radio', { name: 'GST / Tax as a percent' })).toHaveTextContent('%');
 });
 
 it('keeps what the person types until they leave the receipt total', () => {
