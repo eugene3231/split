@@ -23,11 +23,12 @@ interface Props {
 // Both the pinned header and the table lay columns out from these, so they line up without
 // measuring: the Item column is fixed and the people share the rest, never below a minimum.
 // From lg the people columns may narrow so a table of twelve fits the page without scrolling
-// sideways, and the card stops growing so a few people stay close to the items they had.
+// sideways, and the card stops growing so a few people stay close to the items they had. It is
+// never narrower than the eight columns the total card above it spans, so their edges line up.
 const ITEM_COLUMN = 'w-36 sm:w-56';
 const TABLE_WIDTH =
   'w-full min-w-[calc(9rem+var(--people)*4rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)] lg:min-w-[calc(14rem+var(--people)*5rem)]';
-const CARD_WIDTH = 'lg:max-w-[calc(14rem+var(--people)*9rem)]';
+const CARD_WIDTH = 'lg:max-w-[max(calc(14rem+var(--people)*9rem),calc((100%-22rem)/12*8+14rem))]';
 // Every amount column, the people above it included, shares one right edge.
 const AMOUNT_CELL =
   'px-1 text-right whitespace-nowrap tabular-nums last:pr-4 sm:px-3 sm:last:pr-6 lg:px-2 lg:last:pr-6';
