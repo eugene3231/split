@@ -26,6 +26,8 @@ import { cn } from '@shared/utils/cn';
 import { SummaryDetailToggle } from './SummaryDetailToggle';
 import type { SummaryDetail } from '@features/split-workspace/summary/breakdown/types';
 
+const TOTALS_LIST_MIN_PEOPLE = 5;
+
 export type SummaryStepProps = {
   /** Where the bottom bar takes the step's primary action, Save image. */
   actionSlot?: HTMLDivElement | null;
@@ -54,6 +56,8 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
 
   const nativeShareSupported = getShareSupport() === 'native';
   const isOverview = mode === 'overview';
+  // A few cards side by side already show every total, so the list only earns its place in a crowd.
+  const showTotalsList = !isOverview && people.length >= TOTALS_LIST_MIN_PEOPLE;
 
   return (
     <div>
@@ -103,8 +107,8 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
         )}
 
       {/* On a phone the total leads and the actions follow the cards. From lg the total and the
-          actions share a band above the content, and By person adds an index of the cards beside
-          them, while the overview table takes the full width. */}
+          actions share a band above the content. By person in a large group adds an index of the
+          cards beside them; otherwise the content takes the full width. */}
       <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12 lg:gap-x-8">
         <div className="lg:col-span-8">
           <GrandTotalCard
@@ -129,7 +133,7 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
           <ResetSplitAction onConfirm={onResetSplit} className="self-center" />
         </div>
 
-        <div className={cn('min-w-0', isOverview ? 'lg:col-span-12' : 'lg:col-span-8')}>
+        <div className={cn('min-w-0', showTotalsList ? 'lg:col-span-8' : 'lg:col-span-12')}>
           <div
             data-testid="summary-controls"
             className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 empty:hidden"
@@ -164,7 +168,7 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
               key={`by-person-${activeTab}`}
               className={cn(
                 'grid grid-cols-1 gap-4 motion-safe:animate-fade-in md:grid-cols-2',
-                detail === 'totals' && 'xl:grid-cols-3',
+                showTotalsList ? detail === 'totals' && 'xl:grid-cols-3' : 'lg:grid-cols-3',
               )}
             >
               {summaryBreakdown.personBreakdowns.map((breakdown) => (
@@ -176,7 +180,7 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
           )}
         </div>
 
-        {!isOverview && (
+        {showTotalsList && (
           <aside className="hidden lg:sticky lg:top-[calc(var(--app-bar-height)+1.5rem)] lg:col-span-4 lg:block lg:self-start">
             <PersonTotalsList breakdowns={summaryBreakdown.personBreakdowns} />
           </aside>

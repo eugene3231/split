@@ -62,8 +62,9 @@ export function ClaimItemRow({
           <ClaimCheckMark checked={item.claimedByActive} />
           <span className="min-w-0 leading-tight">
             <span
+              title={item.name}
               className={cn(
-                'block break-words',
+                'block break-words lg:truncate',
                 item.takenByOthers ? 'text-on-surface-variant' : 'font-semibold',
               )}
             >

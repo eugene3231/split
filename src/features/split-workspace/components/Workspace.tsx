@@ -13,7 +13,11 @@ import { countItems, countItemsLeft, firstName } from '@features/split-workspace
 import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
 import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
-import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
+import {
+  BottomNav,
+  BottomNavStatus,
+  type BottomNavTrack,
+} from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
 import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatusReel';
@@ -27,6 +31,14 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import type { Person } from '@shared/types';
 import { WIZARD_STEPS, type AssignMode, type WizardStep } from '@features/split-workspace/types';
+
+// Where each step's content sits, so the bar lines up with it.
+const BOTTOM_NAV_TRACK: Record<WizardStep, BottomNavTrack> = {
+  people: 'narrow',
+  receipt: 'beside-rail',
+  items: 'beside-rail',
+  final: 'page',
+};
 
 export function Workspace() {
   useReceiptSplitterController();
@@ -112,7 +124,7 @@ export function Workspace() {
         onBack={withScrollToTop(handleBack)}
         onNext={withScrollToTop(handleNext)}
         finalActionRef={setFinalActionSlot}
-        besideRail={activeStep === 'receipt' || activeStep === 'items'}
+        track={BOTTOM_NAV_TRACK[activeStep]}
         status={
           <WorkspaceNavStatus
             key={activeStep}

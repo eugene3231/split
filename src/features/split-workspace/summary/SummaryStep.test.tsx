@@ -112,23 +112,26 @@ describe('SummaryStep', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: 'Totals' }));
 
-    // Each card shows its header total plus the receipt's row underneath, and the list of
-    // totals beside the cards repeats the header total.
-    expect(screen.getAllByText('$10.00')).toHaveLength(3);
-    expect(screen.getAllByText('$6.00')).toHaveLength(3);
+    // Each card shows its header total plus the receipt's row underneath.
+    expect(screen.getAllByText('$10.00')).toHaveLength(2);
+    expect(screen.getAllByText('$6.00')).toHaveLength(2);
+    // Two cards side by side already show every total, so there is no list of them.
+    expect(screen.queryByRole('navigation', { name: 'Who owes what' })).toBeNull();
   });
 
-  it("lists each person's total beside the cards, jumps to their card, and leaves the overview alone", () => {
-    const alice = makePerson('Alice');
-    const bob = makePerson('Bob');
+  it("lists each person's total beside the cards of a large group, jumps to their card, and leaves the overview alone", () => {
+    const [alice, bob, ...others] = ['Alice', 'Bob', 'Charlie', 'David', 'Emma'].map((name) =>
+      makePerson(name),
+    );
     seedStore(
-      [alice, bob],
+      [alice, bob, ...others],
       [
         makeReceipt({
           name: 'Dinner',
           items: [
             makeItem({ amountInput: '10.00', assignment: equalShares([alice.id]) }),
             makeItem({ amountInput: '6.00', assignment: equalShares([bob.id]) }),
+            makeItem({ amountInput: '9.00', assignment: equalShares(others.map((p) => p.id)) }),
           ],
         }),
       ],
