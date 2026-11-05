@@ -22,11 +22,13 @@ interface Props {
 
 // Both the pinned header and the table lay columns out from these, so they line up without
 // measuring: the Item column is fixed and the people share the rest, never below a minimum.
-const ITEM_COLUMN = 'w-36 sm:w-56';
+// From lg the columns narrow so a table of twelve fits the page without scrolling sideways.
+const ITEM_COLUMN = 'w-36 sm:w-56 lg:w-48';
 const TABLE_WIDTH =
-  'w-full min-w-[calc(9rem+var(--people)*4rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)]';
+  'w-full min-w-[calc(9rem+var(--people)*4rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)] lg:min-w-[calc(12rem+var(--people)*5.25rem)]';
 // Every amount column, the people above it included, shares one right edge.
-const AMOUNT_CELL = 'px-1 text-right whitespace-nowrap tabular-nums last:pr-4 sm:px-3 sm:last:pr-6';
+const AMOUNT_CELL =
+  'px-1 text-right whitespace-nowrap tabular-nums last:pr-4 sm:px-3 sm:last:pr-6 lg:px-2 lg:last:pr-6';
 
 // A shadow at the right edge while there are more columns to scroll to. The white cover scrolls
 // with the table and hides it once the edge is reached; Tailwind can't layer attached backgrounds.
@@ -79,7 +81,7 @@ export function OverviewTable({ overview }: Props) {
               <div
                 key={person.id}
                 title={person.name}
-                className="flex min-w-0 flex-1 basis-0 justify-end px-1 py-2 font-medium last:pr-4 sm:px-3 sm:last:pr-6"
+                className="flex min-w-0 flex-1 basis-0 justify-end px-1 py-2 font-medium last:pr-4 sm:px-3 sm:last:pr-6 lg:px-2 lg:last:pr-6"
               >
                 <PersonIdentity person={person} colorIndex={index} />
               </div>
@@ -159,7 +161,7 @@ function StickyCell({ as: Cell, scope, className, children }: StickyCellProps) {
     <Cell
       scope={scope}
       className={cn(
-        'sticky left-0 z-10 w-36 min-w-36 bg-surface-container-lowest px-4 text-left shadow-[inset_-1px_0_0_var(--color-surface-container-high)] sm:w-56 sm:min-w-56 sm:px-6 sm:shadow-none',
+        'sticky left-0 z-10 w-36 min-w-36 bg-surface-container-lowest px-4 text-left shadow-[inset_-1px_0_0_var(--color-surface-container-high)] sm:w-56 sm:min-w-56 sm:px-6 sm:shadow-none lg:w-48 lg:min-w-48',
         className,
       )}
     >

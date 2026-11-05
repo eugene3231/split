@@ -11,6 +11,8 @@ interface Props {
   status?: ReactNode;
   /** On the summary, the step renders its own primary action into this element. */
   finalActionRef?: (element: HTMLDivElement | null) => void;
+  /** The step has a sidebar from xl, so the bar centres on the main column instead of the page. */
+  besideRail?: boolean;
 }
 
 function getVisualViewportBottomInset() {
@@ -68,6 +70,7 @@ export function BottomNav({
   onNext,
   status,
   finalActionRef,
+  besideRail = false,
 }: Props) {
   const isFirstStep = activeStep === 'people';
   const isFinalStep = activeStep === 'final';
@@ -78,59 +81,62 @@ export function BottomNav({
       className="sticky bottom-0 z-50 w-full px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8"
       style={{ bottom: bottomInset }}
     >
-      <div
-        className={cn(
-          'mx-auto flex max-w-3xl items-center gap-2 rounded-3xl bg-primary p-2 text-on-primary shadow-[0_12px_32px_-8px_rgba(23,28,39,0.45)] md:gap-3',
-          isFinalStep && 'w-fit',
-        )}
-      >
-        {!isFirstStep && (
-          <button
-            type="button"
-            data-testid="wizard-back-btn"
-            aria-label="Back"
-            onClick={onBack}
-            className="flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <span className="material-symbols-outlined text-xl">arrow_back</span>
-            <span className="hidden md:inline">Back</span>
-          </button>
-        )}
-
-        {isFinalStep ? (
-          <div ref={finalActionRef} className="contents" />
-        ) : (
-          <div
-            data-testid="wizard-status"
-            className={cn(
-              'flex min-h-12 min-w-0 flex-1 flex-col justify-center pl-1 md:pl-3',
-              isFirstStep && 'pl-3',
-            )}
-          >
-            {status}
-          </div>
-        )}
-        {!isFinalStep && (
-          <>
+      <div className={cn('mx-auto max-w-7xl', besideRail && 'xl:grid xl:grid-cols-12 xl:gap-8')}>
+        <div
+          className={cn(
+            'mx-auto flex max-w-3xl items-center gap-2 rounded-3xl bg-primary p-2 text-on-primary shadow-[0_12px_32px_-8px_rgba(23,28,39,0.45)] md:gap-3',
+            isFinalStep && 'w-fit',
+            besideRail && 'xl:col-span-8 xl:w-full',
+          )}
+        >
+          {!isFirstStep && (
             <button
               type="button"
-              data-testid="wizard-continue-btn"
-              onClick={onNext}
-              disabled={!canContinue}
+              data-testid="wizard-back-btn"
+              aria-label="Back"
+              onClick={onBack}
+              className="flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-3 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-xl">arrow_back</span>
+              <span className="hidden md:inline">Back</span>
+            </button>
+          )}
+
+          {isFinalStep ? (
+            <div ref={finalActionRef} className="contents" />
+          ) : (
+            <div
+              data-testid="wizard-status"
               className={cn(
-                'flex max-w-[60%] shrink-0 items-center justify-center gap-1 rounded-2xl px-5 py-3 text-sm font-semibold transition-all active:scale-95',
-                canContinue
-                  ? 'bg-white text-primary'
-                  : 'cursor-not-allowed bg-white/15 text-white/50',
+                'flex min-h-12 min-w-0 flex-1 flex-col justify-center pl-1 md:pl-3',
+                isFirstStep && 'pl-3',
               )}
             >
-              <span key={continueLabel} className="block truncate motion-safe:animate-nudge">
-                {continueLabel}
-              </span>
-              <span className="material-symbols-outlined text-lg">arrow_forward</span>
-            </button>
-          </>
-        )}
+              {status}
+            </div>
+          )}
+          {!isFinalStep && (
+            <>
+              <button
+                type="button"
+                data-testid="wizard-continue-btn"
+                onClick={onNext}
+                disabled={!canContinue}
+                className={cn(
+                  'flex max-w-[60%] shrink-0 items-center justify-center gap-1 rounded-2xl px-5 py-3 text-sm font-semibold transition-all active:scale-95',
+                  canContinue
+                    ? 'bg-white text-primary'
+                    : 'cursor-not-allowed bg-white/15 text-white/50',
+                )}
+              >
+                <span key={continueLabel} className="block truncate motion-safe:animate-nudge">
+                  {continueLabel}
+                </span>
+                <span className="material-symbols-outlined text-lg">arrow_forward</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </footer>
   );

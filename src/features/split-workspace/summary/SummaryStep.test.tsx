@@ -112,9 +112,45 @@ describe('SummaryStep', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: 'Totals' }));
 
-    // Each card shows its header total plus the receipt's row underneath.
-    expect(screen.getAllByText('$10.00')).toHaveLength(2);
-    expect(screen.getAllByText('$6.00')).toHaveLength(2);
+    // Each card shows its header total plus the receipt's row underneath, and the list of
+    // totals beside the cards repeats the header total.
+    expect(screen.getAllByText('$10.00')).toHaveLength(3);
+    expect(screen.getAllByText('$6.00')).toHaveLength(3);
+  });
+
+  it("lists each person's total beside the cards, jumps to their card, and leaves the overview alone", () => {
+    const alice = makePerson('Alice');
+    const bob = makePerson('Bob');
+    seedStore(
+      [alice, bob],
+      [
+        makeReceipt({
+          name: 'Dinner',
+          items: [
+            makeItem({ amountInput: '10.00', assignment: equalShares([alice.id]) }),
+            makeItem({ amountInput: '6.00', assignment: equalShares([bob.id]) }),
+          ],
+        }),
+      ],
+    );
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
+
+    const list = within(screen.getByRole('navigation', { name: 'Who owes what' }));
+    expect(list.getByTestId(`person-total-${alice.id}`)).toHaveTextContent('Alice$10.00');
+    expect(list.getByTestId(`person-total-${bob.id}`)).toHaveTextContent('Bob$6.00');
+
+    fireEvent.click(list.getByTestId(`person-total-${bob.id}`));
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    const scrolledTo = scrollIntoView.mock.contexts[0] as HTMLElement;
+    expect(within(scrolledTo).getByRole('heading', { name: 'Bob' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Overview' }));
+
+    expect(screen.queryByRole('navigation', { name: 'Who owes what' })).toBeNull();
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
   });
 
   it('reports the successful native share as shared', async () => {

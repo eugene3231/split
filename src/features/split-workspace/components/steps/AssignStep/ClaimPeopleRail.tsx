@@ -47,8 +47,8 @@ export function ClaimPeopleRail({ people, onSelect, layout, currency, className 
               : undefined
           }
           className={cn(
-            'flex shrink-0 items-center gap-3 rounded-xl border py-1.5 pr-3.5 pl-1.5 text-left transition-colors',
-            layout === 'column' ? 'w-full' : 'bg-surface-container-lowest',
+            'flex shrink-0 items-center gap-3 rounded-xl border pr-3.5 pl-1.5 text-left transition-colors',
+            layout === 'column' ? 'w-full py-1' : 'bg-surface-container-lowest py-1.5',
             person.isActive
               ? layout === 'column'
                 ? 'border-transparent bg-surface-container'

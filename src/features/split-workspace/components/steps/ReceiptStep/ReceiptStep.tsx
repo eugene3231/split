@@ -75,8 +75,8 @@ export function ReceiptStep({ onAddReceipt }: Props) {
         ))}
       </ReceiptTabs>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
-        <div className="space-y-6 lg:col-span-8">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:gap-8">
+        <div className="space-y-6 xl:col-span-8">
           <ReceiptImportActions
             onReceiptFileSelected={handleReceiptFileChange}
             onScanReceipt={handleScanReceipt}
@@ -162,7 +162,7 @@ export function ReceiptStep({ onAddReceipt }: Props) {
           </section>
         </div>
 
-        <div className="lg:col-span-4">
+        <div className="xl:col-span-4">
           <GlobalChargesPanel receipt={receipt} />
         </div>
       </div>

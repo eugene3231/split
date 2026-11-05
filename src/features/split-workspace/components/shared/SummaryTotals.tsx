@@ -15,9 +15,10 @@ interface Props {
   charges: ReceiptCharges;
   currency: CurrencyCode;
   onRemoveRounding: () => void;
+  className?: string;
 }
 
-export function SummaryTotals({ totals, charges, currency, onRemoveRounding }: Props) {
+export function SummaryTotals({ totals, charges, currency, onRemoveRounding, className }: Props) {
   // A discount shows once it takes something off. Service charge and tax also show while they
   // are switched on at zero, and rounding shows whichever way it goes.
   const shownCharges = CHARGE_KINDS.filter((kind) => {
@@ -28,7 +29,7 @@ export function SummaryTotals({ totals, charges, currency, onRemoveRounding }: P
   });
 
   return (
-    <div className="mt-4 mb-5 space-y-2.5 border-t border-surface-container-high pt-4">
+    <div className={cn('space-y-2.5', className)}>
       <div className="flex items-center justify-between text-sm">
         <span className="text-on-surface-variant">Subtotal</span>
         <span className="font-medium text-on-surface tabular-nums">

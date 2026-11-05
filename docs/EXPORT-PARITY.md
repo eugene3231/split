@@ -24,14 +24,15 @@ When you change how one renderer looks, open the other and make the matching cha
 
 ## Differences that are meant
 
-| What                                | On screen                                                          | In the PNG                                                                 | Why                                                                 |
-| ----------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Exchange rate on a person's card    | Under each person's total                                          | Once, in the grand total band; a person's header gives only the `≈` amount | Side by side in one image, the same rate would repeat on every card |
-| A name too long for the card header | The total wraps under the name                                     | The name is cut with an ellipsis                                           | The image card is a fixed 760px wide                                |
-| A long item name on a card          | Wraps for as many lines as it needs                                | Wraps to two lines, then an ellipsis                                       | A row in the image has a fixed height per line                      |
-| PayNow code                         | A button that downloads the code, pushed to the bottom of the card | The code alone, lined up along the bottom of the row of cards              | A PNG cannot be clicked; cards in a row share one height            |
-| People row of the overview          | Pinned under the app bar while the page scrolls                    | Drawn once at the top                                                      | The image shows the whole table at once                             |
-| A long item name in the overview    | Clamped to two lines on a phone, unclamped above that              | One line, cut with an ellipsis                                             | A row in the image has one fixed height                             |
+| What                                | On screen                                                                | In the PNG                                                                 | Why                                                                 |
+| ----------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Exchange rate on a person's card    | Under each person's total                                                | Once, in the grand total band; a person's header gives only the `≈` amount | Side by side in one image, the same rate would repeat on every card |
+| A name too long for the card header | The total wraps under the name                                           | The name is cut with an ellipsis                                           | The image card is a fixed 760px wide                                |
+| A long item name on a card          | Wraps for as many lines as it needs                                      | Wraps to two lines, then an ellipsis                                       | A row in the image has a fixed height per line                      |
+| PayNow code                         | A button that downloads the code, pushed to the bottom of the card       | The code alone, lined up along the bottom of the row of cards              | A PNG cannot be clicked; cards in a row share one height            |
+| People row of the overview          | Pinned under the app bar while the page scrolls                          | Drawn once at the top                                                      | The image shows the whole table at once                             |
+| A long item name in the overview    | Clamped to two lines on a phone, unclamped above that                    | One line, cut with an ellipsis                                             | A row in the image has one fixed height                             |
+| Who owes what list                  | Beside the By person cards from 1024px wide, each name jumps to its card | Not drawn                                                                  | The image shows every card at once                                  |
 
 ## Overview columns
 

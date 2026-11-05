@@ -91,8 +91,8 @@ export function AssignStep({ mode, onModeChange, activePersonId, onSelectPerson 
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-12 lg:gap-8">
-      <div className="min-w-0 lg:col-span-8">
+    <div className="xl:grid xl:grid-cols-12 xl:gap-8">
+      <div className="min-w-0 xl:col-span-8">
         <header className="mb-4 md:mb-6">
           <SegmentedToggle
             label="Assign items"
@@ -106,9 +106,9 @@ export function AssignStep({ mode, onModeChange, activePersonId, onSelectPerson 
             onSelect={onSelectPerson}
             layout="row"
             currency={view.totalsCurrency}
-            className="-mx-6 overflow-x-auto mask-r-from-[calc(100%-2rem)] px-6 py-1 md:-mx-8 md:px-8 lg:hidden"
+            className="-mx-6 overflow-x-auto mask-r-from-[calc(100%-2rem)] px-6 py-1 md:-mx-8 md:px-8 xl:hidden"
           />
-          <SlideIn key={content.key} direction={direction} className="mt-5 lg:mt-0">
+          <SlideIn key={content.key} direction={direction} className="mt-5 xl:mt-0">
             <StepHeader title={content.title} description={content.description} />
           </SlideIn>
         </header>
@@ -118,14 +118,14 @@ export function AssignStep({ mode, onModeChange, activePersonId, onSelectPerson 
         </SlideIn>
       </div>
 
-      <aside className="hidden surface-card p-2 lg:sticky lg:top-[calc(var(--app-bar-height)+1.5rem)] lg:col-span-4 lg:block lg:self-start">
+      <aside className="hidden surface-card p-2 xl:sticky xl:top-[calc(var(--app-bar-height)+1.5rem)] xl:col-span-4 xl:block xl:self-start">
         <h2 className="px-2 pt-2 pb-3 section-label">Who had what</h2>
         <ClaimPeopleRail
           people={view.people}
           onSelect={onSelectPerson}
           layout="column"
           currency={view.totalsCurrency}
-          className="max-h-[calc(100vh-17rem)] overflow-y-auto"
+          className="max-h-[calc(100dvh-var(--app-bar-height)-7rem)] overflow-y-auto mask-b-from-[calc(100%-2.5rem)] pb-8"
         />
       </aside>
     </div>

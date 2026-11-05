@@ -21,6 +21,8 @@ import { SummaryModeToggle } from './SummaryModeToggle';
 import type { SummaryMode } from './SummaryModeToggle';
 import { OverviewTable } from '@features/split-workspace/summary/overview/OverviewTable';
 import { MixedCurrencyNote } from './MixedCurrencyNote';
+import { PersonBreakdownAnchor, PersonTotalsList } from './PersonTotalsList';
+import { cn } from '@shared/utils/cn';
 import { SummaryDetailToggle } from './SummaryDetailToggle';
 import type { SummaryDetail } from '@features/split-workspace/summary/breakdown/types';
 
@@ -100,8 +102,34 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
           </div>
         )}
 
-      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12 lg:gap-8">
-        <div className="order-2 min-w-0 lg:order-none lg:col-span-8 lg:col-start-1 lg:row-start-1">
+      {/* On a phone the total leads and the actions follow the cards. From lg the total and the
+          actions share a band above the content, and By person adds an index of the cards beside
+          them, while the overview table takes the full width. */}
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12 lg:gap-x-8">
+        <div className="lg:col-span-8">
+          <GrandTotalCard
+            payNowStatus={model.payNowStatus}
+            totalLabel={summaryBreakdown.totalLabel}
+            grandTotal={view.total.split.totals.totalCents}
+            displayCurrency={view.total.currency}
+            currentReceipt={receiptForExport}
+            people={people}
+            onRenameReceipt={renameReceipt}
+          />
+        </div>
+
+        <div className="order-last flex flex-col gap-3 lg:order-none lg:col-span-4 lg:self-center">
+          <ExportActions
+            exportState={exportState}
+            text={text}
+            nativeShareSupported={nativeShareSupported}
+            onShare={share}
+            onPreview={preview}
+          />
+          <ResetSplitAction onConfirm={onResetSplit} className="self-center" />
+        </div>
+
+        <div className={cn('min-w-0', isOverview ? 'lg:col-span-12' : 'lg:col-span-8')}>
           <div
             data-testid="summary-controls"
             className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 empty:hidden"
@@ -134,40 +162,25 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
           ) : (
             <div
               key={`by-person-${activeTab}`}
-              className="flex flex-col gap-4 motion-safe:animate-fade-in"
+              className={cn(
+                'grid grid-cols-1 gap-4 motion-safe:animate-fade-in md:grid-cols-2',
+                detail === 'totals' && 'xl:grid-cols-3',
+              )}
             >
               {summaryBreakdown.personBreakdowns.map((breakdown) => (
-                <PersonBreakdownCard key={breakdown.person.id} breakdown={breakdown} />
+                <PersonBreakdownAnchor key={breakdown.person.id} personId={breakdown.person.id}>
+                  <PersonBreakdownCard breakdown={breakdown} />
+                </PersonBreakdownAnchor>
               ))}
             </div>
           )}
         </div>
 
-        {/* One rail in both views. On a phone its parts join the page: the total card above
-            the cards, the other actions after them. */}
-        <div className="contents lg:sticky lg:top-[calc(var(--app-bar-height)+1.5rem)] lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:flex lg:flex-col lg:gap-3 lg:self-start">
-          <div className="order-1 lg:order-none">
-            <GrandTotalCard
-              payNowStatus={model.payNowStatus}
-              totalLabel={summaryBreakdown.totalLabel}
-              grandTotal={view.total.split.totals.totalCents}
-              displayCurrency={view.total.currency}
-              currentReceipt={receiptForExport}
-              people={people}
-              onRenameReceipt={renameReceipt}
-            />
-          </div>
-          <div className="order-3 flex flex-col gap-3 lg:order-none">
-            <ExportActions
-              exportState={exportState}
-              text={text}
-              nativeShareSupported={nativeShareSupported}
-              onShare={share}
-              onPreview={preview}
-            />
-            <ResetSplitAction onConfirm={onResetSplit} className="self-center" />
-          </div>
-        </div>
+        {!isOverview && (
+          <aside className="hidden lg:sticky lg:top-[calc(var(--app-bar-height)+1.5rem)] lg:col-span-4 lg:block lg:self-start">
+            <PersonTotalsList breakdowns={summaryBreakdown.personBreakdowns} />
+          </aside>
+        )}
       </div>
 
       {actionSlot &&

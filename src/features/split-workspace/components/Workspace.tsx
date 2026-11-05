@@ -112,6 +112,7 @@ export function Workspace() {
         onBack={withScrollToTop(handleBack)}
         onNext={withScrollToTop(handleNext)}
         finalActionRef={setFinalActionSlot}
+        besideRail={activeStep === 'receipt' || activeStep === 'items'}
         status={
           <WorkspaceNavStatus
             key={activeStep}

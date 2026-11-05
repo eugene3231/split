@@ -48,8 +48,9 @@ export function ClaimItemRow({
           'before:absolute before:inset-y-2.5 before:-left-3 before:w-1 before:rounded-full before:bg-warning',
       )}
     >
-      {/* Both lines are `contents`, so one flex row lays them out and `order` moves the stepper
-          to the second line on phones, where the item name needs the width. */}
+      {/* Both lines are `contents`, so one flex row lays them out and `order` places each part:
+          the stepper on the second line on phones, the shortcuts there on tablets, and all of it
+          on one line from lg. */}
       <div className="contents">
         <Checkbox.Root
           aria-label={item.name}
@@ -79,7 +80,7 @@ export function ClaimItemRow({
           </span>
         </Checkbox.Root>
         {share ? (
-          <div className="order-5 mb-1.5 ml-9 md:order-2 md:mb-0 md:ml-0">
+          <div className="order-5 mb-1.5 ml-9 md:order-2 md:mb-0 md:ml-0 lg:order-4">
             <ShareStepper
               share={share}
               onStep={onStepShare}
@@ -89,7 +90,7 @@ export function ClaimItemRow({
         ) : (
           <div className="order-2">{avatars}</div>
         )}
-        <div className="order-3 flex shrink-0 justify-end md:w-24">
+        <div className="order-3 flex shrink-0 justify-end md:w-24 lg:order-5">
           {share ? (
             <ShareAmountField
               label={share.amountLabel}
@@ -103,10 +104,12 @@ export function ClaimItemRow({
       </div>
       {share && (
         <div data-testid={`claim-item-actions-${item.id}`} className="contents">
-          <div aria-hidden className="order-4 basis-full" />
-          <div className="order-2 md:order-5 md:mr-auto md:ml-9">{avatars}</div>
+          <div aria-hidden className="order-4 basis-full lg:hidden" />
+          <div className="order-2 md:order-5 md:mr-auto md:ml-9 lg:order-2 lg:mr-0 lg:ml-0">
+            {avatars}
+          </div>
           {/* A shortcut that is already in effect can't be pressed, so it reads as the selected side. */}
-          <div className="order-6 mb-1.5 ml-auto flex rounded-full bg-surface-container p-0.5 motion-safe:animate-rise-in">
+          <div className="order-6 mb-1.5 ml-auto flex rounded-full bg-surface-container p-0.5 motion-safe:animate-rise-in lg:order-3 lg:mb-0 lg:ml-0">
             <ItemActionChip
               icon="groups"
               label="Everyone"
