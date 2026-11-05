@@ -22,13 +22,12 @@ interface Props {
 
 // Both the pinned header and the table lay columns out from these, so they line up without
 // measuring: the Item column is fixed and the people share the rest, never below a minimum.
-// From lg the people columns may narrow so a table of twelve fits the page without scrolling
-// sideways, and the card stops growing so a few people stay close to the items they had. It is
-// never narrower than the eight columns the total card above it spans, so their edges line up.
-const ITEM_COLUMN = 'w-36 sm:w-56';
+// From lg the table spans the page: the Item column takes the room a few people leave, so their
+// amounts stay together on the right, and the people columns narrow so twelve fit too. The width
+// is measured against the card (`cqw`), because a table resolves percentage column widths unevenly.
+const ITEM_COLUMN = 'w-36 sm:w-56 lg:w-[max(14rem,calc(100cqw-var(--people)*9rem))]';
 const TABLE_WIDTH =
   'w-full min-w-[calc(9rem+var(--people)*4rem)] sm:min-w-[calc(14rem+var(--people)*6.5rem)] lg:min-w-[calc(14rem+var(--people)*5rem)]';
-const CARD_WIDTH = 'lg:max-w-[max(calc(14rem+var(--people)*9rem),calc((100%-22rem)/12*8+14rem))]';
 // Every amount column, the people above it included, shares one right edge.
 const AMOUNT_CELL =
   'px-1 text-right whitespace-nowrap tabular-nums last:pr-4 sm:px-3 sm:last:pr-6 lg:px-2 lg:last:pr-6';
@@ -52,7 +51,7 @@ export function OverviewTable({ overview }: Props) {
   return (
     <section
       aria-labelledby="overview-heading"
-      className={cn('min-w-0 overflow-clip surface-card', CARD_WIDTH)}
+      className="@container min-w-0 overflow-clip surface-card"
       style={{ '--people': people.length } as CSSProperties}
     >
       <h2
@@ -165,6 +164,7 @@ function StickyCell({ as: Cell, scope, className, children }: StickyCellProps) {
       scope={scope}
       className={cn(
         'sticky left-0 z-10 w-36 min-w-36 bg-surface-container-lowest px-4 text-left shadow-[inset_-1px_0_0_var(--color-surface-container-high)] sm:w-56 sm:min-w-56 sm:px-6 sm:shadow-none',
+        ITEM_COLUMN,
         className,
       )}
     >
