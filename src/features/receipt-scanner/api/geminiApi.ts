@@ -1,11 +1,7 @@
 import type { OcrResponse } from '@shared/types';
-import { toNullableNumber, roundMoney } from '@shared/logic/core/money';
-import {
-  geminiReceiptSchema,
-  GEMINI_RECEIPT_RESPONSE_SCHEMA,
-} from '@features/receipt-scanner/logic/gemini-schema';
-import type { GeminiChargePayload } from '@features/receipt-scanner/logic/gemini-schema';
-import type { ChargeDetection } from '@shared/types';
+import { GEMINI_RECEIPT_RESPONSE_SCHEMA } from '@features/receipt-scanner/logic/gemini-schema';
+import { RECEIPT_SCAN_PROMPT } from '@features/receipt-scanner/logic/scanPrompt';
+import { parseGeminiReceiptResponse } from '@features/receipt-scanner/logic/receiptParser';
 
 interface GeminiGenerateContentResponse {
   candidates?: Array<{
@@ -36,12 +32,6 @@ export async function analyzeReceiptWithGemini(
   const contentBase64 = await fileToBase64(file);
   const mimeType = file.type || 'image/jpeg';
 
-  const prompt = [
-    'Extract structured receipt data from the attached file.',
-    'If unsure, set nullable fields to null and add a warning.',
-    'Amounts must be numbers, not strings.',
-  ].join('\n');
-
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`;
   const response = await fetch(url, {
     method: 'POST',
@@ -50,7 +40,7 @@ export async function analyzeReceiptWithGemini(
       contents: [
         {
           role: 'user',
-          parts: [{ text: prompt }, { inlineData: { mimeType, data: contentBase64 } }],
+          parts: [{ text: RECEIPT_SCAN_PROMPT }, { inlineData: { mimeType, data: contentBase64 } }],
         },
       ],
       generationConfig: {
@@ -88,85 +78,6 @@ export async function analyzeReceiptWithGemini(
 
 function extractGeminiText(payload: GeminiGenerateContentResponse): string | null {
   return payload.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
-}
-
-function parseGeminiReceiptResponse(text: string): OcrResponse {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch {
-    throw new Error('Gemini output was not valid JSON.');
-  }
-
-  const result = geminiReceiptSchema.safeParse(raw);
-  if (!result.success) {
-    throw new Error('Gemini response did not match expected schema.');
-  }
-  const parsed = result.data;
-
-  const items = parsed.items
-    .map(normalizeGeminiItem)
-    .filter((item): item is { description: string; amount: number } => item !== null);
-
-  const warnings = [...parsed.warnings];
-
-  if (items.length === 0) {
-    warnings.push('Gemini did not return line items confidently. Add/edit items manually.');
-  }
-
-  return {
-    items,
-    subtotal: toNullableNumber(parsed.subtotal),
-    total: toNullableNumber(parsed.total),
-    detected: {
-      gst: normalizeGeminiChargeDetection(parsed.detected.gst),
-      serviceCharge: normalizeGeminiChargeDetection(parsed.detected.serviceCharge),
-    },
-    warnings,
-  };
-}
-
-function normalizeGeminiItem(value: {
-  description: string | null;
-  amount: number | null;
-}): { description: string; amount: number } | null {
-  const description =
-    typeof value.description === 'string' ? value.description.replace(/\s+/g, ' ').trim() : '';
-  const amount = toNullableNumber(value.amount);
-
-  if (!description || amount === null || amount <= 0) {
-    return null;
-  }
-
-  return {
-    description,
-    amount: roundMoney(amount),
-  };
-}
-
-function normalizeGeminiChargeDetection(value: GeminiChargePayload): ChargeDetection {
-  const amount = toNullableNumber(value.amount);
-  const percent = toNullableNumber(value.percent);
-  const confidenceRaw = toNullableNumber(value.confidence);
-  const confidence = confidenceRaw === null ? null : Math.max(0, Math.min(1, confidenceRaw));
-  const enabled =
-    value.enabled === true ||
-    (amount !== null && amount !== 0) ||
-    (percent !== null && percent !== 0);
-  const source =
-    typeof value.source === 'string' && value.source.trim()
-      ? value.source.trim()
-      : enabled
-        ? 'gemini'
-        : 'none';
-
-  return {
-    enabled,
-    amount: amount === null ? null : roundMoney(amount),
-    percent: percent === null ? null : roundMoney(percent),
-    confidence,
-    source,
-  };
 }
 
 function fileToBase64(file: File): Promise<string> {
