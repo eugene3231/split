@@ -20,7 +20,7 @@ export const HEADER_CONVERSION_H = 30;
 const BODY_GAP = 20;
 
 export const SECTION_PAD = 20;
-const SECTION_GAP = 12;
+const SECTION_GAP = 12 + SECTION_PAD;
 const SECTION_TITLE_H = 30;
 const CONVERSION_LINE_H = 26;
 export const SECTION_RULE_H = 18;
@@ -36,7 +36,7 @@ const QR_GAP = 24;
 export const QR_SIZE = 240;
 
 export const INNER_WIDTH = COLUMN_WIDTH - CARD_PAD * 2;
-export const SECTION_INNER_WIDTH = INNER_WIDTH - SECTION_PAD * 2;
+export const SECTION_INNER_WIDTH = INNER_WIDTH;
 
 export interface Placed<T> {
   item: T;
@@ -124,7 +124,7 @@ function layoutSection(
       conversionLines: [],
       ruleY: null,
       rows: rows.placed,
-      height: rows.bottom + SECTION_PAD,
+      height: rows.bottom,
     };
   }
   const conversionLines = stack(
@@ -139,7 +139,7 @@ function layoutSection(
     conversionLines: conversionLines.placed,
     ruleY,
     rows: rows.placed,
-    height: rows.bottom + SECTION_PAD,
+    height: rows.bottom,
   };
 }
 
@@ -161,7 +161,7 @@ function rowHeight(ctx: CanvasRenderingContext2D, row: BreakdownRow): number {
  * Image only: the screen lets a name wrap further.
  */
 export function itemLabelLines(ctx: CanvasRenderingContext2D, row: BreakdownItemRow): string[] {
-  ctx.font = `500 22px ${FONT}`;
+  ctx.font = `400 22px ${FONT}`;
   const valueWidth = ctx.measureText(formatItemAmount(row)).width;
   ctx.font = `400 22px ${FONT}`;
   return wrapText(ctx, row.label, SECTION_INNER_WIDTH - valueWidth - 24, ITEM_MAX_LINES);

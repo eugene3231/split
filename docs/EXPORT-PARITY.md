@@ -32,6 +32,7 @@ When you change how one renderer looks, open the other and make the matching cha
 | PayNow code                         | A button that downloads the code, pushed to the bottom of the card       | The code alone, lined up along the bottom of the row of cards              | A PNG cannot be clicked; cards in a row share one height            |
 | People row of the overview          | Pinned under the app bar while the page scrolls                          | Drawn once at the top                                                      | The image shows the whole table at once                             |
 | A long item name in the overview    | Clamped to two lines on a phone, unclamped above that                    | One line, cut with an ellipsis                                             | A row in the image has one fixed height                             |
+| Overview wider than a phone         | "Swipe for all N" beside the table's heading                             | Not drawn                                                                  | The image shows every column at once                                |
 | Who owes what list                  | Beside the By person cards from 1024px wide, each name jumps to its card | Not drawn                                                                  | The image shows every card at once                                  |
 
 ## Overview columns

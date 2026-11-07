@@ -11,7 +11,7 @@ import type { ChargeMode, ChargeState } from '@shared/types';
 import type { CurrencyCode } from '@shared/constants';
 
 const MODE_ITEM_CLASS =
-  'flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-xs font-bold text-on-surface-variant transition-colors hover:text-on-surface data-[state=on]:bg-surface-container-lowest data-[state=on]:text-on-surface data-[state=on]:shadow-sm';
+  'flex h-9 min-w-8 items-center justify-center rounded-lg px-1.5 text-xs font-bold sm:h-8 text-on-surface-variant transition-colors hover:text-on-surface data-[state=on]:bg-surface-container-lowest data-[state=on]:text-on-surface data-[state=on]:shadow-sm';
 
 interface Props {
   label: string;
@@ -39,7 +39,7 @@ export function ChargeToggle({ label, value, onChange, currency }: Props) {
           </Switch.Root>
           <span
             className={cn(
-              'min-w-0 flex-1 text-sm leading-tight font-semibold',
+              'min-w-0 flex-1 text-sm leading-tight font-semibold whitespace-nowrap',
               isEnabled ? 'text-on-surface' : 'text-on-surface-variant',
             )}
           >
@@ -49,7 +49,7 @@ export function ChargeToggle({ label, value, onChange, currency }: Props) {
 
         {isEnabled && (
           <div className="flex shrink-0 items-center gap-1.5">
-            <div className="flex h-10 w-14 items-center gap-1 field px-2.5 sm:w-20 sm:px-3">
+            <div className="flex h-10 w-13 items-center gap-1 field px-2 sm:w-20 sm:px-3">
               <FormattedNumberInput
                 aria-label={isAmount ? `${label} amount` : `${label} percent`}
                 value={isAmount ? value.amountInput : value.percentInput}

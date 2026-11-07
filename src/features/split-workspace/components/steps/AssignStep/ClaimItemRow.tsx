@@ -48,69 +48,56 @@ export function ClaimItemRow({
           'before:absolute before:inset-y-2.5 before:-left-3 before:w-1 before:rounded-full before:bg-warning',
       )}
     >
-      {/* Both lines are `contents`, so one flex row lays them out and `order` places each part:
-          the stepper on the second line on phones, the shortcuts there on tablets, and all of it
-          on one line from lg. */}
-      <div className="contents">
-        <Checkbox.Root
-          aria-label={item.name}
-          checked={item.claimedByActive}
-          data-testid={`claim-item-toggle-${item.id}`}
-          onCheckedChange={onToggle}
-          className="order-1 flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
-        >
-          <ClaimCheckMark checked={item.claimedByActive} />
-          <span className="min-w-0 leading-tight">
-            <span
-              title={item.name}
-              className={cn(
-                'block break-words lg:truncate',
-                item.takenByOthers ? 'text-on-surface-variant' : 'font-semibold',
-              )}
-            >
-              {item.name}
-            </span>
-            {item.isLeft && (
-              <span
-                data-testid={`claim-item-left-${item.id}`}
-                className="block text-xs font-semibold text-warning"
-              >
-                {item.leftLabel ?? 'Nobody yet'}
-              </span>
+      {/* The name, who has it and the amount share the first line at every width, so the avatars
+          and amounts form columns down the list. The stepper and shortcuts wrap to a second. */}
+      <Checkbox.Root
+        aria-label={item.name}
+        checked={item.claimedByActive}
+        data-testid={`claim-item-toggle-${item.id}`}
+        onCheckedChange={onToggle}
+        className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
+      >
+        <ClaimCheckMark checked={item.claimedByActive} />
+        <span className="min-w-0 leading-tight">
+          <span
+            title={item.name}
+            className={cn(
+              'block break-words lg:truncate',
+              item.takenByOthers ? 'text-on-surface-variant' : 'font-semibold',
             )}
+          >
+            {item.name}
           </span>
-        </Checkbox.Root>
-        {share ? (
-          <div className="order-5 mb-1.5 ml-9 md:order-2 md:mb-0 md:ml-0 lg:order-4">
-            <ShareStepper
-              share={share}
-              onStep={onStepShare}
-              testId={`claim-item-share-${item.id}`}
-            />
-          </div>
-        ) : (
-          <div className="order-2">{avatars}</div>
-        )}
-        <div className="order-3 flex shrink-0 justify-end md:w-24 lg:order-5">
-          {share ? (
-            <ShareAmountField
-              label={share.amountLabel}
-              onCommit={onSetShare}
-              testId={`claim-item-amount-${item.id}`}
-            />
-          ) : (
-            <span className="pr-2 text-on-surface-variant tabular-nums">{item.priceLabel}</span>
+          {item.isLeft && (
+            <span
+              data-testid={`claim-item-left-${item.id}`}
+              className="block text-xs font-semibold text-warning"
+            >
+              {item.leftLabel ?? 'Nobody yet'}
+            </span>
           )}
-        </div>
+        </span>
+      </Checkbox.Root>
+      {avatars}
+      <div className="flex shrink-0 justify-end md:w-24">
+        {share ? (
+          <ShareAmountField
+            label={share.amountLabel}
+            onCommit={onSetShare}
+            testId={`claim-item-amount-${item.id}`}
+          />
+        ) : (
+          <span className="text-on-surface-variant tabular-nums">{item.priceLabel}</span>
+        )}
       </div>
       {share && (
-        <div data-testid={`claim-item-actions-${item.id}`} className="contents">
-          <div aria-hidden className="order-4 basis-full lg:hidden" />
-          <div className="order-2 md:order-5 md:mr-auto md:ml-9 lg:order-2 lg:mr-0 lg:ml-0">
-            {avatars}
-          </div>
+        <div
+          data-testid={`claim-item-actions-${item.id}`}
+          className="mb-1.5 ml-9 flex basis-full items-center justify-between gap-2"
+        >
+          <ShareStepper share={share} onStep={onStepShare} testId={`claim-item-share-${item.id}`} />
           {/* A shortcut that is already in effect can't be pressed, so it reads as the selected side. */}
-          <div className="order-6 mb-1.5 ml-auto flex rounded-full bg-surface-container p-0.5 motion-safe:animate-rise-in lg:order-3 lg:mb-0 lg:ml-0">
+          <div className="flex rounded-full bg-surface-container p-0.5 motion-safe:animate-rise-in">
             <ItemActionChip
               icon="groups"
               label="Everyone"

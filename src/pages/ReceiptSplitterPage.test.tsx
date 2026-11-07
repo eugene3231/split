@@ -209,7 +209,7 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       const expectStep = (step: number) => {
-        expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(`Step ${step}`);
+        expectActiveStepNav((['people', 'receipt', 'items', 'final'] as const)[step - 1]);
         expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
       };
 
@@ -254,10 +254,10 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What did Alice have?');
 
       clickBack(); // claim → receipt
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+      expectActiveStepNav('receipt');
 
       clickBack(); // receipt → people
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 1/i);
+      expectActiveStepNav('people');
       expect(screen.queryByTestId('wizard-back-btn')).not.toBeInTheDocument();
     });
 
@@ -796,7 +796,7 @@ describe('ReceiptSplitterPage integration', () => {
     it('navigates back to receipt step when add new receipt is clicked', async () => {
       await navigateToFinal();
       fireEvent.click(screen.getByTestId('summary-add-receipt-btn'));
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+      expectActiveStepNav('receipt');
     });
   });
 
@@ -1060,7 +1060,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       await waitFor(() => expect(screen.getByTestId('wizard-continue-btn')).not.toBeDisabled());
       clickContinue(); // → receipt
-      expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+      expectActiveStepNav('receipt');
 
       await waitFor(() => {
         const saved = window.localStorage.getItem('split:simple-wizard-state:v1');
@@ -1072,7 +1072,7 @@ describe('ReceiptSplitterPage integration', () => {
       render(<ReceiptSplitterPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('wizard-step-context')).toHaveTextContent(/Step 2/i);
+        expectActiveStepNav('receipt');
       });
     });
 

@@ -32,12 +32,14 @@ const TABLE_WIDTH =
 const AMOUNT_CELL =
   'px-1 text-right whitespace-nowrap tabular-nums last:pr-4 sm:px-3 sm:last:pr-6 lg:px-2 lg:last:pr-6';
 
+const PHONE_VISIBLE_PEOPLE = 3;
+
 // A shadow at the right edge while there are more columns to scroll to. The white cover scrolls
 // with the table and hides it once the edge is reached; Tailwind can't layer attached backgrounds.
 const SCROLL_CUE: CSSProperties = {
   background: [
-    'linear-gradient(to left, var(--color-surface-container-lowest) 0.875rem, transparent) right / 2rem 100% no-repeat local',
-    'radial-gradient(farthest-side at 100% 50%, rgb(23 28 39 / 0.14), transparent) right / 0.875rem 100% no-repeat scroll',
+    'linear-gradient(to left, var(--color-surface-container-lowest) 1.25rem, transparent) right / 2.5rem 100% no-repeat local',
+    'radial-gradient(farthest-side at 100% 50%, rgb(23 28 39 / 0.2), transparent) right / 1.25rem 100% no-repeat scroll',
   ].join(', '),
 };
 
@@ -54,12 +56,20 @@ export function OverviewTable({ overview }: Props) {
       className="@container min-w-0 overflow-clip surface-card"
       style={{ '--people': people.length } as CSSProperties}
     >
-      <h2
-        id="overview-heading"
-        className="px-4 pt-5 pb-3 text-lg font-semibold text-on-surface sm:px-6"
-      >
-        Who had what
-      </h2>
+      <div className="flex items-baseline justify-between gap-3 px-4 pt-5 pb-3 sm:px-6">
+        <h2 id="overview-heading" className="text-lg font-semibold text-on-surface">
+          Who had what
+        </h2>
+        {/* React only: a phone fits about three people, so it says the rest are a swipe away. */}
+        {people.length > PHONE_VISIBLE_PEOPLE && (
+          <p className="flex items-center gap-0.5 text-xs font-medium text-on-surface-variant sm:hidden">
+            Swipe for all {people.length}
+            <span aria-hidden="true" className="material-symbols-outlined text-base!">
+              arrow_forward
+            </span>
+          </p>
+        )}
+      </div>
       {/* The people row, and the receipt being scrolled through, pin under the app bar while the
           page scrolls. They sit outside the table because a sticky row can't escape the table's
           sideways scroll box, so the people row follows that box's scroll instead.

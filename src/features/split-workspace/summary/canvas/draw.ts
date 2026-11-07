@@ -106,14 +106,14 @@ export function drawCardShell(
   w: number,
   h: number,
 ): void {
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.10)';
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetY = 4;
+  // Like `surface-card` on screen: white with a hairline. The radius matches the total band.
   ctx.fillStyle = '#ffffff';
-  drawRoundedRect(ctx, x, y, w, h, 16);
+  drawRoundedRect(ctx, x, y, w, h, 24);
   ctx.fill();
-  ctx.restore();
+  ctx.strokeStyle = '#e0e4e9';
+  ctx.lineWidth = 2;
+  drawRoundedRect(ctx, x + 1, y + 1, w - 2, h - 2, 23);
+  ctx.stroke();
 }
 
 export interface PersonAvatarArgs {
@@ -152,6 +152,6 @@ export function drawTitle(
   ctx.fillText(title, x, baseline);
 
   ctx.fillStyle = MUTED;
-  ctx.font = `500 22px ${FONT}`;
+  ctx.font = `400 20px ${FONT}`;
   ctx.fillText(`Generated ${formatGeneratedAt(new Date())}`, x, baseline + 36);
 }
