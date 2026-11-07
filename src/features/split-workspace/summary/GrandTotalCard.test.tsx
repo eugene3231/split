@@ -12,6 +12,7 @@ const props = {
   displayCurrency: 'SGD' as const,
   currentReceipt: null,
   people: [],
+  showsPersonCards: true,
   onRenameReceipt: vi.fn(),
 };
 
@@ -21,6 +22,12 @@ describe('GrandTotalCard PayNow status', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/bottom of each person.s card/i);
     expect(screen.getByLabelText('PayNow QR codes ready')).toBeInTheDocument();
     expect(screen.queryByLabelText('PayNow number')).toBeNull();
+  });
+
+  it('points to By person for the QR codes when no person cards are shown', () => {
+    render(<GrandTotalCard {...props} showsPersonCards={false} payNowStatus="ready" />);
+    expect(screen.getByRole('status')).toHaveTextContent(/By person/);
+    expect(screen.getByRole('status')).not.toHaveTextContent(/bottom of each/i);
   });
 
   it('replaces the number-field helper with QR-location guidance after generation', () => {

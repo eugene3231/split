@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ReconciliationNotice } from '@features/split-workspace/components/shared/ReconciliationNotice';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
-import { formatExchangeRate } from '@shared/logic/core/money';
+import { formatCurrencyFromCents, formatExchangeRate } from '@shared/logic/core/money';
+import { BottomNavStatus } from '@features/split-workspace/components/BottomNav';
 import { getShareSupport } from '@features/split-workspace/summary/shareSplit';
 import { PersonBreakdownCard } from '@features/split-workspace/summary/breakdown/PersonBreakdownCard';
 import { BASE_CURRENCY } from '@shared/constants';
@@ -118,6 +119,7 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
             displayCurrency={view.total.currency}
             currentReceipt={receiptForExport}
             people={people}
+            showsPersonCards={!isOverview}
             onRenameReceipt={renameReceipt}
           />
         </div>
@@ -189,7 +191,17 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
 
       {actionSlot &&
         createPortal(
-          <SaveImageButton exportState={exportState} onDownload={download} />,
+          <>
+            <BottomNavStatus
+              className="flex-1 pl-1 md:pl-3"
+              label="Total"
+              value={formatCurrencyFromCents(
+                view.total.split.totals.totalCents,
+                view.total.currency,
+              )}
+            />
+            <SaveImageButton exportState={exportState} onDownload={download} />
+          </>,
           actionSlot,
         )}
       {previewUrl && <ImagePreviewModal url={previewUrl} onClose={closePreview} />}

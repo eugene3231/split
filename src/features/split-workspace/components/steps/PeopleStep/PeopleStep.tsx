@@ -81,16 +81,18 @@ export function PeopleStep() {
       ) : (
         <section aria-label="People in this split" className="space-y-3">
           <div className="flex flex-wrap items-center gap-y-1">
-            <h2 className="basis-full section-label sm:mr-auto sm:basis-auto">
+            <h2 className="basis-full section-label sm:mr-3 sm:basis-auto">
               People in this split{' '}
-              <span className="ml-1 font-medium text-outline">{people.length}</span>
+              <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-container-high px-1.5 align-[1px] text-xs font-semibold text-on-surface-variant tabular-nums">
+                {people.length}
+              </span>
             </h2>
-            <div className="-mx-3 -my-1.5 flex flex-1 flex-wrap items-center sm:mx-0 sm:my-0 sm:flex-none">
+            <div className="-mx-3 -my-1.5 flex flex-1 flex-wrap items-center sm:my-0 sm:-mr-3 sm:ml-0">
               <SaveGroupForm />
               <button
                 type="button"
                 onClick={removeAllPeople}
-                className="min-h-11 rounded-xl px-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
+                className="ml-auto min-h-11 rounded-xl px-3 text-sm font-medium text-outline transition-colors hover:bg-error-container/60 hover:text-error"
               >
                 Remove all
               </button>

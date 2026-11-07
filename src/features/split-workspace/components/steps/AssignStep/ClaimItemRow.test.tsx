@@ -109,7 +109,7 @@ describe('ClaimItemRow', () => {
     expect(callbacks.onToggle).not.toHaveBeenCalled();
   });
 
-  it('keeps the stepper beside the amount, and moves who else has it under the name', () => {
+  it('keeps who has it beside the amount, and the share controls on the line below', () => {
     const alice = {
       id: 'a',
       name: 'Alice',
@@ -119,12 +119,11 @@ describe('ClaimItemRow', () => {
       isActive: true,
     };
     renderRow({ ...item, claimants: [alice] });
-    const nameLine = screen.getByTestId('claim-item-toggle-bread').parentElement!;
     const actionLine = screen.getByTestId('claim-item-actions-bread');
-    expect(within(nameLine).getByTestId('claim-item-share-bread')).toBeInTheDocument();
-    expect(within(nameLine).getByTestId('claim-item-amount-bread')).toBeInTheDocument();
-    expect(within(nameLine).queryByTestId('claim-item-claimants-bread')).not.toBeInTheDocument();
-    expect(within(actionLine).getByTestId('claim-item-claimants-bread')).toBeInTheDocument();
+    expect(within(actionLine).getByTestId('claim-item-share-bread')).toBeInTheDocument();
+    expect(within(actionLine).getByTestId('claim-item-split-evenly-bread')).toBeInTheDocument();
+    expect(within(actionLine).queryByTestId('claim-item-amount-bread')).not.toBeInTheDocument();
+    expect(within(actionLine).queryByTestId('claim-item-claimants-bread')).not.toBeInTheDocument();
   });
 
   it('names the share as a share, and the whole item as All rather than a quantity', () => {

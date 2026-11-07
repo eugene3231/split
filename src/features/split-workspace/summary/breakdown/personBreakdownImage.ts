@@ -47,6 +47,7 @@ interface GeneratePersonBreakdownImageOptions {
 }
 
 const RULE = '#e4e8ed';
+const DASHED_RULE = '#e0e4e9';
 
 const PAD = 48;
 const COLUMN_GAP = 24;
@@ -139,14 +140,22 @@ function drawGrandTotalBand(
     y + 90,
   );
 
-  // Image only: the cards on screen each keep their rate, but side by side in one image
-  // the same rate would repeat on every card, so it is said once here.
-  const { exchangeRate } = summaryBreakdown;
-  if (!exchangeRate) return;
+  // The same "Split across" line as the total card on screen.
+  const right = PAD + width - CARD_PAD;
+  const peopleCount = summaryBreakdown.personBreakdowns.length;
   ctx.fillStyle = 'rgba(255,255,255,0.70)';
   ctx.font = `500 20px ${FONT}`;
   ctx.textAlign = 'right';
-  ctx.fillText(formatRateLine(exchangeRate), PAD + width - CARD_PAD, y + 90);
+  ctx.fillText(
+    `Split across ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'}`,
+    right,
+    y + 90,
+  );
+
+  // Image only: the cards on screen each keep their rate, but side by side in one image
+  // the same rate would repeat on every card, so it is said once here.
+  const { exchangeRate } = summaryBreakdown;
+  if (exchangeRate) ctx.fillText(formatRateLine(exchangeRate), right, y + 38);
   ctx.textAlign = 'left';
 }
 
@@ -263,7 +272,7 @@ function drawSection(
   ctx.fillStyle = RULE;
   ctx.fillRect(x, Math.round(y), INNER_WIDTH, 1);
 
-  const innerX = x + SECTION_PAD;
+  const innerX = x;
   for (const row of rows) drawRow(ctx, row.item, innerX, y + row.y, row.height);
   if (ruleY === null) return;
 
@@ -301,7 +310,7 @@ function drawRow(
       drawItemRow(ctx, row, x, y);
       return;
     case 'rule':
-      drawRule(ctx, x, y + height / 2);
+      drawRule(ctx, x, y + height / 2, { dashed: true });
       return;
     case 'charge':
       drawChargeRow(ctx, row, x, y);
@@ -324,7 +333,6 @@ function drawItemRow(ctx: CanvasRenderingContext2D, row: BreakdownItemRow, x: nu
   ctx.font = `${style}400 22px ${FONT}`;
   lines.forEach((line, index) => ctx.fillText(line, x, y + 27 + index * ITEM_WRAP_H));
 
-  ctx.font = `${style}500 22px ${FONT}`;
   ctx.textAlign = 'right';
   ctx.fillText(formatItemAmount(row), x + SECTION_INNER_WIDTH, y + 27);
   ctx.restore();
@@ -379,9 +387,27 @@ function drawEmptyMessage(ctx: CanvasRenderingContext2D, message: string, x: num
   ctx.fillText(message, x, y + 28);
 }
 
-function drawRule(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-  ctx.fillStyle = RULE;
-  ctx.fillRect(x, Math.round(y), SECTION_INNER_WIDTH, 1);
+/** The rule above a card's charges is dashed, like the screen's. */
+function drawRule(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  { dashed = false } = {},
+): void {
+  if (!dashed) {
+    ctx.fillStyle = RULE;
+    ctx.fillRect(x, Math.round(y), SECTION_INNER_WIDTH, 1);
+    return;
+  }
+  ctx.save();
+  ctx.strokeStyle = DASHED_RULE;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(x, Math.round(y) + 0.5);
+  ctx.lineTo(x + SECTION_INNER_WIDTH, Math.round(y) + 0.5);
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** The image already carries "Pay to" and "Amount" beside the code, so it only needs scaling. */

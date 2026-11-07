@@ -115,7 +115,7 @@ describe('layoutCard', () => {
       ['rule', 106, 14],
       ['charge', 120, 34],
     ]);
-    expect(lunch.item.height).toBe(174);
+    expect(lunch.item.height).toBe(154);
   });
 
   it('starts the rows at the top of a section that has no heading', () => {
@@ -125,7 +125,7 @@ describe('layoutCard', () => {
 
     expect(lunch.item.ruleY).toBeNull();
     expect(lunch.item.rows.map((row) => row.y)).toEqual([20, 58, 72]);
-    expect(lunch.item.height).toBe(126);
+    expect(lunch.item.height).toBe(106);
   });
 
   it('pushes the rows down by a line for each conversion line', () => {
@@ -172,10 +172,10 @@ describe('layoutCard', () => {
     const layout = card(sections(section([item('Laksa')]), section([item('Tea')], { id: 'tea' })));
 
     expect(onlySections(layout).map((placed) => [placed.y, placed.height])).toEqual([
-      [0, 126],
-      [138, 126],
+      [0, 106],
+      [138, 106],
     ]);
-    expect(layout.body.height).toBe(264);
+    expect(layout.body.height).toBe(244);
   });
 
   it('makes room under the body for the PayNow code', () => {

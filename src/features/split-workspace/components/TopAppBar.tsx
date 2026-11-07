@@ -14,7 +14,6 @@ interface Props {
 
 export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions }: Props) {
   const stepIndex = WIZARD_STEPS.indexOf(activeStep);
-  const stepNumber = stepIndex + 1;
 
   return (
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">
@@ -52,13 +51,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                   <div
                     className={cn(
                       'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all',
-                      disabled
-                        ? 'bg-surface-container-highest text-on-surface-variant'
-                        : completed
-                          ? 'bg-primary text-on-primary'
-                          : isCurrent
-                            ? 'bg-primary text-on-primary ring-2 ring-primary/25 ring-offset-2 ring-offset-surface'
-                            : 'bg-surface-container-highest text-on-surface-variant',
+                      stepDotClass({ disabled, completed, isCurrent }),
                     )}
                   >
                     {completed ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
@@ -78,7 +71,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                   <div
                     className={cn(
                       'mx-1 h-0.5 w-4 lg:w-12',
-                      completed ? 'bg-primary' : 'bg-surface-container-highest',
+                      completed ? 'bg-outline' : 'bg-surface-container-highest',
                     )}
                   />
                 )}
@@ -120,13 +113,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                   <span
                     className={cn(
                       'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all',
-                      disabled
-                        ? 'bg-surface-container-highest text-on-surface-variant'
-                        : completed
-                          ? 'bg-primary text-on-primary'
-                          : isCurrent
-                            ? 'bg-primary text-on-primary ring-2 ring-primary/25 ring-offset-2 ring-offset-surface'
-                            : 'bg-surface-container-highest text-on-surface-variant',
+                      stepDotClass({ disabled, completed, isCurrent }),
                     )}
                   >
                     {completed ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
@@ -137,15 +124,24 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
           </div>
         </nav>
 
-        {/* Right: step count on desktop */}
-        <div data-testid="wizard-step-context" className="hidden w-44 shrink-0 text-right lg:block">
-          <p className="truncate text-xs font-medium text-on-surface-variant">
-            Step {stepNumber} of {WIZARD_STEPS.length}
-          </p>
-        </div>
+        {/* Balances the logo so the steps stay centred. */}
+        <div aria-hidden="true" className="hidden w-44 shrink-0 lg:block" />
 
         {actions}
       </div>
     </header>
   );
+}
+
+interface StepDotState {
+  disabled: boolean;
+  completed: boolean;
+  isCurrent: boolean;
+}
+
+// Done steps recede so the current one, the only solid dot, stands out.
+function stepDotClass({ disabled, completed, isCurrent }: StepDotState): string {
+  if (isCurrent) return 'bg-primary text-on-primary';
+  if (completed && !disabled) return 'bg-surface-container-highest text-on-surface';
+  return 'text-on-surface-variant ring-1 ring-outline-variant ring-inset';
 }

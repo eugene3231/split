@@ -11,12 +11,7 @@ interface Props {
   status?: ReactNode;
   /** On the summary, the step renders its own primary action into this element. */
   finalActionRef?: (element: HTMLDivElement | null) => void;
-  /** The column the bar lines up with: the page, the main track beside a sidebar from xl, or a
-   * narrow centred step. */
-  track?: BottomNavTrack;
 }
-
-export type BottomNavTrack = 'page' | 'beside-rail' | 'narrow';
 
 function getVisualViewportBottomInset() {
   const viewport = window.visualViewport;
@@ -73,7 +68,6 @@ export function BottomNav({
   onNext,
   status,
   finalActionRef,
-  track = 'page',
 }: Props) {
   const isFirstStep = activeStep === 'people';
   const isFinalStep = activeStep === 'final';
@@ -81,23 +75,12 @@ export function BottomNav({
 
   return (
     <footer
-      className="sticky bottom-0 z-50 w-full px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8"
+      className="sticky bottom-0 z-50 w-full pb-[max(1rem,env(safe-area-inset-bottom))]"
       style={{ bottom: bottomInset }}
     >
-      <div
-        className={cn(
-          'mx-auto max-w-7xl',
-          track === 'beside-rail' && 'xl:grid xl:grid-cols-12 xl:gap-8',
-        )}
-      >
-        <div
-          className={cn(
-            'mx-auto flex max-w-3xl items-center gap-2 rounded-3xl bg-primary p-2 text-on-primary shadow-[0_12px_32px_-8px_rgba(23,28,39,0.45)] md:gap-3',
-            isFinalStep && 'w-fit',
-            track === 'beside-rail' && 'xl:col-span-8 xl:w-full',
-            track === 'narrow' && 'max-w-2xl',
-          )}
-        >
+      {/* One width on every step, centred on the page, padded like <main>. */}
+      <div className="px-4 md:px-8">
+        <div className="mx-auto flex max-w-2xl items-center gap-2 rounded-3xl bg-primary p-2 text-on-primary shadow-[0_8px_24px_-10px_rgba(23,28,39,0.35)] md:gap-3">
           {!isFirstStep && (
             <button
               type="button"

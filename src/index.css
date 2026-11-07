@@ -262,6 +262,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* No paragraph ends on one word alone. */
+p {
+  text-wrap: pretty;
+}
+
 .material-symbols-outlined {
   font-variation-settings:
     'FILL' 0,
