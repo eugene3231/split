@@ -42,3 +42,6 @@ PRD.md
 # In-repo git worktrees
 .worktrees
 .claude/worktrees
+
+# Verification runs (.claude/skills/verify)
+.verify
