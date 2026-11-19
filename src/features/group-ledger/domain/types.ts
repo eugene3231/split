@@ -97,7 +97,10 @@ export type Change =
   | { kind: 'member.put'; member: Member }
   /** Two phones added the same friend offline. Every reference to `from` reads as `into`. */
   | { kind: 'member.merged'; from: MemberId; into: MemberId }
-  /** "This device is that member." Null steps back to nobody. The latest per user wins. */
+  /**
+   * "This device is that member." Null steps back to nobody. The latest per user wins, except
+   * that a claim on a member another user holds is ignored: the first to claim keeps the member.
+   */
   | { kind: 'member.claimed'; memberId: MemberId | null }
   /** `base` is the revision the author was looking at; null for a new entry. */
   | { kind: 'entry.put'; entry: Entry; base: OpId | null }
@@ -113,6 +116,16 @@ export interface PendingOp {
   /** This device's clock. Shown as "2 h ago"; never used to order anything. */
   at: string;
   change: Change;
+}
+
+/**
+ * A change queued on this device that this version of Split cannot read, because another
+ * version wrote it before the app was updated. It is still sent as it was stored.
+ */
+export interface UnreadablePendingOp {
+  id: OpId;
+  order: number;
+  at: string;
 }
 
 /** A change the server has taken. `seq` runs 1, 2, 3… per group with no gaps. */
@@ -135,6 +148,8 @@ export interface GroupLog {
   confirmed: ConfirmedOp[];
   /** In `order` order. An op that is also confirmed is ignored. */
   pending: PendingOp[];
+  /** Queued here too, and ordered with `pending` by `order`. Left out when there are none. */
+  unreadablePending?: UnreadablePendingOp[];
 }
 
 export interface PostedEntry {
@@ -188,7 +203,7 @@ export interface Ledger {
   entries: PostedEntry[];
   /** The member this device has claimed; null means "ask who they are". */
   me: MemberId | null;
-  /** Members some device has claimed, so the picker can show who is already taken. */
+  /** Members some device holds, so the picker can show who is already taken. */
   claimed: ReadonlySet<MemberId>;
   /** Newest first. */
   activity: Activity[];

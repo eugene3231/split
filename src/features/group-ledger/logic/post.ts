@@ -67,7 +67,26 @@ export function postReceipt(
     members.map((member) => [member.id, split.byPerson[member.id].totalCents]),
   );
   if (Object.values(owed).some((cents) => cents < 0)) return null;
-  return post(header, owed, { kind: 'receipt', receipt });
+  return post(header, owed, { kind: 'receipt', receipt: storedReceipt(receipt) });
+}
+
+/**
+ * The fields an op carries and no others. The wizard's receipt also holds the photo, and the
+ * codec cannot read back a change with a field it does not know.
+ */
+function storedReceipt(receipt: StoredReceipt): StoredReceipt {
+  return {
+    id: receipt.id,
+    name: receipt.name,
+    items: receipt.items,
+    discount: receipt.discount,
+    serviceCharge: receipt.serviceCharge,
+    gst: receipt.gst,
+    receiptTotalInput: receipt.receiptTotalInput,
+    roundingInput: receipt.roundingInput,
+    currency: receipt.currency,
+    exchangeRateOverride: receipt.exchangeRateOverride,
+  };
 }
 
 export function totalCents(entry: ExpenseEntry): Cents {

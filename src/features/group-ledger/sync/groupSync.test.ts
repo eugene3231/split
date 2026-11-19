@@ -3,7 +3,11 @@ import type { Change, ConfirmedOp, MemberId } from '@features/group-ledger/domai
 import { createFakeBackend, FAKE_EMAIL_CODE } from '@features/group-ledger/backend/fakeBackend';
 import { createMemoryServer, type FakeServer } from '@features/group-ledger/backend/fakeServer';
 import type { JoinedGroup, LedgerBackend } from '@features/group-ledger/backend/port';
-import { newGroup } from '@features/group-ledger/backend/testing/backendContract';
+import {
+  createdOp,
+  newGroup,
+  pendingOp,
+} from '@features/group-ledger/backend/testing/backendContract';
 import { openDeviceLog } from '@features/group-ledger/sync/deviceLog';
 import { createGroupSync, type GroupSync } from '@features/group-ledger/sync/groupSync';
 
@@ -46,6 +50,17 @@ async function serverLog(server: FakeServer, group: JoinedGroup) {
   return pulled.value.ops;
 }
 
+/** A group someone else made earlier: on the server, with its `group.created` at seq 1. */
+async function foundedGroup(server: FakeServer): Promise<JoinedGroup> {
+  const group = newGroup();
+  const founder = createFakeBackend({ server, profile: 'founder', isOnline: () => true });
+  await founder.publishGroup(group, createdOp());
+  return group;
+}
+
+/** What a log holds after the op that created the group. */
+const sinceFounded = <Op>(ops: readonly Op[]) => ops.slice(1);
+
 beforeEach(() => {
   window.localStorage.clear();
 });
@@ -58,7 +73,7 @@ afterEach(() => {
 describe('group sync', () => {
   it('shows a change at once as pending, then confirmed after one sync', async () => {
     const server = createMemoryServer();
-    const ana = phone(server, 'ana').open(newGroup(), true);
+    const ana = phone(server, 'ana').open(await foundedGroup(server), false);
 
     const opId = ana.submit(rename('Japan 2026'));
     const before = ana.getSnapshot();
@@ -68,7 +83,7 @@ describe('group sync', () => {
     expect(before.log.pending.map((op) => op.id)).toEqual([opId]);
     expect(before.sync.pending).toBe(1);
     expect(after.log.pending).toEqual([]);
-    expect(after.log.confirmed.map((op) => [op.seq, op.id])).toEqual([[1, opId]]);
+    expect(sinceFounded(after.log.confirmed).map((op) => [op.seq, op.id])).toEqual([[2, opId]]);
     expect(after.sync).toMatchObject({ state: 'idle', pending: 0, rejected: [] });
     expect(after.sync.lastSyncedAt).not.toBeNull();
   });
@@ -140,32 +155,32 @@ describe('group sync', () => {
 
   it('pushes again after a crash between push and confirm, without a duplicate', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
+    const group = await foundedGroup(server);
     // The push reaches the server, then the tab dies before the pull that would confirm it.
     const dying = phone(server, 'ana', (backend) => ({
       ...backend,
       pull: () => new Promise(() => {}),
     }));
-    const beforeCrash = dying.open(group, true);
+    const beforeCrash = dying.open(group, false);
     const opId = beforeCrash.submit(rename('Japan 2026'));
-    await vi.waitFor(async () => expect(await serverLog(server, group)).toHaveLength(1));
+    await vi.waitFor(async () => expect(await serverLog(server, group)).toHaveLength(2));
     beforeCrash.dispose();
 
-    const afterCrash = phone(server, 'ana').open(group, true);
+    const afterCrash = phone(server, 'ana').open(group, false);
     const restored = afterCrash.getSnapshot();
     await afterCrash.syncNow();
 
     expect(restored.log.pending.map((op) => op.id)).toEqual([opId]);
     expect(afterCrash.getSnapshot().log.pending).toEqual([]);
-    expect(afterCrash.getSnapshot().log.confirmed.map((op) => [op.seq, op.id])).toEqual([
-      [1, opId],
-    ]);
-    expect((await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
+    expect(
+      sinceFounded(afterCrash.getSnapshot().log.confirmed).map((op) => [op.seq, op.id]),
+    ).toEqual([[2, opId]]);
+    expect(sinceFounded(await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
   });
 
   it('stores an op once when the reply to its push is lost and it is pushed again', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
+    const group = await foundedGroup(server);
     let lostReplies = 2;
     const ana = phone(server, 'ana', (backend) => ({
       ...backend,
@@ -175,7 +190,7 @@ describe('group sync', () => {
         lostReplies -= 1;
         return { ok: false, failure: { kind: 'offline' } };
       },
-    })).open(group, true);
+    })).open(group, false);
 
     const opId = ana.submit(rename('Japan 2026'));
     await ana.syncNow();
@@ -185,25 +200,27 @@ describe('group sync', () => {
 
     expect(afterFirstTry).toMatchObject({ state: 'offline', pending: 1 });
     expect(ana.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0 });
-    expect((await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
+    expect(sinceFounded(await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
   });
 
   it('drops a change the server will never take and syncs the ones behind it', async () => {
     const server = createMemoryServer();
-    const ana = phone(server, 'ana').open(newGroup(), true);
+    const ana = phone(server, 'ana').open(await foundedGroup(server), false);
 
     const tooBig = ana.submit(rename('x'.repeat(70_000)));
     const fine = ana.submit(rename('Japan'));
     await ana.syncNow();
 
     expect(ana.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0, rejected: [tooBig] });
-    expect(ana.getSnapshot().log.confirmed.map((op) => [op.seq, op.id])).toEqual([[1, fine]]);
+    expect(sinceFounded(ana.getSnapshot().log.confirmed).map((op) => [op.seq, op.id])).toEqual([
+      [2, fine],
+    ]);
   });
 
   it('keeps a change on screen as pending, without syncing in a loop, when the log cannot be stored', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
-    const ana = phone(server, 'ana').open(group, true);
+    const group = await foundedGroup(server);
+    const ana = phone(server, 'ana').open(group, false);
     await ana.syncNow();
     const setItem = Storage.prototype.setItem;
     const full = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
@@ -222,12 +239,12 @@ describe('group sync', () => {
 
     expect(ana.getSnapshot().log.pending.map((op) => op.id)).toEqual([opId]);
     expect(ana.getSnapshot().sync.state).toBe('idle');
-    expect((await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
+    expect(sinceFounded(await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
   });
 
   it('pushes a long outbox in batches of 50 and pulls it back in order', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
+    const group = await foundedGroup(server);
     const batches: number[] = [];
     const anaPhone = phone(server, 'ana', (backend) => ({
       ...backend,
@@ -237,7 +254,7 @@ describe('group sync', () => {
       },
     }));
     anaPhone.signal.online = false;
-    const ana = anaPhone.open(group, true);
+    const ana = anaPhone.open(group, false);
     const ids = Array.from({ length: 120 }, (_, index) => ana.submit(rename(`name ${index}`)));
     await ana.syncNow();
 
@@ -245,7 +262,7 @@ describe('group sync', () => {
     await ana.syncNow();
 
     expect(batches).toEqual([50, 50, 20]);
-    expect(ana.getSnapshot().log.confirmed.map((op) => op.id)).toEqual(ids);
+    expect(sinceFounded(ana.getSnapshot().log.confirmed).map((op) => op.id)).toEqual(ids);
     expect(ana.getSnapshot().sync.pending).toBe(0);
   });
 
@@ -270,8 +287,8 @@ describe('group sync', () => {
 
   it('syncs a change submitted while a sync is running, in the same call', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
-    const ana = phone(server, 'ana').open(group, true);
+    const group = await foundedGroup(server);
+    const ana = phone(server, 'ana').open(group, false);
 
     const first = ana.submit(rename('one'));
     const running = ana.syncNow();
@@ -282,7 +299,10 @@ describe('group sync', () => {
     await running;
 
     expect(joined).toBe(running);
-    expect(ana.getSnapshot().log.confirmed.map((op) => op.id)).toEqual([first, second]);
+    expect(sinceFounded(ana.getSnapshot().log.confirmed).map((op) => op.id)).toEqual([
+      first,
+      second,
+    ]);
     expect(ana.getSnapshot().sync.pending).toBe(0);
   });
 
@@ -303,12 +323,33 @@ describe('group sync', () => {
     expect(names(await serverLog(server, group))).toEqual(['group.created']);
   });
 
+  it('puts group.created first in the log even when a friend writes the moment the group exists', async () => {
+    const server = createMemoryServer();
+    const group = newGroup();
+    const benBackend = phone(server, 'ben').backend;
+    const ana = phone(server, 'ana', (backend) => ({
+      ...backend,
+      // Ben opens the link and adds himself between Ana's publish and her first push.
+      async publishGroup(...published) {
+        const reply = await backend.publishGroup(...published);
+        await benBackend.joinGroup(group.inviteCode);
+        await benBackend.push(group.groupId, [pendingOp(addMember('Ben'))]);
+        return reply;
+      },
+    })).open(group, true);
+
+    ana.submit({ kind: 'group.created', name: 'Japan 2026', currency: 'SGD' });
+    await ana.syncNow();
+
+    expect(names(await serverLog(server, group))).toEqual(['group.created', 'member.put']);
+  });
+
   it('retries after 2 seconds, then 4, and syncs once the signal is back', async () => {
     vi.useFakeTimers();
     const server = createMemoryServer();
     const anaPhone = phone(server, 'ana');
     anaPhone.signal.online = false;
-    const ana = anaPhone.open(newGroup(), true);
+    const ana = anaPhone.open(await foundedGroup(server), false);
     ana.submit(rename('Japan'));
     await vi.advanceTimersByTimeAsync(0);
     const sessions = vi.spyOn(anaPhone.backend, 'session');
@@ -335,7 +376,7 @@ describe('group sync', () => {
         broken
           ? Promise.resolve({ ok: false, failure: { kind: 'failed', message: 'boom' } })
           : backend.pull(groupId, afterSeq),
-    })).open(newGroup(), true);
+    })).open(await foundedGroup(server), false);
 
     ana.submit(rename('Japan'));
     await ana.syncNow();
@@ -347,12 +388,43 @@ describe('group sync', () => {
     expect(ana.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0 });
   });
 
+  it('still reads what others wrote while the server keeps failing its own changes, and says the outbox is stuck', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const ben = phone(server, 'ben').open(group, false);
+    await ben.syncNow();
+    let pushFails = true;
+    const ana = phone(server, 'ana', (backend) => ({
+      ...backend,
+      push: (groupId, ops) =>
+        pushFails
+          ? Promise.resolve({ ok: false, failure: { kind: 'failed', message: 'boom' } })
+          : backend.push(groupId, ops),
+    })).open(group, false);
+    await ana.syncNow();
+
+    ana.submit(addMember('Ana'));
+    await ana.syncNow();
+    ben.submit(rename('Japan, by Ben'));
+    await ben.syncNow();
+    await ana.syncNow();
+    const whileFailing = ana.getSnapshot();
+    pushFails = false;
+    await ana.syncNow();
+
+    expect(names(sinceFounded(whileFailing.log.confirmed))).toEqual(['Japan, by Ben']);
+    expect(whileFailing.sync).toMatchObject({ state: 'error', pending: 1, outboxStuck: true });
+    expect(whileFailing.sync.lastSyncedAt).not.toBeNull();
+    expect(ana.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0, outboxStuck: false });
+  });
+
   it('reports a backend that throws as an error instead of stopping for good', async () => {
+    const server = createMemoryServer();
     let throwing = true;
-    const ana = phone(createMemoryServer(), 'ana', (backend) => ({
+    const ana = phone(server, 'ana', (backend) => ({
       ...backend,
       session: () => (throwing ? Promise.reject(new Error('bug')) : backend.session()),
-    })).open(newGroup(), true);
+    })).open(await foundedGroup(server), false);
 
     await ana.syncNow();
     const whileThrowing = ana.getSnapshot().sync.state;
@@ -374,21 +446,21 @@ describe('group sync', () => {
 
   it('joins on its first sync, so it can read a group it has written nothing to', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
-    const ana = phone(server, 'ana').open(group, true);
+    const group = await foundedGroup(server);
+    const ana = phone(server, 'ana').open(group, false);
     ana.submit(rename('Japan'));
     await ana.syncNow();
 
     const ben = phone(server, 'ben').open(group, false);
     await ben.syncNow();
 
-    expect(names(ben.getSnapshot().log.confirmed)).toEqual(['Japan']);
+    expect(names(sinceFounded(ben.getSnapshot().log.confirmed))).toEqual(['Japan']);
   });
 
   it('rejoins once with its invite code when the server says it is not a member', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
-    const ana = phone(server, 'ana').open(group, true);
+    const group = await foundedGroup(server);
+    const ana = phone(server, 'ana').open(group, false);
     await ana.syncNow();
     const benPhone = phone(server, 'ben');
     // This phone believes it joined, as after a server reset or a restored backup.
@@ -401,17 +473,17 @@ describe('group sync', () => {
     await ben.syncNow();
 
     expect(ben.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0 });
-    expect((await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
+    expect(sinceFounded(await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
   });
 
   it('enters its groups again as the account it signed in to', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
+    const group = await foundedGroup(server);
     const oldPhone = phone(server, 'old-phone');
     await oldPhone.backend.startEmailSignIn('ana@example.com');
     const account = await oldPhone.backend.verifyEmailCode('ana@example.com', FAKE_EMAIL_CODE);
     const benPhone = phone(server, 'ben');
-    const owner = phone(server, 'owner').open(group, true);
+    const owner = phone(server, 'owner').open(group, false);
     await owner.syncNow();
     const ben = benPhone.open(group, false);
     await ben.syncNow();
@@ -427,27 +499,86 @@ describe('group sync', () => {
 
   it('reads again an op it once could not read', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
-    const ana = phone(server, 'ana').open(group, true);
+    const group = await foundedGroup(server);
+    const ana = phone(server, 'ana').open(group, false);
     ana.submit(rename('Japan'));
     ana.submit(rename('Japan 2026'));
     await ana.syncNow();
-    const [first, second] = ana.getSnapshot().log.confirmed;
-    // An older Split on this phone stored the first op as unreadable.
-    openDeviceLog('ben', group.groupId).confirm([{ ...first, change: null }, second]);
+    const [founding, first, second] = ana.getSnapshot().log.confirmed;
+    // An older Split on this phone stored the first rename as unreadable.
+    openDeviceLog('ben', group.groupId).confirm([founding, { ...first, change: null }, second]);
 
     const ben = phone(server, 'ben').open(group, false);
-    const stored = ben.getSnapshot().log.confirmed.map((op) => op.change);
+    const stored = sinceFounded(ben.getSnapshot().log.confirmed).map((op) => op.change);
     await ben.syncNow();
 
     expect(stored).toEqual([null, rename('Japan 2026')]);
-    expect(names(ben.getSnapshot().log.confirmed)).toEqual(['Japan', 'Japan 2026']);
+    expect(names(sinceFounded(ben.getSnapshot().log.confirmed))).toEqual(['Japan', 'Japan 2026']);
+  });
+
+  it('holds a change with a field a newer Split added as unreadable, rather than dropping the field', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const newer = phone(server, 'newer');
+    await newer.open(group, false).syncNow();
+    const fromNewerSplit = {
+      kind: 'member.put',
+      member: { id: 'm-Ana', name: 'Ana', paynowMobile: null, archived: false, nickname: 'An' },
+    } as unknown as Change;
+    await newer.backend.push(group.groupId, [pendingOp(fromNewerSplit)]);
+
+    const ben = phone(server, 'ben').open(group, false);
+    await ben.syncNow();
+
+    expect(sinceFounded(ben.getSnapshot().log.confirmed).map((op) => op.change)).toEqual([null]);
+  });
+
+  it('sends a queued change this version cannot read as it was stored, and counts it until then', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const anaPhone = phone(server, 'ana');
+    anaPhone.signal.online = false;
+    // Queued by another version of Split on this phone, before the app was updated.
+    const queued = {
+      ...pendingOp({ kind: 'group.archived', reason: 'trip over' } as unknown as Change),
+      order: 1,
+    };
+    window.localStorage.setItem(
+      `split:g:ana:${group.groupId}:out:${queued.id}`,
+      JSON.stringify(queued),
+    );
+    const ana = anaPhone.open(group, false);
+    await ana.syncNow();
+    const offline = ana.getSnapshot();
+
+    anaPhone.signal.online = true;
+    await ana.syncNow();
+    const reader = createFakeBackend({ server, profile: 'reader', isOnline: () => true });
+    const readerSession = await reader.session();
+    await reader.joinGroup(group.inviteCode);
+    const stored = await server.opsAfter(
+      readerSession.ok ? readerSession.value.userId : '',
+      group.groupId,
+      0,
+      10,
+    );
+
+    expect(offline.sync.pending).toBe(1);
+    expect(offline.log.pending).toEqual([]);
+    expect(offline.log.unreadablePending).toEqual([{ id: queued.id, order: 1, at: queued.at }]);
+    expect(stored.ok && sinceFounded(stored.value).map((op) => [op.id, op.change])).toEqual([
+      [queued.id, { kind: 'group.archived', reason: 'trip over' }],
+    ]);
+    expect(ana.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0, rejected: [] });
+    expect(sinceFounded(ana.getSnapshot().log.confirmed).map((op) => [op.id, op.change])).toEqual([
+      [queued.id, null],
+    ]);
   });
 
   it('pulls when the server pokes, without being asked', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
-    const ana = phone(server, 'ana').open(group, true);
+    const group = await foundedGroup(server);
+    const ana = phone(server, 'ana').open(group, false);
     await ana.syncNow();
     const ben = phone(server, 'ben').open(group, false);
     await ben.syncNow();
@@ -455,14 +586,16 @@ describe('group sync', () => {
     ana.submit(rename('Japan'));
     await ana.syncNow();
 
-    await vi.waitFor(() => expect(names(ben.getSnapshot().log.confirmed)).toEqual(['Japan']));
+    await vi.waitFor(() =>
+      expect(names(sinceFounded(ben.getSnapshot().log.confirmed))).toEqual(['Japan']),
+    );
   });
 
   it('syncs when the phone comes back online and when the tab is shown again', async () => {
     const server = createMemoryServer();
     const anaPhone = phone(server, 'ana');
     anaPhone.signal.online = false;
-    const ana = anaPhone.open(newGroup(), true);
+    const ana = anaPhone.open(await foundedGroup(server), false);
     ana.submit(rename('one'));
     await ana.syncNow();
 
@@ -495,16 +628,87 @@ describe('group sync', () => {
     expect(tabTwo.getSnapshot().log.pending.map((op) => op.id)).toEqual([opId]);
   });
 
+  it('pulls again when another tab, confirming at the same moment, wrote back a shorter log', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const tab = phone(server, 'ana').open(group, false);
+    tab.submit(rename('one'));
+    tab.submit(rename('two'));
+    await tab.syncNow();
+    const key = `split:g:ana:${group.groupId}:confirmed`;
+    // The other tab read the log before this tab's last page and wrote it back after.
+    const stale = JSON.stringify(tab.getSnapshot().log.confirmed.slice(0, 2));
+
+    window.localStorage.setItem(key, stale);
+    window.dispatchEvent(new StorageEvent('storage', { key, newValue: stale }));
+    const shrunk = tab.getSnapshot().log.confirmed.length;
+
+    await vi.waitFor(() => expect(tab.getSnapshot().log.confirmed).toHaveLength(3));
+    expect(shrunk).toBe(2);
+    expect(openDeviceLog('ana', group.groupId).confirmed()).toHaveLength(3);
+  });
+
+  it('leaves a group forgotten in another tab forgotten', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const tab = phone(server, 'ana').open(group, false);
+    await tab.syncNow();
+    const pulls = vi.spyOn(server, 'opsAfter');
+
+    openDeviceLog('ana', group.groupId).clear();
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: `split:g:ana:${group.groupId}:confirmed`,
+        newValue: null,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(tab.getSnapshot().log.confirmed).toEqual([]);
+    expect(pulls).not.toHaveBeenCalled();
+    expect(openDeviceLog('ana', group.groupId).confirmed()).toEqual([]);
+  });
+
+  it('writes nothing back to a phone that forgot the group while a pull was on its way', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    let answer = () => {};
+    const held = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    const pull = vi.fn();
+    const ana = phone(server, 'ana', (backend) => ({
+      ...backend,
+      async pull(groupId, afterSeq) {
+        const reply = await backend.pull(groupId, afterSeq);
+        pull();
+        await held;
+        return reply;
+      },
+    })).open(group, false);
+    await vi.waitFor(() => expect(pull).toHaveBeenCalled());
+
+    // What `forgetGroup` does.
+    ana.dispose();
+    openDeviceLog('ana', group.groupId).clear();
+    answer();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(Object.keys(window.localStorage).filter((key) => key.includes(group.groupId))).toEqual(
+      [],
+    );
+  });
+
   it('does nothing more once disposed', async () => {
     const server = createMemoryServer();
-    const group = newGroup();
-    const ana = phone(server, 'ana').open(group, true);
+    const group = await foundedGroup(server);
+    const ana = phone(server, 'ana').open(group, false);
     await ana.syncNow();
 
     ana.dispose();
     ana.submit(rename('after dispose'));
     await ana.syncNow();
 
-    expect(await serverLog(server, group)).toEqual([]);
+    expect(names(await serverLog(server, group))).toEqual(['group.created']);
   });
 });

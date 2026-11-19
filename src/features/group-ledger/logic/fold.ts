@@ -54,11 +54,13 @@ type Outcome = Pick<Activity, 'what' | 'replaced' | 'undo'>;
 
 /**
  * Reads a group's log into what the screens show. Confirmed ops come first, in `seq` order, then
- * this device's pending ops in `order` order, as if written by `self`. Null until the log holds
+ * this device's pending ops in `order` order, as if written by `self`. A pending op this version
+ * cannot read shows as unknown, like a confirmed one. Null until the log holds
  * the op that created the group.
  *
  * An op that changes nothing (a second `group.created`, removing an entry that is already gone,
- * merging a member that is not there) leaves no activity row.
+ * merging a member that is not there, claiming a member someone else holds) leaves no activity
+ * row.
  */
 export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
   const me: Author = self ?? THIS_DEVICE;
@@ -73,7 +75,7 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
         author: userId,
         pending: false,
       })),
-    ...log.pending
+    ...[...log.pending, ...(log.unreadablePending ?? []).map((op) => ({ ...op, change: null }))]
       .filter((op) => !confirmedIds.has(op.id))
       .toSorted((a, b) => a.order - b.order)
       .map(({ id, at, change }): Op => ({ id, at, change, author: me, pending: true })),
@@ -178,11 +180,13 @@ function apply(state: Folding, op: Op, position: number): Outcome | null {
       return plain({ kind: 'member-merged', from, into });
     }
     case 'member.claimed': {
+      const claimed =
+        change.memberId === null ? null : resolveAlias(state.aliases, change.memberId);
+      // Whoever claimed a member first keeps it, until they step back or claim someone else.
+      // Two friends who tap the same name offline would otherwise both be that member.
+      if (claimed !== null && isHeldByAnother(state, claimed, op.author)) return null;
       state.claims.set(op.author, change.memberId);
-      const member =
-        change.memberId === null
-          ? null
-          : (state.members.get(resolveAlias(state.aliases, change.memberId)) ?? null);
+      const member = claimed === null ? null : (state.members.get(claimed) ?? null);
       return plain({ kind: 'member-claimed', member });
     }
     case 'entry.put': {
@@ -236,6 +240,13 @@ function apply(state: Folding, op: Op, position: number): Outcome | null {
     default:
       return change satisfies never;
   }
+}
+
+function isHeldByAnother(state: Folding, member: MemberId, author: Author): boolean {
+  return [...state.claims].some(
+    ([holder, held]) =>
+      holder !== author && held !== null && resolveAlias(state.aliases, held) === member,
+  );
 }
 
 function plain(what: Activity['what']): Outcome {

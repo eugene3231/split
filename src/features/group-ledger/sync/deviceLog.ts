@@ -7,7 +7,8 @@ import type {
   PendingOp,
   UserId,
 } from '@features/group-ledger/domain/types';
-import { confirmedOpSchema, idSchemas, pendingOpSchema } from '@features/group-ledger/logic/codec';
+import { confirmedOpSchema, idSchemas, parseChange } from '@features/group-ledger/logic/codec';
+import { newOpId } from '@features/group-ledger/logic/ids';
 import { jsonStorage, lenientArray, parseJson } from '@features/split-workspace/logic/jsonStorage';
 
 // This phone's copy of one group, in localStorage:
@@ -18,14 +19,39 @@ import { jsonStorage, lenientArray, parseJson } from '@features/split-workspace/
 // A pending op has its own key so two tabs can each add one without overwriting the other.
 // Moving to IndexedDB changes this file only.
 
+/**
+ * A queued op as it is stored and as it will be sent. `change` is the stored JSON, which this
+ * version of Split may not be able to read when another version queued it.
+ */
+export interface OutboxOp {
+  id: OpId;
+  order: number;
+  at: string;
+  change: unknown;
+}
+
+const outboxOpSchema: z.ZodType<OutboxOp> = z.object({
+  id: idSchemas.opId,
+  order: z.number().int().nonnegative(),
+  at: z.string(),
+  change: z.unknown(),
+});
+
 export interface DeviceLog {
   /** In `seq` order from 1 with no gaps. */
   confirmed(): ConfirmedOp[];
-  /** In the order this phone made them. */
+  /** Every op the server has not confirmed, in the order this phone made them. */
+  outbox(): OutboxOp[];
+  /** The ops in the outbox this version of Split can read. */
   pending(): PendingOp[];
   /** Stored before it returns, so the op survives a reload that comes before any network call. */
   appendPending(change: Change): PendingOp;
-  /** Takes ops the server confirmed and retires the pending ops among them. Safe to repeat. */
+  /**
+   * Takes ops the server confirmed and retires the pending ops among them. Safe to repeat.
+   * It reads the stored log and writes it back in one synchronous step, but two tabs are two
+   * processes, so one tab's write can still leave out a page the other just wrote. The engine
+   * hears that as a `storage` event with a shorter log and pulls again.
+   */
   confirm(ops: readonly ConfirmedOp[]): void;
   /** Forgets pending ops the server will never take. */
   drop(opIds: readonly OpId[]): void;
@@ -87,10 +113,10 @@ export function openDeviceLog(
     return withoutGaps(confirmedStore.load() ?? []);
   }
 
-  function pending(): PendingOp[] {
+  function outbox(): OutboxOp[] {
     const stored = storageKeys(outPrefix).flatMap((key) => {
       const raw = window.localStorage.getItem(key);
-      const op = raw === null ? null : parseJson(raw, pendingOpSchema);
+      const op = raw === null ? null : parseJson(raw, outboxOpSchema);
       return op === null ? [] : [op];
     });
     const storedIds = new Set(stored.map((op) => op.id));
@@ -99,15 +125,23 @@ export function openDeviceLog(
     );
   }
 
+  function pending(): PendingOp[] {
+    return outbox().flatMap((op) => {
+      const change = parseChange(op.change);
+      return change === null ? [] : [{ ...op, change }];
+    });
+  }
+
   return {
     confirmed,
+    outbox,
     pending,
 
     appendPending(change) {
       // The counter alone would restart at 1 if only its key were lost.
-      const lastOrder = Math.max(orderStore.load() ?? 0, ...pending().map((op) => op.order));
+      const lastOrder = Math.max(orderStore.load() ?? 0, ...outbox().map((op) => op.order));
       const op: PendingOp = {
-        id: crypto.randomUUID() as OpId,
+        id: newOpId(),
         order: lastOrder + 1,
         at: now(),
         change,

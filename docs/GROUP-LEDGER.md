@@ -8,15 +8,15 @@ All of it lives in `src/features/group-ledger/`. The server is Supabase; without
 
 The canonical state of a group is its **op log**: an append-only list of `Change`s (`domain/types.ts`). There is no expenses table, no balances table and no history table. The server orders ops and stores them; it never reads one.
 
-| Change           | What it does                                                                     |
-| ---------------- | -------------------------------------------------------------------------------- |
-| `group.created`  | Names the group and fixes its currency. Only the first one counts.               |
-| `group.renamed`  | Renames it.                                                                      |
-| `member.put`     | Adds a member, or changes one (name, PayNow number, archived).                   |
-| `member.merged`  | Two phones added the same friend offline; `from` now reads as `into`.            |
-| `member.claimed` | "This device is that member." The server stamps who sent it.                     |
-| `entry.put`      | Writes an expense or a transfer whole, with `base`, the revision its author saw. |
-| `entry.removed`  | Removes an entry.                                                                |
+| Change           | What it does                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `group.created`  | Names the group and fixes its currency. Only the first one counts.                    |
+| `group.renamed`  | Renames it.                                                                           |
+| `member.put`     | Adds a member, or changes one (name, PayNow number, archived).                        |
+| `member.merged`  | Two phones added the same friend offline; `from` now reads as `into`.                 |
+| `member.claimed` | "This device is that member." The server stamps who sent it. First to claim keeps it. |
+| `entry.put`      | Writes an expense or a transfer whole, with `base`, the revision its author saw.      |
+| `entry.removed`  | Removes an entry.                                                                     |
 
 `foldLedger(log, self)` turns a log into a `Ledger`: members, live entries, who this device is, and the activity list with an undo for each row. `computeBalances` and `settleUp` read the ledger. Nothing derived is stored.
 
@@ -45,19 +45,21 @@ phone: GroupLog { confirmed (by seq), pending (by order) } ──push──▶ s
 ```
 
 - **Writing.** `GroupSync.submit(change)` writes a `PendingOp` to the device log synchronously, so it survives a reload before any network call, then syncs.
+- **Creating a group.** `publishGroup(group, firstOp)` creates the group, makes the caller a member and writes the group's `group.created` at `seq` 1 in one transaction, so a group never exists with an empty log. The fold ignores whatever comes before `group.created`, and a friend who joined the moment the group appeared could otherwise write ahead of it and lose that change. The engine publishes once the outbox holds the `group.created`; a screen that makes a group submits it in the same tick it starts the engine.
 - **Ordering.** `append_ops` locks the group row and gives each op the next `seq`, so commit order equals `seq` order and a puller can never skip a row. Phone clocks never order anything.
 - **Retries.** The op id is made on the phone and is the server's idempotency key. Pushing an op twice stores it once and reports it accepted both times.
 - **Crashes.** A pending op leaves the device log only when a pull brings it back confirmed. A crash at any step means the next sync pushes it again, harmlessly.
 - **Conflicts.** Two phones edit one expense offline: the later `seq` wins the whole entry. The fold sees that its `base` was not the head it landed on, and the activity row reads "Ben's change replaced Ana's" with a one-tap restore. An edit beats a remove it never saw, and the row says so.
-- **Two tabs.** Each pending op is its own storage key, so tabs never overwrite each other's outbox.
-- **Rejected ops.** An op the server will never take (too large) is dropped from the outbox and shown, rather than blocking the ops behind it.
-- **Unreadable ops.** An op a newer Split wrote is kept with `change: null`, so `seq` stays gapless, and the activity list says "update Split to see this change".
+- **Two tabs.** Each pending op is its own storage key, so tabs never overwrite each other's outbox. The confirmed log is one key that each tab reads and writes back whole; when two tabs confirm at the same moment and one write leaves out the other's page, the tab that sees the log shrink pulls again.
+- **A failing push.** When the server fails this phone's changes, the run still pulls, so the group keeps up with everyone else. `sync.outboxStuck` is true until a push gets through, and the changes stay queued for the retry.
+- **Rejected ops.** An op the server will never take (too large) is dropped from the outbox and shown, rather than blocking the ops behind it. Too large means over 64 KB as `changeBytes` counts it: the UTF-8 bytes of the change's JSON text. The Supabase adapter sends that text as a string and the SQL counts it before reading it, so the phone, the fake and Postgres agree to the byte. Screens call `fitsOnServer(change)` before they submit.
+- **Unreadable ops.** An op a newer Split wrote is kept with `change: null`, so `seq` stays gapless, and the activity list says "update Split to see this change". A change with a field this version does not know is unreadable as a whole, so an older phone never drops the field and then erases it with an edit. An op queued on this phone that the app, after an update, can no longer read stays in the outbox, is sent as it was stored, and shows the same way.
 
 ## Identity and access
 
 - **Device identity.** The first group action signs the device in anonymously (`supabase.auth.signInAnonymously`). That user is the device.
 - **The link is the key.** An invite link is `/join#<code>`: 128 random bits, in the fragment so it never reaches a server log. The server finds the group by `sha256(code)` and shows the code itself to members only, so a member who signs in on a new phone can still share the link. `join_group(code)` adds the caller to the group. Row level security lets members read their groups' ops and nothing else. All writes go through security-definer functions.
-- **Who you are in a group.** `member.claimed` in the log, stamped by the server with the sender's user id, so authorship can't be forged. Anyone can add a friend by name; the friend claims that name when they join.
+- **Who you are in a group.** `member.claimed` in the log, stamped by the server with the sender's user id, so authorship can't be forged. Anyone can add a friend by name; the friend claims that name when they join. A claim on a member someone else already holds is ignored, so two friends who tap the same name end up as one member and one "who are you?" prompt, in the order the server took them.
 - **Optional login.** "Keep my groups" sends an email code. A new email is attached to the anonymous user (`auth.updateUser`), so the user id and every group stay. An email that already has an account signs the device in to it, and the engine rejoins every group with the invite codes it holds. No server-side merge is needed because the code is the key.
 
 ## Where things live

@@ -3,7 +3,6 @@ import type {
   GroupId,
   InviteCode,
   OpId,
-  PendingOp,
   UserId,
 } from '@features/group-ledger/domain/types';
 
@@ -28,6 +27,16 @@ export type BackendFailure =
   | { kind: 'failed'; message: string };
 
 export type Result<T> = { ok: true; value: T } | { ok: false; failure: BackendFailure };
+
+/**
+ * An op on its way to the server. `change` is whatever the phone stored: the server never reads
+ * it, so a change this version of Split cannot read is sent like any other.
+ */
+export interface OutgoingOp {
+  id: OpId;
+  at: string;
+  change: unknown;
+}
 
 export interface PushOutcome {
   /** Every op now in the group's log, whether this call put it there or an earlier one did. */
@@ -64,14 +73,18 @@ export interface LedgerBackend {
   /** Groups this identity has joined, on any device. */
   myGroups(): Promise<Result<JoinedGroup[]>>;
 
-  /** Creates the group and makes the caller a member. Safe to call again with the same ids. */
-  publishGroup(group: JoinedGroup): Promise<Result<void>>;
+  /**
+   * Creates the group with `firstOp`, its `group.created`, at `seq` 1, and makes the caller a
+   * member, all in one step: a friend who joins the moment the group exists can never write
+   * ahead of the op that creates it. Safe to call again with the same ids.
+   */
+  publishGroup(group: JoinedGroup, firstOp: OutgoingOp): Promise<Result<void>>;
 
   /** Makes the caller a member of the group the code opens. Safe to call again. */
   joinGroup(inviteCode: InviteCode): Promise<Result<JoinedGroup>>;
 
   /** Appends ops in order. An op id the log already holds is left alone and reported accepted. */
-  push(groupId: GroupId, ops: readonly PendingOp[]): Promise<Result<PushOutcome>>;
+  push(groupId: GroupId, ops: readonly OutgoingOp[]): Promise<Result<PushOutcome>>;
 
   pull(groupId: GroupId, afterSeq: number): Promise<Result<Pulled>>;
 

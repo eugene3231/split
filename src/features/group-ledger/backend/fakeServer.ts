@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Result } from '@features/group-ledger/backend/port';
-import { MAX_CHANGE_BYTES } from '@features/group-ledger/backend/limits';
+import { changeBytes, MAX_CHANGE_BYTES } from '@features/group-ledger/backend/limits';
 import { parseJson } from '@features/split-workspace/logic/jsonStorage';
 
 // The server's rules, stated once in TypeScript: the same rules as the SQL functions in
@@ -80,33 +80,54 @@ function isAcceptable(op: IncomingOp): boolean {
     typeof op.change === 'object' &&
     op.change !== null &&
     !Array.isArray(op.change) &&
-    new TextEncoder().encode(JSON.stringify(op.change)).length <= MAX_CHANGE_BYTES
+    changeBytes(op.change) <= MAX_CHANGE_BYTES
   );
 }
 
-/** `create_group`. The same id and code again is the same call; the id with another code gets nothing. */
+/**
+ * `create_group`. The group and `firstOp` at `seq` 1 are made together or not at all. The same
+ * id and code again is the same call; the id with another code gets nothing.
+ */
 export function createGroup(
   state: ServerState,
   caller: string,
   groupId: string,
   inviteCode: string,
+  firstOp: IncomingOp,
 ): Step<void> {
   if (!UUID.test(groupId) || !INVITE_CODE.test(inviteCode)) {
     return failed(state, 'invalid_invite_code');
   }
 
   const existing = state.groups[groupId];
-  if (existing) {
-    return existing.inviteCode === inviteCode
-      ? ok(withMember(state, groupId, caller), undefined)
-      : failed(state, 'group_exists');
-  }
-  if (Object.values(state.groups).some((group) => group.inviteCode === inviteCode)) {
+  if (existing && existing.inviteCode !== inviteCode) return failed(state, 'group_exists');
+  if (!existing && Object.values(state.groups).some((group) => group.inviteCode === inviteCode)) {
     return failed(state, 'group_exists');
   }
 
-  const group = { inviteCode, head: 0, members: [caller], ops: [] };
-  return ok({ ...state, groups: { ...state.groups, [groupId]: group } }, undefined);
+  const group = existing ?? { inviteCode, head: 0, members: [], ops: [] };
+  const entered = withMember(
+    { ...state, groups: { ...state.groups, [groupId]: group } },
+    groupId,
+    caller,
+  );
+  if (group.head > 0) return ok(entered, undefined);
+
+  if (!isAcceptable(firstOp) || state.opGroup[firstOp.id] !== undefined) {
+    return failed(state, 'invalid_first_op');
+  }
+  const first = { id: firstOp.id, seq: 1, at: firstOp.at, change: firstOp.change, userId: caller };
+  return ok(
+    {
+      ...entered,
+      opGroup: { ...state.opGroup, [firstOp.id]: groupId },
+      groups: {
+        ...entered.groups,
+        [groupId]: { ...entered.groups[groupId], head: 1, ops: [first] },
+      },
+    },
+    undefined,
+  );
 }
 
 /** `join_group`. */
@@ -216,7 +237,12 @@ export interface ServerStore {
 }
 
 export interface FakeServer {
-  createGroup(caller: string, groupId: string, inviteCode: string): Promise<Result<void>>;
+  createGroup(
+    caller: string,
+    groupId: string,
+    inviteCode: string,
+    firstOp: IncomingOp,
+  ): Promise<Result<void>>;
   joinGroup(caller: string, inviteCode: string): Promise<Result<string>>;
   appendOps(
     caller: string,
@@ -237,8 +263,8 @@ export interface FakeServer {
 
 function createFakeServer(store: ServerStore): FakeServer {
   return {
-    createGroup: (caller, groupId, inviteCode) =>
-      store.transact((state) => createGroup(state, caller, groupId, inviteCode)),
+    createGroup: (caller, groupId, inviteCode, firstOp) =>
+      store.transact((state) => createGroup(state, caller, groupId, inviteCode, firstOp)),
     joinGroup: (caller, inviteCode) =>
       store.transact((state) => joinGroup(state, caller, inviteCode)),
     async appendOps(caller, groupId, ops) {

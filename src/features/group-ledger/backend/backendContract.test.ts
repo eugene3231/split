@@ -4,6 +4,7 @@ import { createFakeBackend } from '@features/group-ledger/backend/fakeBackend';
 import { createMemoryServer } from '@features/group-ledger/backend/fakeServer';
 import { createSupabaseBackend } from '@features/group-ledger/backend/supabaseBackend';
 import { describeBackendContract } from '@features/group-ledger/backend/testing/backendContract';
+import { newUuid } from '@features/group-ledger/logic/ids';
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -12,8 +13,7 @@ beforeEach(() => {
 describeBackendContract('memory fake', async () => {
   const server = createMemoryServer();
   return {
-    phone: async () =>
-      createFakeBackend({ server, profile: crypto.randomUUID(), isOnline: () => true }),
+    phone: async () => createFakeBackend({ server, profile: newUuid(), isOnline: () => true }),
   };
 });
 

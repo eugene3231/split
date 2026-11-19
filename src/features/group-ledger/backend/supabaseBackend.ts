@@ -1,10 +1,11 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { z } from 'zod';
 import type { UserId } from '@features/group-ledger/domain/types';
-import { PULL_PAGE_SIZE } from '@features/group-ledger/backend/limits';
+import { changeText, PULL_PAGE_SIZE } from '@features/group-ledger/backend/limits';
 import type {
   BackendFailure,
   LedgerBackend,
+  OutgoingOp,
   Result,
   Session,
 } from '@features/group-ledger/backend/port';
@@ -91,6 +92,14 @@ const myGroupsReplySchema = z.array(
 const opRowsSchema = z.array(
   z.preprocess((row) => (isRecord(row) ? { ...row, userId: row.user_id } : row), confirmedOpSchema),
 );
+
+/**
+ * An op as `append_ops` and `create_group` take it. The change goes as text, so the server counts the bytes this
+ * phone counted rather than the bytes of its own jsonb rendering, which spaces things apart.
+ */
+function toWire({ id, at, change }: OutgoingOp) {
+  return { id, at, change: changeText(change) };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -206,10 +215,14 @@ export function createSupabaseBackend(client: SupabaseClient): LedgerBackend {
 
     myGroups: () => rpc('my_groups', {}, myGroupsReplySchema),
 
-    async publishGroup(group) {
+    async publishGroup(group, firstOp) {
       const created = await rpc(
         'create_group',
-        { p_group_id: group.groupId, p_invite_code: group.inviteCode },
+        {
+          p_group_id: group.groupId,
+          p_invite_code: group.inviteCode,
+          p_first_op: toWire(firstOp),
+        },
         z.unknown(),
       );
       return created.ok ? ok(undefined) : created;
@@ -221,11 +234,7 @@ export function createSupabaseBackend(client: SupabaseClient): LedgerBackend {
     },
 
     push: (groupId, ops) =>
-      rpc(
-        'append_ops',
-        { p_group_id: groupId, p_ops: ops.map(({ id, at, change }) => ({ id, at, change })) },
-        pushReplySchema,
-      ),
+      rpc('append_ops', { p_group_id: groupId, p_ops: ops.map(toWire) }, pushReplySchema),
 
     async pull(groupId, afterSeq) {
       const signedIn = await session();

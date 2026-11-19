@@ -51,7 +51,7 @@ export function lazyBackend(load: () => Promise<LedgerBackend>): LedgerBackend {
     verifyEmailCode: (email, code) => call((backend) => backend.verifyEmailCode(email, code)),
     signOut: () => call((backend) => backend.signOut()),
     myGroups: () => call((backend) => backend.myGroups()),
-    publishGroup: (group) => call((backend) => backend.publishGroup(group)),
+    publishGroup: (group, firstOp) => call((backend) => backend.publishGroup(group, firstOp)),
     joinGroup: (inviteCode) => call((backend) => backend.joinGroup(inviteCode)),
     push: (groupId, ops) => call((backend) => backend.push(groupId, ops)),
     pull: (groupId, afterSeq) => call((backend) => backend.pull(groupId, afterSeq)),

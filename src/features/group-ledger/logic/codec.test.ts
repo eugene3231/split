@@ -103,7 +103,36 @@ const everyKind: Change[] = [
   { kind: 'entry.removed', entryId: 'e-1' as EntryId, base: 'op-1' as OpId },
 ];
 
+/** Maps keyed by member id, where another key is another member, not another field. */
+const RECORDS = new Set(['owed', 'others', 'weights', 'shares']);
+
+/** The payload once for each object in it, with a field this version of Split has never heard of. */
+function withAFieldAddedLater(payload: unknown, key = ''): unknown[] {
+  if (typeof payload !== 'object' || payload === null || RECORDS.has(key)) return [];
+  if (Array.isArray(payload)) {
+    return payload.flatMap((item, index) =>
+      withAFieldAddedLater(item, key).map((changed) => payload.with(index, changed)),
+    );
+  }
+  return [
+    { ...payload, addedLater: 'tip' },
+    ...Object.entries(payload).flatMap(([name, value]) =>
+      withAFieldAddedLater(value, name).map((changed) => ({ ...payload, [name]: changed })),
+    ),
+  ];
+}
+
 describe('parseChange', () => {
+  it.each(everyKind)(
+    'cannot read a $kind change that carries a field a newer Split added, at any depth',
+    (change) => {
+      const newer = withAFieldAddedLater(JSON.parse(JSON.stringify(change)));
+
+      expect(newer.length).toBeGreaterThan(0);
+      expect(newer.filter((payload) => parseChange(payload) !== null)).toEqual([]);
+    },
+  );
+
   it.each(everyKind)('reads back a $kind change exactly as it was written', (change) => {
     expect(parseChange(JSON.parse(JSON.stringify(change)))).toEqual(change);
   });

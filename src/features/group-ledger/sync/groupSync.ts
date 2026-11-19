@@ -4,10 +4,13 @@ import type {
   GroupLog,
   InviteCode,
   OpId,
+  PendingOp,
+  UnreadablePendingOp,
 } from '@features/group-ledger/domain/types';
 import { createBackend, deviceProfile } from '@features/group-ledger/backend/createBackend';
 import { PUSH_BATCH_SIZE } from '@features/group-ledger/backend/limits';
 import type { BackendFailure, LedgerBackend } from '@features/group-ledger/backend/port';
+import { parseChange } from '@features/group-ledger/logic/codec';
 import { openDeviceLog, type DeviceLog } from '@features/group-ledger/sync/deviceLog';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 
@@ -27,12 +30,29 @@ export type SyncState =
 
 export interface SyncStatus {
   state: SyncState;
-  /** Changes still only on this phone. */
+  /** Changes still only on this phone, counting any this version of Split cannot read. */
   pending: number;
   /** When this tab last reached the head of the log. Null until it has. */
   lastSyncedAt: string | null;
   /** Changes the server refused for good and this phone dropped, oldest first. */
   rejected: OpId[];
+  /**
+   * The server failed when it was sent this phone's changes, on the last run. The changes are
+   * kept and sent again on the retry timer, and what others wrote is still read meanwhile.
+   */
+  outboxStuck: boolean;
+}
+
+/** How one run ended. */
+interface RunOutcome {
+  failure: BackendFailure | null;
+  /** The pull reached the head of the log, whatever became of the push. */
+  reachedHead: boolean;
+  outboxStuck: boolean;
+}
+
+function stopped(failure: BackendFailure): RunOutcome {
+  return { failure, reachedHead: false, outboxStuck: false };
 }
 
 export interface GroupSnapshot {
@@ -70,7 +90,13 @@ export function createGroupSync({
   const { groupId, inviteCode } = group;
   const listeners = new Set<() => void>();
 
-  let status: SyncStatus = { state: 'idle', pending: 0, lastSyncedAt: null, rejected: [] };
+  let status: SyncStatus = {
+    state: 'idle',
+    pending: 0,
+    lastSyncedAt: null,
+    rejected: [],
+    outboxStuck: false,
+  };
   let snapshot = snapshotOf(readLog());
   let running: Promise<void> | null = null;
   let requested = false;
@@ -81,12 +107,33 @@ export function createGroupSync({
   // so the first pull of each tab starts again from the first one.
   let rereadUnreadable = true;
 
+  /**
+   * A reply can arrive after `dispose`, which is how a group is forgotten. Writing it down would
+   * put the group back on a phone that has just cleared it.
+   */
+  function unlessDisposed<Args extends unknown[]>(write: (...args: Args) => void) {
+    return (...args: Args) => {
+      if (!disposed) write(...args);
+    };
+  }
+  const confirm = unlessDisposed(log.confirm);
+  const drop = unlessDisposed(log.drop);
+  const setMemberAs = unlessDisposed(log.setMemberAs);
+
   function readLog(): GroupLog {
-    return { groupId, inviteCode, confirmed: log.confirmed(), pending: log.pending() };
+    const pending: PendingOp[] = [];
+    const unreadablePending: UnreadablePendingOp[] = [];
+    for (const { id, order, at, change: stored } of log.outbox()) {
+      const change = parseChange(stored);
+      if (change === null) unreadablePending.push({ id, order, at });
+      else pending.push({ id, order, at, change });
+    }
+    return { groupId, inviteCode, confirmed: log.confirmed(), pending, unreadablePending };
   }
 
   function snapshotOf(held: GroupLog): GroupSnapshot {
-    return { log: held, sync: { ...status, pending: held.pending.length } };
+    const queued = held.pending.length + (held.unreadablePending?.length ?? 0);
+    return { log: held, sync: { ...status, pending: queued } };
   }
 
   function publish(next: Partial<SyncStatus>, held: GroupLog = snapshot.log) {
@@ -100,16 +147,24 @@ export function createGroupSync({
     publish(next, readLog());
   }
 
-  /** Creates the group on the server, or joins it. Both make this user a member, and repeat safely. */
+  /**
+   * Creates the group on the server, or joins it. Both make this user a member, and repeat
+   * safely. A group made here is created by sending its `group.created` along, so that op is
+   * `seq` 1 whoever writes next. Once that op has left the outbox the group is on the server,
+   * and the invite code opens it like anyone else's.
+   */
   async function enter(): Promise<BackendFailure | null> {
-    const entered = group.createdHere
-      ? await backend.publishGroup({ groupId, inviteCode })
+    const firstOp = group.createdHere
+      ? log.outbox().find((op) => parseChange(op.change)?.kind === 'group.created')
+      : undefined;
+    const entered = firstOp
+      ? await backend.publishGroup({ groupId, inviteCode }, firstOp)
       : await backend.joinGroup(inviteCode);
     return entered.ok ? null : entered.failure;
   }
 
   async function pushPending(reenter: () => Promise<BackendFailure | null>) {
-    const pending = log.pending();
+    const pending = log.outbox();
     let reentered = false;
     for (let start = 0; start < pending.length; start += PUSH_BATCH_SIZE) {
       const batch = pending.slice(start, start + PUSH_BATCH_SIZE);
@@ -122,7 +177,7 @@ export function createGroupSync({
       }
       if (!pushed.ok) return pushed.failure;
       if (pushed.value.rejected.length > 0) {
-        log.drop(pushed.value.rejected);
+        drop(pushed.value.rejected);
         reload({ rejected: [...status.rejected, ...pushed.value.rejected] });
       }
     }
@@ -138,21 +193,21 @@ export function createGroupSync({
       if (!pulled.ok) return pulled.failure;
       const last = pulled.value.ops.at(-1);
       if (last) {
-        log.confirm(pulled.value.ops);
+        confirm(pulled.value.ops);
         reload();
         afterSeq = last.seq;
       }
-      if (!pulled.value.more || !last) break;
+      if (!pulled.value.more || !last || disposed) break;
     }
     rereadUnreadable = false;
     return null;
   }
 
-  async function runOnce(): Promise<BackendFailure | null> {
+  async function runOnce(): Promise<RunOutcome> {
     try {
       // The outbox is read after this await, so changes submitted in one go leave as one batch.
       const session = await backend.session();
-      if (!session.ok) return session.failure;
+      if (!session.ok) return stopped(session.failure);
       const { userId } = session.value;
 
       // Covers a group made offline and never published, a phone that signed in to another
@@ -160,31 +215,44 @@ export function createGroupSync({
       // rather than an error, so the phone has to know it entered as this user.
       async function enterAsUser() {
         const failure = await enter();
-        if (failure === null) log.setMemberAs(userId);
+        if (failure === null) setMemberAs(userId);
         return failure;
       }
       if (log.memberAs() !== userId) {
         const failure = await enterAsUser();
-        if (failure !== null) return failure;
+        if (failure !== null) return stopped(failure);
       }
 
-      return (await pushPending(enterAsUser)) ?? (await pullToHead());
+      // A server that fails this phone's changes may still serve the log, and a group that
+      // cannot be read until its own outbox clears would stay stale for as long as that takes.
+      const pushFailure = await pushPending(enterAsUser);
+      if (pushFailure !== null && pushFailure.kind !== 'failed') return stopped(pushFailure);
+      const pullFailure = await pullToHead();
+      return {
+        failure: pushFailure ?? pullFailure,
+        reachedHead: pullFailure === null,
+        outboxStuck: pushFailure !== null,
+      };
     } catch (error) {
-      return { kind: 'failed', message: error instanceof Error ? error.message : String(error) };
+      return stopped({
+        kind: 'failed',
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
-  function settle(failure: BackendFailure | null) {
+  function settle({ failure, reachedHead, outboxStuck }: RunOutcome) {
+    const lastSyncedAt = reachedHead ? now() : status.lastSyncedAt;
     if (failure === null) {
       retryMs = FIRST_RETRY_MS;
-      publish({ state: 'idle', lastSyncedAt: now() });
+      publish({ state: 'idle', lastSyncedAt, outboxStuck });
       return;
     }
     if (failure.kind === 'not-a-member' || failure.kind === 'invite-not-found') {
-      publish({ state: 'not-a-member' });
+      publish({ state: 'not-a-member', outboxStuck });
       return;
     }
-    publish({ state: failure.kind === 'offline' ? 'offline' : 'error' });
+    publish({ state: failure.kind === 'offline' ? 'offline' : 'error', lastSyncedAt, outboxStuck });
     retryTimer = setTimeout(() => void syncNow(), retryMs);
     retryMs = Math.min(retryMs * 2, LAST_RETRY_MS);
   }
@@ -195,11 +263,11 @@ export function createGroupSync({
       if (retryTimer !== null) clearTimeout(retryTimer);
       retryTimer = null;
       publish({ state: 'syncing' });
-      const failure = await runOnce();
+      const outcome = await runOnce();
       if (disposed) return;
-      settle(failure);
+      settle(outcome);
       // After a failure the timer decides when to try again, not whatever asked meanwhile.
-      if (failure !== null) requested = false;
+      if (outcome.failure !== null) requested = false;
     }
   }
 
@@ -218,7 +286,13 @@ export function createGroupSync({
   };
   // Another tab of this phone changed the log.
   const onStorage = (event: StorageEvent) => {
-    if (log.owns(event.key)) reload();
+    if (!log.owns(event.key)) return;
+    const held = snapshot.log.confirmed.length;
+    reload();
+    // Two tabs that confirm at the same moment each write back the log they read plus their own
+    // page, and the later write can leave out the other tab's page. The ops are on the server,
+    // so pull them again. A removed key is the group being forgotten, which stays forgotten.
+    if (event.newValue !== null && snapshot.log.confirmed.length < held) sync();
   };
 
   const unsubscribe = backend.subscribe(groupId, sync);
@@ -291,7 +365,11 @@ export async function syncAllGroups(): Promise<void> {
   await Promise.all(groups.map((group) => groupSyncFor(group.groupId)?.syncNow()));
 }
 
-/** Takes a group off this phone: its engine, its log and any change not yet synced. */
+/**
+ * Takes a group off this phone: its engine, its log and any change not yet synced. A sync still
+ * on its way writes nothing afterwards. The server keeps this user as a member, so the invite
+ * link brings the group back.
+ */
 export function forgetGroup(groupId: GroupId): void {
   engines.get(groupId)?.dispose();
   engines.delete(groupId);

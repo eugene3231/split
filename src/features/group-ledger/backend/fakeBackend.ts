@@ -15,6 +15,7 @@ import type {
   Session,
 } from '@features/group-ledger/backend/port';
 import { confirmedOpSchema } from '@features/group-ledger/logic/codec';
+import { newUuid } from '@features/group-ledger/logic/ids';
 import { jsonStorage } from '@features/split-workspace/logic/jsonStorage';
 
 export interface FakeBackendOptions {
@@ -61,7 +62,7 @@ export function createFakeBackend({
     const stored = sessionStore.load();
     if (stored !== null) return stored;
     if (!isOnline()) return null;
-    const fresh = { userId: crypto.randomUUID(), email: null };
+    const fresh = { userId: newUuid(), email: null };
     sessionStore.save(fresh);
     return fresh;
   }
@@ -124,8 +125,10 @@ export function createFakeBackend({
         };
       }),
 
-    publishGroup: (group) =>
-      online((session) => server.createGroup(session.userId, group.groupId, group.inviteCode)),
+    publishGroup: (group, { id, at, change }) =>
+      online((session) =>
+        server.createGroup(session.userId, group.groupId, group.inviteCode, { id, at, change }),
+      ),
 
     joinGroup: (inviteCode) =>
       online(async (session) => {
@@ -180,7 +183,7 @@ const PROFILE_KEY = 'split.fakeBackend.profile';
 export function tabProfile(): string {
   const storage = jsonStorage('sessionStorage', PROFILE_KEY, z.string().min(1));
   const named = new URLSearchParams(window.location.search).get('phone');
-  const profile = named || storage.load() || crypto.randomUUID();
+  const profile = named || storage.load() || newUuid();
   storage.save(profile);
   return profile;
 }

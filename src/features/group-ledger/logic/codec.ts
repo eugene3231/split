@@ -23,7 +23,9 @@ import type {
 // Ops come from other phones, other versions of Split and this phone's storage. These schemas
 // are the one place that turns such a payload into the domain types. They are strict: a change
 // that does not fit is unreadable as a whole, never repaired field by field, because a repaired
-// entry would be an entry nobody wrote. They check the rules domain/types.ts states and no
+// entry would be an entry nobody wrote. That covers a field this version has never heard of:
+// every object in a change is a `z.strictObject`, since reading past the field would drop it,
+// and the next edit from this phone would erase what a newer Split wrote. They check the rules domain/types.ts states and no
 // others: a schema stricter than `postWeights`, `postAmounts` or `postReceipt` would make this
 // phone unable to read back a change it wrote itself.
 
@@ -55,7 +57,7 @@ function byMember<Value>(value: z.ZodType<Value>) {
     .transform((record) => record as Record<MemberId, Value>);
 }
 
-const memberSchema: z.ZodType<Member> = z.object({
+const memberSchema: z.ZodType<Member> = z.strictObject({
   id: memberId,
   name: z.string(),
   paynowMobile: z.string().nullable(),
@@ -63,10 +65,10 @@ const memberSchema: z.ZodType<Member> = z.object({
 });
 
 const paymentSchema: z.ZodType<Payment> = z
-  .object({ payer: memberId, others: byMember(cents.positive()) })
+  .strictObject({ payer: memberId, others: byMember(cents.positive()) })
   .refine((payment) => !Object.hasOwn(payment.others, payment.payer));
 
-const chargeSchema: z.ZodType<ChargeState> = z.object({
+const chargeSchema: z.ZodType<ChargeState> = z.strictObject({
   enabled: z.boolean(),
   mode: z.enum(['amount', 'percent']),
   amountInput: z.string(),
@@ -75,18 +77,18 @@ const chargeSchema: z.ZodType<ChargeState> = z.object({
   detectedSource: z.string().nullable(),
 });
 
-const itemSchema: z.ZodType<EditableItem> = z.object({
+const itemSchema: z.ZodType<EditableItem> = z.strictObject({
   id: z.string().min(1),
   name: z.string(),
   amountInput: z.string(),
   discountPercentInput: z.string(),
-  assignment: z.object({
+  assignment: z.strictObject({
     shares: z.record(z.string().min(1), z.number().nonnegative()),
     unassignedShare: z.number().nonnegative(),
   }),
 });
 
-const receiptSchema: z.ZodType<StoredReceipt> = z.object({
+const receiptSchema: z.ZodType<StoredReceipt> = z.strictObject({
   id: z.string().min(1),
   name: z.string(),
   items: z.array(itemSchema),
@@ -100,12 +102,12 @@ const receiptSchema: z.ZodType<StoredReceipt> = z.object({
 });
 
 const basisSchema: z.ZodType<ExpenseBasis> = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('weights'), weights: byMember(z.number().nonnegative()) }),
-  z.object({ kind: z.literal('amounts') }),
-  z.object({ kind: z.literal('receipt'), receipt: receiptSchema }),
+  z.strictObject({ kind: z.literal('weights'), weights: byMember(z.number().nonnegative()) }),
+  z.strictObject({ kind: z.literal('amounts') }),
+  z.strictObject({ kind: z.literal('receipt'), receipt: receiptSchema }),
 ]);
 
-const expenseSchema = z.object({
+const expenseSchema = z.strictObject({
   kind: z.literal('expense'),
   id: entryId,
   title: z.string(),
@@ -119,7 +121,7 @@ const expenseSchema = z.object({
   basis: basisSchema,
 });
 
-const transferSchema = z.object({
+const transferSchema = z.strictObject({
   kind: z.literal('transfer'),
   id: entryId,
   date: localDate,
@@ -131,13 +133,13 @@ const transferSchema = z.object({
 const entrySchema: z.ZodType<Entry> = z.discriminatedUnion('kind', [expenseSchema, transferSchema]);
 
 export const changeSchema: z.ZodType<Change> = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('group.created'), name: z.string(), currency }),
-  z.object({ kind: z.literal('group.renamed'), name: z.string() }),
-  z.object({ kind: z.literal('member.put'), member: memberSchema }),
-  z.object({ kind: z.literal('member.merged'), from: memberId, into: memberId }),
-  z.object({ kind: z.literal('member.claimed'), memberId: memberId.nullable() }),
-  z.object({ kind: z.literal('entry.put'), entry: entrySchema, base: opId.nullable() }),
-  z.object({ kind: z.literal('entry.removed'), entryId, base: opId }),
+  z.strictObject({ kind: z.literal('group.created'), name: z.string(), currency }),
+  z.strictObject({ kind: z.literal('group.renamed'), name: z.string() }),
+  z.strictObject({ kind: z.literal('member.put'), member: memberSchema }),
+  z.strictObject({ kind: z.literal('member.merged'), from: memberId, into: memberId }),
+  z.strictObject({ kind: z.literal('member.claimed'), memberId: memberId.nullable() }),
+  z.strictObject({ kind: z.literal('entry.put'), entry: entrySchema, base: opId.nullable() }),
+  z.strictObject({ kind: z.literal('entry.removed'), entryId, base: opId }),
 ]);
 
 /** Null for a change this version of Split cannot read. Never throws. */
