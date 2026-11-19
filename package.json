@@ -19,6 +19,8 @@
     "test:integration": "vitest run --project integration",
     "test:integration:watch": "vitest --project integration",
     "test:coverage": "vitest run --coverage",
+    "formal:ledger": "LEDGER_RUNS=10000 vitest run --project unit --testTimeout=600000 src/features/group-ledger/logic/fold.properties.test.ts",
+    "formal:ledger:mutants": "node .agents/skills/ledger-model/scripts/mutants.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
