@@ -6,9 +6,9 @@ import { createAccountStore } from '@features/group-ledger/sync/accountStore';
 function phone(server: FakeServer, profile: string) {
   const signal = { online: true };
   const backend = createFakeBackend({ server, profile, isOnline: () => signal.online });
-  const onUserChanged = vi.fn(async () => {});
-  const open = () => createAccountStore({ backend: () => backend, profile, onUserChanged });
-  return { signal, backend, onUserChanged, open, store: open() };
+  const findGroups = vi.fn(async () => {});
+  const open = () => createAccountStore({ backend: () => backend, profile, findGroups });
+  return { signal, backend, findGroups, open, store: open() };
 }
 
 beforeEach(() => {
@@ -26,7 +26,7 @@ describe('account', () => {
     expect(before).toBeNull();
     expect(session?.account).toEqual({ kind: 'anonymous' });
     expect(ana.open().getState().session).toEqual(session);
-    expect(ana.onUserChanged).not.toHaveBeenCalled();
+    expect(ana.findGroups).not.toHaveBeenCalled();
   });
 
   it('adopts the session a sync ran as only while it knows none of its own', async () => {
@@ -72,10 +72,22 @@ describe('account', () => {
       userId,
       account: { kind: 'linked', email: 'ana@example.com' },
     });
-    expect(ana.onUserChanged).not.toHaveBeenCalled();
   });
 
-  it('switches to the account an email already has, and says the user changed', async () => {
+  it('looks for groups the account joined on other phones each time a signed-in phone opens', async () => {
+    const ana = phone(createMemoryServer(), 'ana');
+    await ana.store.getState().load();
+    await ana.store.getState().startEmailSignIn('ana@example.com');
+    await ana.store.getState().verifyEmailCode(FAKE_EMAIL_CODE);
+    ana.findGroups.mockClear();
+
+    const reopened = ana.open();
+    await reopened.getState().load();
+
+    expect(ana.findGroups).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches to the account an email already has, and looks for its groups', async () => {
     const server = createMemoryServer();
     const oldPhone = phone(server, 'old');
     await oldPhone.store.getState().load();
@@ -90,7 +102,7 @@ describe('account', () => {
 
     expect(mode).toMatchObject({ step: 'code-sent', mode: 'sign-in' });
     expect(newPhone.store.getState().session).toEqual(oldPhone.store.getState().session);
-    expect(newPhone.onUserChanged).toHaveBeenCalledTimes(1);
+    expect(newPhone.findGroups).toHaveBeenCalledTimes(1);
   });
 
   it('keeps asking for the code after a wrong one', async () => {
@@ -131,7 +143,7 @@ describe('account', () => {
     expect(ana.store.getState().failure).toBeNull();
   });
 
-  it('becomes a new anonymous user on sign out, and says the user changed', async () => {
+  it('becomes a new anonymous user on sign out, and looks for its groups', async () => {
     const ana = phone(createMemoryServer(), 'ana');
     await ana.store.getState().load();
     await ana.store.getState().startEmailSignIn('ana@example.com');
@@ -142,7 +154,7 @@ describe('account', () => {
 
     expect(ana.store.getState().session?.account).toEqual({ kind: 'anonymous' });
     expect(ana.store.getState().session?.userId).not.toBe(linked?.userId);
-    expect(ana.onUserChanged).toHaveBeenCalledTimes(1);
+    expect(ana.findGroups).toHaveBeenCalledTimes(2);
   });
 
   it('stays signed in when signing out fails', async () => {

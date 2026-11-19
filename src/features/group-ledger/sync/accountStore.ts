@@ -40,13 +40,17 @@ const sessionSchema: z.ZodType<Session> = z.object({
 export interface AccountStoreOptions {
   backend: () => LedgerBackend;
   profile: string;
-  onUserChanged: () => Promise<void>;
+  /**
+   * Adds the groups this identity holds that the phone doesn't, then syncs. Runs whenever the
+   * user changes, and whenever a signed-in phone loads, since another phone may have joined a group.
+   */
+  findGroups: () => Promise<void>;
 }
 
 export function createAccountStore({
   backend: getBackend,
   profile,
-  onUserChanged,
+  findGroups,
 }: AccountStoreOptions) {
   const storage = jsonStorage('localStorage', `split:account:${profile}`, sessionSchema);
 
@@ -55,7 +59,8 @@ export function createAccountStore({
       const before = get().session;
       storage.save(session);
       set({ session });
-      if (before !== null && before.userId !== session.userId) await onUserChanged();
+      const userChanged = before !== null && before.userId !== session.userId;
+      if (userChanged || session.account.kind === 'linked') await findGroups();
     }
 
     return {
@@ -130,7 +135,7 @@ async function adoptAccountGroups(): Promise<void> {
 export const useAccountStore = createAccountStore({
   backend: ledgerBackend,
   profile: deviceProfile(),
-  onUserChanged: adoptAccountGroups,
+  findGroups: adoptAccountGroups,
 });
 
 onSessionSeen((session) => useAccountStore.getState().adopt(session));
