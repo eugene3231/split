@@ -29,7 +29,25 @@ describe('account', () => {
     expect(ana.findGroups).not.toHaveBeenCalled();
   });
 
-  it('adopts the session a sync ran as only while it knows none of its own', async () => {
+  it('takes the session a sync ran as, so a sign-in in another tab reaches this one', async () => {
+    const server = createMemoryServer();
+    const ana = phone(server, 'ana');
+    const other = phone(server, 'other');
+    await ana.store.getState().load();
+    await other.store.getState().load();
+    const elsewhere = other.store.getState().session;
+    if (elsewhere === null) throw new Error('no session');
+
+    ana.store.getState().adopt(elsewhere);
+    await vi.waitFor(() => expect(ana.findGroups).toHaveBeenCalledTimes(1));
+    ana.store.getState().adopt(elsewhere);
+
+    expect(ana.store.getState().session).toEqual(elsewhere);
+    expect(ana.open().getState().session).toEqual(elsewhere);
+    expect(ana.findGroups).toHaveBeenCalledTimes(1);
+  });
+
+  it('adopts the session a sync ran as when it knows none of its own yet', async () => {
     const ana = phone(createMemoryServer(), 'ana');
     const other = phone(createMemoryServer(), 'other');
     await other.store.getState().load();
@@ -37,10 +55,9 @@ describe('account', () => {
     if (seen === null) throw new Error('no session');
 
     ana.store.getState().adopt(seen);
-    ana.store.getState().adopt({ ...seen, account: { kind: 'linked', email: 'x@example.com' } });
 
     expect(ana.store.getState().session).toEqual(seen);
-    expect(ana.open().getState().session).toEqual(seen);
+    expect(ana.findGroups).not.toHaveBeenCalled();
   });
 
   it('still knows who the phone is when it opens with no signal', async () => {

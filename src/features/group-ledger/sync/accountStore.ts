@@ -20,7 +20,10 @@ interface AccountStore {
   /** Why the last action did not work. A `failed` while verifying means the code was refused. */
   failure: BackendFailure | null;
   load: () => Promise<void>;
-  /** Takes the session a group's sync ran as, while this phone does not know its own yet. */
+  /**
+   * Takes the session a group's sync ran as. Tabs share one backend session, so this is how a
+   * sign-in or sign-out in another tab reaches this one.
+   */
   adopt: (session: Session) => void;
   startEmailSignIn: (email: string) => Promise<void>;
   verifyEmailCode: (code: string) => Promise<void>;
@@ -36,6 +39,15 @@ const sessionSchema: z.ZodType<Session> = z.object({
     z.object({ kind: z.literal('linked'), email: z.string() }),
   ]),
 });
+
+function sameSession(a: Session, b: Session): boolean {
+  return (
+    a.userId === b.userId &&
+    a.account.kind === b.account.kind &&
+    (a.account.kind === 'anonymous' ||
+      (b.account.kind === 'linked' && a.account.email === b.account.email))
+  );
+}
 
 export interface AccountStoreOptions {
   backend: () => LedgerBackend;
@@ -79,9 +91,9 @@ export function createAccountStore({
       },
 
       adopt: (session) => {
-        if (get().session !== null) return;
-        storage.save(session);
-        set({ session });
+        const known = get().session;
+        if (known !== null && sameSession(known, session)) return;
+        void become(session);
       },
 
       startEmailSignIn: async (email) => {
