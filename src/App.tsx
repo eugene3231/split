@@ -38,7 +38,7 @@ function App(): ReactElement {
   return (
     <>
       <Screen route={route} />
-      <AppOverlays />
+      <AppOverlays groups={route.kind !== 'split'} />
     </>
   );
 }

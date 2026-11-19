@@ -74,7 +74,6 @@ function ActivityRow({
           <div className="mt-2 rounded-xl bg-surface-container-lowest/80 p-3 text-sm text-on-warning-container">
             <p>Replaced a change made at the same time: {describeEntry(replaced, ledger)}.</p>
             <Button variant="secondary" className="mt-2 h-9 w-full" onClick={restoreOther}>
-              <Icon name="restore" className="text-lg!" />
               Restore the other version
             </Button>
           </div>
