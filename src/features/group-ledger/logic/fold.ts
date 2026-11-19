@@ -8,12 +8,21 @@ import type {
   ExpenseBasis,
   GroupLog,
   Ledger,
-  Member,
   MemberId,
   OpId,
   UserId,
 } from '@features/group-ledger/domain/types';
+import { stepClaim, type ClaimBook } from '@features/group-ledger/logic/claims';
+import { ABSENT, stepEntry, type EntryState } from '@features/group-ledger/logic/entryLifecycle';
 import { asMemberId, byCodeUnit } from '@features/group-ledger/logic/ids';
+import {
+  activeMember,
+  activeMembers,
+  hasMerges,
+  resolveMember,
+  stepMembers,
+  type MemberBook,
+} from '@features/group-ledger/logic/memberLifecycle';
 
 const THIS_DEVICE: unique symbol = Symbol('this device');
 type Author = UserId | typeof THIS_DEVICE;
@@ -26,26 +35,11 @@ interface Op {
   pending: boolean;
 }
 
-interface Head {
-  entry: Entry;
-  rev: OpId;
-  pending: boolean;
-  position: number;
-}
-
-interface Removed {
-  entry: Entry;
-  by: OpId;
-  position: number;
-}
-
 interface Folding {
   group: { name: string; currency: CurrencyCode } | null;
-  members: Map<MemberId, Member>;
-  aliases: Map<MemberId, MemberId>;
-  claims: Map<Author, MemberId | null>;
-  entries: Map<EntryId, Head>;
-  removed: Map<EntryId, Removed>;
+  members: MemberBook;
+  claims: ClaimBook<Author>;
+  entries: Map<EntryId, EntryState>;
 }
 
 type Outcome = Pick<Activity, 'what' | 'replaced' | 'undo'>;
@@ -82,10 +76,8 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
   const state: Folding = {
     group: null,
     members: new Map(),
-    aliases: new Map(),
     claims: new Map(),
     entries: new Map(),
-    removed: new Map(),
   };
   const activity: Activity[] = [];
 
@@ -104,20 +96,22 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
 
   if (state.group === null) return null;
 
-  const resolve = (id: MemberId) => resolveAlias(state.aliases, id);
+  const { members } = state;
+  const resolve = (id: MemberId) => resolveMember(members, id);
   const liveMember = (id: MemberId | null): MemberId | null => {
     if (id === null) return null;
-    return state.members.has(resolve(id)) ? resolve(id) : null;
+    return activeMember(members, resolve(id)) === null ? null : resolve(id);
   };
-  const current = (entry: Entry) =>
-    state.aliases.size === 0 ? entry : resolveEntry(entry, resolve);
+  const merged = hasMerges(members);
+  const current = (entry: Entry) => (merged ? resolveEntry(entry, resolve) : entry);
 
   return {
     groupId: log.groupId,
     name: state.group.name,
     currency: state.group.currency,
-    members: [...state.members.values()],
+    members: activeMembers(members),
     entries: [...state.entries.values()]
+      .filter((head) => head.kind === 'live')
       .sort((a, b) => byCodeUnit(b.entry.date, a.entry.date) || b.position - a.position)
       .map(({ entry, rev, pending }) => ({ entry: current(entry), rev, pending })),
     me: liveMember(state.claims.get(me) ?? null),
@@ -222,103 +216,52 @@ function apply(state: Folding, op: Op, position: number): Outcome | null {
         undo: { kind: 'group.renamed', name: from },
       };
     }
-    case 'member.put': {
-      const { member } = change;
-      if (state.aliases.has(member.id)) return null;
-      const before = state.members.get(member.id);
-      state.members.set(member.id, member);
-      if (before === undefined) return plain({ kind: 'member-added', member });
-      return {
-        what: { kind: 'member-changed', before, after: member },
-        replaced: null,
-        undo: { kind: 'member.put', member: before },
-      };
-    }
+    case 'member.put':
     case 'member.merged': {
-      const fromId = resolveAlias(state.aliases, change.from);
-      const intoId = resolveAlias(state.aliases, change.into);
-      const from = state.members.get(fromId);
-      const into = state.members.get(intoId);
-      if (fromId === intoId || from === undefined || into === undefined) return null;
-      state.aliases.set(fromId, intoId);
-      state.members.delete(fromId);
-      return plain({ kind: 'member-merged', from, into });
+      const step = stepMembers(
+        state.members,
+        change.kind === 'member.put'
+          ? { kind: 'put', member: change.member }
+          : { kind: 'merge', from: change.from, into: change.into },
+      );
+      if (step === null) return null;
+      state.members = step.book;
+      return { what: step.what, replaced: null, undo: step.undo };
     }
     case 'member.claimed': {
-      const claimed =
-        change.memberId === null ? null : resolveAlias(state.aliases, change.memberId);
-      if (claimed !== null && isHeldByAnother(state, claimed, op.author)) return null;
-      state.claims.set(op.author, change.memberId);
-      const member = claimed === null ? null : (state.members.get(claimed) ?? null);
+      const resolve = (id: MemberId) => resolveMember(state.members, id);
+      const claims = stepClaim(state.claims, op.author, change.memberId, resolve);
+      if (claims === null) return null;
+      state.claims = claims;
+      const member =
+        change.memberId === null ? null : activeMember(state.members, resolve(change.memberId));
       return plain({ kind: 'member-claimed', member });
     }
-    case 'entry.put': {
-      const { entry, base } = change;
-      const head = state.entries.get(entry.id);
-      const removed = state.removed.get(entry.id);
-      state.removed.delete(entry.id);
-      state.entries.set(entry.id, {
-        entry,
-        rev: op.id,
-        pending: op.pending,
-        position: head?.position ?? removed?.position ?? position,
-      });
-      const remove: Change = { kind: 'entry.removed', entryId: entry.id, base: op.id };
-
-      if (head !== undefined) {
-        return {
-          what: { kind: 'entry-changed', before: head.entry, after: entry },
-          replaced: base === head.rev ? null : head.entry,
-          undo: { kind: 'entry.put', entry: head.entry, base: op.id },
-        };
-      }
-      if (removed === undefined) {
-        return { what: { kind: 'entry-added', entry }, replaced: null, undo: remove };
-      }
-      if (base === removed.by) {
-        return { what: { kind: 'entry-restored', entry }, replaced: null, undo: remove };
-      }
-      return {
-        what: { kind: 'entry-changed', before: removed.entry, after: entry },
-        replaced: removed.entry,
-        undo: remove,
-      };
-    }
+    case 'entry.put':
     case 'entry.removed': {
-      const head = state.entries.get(change.entryId);
-      if (head === undefined) return null;
-      state.entries.delete(change.entryId);
-      state.removed.set(change.entryId, {
-        entry: head.entry,
-        by: op.id,
-        position: head.position,
-      });
-      return {
-        what: { kind: 'entry-removed', entry: head.entry },
-        replaced: change.base === head.rev ? null : head.entry,
-        undo: { kind: 'entry.put', entry: head.entry, base: op.id },
-      };
+      const entryId = change.kind === 'entry.put' ? change.entry.id : change.entryId;
+      const step = stepEntry(
+        state.entries.get(entryId) ?? ABSENT,
+        change.kind === 'entry.put'
+          ? {
+              kind: 'put',
+              entry: change.entry,
+              base: change.base,
+              op: op.id,
+              pending: op.pending,
+              position,
+            }
+          : { kind: 'remove', base: change.base, op: op.id },
+      );
+      if (step === null) return null;
+      state.entries.set(entryId, step.state);
+      return { what: step.what, replaced: step.replaced, undo: step.undo };
     }
     default:
       return change satisfies never;
   }
 }
 
-function isHeldByAnother(state: Folding, member: MemberId, author: Author): boolean {
-  return [...state.claims].some(
-    ([holder, held]) =>
-      holder !== author && held !== null && resolveAlias(state.aliases, held) === member,
-  );
-}
-
 function plain(what: Activity['what']): Outcome {
   return { what, replaced: null, undo: null };
-}
-
-function resolveAlias(aliases: ReadonlyMap<MemberId, MemberId>, id: MemberId): MemberId {
-  let current = id;
-  for (let next = aliases.get(current); next !== undefined; next = aliases.get(current)) {
-    current = next;
-  }
-  return current;
 }
