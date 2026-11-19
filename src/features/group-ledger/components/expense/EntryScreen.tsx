@@ -10,13 +10,17 @@ import { TransferEditor } from './TransferEditor';
 
 /**
  * Opens an entry in the editor that fits it, once the entry is on this phone. An entry missing
- * here may still be on its way, so it is only called gone once this tab has caught up.
+ * here may still be on its way, so it is only called gone once this tab has caught up. Once open,
+ * the editor stays even if someone deletes the entry, so what is typed here can still be saved.
  */
 export function EntryScreen({ group, entryId }: { group: MyGroup; entryId: EntryId }) {
   const { ledger, sync } = group;
   const live = ledger.entries.find((posted) => posted.entry.id === entryId);
+  const [opened, setOpened] = useState(live);
+  if (live && opened?.entry.id !== entryId) setOpened(live);
+  const shown = opened?.entry.id === entryId ? opened : live;
 
-  if (live) return <EntryEditor key={entryId} group={group} opened={live} />;
+  if (shown) return <EntryEditor key={entryId} group={group} opened={shown} />;
   if (sync.lastSyncedAt === null) {
     return sync.state === 'offline' ? (
       <StateScreen icon="cloud_off" title="Waiting for a signal">
@@ -41,12 +45,9 @@ export function EntryScreen({ group, entryId }: { group: MyGroup; entryId: Entry
   );
 }
 
-/**
- * The entry is read once, when it first opens, so an edit someone else makes meanwhile never
- * throws away what is being typed here.
- */
+/** Takes the entry as it was when it opened, so an edit made elsewhere meanwhile never throws away what is typed here. */
 function EntryEditor({ group, opened }: { group: MyGroup; opened: PostedEntry }) {
-  const [{ entry, rev }] = useState(opened);
+  const { entry, rev } = opened;
   if (entry.kind === 'transfer') return <TransferEditor group={group} transfer={entry} rev={rev} />;
   if (entry.basis.kind === 'receipt') {
     return <GroupReceiptEditor group={group} editing={{ entry, rev }} />;

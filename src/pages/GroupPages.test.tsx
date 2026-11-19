@@ -456,6 +456,25 @@ describe('a group', () => {
     expect(screen.getByLabelText('What was it for?')).toHaveValue('Team lunch');
   });
 
+  it('keeps the editor and what is typed when someone else deletes the entry meanwhile', async () => {
+    const groupId = makeGroup(['Ben']);
+    render(<App />);
+    await addQuickExpense(groupId, '20', 'Lunch');
+    const [posted] = ledgerOf(groupId).entries;
+    fireEvent.click(screen.getByRole('link', { name: /Lunch/ }));
+    type('What was it for?', 'Team lunch');
+
+    act(() => {
+      groupSyncFor(groupId)?.submit({
+        kind: 'entry.removed',
+        entryId: posted.entry.id,
+        base: posted.rev,
+      });
+    });
+
+    expect(screen.getByLabelText('What was it for?')).toHaveValue('Team lunch');
+  });
+
   it('cancels a new receipt back to the group', () => {
     const groupId = makeGroup(['Ben']);
     render(<App />);
