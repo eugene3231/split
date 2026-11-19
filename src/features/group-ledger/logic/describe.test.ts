@@ -5,6 +5,7 @@ import {
   describeBalance,
   describeEntry,
   describeEntryRow,
+  describeEvenSplit,
   describeMyBalance,
   describeMyShare,
   describeSettleUp,
@@ -230,5 +231,18 @@ describe('describeEntryRow', () => {
       title: 'Ben paid you',
       detail: '$5.00',
     });
+  });
+});
+
+describe('describeEvenSplit', () => {
+  it('gives the share each person pays, saying about when the cents do not divide', () => {
+    expect(describeEvenSplit(3, { [ana]: 3000, [ben]: 3000, [cat]: 3000 }, 'SGD')).toBe(
+      '$30.00 each · 3 people',
+    );
+    expect(describeEvenSplit(3, { [ana]: 333, [ben]: 333, [cat]: 334 }, 'SGD')).toBe(
+      'about $3.33 each · 3 people',
+    );
+    expect(describeEvenSplit(1, null, 'SGD')).toBe('1 person');
+    expect(describeEvenSplit(0, null, 'SGD')).toBe('Tap the people who share it');
   });
 });

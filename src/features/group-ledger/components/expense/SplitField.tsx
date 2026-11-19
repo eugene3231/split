@@ -5,7 +5,7 @@ import {
   type ExpenseDraft,
   type SplitBy,
 } from '@features/group-ledger/logic/expenseForm';
-import { memberLabel } from '@features/group-ledger/logic/describe';
+import { describeEvenSplit, memberLabel } from '@features/group-ledger/logic/describe';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
 import { SegmentedToggle } from '@shared/components/SegmentedToggle';
@@ -94,11 +94,7 @@ export function SplitField({ ledger, members, draft, owed, onChange }: SplitFiel
             })}
           </ul>
           <p className="mt-3 text-center text-sm text-on-surface-variant">
-            {splitBy.between.length === 0
-              ? 'Tap the people who share it'
-              : owed
-                ? `${money(Math.max(...Object.values(owed)))} each · ${splitBy.between.length} ${splitBy.between.length === 1 ? 'person' : 'people'}`
-                : `${splitBy.between.length} ${splitBy.between.length === 1 ? 'person' : 'people'}`}
+            {describeEvenSplit(splitBy.between.length, owed, draft.currency)}
           </p>
         </>
       ) : (

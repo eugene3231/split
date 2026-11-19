@@ -61,6 +61,24 @@ export function describeEntry(entry: Entry, ledger: Ledger): string {
   return `${title} · ${formatCurrencyFromCents(totalCents(entry), entry.currency)}`;
 }
 
+/**
+ * Under an even split: "$30.00 each · 3 people". When the cents do not divide evenly some pay a
+ * cent more, so it says "about" the smaller share.
+ */
+export function describeEvenSplit(
+  people: number,
+  owed: Record<MemberId, Cents> | null,
+  currency: CurrencyCode,
+): string {
+  if (people === 0) return 'Tap the people who share it';
+  const count = `${people} ${people === 1 ? 'person' : 'people'}`;
+  if (owed === null) return count;
+  const shares = Object.values(owed);
+  const least = Math.min(...shares);
+  const each = formatCurrencyFromCents(least, currency);
+  return `${shares.every((cents) => cents === least) ? '' : 'about '}${each} each · ${count}`;
+}
+
 /** A row of the expense list: "Grab" over "You paid $18.00", or "Ben paid you" over "$5.00". */
 export function describeEntryRow(
   entry: Entry,
