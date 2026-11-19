@@ -13,6 +13,8 @@ const INSTANCE_FILE = join(STATE_DIR, 'instance.json');
 const LOG_FILE = join(STATE_DIR, 'vite.log');
 const EVIDENCE_ROOT = join(STATE_DIR, 'evidence');
 
+const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+
 const VIEWPORTS = {
   phone: { width: 390, height: 844 },
   desktop: { width: 1280, height: 900 },
@@ -23,7 +25,7 @@ const [command, ...rest] = process.argv.slice(2);
 
 if (!commands[command]) {
   console.error(
-    'usage: verify.mjs launch | doctor | run <journey> [--viewport phone|desktop] [--headed] | cleanup',
+    'usage: verify.mjs launch | doctor | run <journey> [--viewport phone|desktop] [--offline] [--headed] | cleanup',
   );
   process.exit(2);
 }
@@ -167,32 +169,15 @@ async function doctor() {
 
   record('process alive', isAlive(instance.pid), `pid ${instance.pid}`);
 
-  let listener = '';
   try {
-    listener = execFileSync('lsof', ['-nP', `-iTCP:${instance.port}`, '-sTCP:LISTEN', '-t'])
-      .toString()
-      .trim();
-  } catch {
-    listener = '';
+    // Vite's /@fs/ route only serves files inside its own root, so a Vite started in
+    // another checkout answers 403 here. Launch used --strictPort, so while our pid is
+    // alive nothing else can hold the port.
+    const own = await fetch(new URL(`@fs${join(REPO, 'package.json')}`, instance.url));
+    record('serving this checkout', own.ok, `/@fs${REPO}/package.json -> ${own.status}`);
+  } catch (error) {
+    record('serving this checkout', false, `port ${instance.port}: ${error.cause?.code ?? error}`);
   }
-  record(
-    'port owned by our vite',
-    listener.split('\n').includes(String(instance.pid)),
-    `port ${instance.port} -> ${listener || 'nobody'}`,
-  );
-
-  let cwd = '';
-  try {
-    cwd =
-      execFileSync('lsof', ['-a', '-p', String(instance.pid), '-d', 'cwd', '-Fn'])
-        .toString()
-        .split('\n')
-        .find((line) => line.startsWith('n'))
-        ?.slice(1) ?? '';
-  } catch {
-    cwd = '';
-  }
-  record('serving this checkout', cwd === REPO, cwd || 'unknown cwd');
 
   try {
     const html = await (await fetch(instance.url)).text();
@@ -217,10 +202,11 @@ async function doctor() {
 }
 
 function parseRunArgs(args) {
-  const options = { viewport: 'phone', headed: false, journey: null };
+  const options = { viewport: 'phone', headed: false, offline: false, journey: null };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--viewport') options.viewport = args[++i];
     else if (args[i] === '--headed') options.headed = true;
+    else if (args[i] === '--offline') options.offline = true;
     else options.journey = args[i];
   }
   if (!options.journey)
@@ -264,6 +250,12 @@ async function run(args) {
     permissions: ['clipboard-read', 'clipboard-write'],
   });
   await context.tracing.start({ screenshots: true, snapshots: true });
+  if (options.offline)
+    await context.route(
+      // Icons are a Google Fonts ligature font; without it they render as words.
+      (url) => ![`127.0.0.1:${instance.port}`, ...FONT_HOSTS].includes(url.host),
+      (route) => route.abort('internetdisconnected'),
+    );
   const page = await context.newPage();
 
   const consoleErrors = [];
@@ -281,7 +273,7 @@ async function run(args) {
   let shotIndex = 0;
   const shot = async (name) => {
     const file = `${String(++shotIndex).padStart(2, '0')}-${name}.png`;
-    await page.screenshot({ path: join(dir, file), fullPage: true });
+    await page.screenshot({ path: join(dir, file), fullPage: true, animations: 'disabled' });
     return file;
   };
   const aria = async (name, locator = page.locator('body')) => {
@@ -350,6 +342,7 @@ async function run(args) {
   const report = {
     journey: journeyName,
     viewport: options.viewport,
+    offline: options.offline,
     status,
     failure,
     url: instance.url,

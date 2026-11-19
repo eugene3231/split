@@ -10,7 +10,7 @@ The Summary step shows what everyone owes, as one card per person or as an overv
 - `summary-overview` switches to the who-had-what table. **Not yet driven.**
 - `summary-detail` switches each card between `Totals`, `Their items`, and `All items`. **Not yet driven.**
 - `summary-paynow` adds a PayNow number and shows QR codes on cards and in the PNG. **Not yet driven.**
-- `summary-wide-list` shows the "Who owes what" list beside the cards from 1024px wide. **Not yet driven.**
+- `summary-wide-list` shows the "Who owes what" list (`getByRole('navigation', { name: 'Who owes what' })`) beside the cards from 1024px wide, only in By person and only with 5 or more people (`TOTALS_LIST_MIN_PEOPLE` in `SummaryStep.tsx`). `Lunch for 3` never shows it; use `Dinner for 12` or `Bali trip for 5`. **Not yet driven.**
 
 ## How to get to it (user POV)
 
@@ -34,7 +34,7 @@ Preconditions:
 
 ## Gotchas
 
-- `person-total-<id>` exists only at 1024px and wider. On `phone`, read totals from the cards.
+- `person-total-<id>` exists only at 1024px and wider, with 5 or more people. On `phone`, read totals from the cards.
 - Screen and PNG are drawn by separate renderers. A matching screen does not prove the PNG. Read the image. Intended differences are listed in `docs/EXPORT-PARITY.md`.
 - The text summary formats a total as `Name: $14.99`, one line per person, after the receipt total.
 - The exported file name carries the date (`split-lunch-08-11-2026.png`), so do not hardcode it.

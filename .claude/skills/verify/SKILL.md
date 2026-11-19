@@ -27,15 +27,15 @@ Each checkout gets its own port and its own `.verify/` dir, so two worktrees can
 .claude/skills/verify/scripts/verify.mjs doctor
 ```
 
-Read-only. Exits 0 when the recorded Vite pid is alive, owns the recorded port, has this checkout as its cwd, serves `index.html`, and compiles `src/main.tsx`. It also reports whether `HEAD` moved since launch. That line is informational, because Vite serves the working tree and picks up edits without a restart. Run doctor first whenever a drive fails in a way that looks environmental.
+Read-only, and it needs nothing beyond Node, so it runs on macOS and Linux. Exits 0 when the recorded Vite pid is alive, the server on the recorded port serves this checkout's files through Vite's `/@fs/` route (a Vite started in another checkout answers 403), it serves `index.html`, and it compiles `src/main.tsx`. It also reports whether `HEAD` moved since launch. That line is informational, because Vite serves the working tree and picks up edits without a restart. Run doctor first whenever a drive fails in a way that looks environmental.
 
 ## Drive
 
 ```bash
-.claude/skills/verify/scripts/verify.mjs run <journey> [--viewport phone|desktop] [--headed]
+.claude/skills/verify/scripts/verify.mjs run <journey> [--viewport phone|desktop] [--offline] [--headed]
 ```
 
-`<journey>` is a file name in `journeys/` (with or without `.mjs`) or a path to any `.mjs` file. `phone` is 390x844 and is the default, because the app is mobile-first. `desktop` is 1280x900, which is past the `lg` breakpoint where the summary adds the "Who owes what" list. The process exits 0 only if the journey passed with no uncaught page errors.
+`<journey>` is a file name in `journeys/` (with or without `.mjs`) or a path to any `.mjs` file. `phone` is 390x844 and is the default, because the app is mobile-first. `desktop` is 1280x900, which is past the `lg` breakpoint where the summary adds the "Who owes what" list for splits of 5 or more people. `--offline` aborts every request that leaves the app except Google Fonts. Without the fonts, icons render as words such as `more_vert`. With it, exchange rates use the built-in fallback, so two runs see the same rates. Use it for before/after screenshot comparisons. The process exits 0 only if the journey passed with no uncaught page errors.
 
 Shipped journeys, both proven:
 
@@ -76,7 +76,7 @@ Ids such as `claim-item-<id>` are random per run, so reach those rows by their a
 
 Each run writes to `.verify/evidence/<timestamp>-<journey>-<viewport>/`:
 
-- `NN-<step>.png` is a full-page screenshot after each step, and `NN-failure.png` is the one taken when a step throws.
+- `NN-<step>.png` is a full-page screenshot after each step, and `NN-failure.png` is the one taken when a step throws. Screenshots end finite CSS animations first, so a step is never caught mid fade-in.
 - `run.json` holds the pass/fail, each step with its time and screenshot, console errors, page errors, and every request that left the app's origin.
 - `trace.zip` opens with `pnpm exec playwright show-trace <path>` and has DOM snapshots and a filmstrip.
 - Whatever the journey saved, such as `*.aria.yml`, `clipboard.txt`, or a downloaded `export-*.png`.
