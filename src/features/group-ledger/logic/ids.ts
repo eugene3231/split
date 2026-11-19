@@ -1,4 +1,3 @@
-import { createId } from '@shared/logic/core/id';
 import type {
   EntryId,
   GroupId,
@@ -20,10 +19,23 @@ export const asUserId = (value: string) => value as UserId;
 export const asInviteCode = (value: string) => value as InviteCode;
 export const asLocalDate = (value: string) => value as LocalDate;
 
-export const newGroupId = () => asGroupId(createId());
-export const newMemberId = () => asMemberId(createId());
-export const newEntryId = () => asEntryId(createId());
-export const newOpId = () => asOpId(createId());
+/**
+ * A lowercase version 4 UUID, which the server's `uuid` columns require. Built from
+ * `getRandomValues` because `crypto.randomUUID` is missing on plain-http pages, such as the dev
+ * server opened on a phone over the LAN.
+ */
+export function newUuid(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+export const newGroupId = () => asGroupId(newUuid());
+export const newMemberId = () => asMemberId(newUuid());
+export const newEntryId = () => asEntryId(newUuid());
+export const newOpId = () => asOpId(newUuid());
 
 export function newInviteCode(): InviteCode {
   const bytes = crypto.getRandomValues(new Uint8Array(16));

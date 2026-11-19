@@ -50,4 +50,10 @@ On the host (Netlify or similar), add the same two variables to the build enviro
 2. Copy the invite link, open it in a private window, pick a name. Add an expense in one window; it appears in the other within a second.
 3. Turn the network off in one window (DevTools → Network → Offline), add an expense, turn it back on. It syncs.
 
-The backend contract tests can run against the real project as well. See the comment at the top of `src/features/group-ledger/backend/backendContract.test.ts`.
+The same contract tests the fake passes can run against the real project, which checks the functions and row level security for real. Use a separate test project, because the tests create groups and anonymous users:
+
+```sh
+VITE_CONTRACT_SUPABASE_URL=https://<ref>.supabase.co VITE_CONTRACT_SUPABASE_ANON_KEY=<key> pnpm test backendContract
+```
+
+Without those variables the suite runs against the fake and against the migration loaded into an in-process Postgres (PGlite), in `sqlContract.test.ts`.

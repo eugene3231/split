@@ -164,7 +164,7 @@ export const entryArb: fc.Arbitrary<Entry> = fc.oneof(expenseArb, transferArb);
  * A change that may point at any earlier op as its base, so generated logs hold stale edits,
  * removes of missing entries, repeated merges and the like.
  */
-function changeArb(earlierOps: number): fc.Arbitrary<Change> {
+export function changeArb(earlierOps: number): fc.Arbitrary<Change> {
   const opIdArb = fc.integer({ min: 0, max: Math.max(earlierOps, 1) }).map((n) => asOpId(`c${n}`));
   return fc.oneof(
     fc.record({ kind: fc.constant('group.renamed' as const), name: fc.constantFrom('A', 'B') }),
