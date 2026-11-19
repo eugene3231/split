@@ -73,8 +73,12 @@ export interface LedgerBackend {
   /** Groups this identity has joined, on any device. */
   myGroups(): Promise<Result<JoinedGroup[]>>;
 
-  /** Creates the group and makes the caller a member. Safe to call again with the same ids. */
-  publishGroup(group: JoinedGroup): Promise<Result<void>>;
+  /**
+   * Creates the group with `firstOp`, its `group.created`, at `seq` 1, and makes the caller a
+   * member, all in one step: a friend who joins the moment the group exists can never write
+   * ahead of the op that creates it. Safe to call again with the same ids.
+   */
+  publishGroup(group: JoinedGroup, firstOp: OutgoingOp): Promise<Result<void>>;
 
   /** Makes the caller a member of the group the code opens. Safe to call again. */
   joinGroup(inviteCode: InviteCode): Promise<Result<JoinedGroup>>;

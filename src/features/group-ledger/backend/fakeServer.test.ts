@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLocalStorageServer } from '@features/group-ledger/backend/fakeServer';
-import { newGroup, pendingOp } from '@features/group-ledger/backend/testing/backendContract';
+import {
+  createdOp,
+  newGroup,
+  pendingOp,
+} from '@features/group-ledger/backend/testing/backendContract';
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -13,15 +17,15 @@ describe('the fake server in localStorage', () => {
     const tabTwo = createLocalStorageServer();
     const op = pendingOp();
 
-    await tabOne.createGroup('u-ana', group.groupId, group.inviteCode);
+    await tabOne.createGroup('u-ana', group.groupId, group.inviteCode, createdOp());
     const joined = await tabTwo.joinGroup('u-ben', group.inviteCode);
     await tabOne.appendOps('u-ana', group.groupId, [op]);
-    const seenByBen = await tabTwo.opsAfter('u-ben', group.groupId, 0, 10);
+    const seenByBen = await tabTwo.opsAfter('u-ben', group.groupId, 1, 10);
 
     expect(joined).toEqual({ ok: true, value: group.groupId });
     expect(seenByBen).toEqual({
       ok: true,
-      value: [{ id: op.id, seq: 1, at: op.at, change: op.change, userId: 'u-ana' }],
+      value: [{ id: op.id, seq: 2, at: op.at, change: op.change, userId: 'u-ana' }],
     });
     expect(Object.keys(window.localStorage)).toEqual(['split.fakeServer.state']);
   });
@@ -30,7 +34,7 @@ describe('the fake server in localStorage', () => {
     const group = newGroup();
     const tabOne = createLocalStorageServer();
     const tabTwo = createLocalStorageServer();
-    await tabOne.createGroup('u-ana', group.groupId, group.inviteCode);
+    await tabOne.createGroup('u-ana', group.groupId, group.inviteCode, createdOp());
     await tabTwo.joinGroup('u-ben', group.inviteCode);
 
     await Promise.all([
@@ -40,14 +44,14 @@ describe('the fake server in localStorage', () => {
     ]);
     const all = await tabOne.opsAfter('u-ana', group.groupId, 0, 10);
 
-    expect(all.ok && all.value.map((op) => op.seq)).toEqual([1, 2, 3, 4, 5]);
+    expect(all.ok && all.value.map((op) => op.seq)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
   it('pokes the subscribers of the group that changed, until they unsubscribe', async () => {
     const group = newGroup();
     const other = newGroup();
     const server = createLocalStorageServer();
-    await server.createGroup('u-ana', group.groupId, group.inviteCode);
+    await server.createGroup('u-ana', group.groupId, group.inviteCode, createdOp());
     const onPoke = vi.fn();
     const onOtherPoke = vi.fn();
     const unsubscribe = server.subscribe(group.groupId, onPoke);
@@ -84,9 +88,14 @@ describe('the fake server in localStorage', () => {
       throw new DOMException('full', 'QuotaExceededError');
     });
 
-    const created = await server.createGroup('u-ana', group.groupId, group.inviteCode);
+    const created = await server.createGroup('u-ana', group.groupId, group.inviteCode, createdOp());
     setItem.mockRestore();
-    const createdAfter = await server.createGroup('u-ana', group.groupId, group.inviteCode);
+    const createdAfter = await server.createGroup(
+      'u-ana',
+      group.groupId,
+      group.inviteCode,
+      createdOp(),
+    );
 
     expect(created).toMatchObject({ ok: false, failure: { kind: 'failed' } });
     expect(createdAfter).toEqual({ ok: true, value: undefined });

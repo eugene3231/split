@@ -13,6 +13,8 @@
 --     policy or grant, so a client can never choose a `seq` or a `user_id`.
 --   - `seq` runs 1, 2, 3 per group with no gaps and in commit order, because `append_ops` holds
 --     the group's row lock while it numbers and inserts.
+--   - A group's `seq` 1 is the op it was created with, because `create_group` writes both in one
+--     transaction. No group has an empty log.
 --
 -- `src/features/group-ledger/backend/fakeServer.ts` states the same rules in TypeScript, and
 -- `sqlContract.test.ts` runs one contract suite against both. Change them together.
@@ -86,9 +88,78 @@ create policy ops_select_member on public.ops
   for select to authenticated
   using (public.is_member(group_id));
 
--- Creates the group and makes the caller a member. Calling it again with the same id and code
--- is the same call. Knowing only the id of a group that exists gets nothing: the code must match.
-create function public.create_group(p_group_id uuid, p_invite_code text)
+-- Puts one op at `p_seq` of a group's log. `p_op` is {id, at, change}, where `change` is the
+-- change's JSON as a string. It comes as text so its size is the size the phone sent: the
+-- UTF-8 bytes of that text, which the phone can count before it sends (`changeBytes` in
+-- backend/limits.ts). The text of a jsonb value is spaced differently and would not match.
+-- Says what became of the op:
+--   inserted: it is now at `p_seq`.
+--   held:     this group's log already had it.
+--   rejected: it will never be taken. The id is not a lowercase uuid, `at` is not a time,
+--             `change` is over 64 KB or is not the text of a JSON object, or the id is already
+--             used in another group.
+-- Only `create_group` and `append_ops` call it, holding the group's row lock. No client may.
+create function public.insert_op(p_group_id uuid, p_user uuid, p_seq bigint, p_op jsonb)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_id_text text;
+  v_id uuid;
+  v_at timestamptz;
+  v_change jsonb;
+  v_owner uuid;
+begin
+  if jsonb_typeof(p_op) is distinct from 'object' then
+    return 'rejected';
+  end if;
+
+  v_id_text := p_op ->> 'id';
+  begin
+    v_at := (p_op ->> 'at')::timestamptz;
+  exception when others then
+    v_at := null;
+  end;
+  if jsonb_typeof(p_op -> 'change') = 'string'
+    and octet_length(convert_to(p_op ->> 'change', 'UTF8')) <= 65536
+  then
+    begin
+      v_change := (p_op ->> 'change')::jsonb;
+    exception when others then
+      v_change := null;
+    end;
+  end if;
+
+  if v_id_text is null
+    or v_id_text !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    or v_at is null
+    or v_change is null
+    or jsonb_typeof(v_change) is distinct from 'object'
+  then
+    return 'rejected';
+  end if;
+
+  v_id := v_id_text::uuid;
+  select o.group_id into v_owner from public.ops o where o.id = v_id;
+  if found then
+    return case when v_owner = p_group_id then 'held' else 'rejected' end;
+  end if;
+
+  insert into public.ops (group_id, seq, id, change, user_id, at)
+  values (p_group_id, p_seq, v_id, v_change, p_user, v_at)
+  on conflict (id) do nothing;
+  -- Not found: another group took this id between the check and the insert.
+  return case when found then 'inserted' else 'rejected' end;
+end;
+$$;
+
+-- Creates the group with its first op, the `group.created`, at `seq` 1, and makes the caller a
+-- member, in one transaction. A group never exists with an empty log, so a friend who joins the
+-- moment it appears cannot write ahead of the op that creates it. Calling it again with the same
+-- id and code is the same call. Knowing only the id of a group that exists gets nothing: the
+-- code must match. A first op that `insert_op` rejects creates nothing.
+create function public.create_group(p_group_id uuid, p_invite_code text, p_first_op jsonb)
 returns void
 language plpgsql
 security definer
@@ -98,6 +169,7 @@ declare
   v_user uuid := auth.uid();
   v_hash bytea;
   v_existing bytea;
+  v_head bigint;
 begin
   if v_user is null then
     raise exception 'not_signed_in';
@@ -113,7 +185,10 @@ begin
   values (p_group_id, v_hash, p_invite_code, v_user)
   on conflict do nothing;
 
-  select g.invite_hash into v_existing from public.groups g where g.id = p_group_id;
+  select g.invite_hash, g.head into v_existing, v_head
+  from public.groups g
+  where g.id = p_group_id
+  for update;
   if v_existing is distinct from v_hash then
     raise exception 'group_exists';
   end if;
@@ -121,6 +196,13 @@ begin
   insert into public.memberships (group_id, user_id)
   values (p_group_id, v_user)
   on conflict do nothing;
+
+  if v_head = 0 then
+    if public.insert_op(p_group_id, v_user, 1, p_first_op) <> 'inserted' then
+      raise exception 'invalid_first_op';
+    end if;
+    update public.groups g set head = 1 where g.id = p_group_id;
+  end if;
 end;
 $$;
 
@@ -154,15 +236,10 @@ begin
 end;
 $$;
 
--- Appends ops in the order given: `p_ops` is a JSON array of {id, at, change}, where `change`
--- is the change's JSON as a string. It comes as text so its size is the size the phone sent:
--- the UTF-8 bytes of that text, which the phone can count before it sends (`changeBytes` in
--- backend/limits.ts). The text of a jsonb value is spaced differently and would not match.
+-- Appends ops in the order given: `p_ops` is a JSON array of the ops `insert_op` takes.
 -- Returns {"accepted": [id], "rejected": [id]}.
 --   accepted: the op is in this group's log, whether this call put it there or an earlier one.
---   rejected: the op will never be taken, so the phone stops sending it. The id is not a
---             lowercase uuid, `at` is not a time, `change` is over 64 KB or is not the text of
---             a JSON object, or the id is already used in another group.
+--   rejected: the op will never be taken, so the phone stops sending it.
 -- One bad op never stops the ops around it.
 create function public.append_ops(p_group_id uuid, p_ops jsonb)
 returns jsonb
@@ -174,12 +251,8 @@ declare
   v_user uuid := auth.uid();
   v_head bigint;
   v_op jsonb;
-  v_id_text text;
-  v_id uuid;
-  v_at timestamptz;
-  v_change_text text;
-  v_change jsonb;
-  v_owner uuid;
+  v_id jsonb;
+  v_result text;
   v_accepted jsonb := '[]'::jsonb;
   v_rejected jsonb := '[]'::jsonb;
 begin
@@ -201,56 +274,18 @@ begin
     select e.value from jsonb_array_elements(p_ops) with ordinality as e (value, position)
     order by e.position
   loop
-    v_id_text := v_op ->> 'id';
-    v_at := null;
-    begin
-      v_at := (v_op ->> 'at')::timestamptz;
-    exception when others then
-      v_at := null;
+    v_result := public.insert_op(p_group_id, v_user, v_head + 1, v_op);
+    v_id := case
+      when jsonb_typeof(v_op) = 'object' then coalesce(to_jsonb(v_op ->> 'id'), 'null'::jsonb)
+      else 'null'::jsonb
     end;
-
-    v_change := null;
-    if jsonb_typeof(v_op -> 'change') = 'string' then
-      v_change_text := v_op ->> 'change';
-      if octet_length(convert_to(v_change_text, 'UTF8')) <= 65536 then
-        begin
-          v_change := v_change_text::jsonb;
-        exception when others then
-          v_change := null;
-        end;
-      end if;
-    end if;
-
-    if v_id_text is null
-      or v_id_text !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-      or v_at is null
-      or v_change is null
-      or jsonb_typeof(v_change) is distinct from 'object'
-    then
-      v_rejected := v_rejected || coalesce(to_jsonb(v_id_text), 'null'::jsonb);
-      continue;
-    end if;
-
-    v_id := v_id_text::uuid;
-    select o.group_id into v_owner from public.ops o where o.id = v_id;
-    if found then
-      if v_owner = p_group_id then
-        v_accepted := v_accepted || to_jsonb(v_id_text);
-      else
-        v_rejected := v_rejected || to_jsonb(v_id_text);
-      end if;
-      continue;
-    end if;
-
-    insert into public.ops (group_id, seq, id, change, user_id, at)
-    values (p_group_id, v_head + 1, v_id, v_change, v_user, v_at)
-    on conflict (id) do nothing;
-    if found then
-      v_head := v_head + 1;
-      v_accepted := v_accepted || to_jsonb(v_id_text);
+    if v_result = 'rejected' then
+      v_rejected := v_rejected || v_id;
     else
-      -- Another group took this id between the check and the insert.
-      v_rejected := v_rejected || to_jsonb(v_id_text);
+      v_accepted := v_accepted || v_id;
+    end if;
+    if v_result = 'inserted' then
+      v_head := v_head + 1;
     end if;
   end loop;
 
@@ -278,15 +313,17 @@ $$;
 -- Postgres lets everyone execute a new function, and Supabase grants it to anon as well.
 revoke execute on function
   public.is_member(uuid),
-  public.create_group(uuid, text),
+  public.insert_op(uuid, uuid, bigint, jsonb),
+  public.create_group(uuid, text, jsonb),
   public.join_group(text),
   public.append_ops(uuid, jsonb),
   public.my_groups()
-from public, anon;
+from public, anon, authenticated;
 
+-- `insert_op` is not here: it takes the author as an argument.
 grant execute on function
   public.is_member(uuid),
-  public.create_group(uuid, text),
+  public.create_group(uuid, text, jsonb),
   public.join_group(text),
   public.append_ops(uuid, jsonb),
   public.my_groups()

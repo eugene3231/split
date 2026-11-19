@@ -125,8 +125,10 @@ export function createFakeBackend({
         };
       }),
 
-    publishGroup: (group) =>
-      online((session) => server.createGroup(session.userId, group.groupId, group.inviteCode)),
+    publishGroup: (group, { id, at, change }) =>
+      online((session) =>
+        server.createGroup(session.userId, group.groupId, group.inviteCode, { id, at, change }),
+      ),
 
     joinGroup: (inviteCode) =>
       online(async (session) => {

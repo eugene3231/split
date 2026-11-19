@@ -2,7 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import type { GroupId } from '@features/group-ledger/domain/types';
 import { createSupabaseBackend } from '@features/group-ledger/backend/supabaseBackend';
-import { newGroup, pendingOp } from '@features/group-ledger/backend/testing/backendContract';
+import {
+  createdOp,
+  newGroup,
+  pendingOp,
+} from '@features/group-ledger/backend/testing/backendContract';
 
 // The adapter's own decisions: which Auth call it makes, and how it reads what comes back.
 // What the SQL does is in sqlContract.test.ts.
@@ -231,7 +235,7 @@ describe('supabase backend replies', () => {
       ok: false,
       failure: { kind: 'invite-not-found' },
     });
-    expect(await backend.publishGroup(group)).toEqual({
+    expect(await backend.publishGroup(group, createdOp())).toEqual({
       ok: false,
       failure: { kind: 'failed', message: 'group_exists' },
     });

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createSupabaseBackend } from '@features/group-ledger/backend/supabaseBackend';
 import {
+  createdOp,
   describeBackendContract,
   newGroup,
   pendingOp,
@@ -33,8 +34,7 @@ describe('what the migration lets a client do to the tables', () => {
     const ana = await project.client();
     const backend = createSupabaseBackend(ana.client);
     const group = newGroup();
-    await backend.publishGroup(group);
-    await backend.push(group.groupId, [pendingOp()]);
+    await backend.publishGroup(group, createdOp());
     return { ana, group };
   }
 
@@ -74,6 +74,19 @@ describe('what the migration lets a client do to the tables', () => {
       accepted: [ops[4].id],
       rejected: ops.slice(0, 4).map((op) => op.id),
     });
+  });
+
+  it('lets no client call the function that takes the author as an argument', async () => {
+    const { ana, group } = await groupWithOneOp();
+    const op = JSON.stringify({ ...pendingOp(), change: '{"kind":"group.renamed","name":"x"}' });
+
+    const inserted = await project.sql(
+      ana.userId,
+      'authenticated',
+      `select public.insert_op('${group.groupId}', gen_random_uuid(), 99, '${op}') as data`,
+    );
+
+    expect(inserted.error?.message).toMatch(/permission denied/);
   });
 
   it('lets no client write an op directly, so none can pick a seq or an author', async () => {

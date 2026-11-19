@@ -134,10 +134,18 @@ export function createGroupSync({
     publish(next, readLog());
   }
 
-  /** Creates the group on the server, or joins it. Both make this user a member, and repeat safely. */
+  /**
+   * Creates the group on the server, or joins it. Both make this user a member, and repeat
+   * safely. A group made here is created by sending its `group.created` along, so that op is
+   * `seq` 1 whoever writes next. Once that op has left the outbox the group is on the server,
+   * and the invite code opens it like anyone else's.
+   */
   async function enter(): Promise<BackendFailure | null> {
-    const entered = group.createdHere
-      ? await backend.publishGroup({ groupId, inviteCode })
+    const firstOp = group.createdHere
+      ? log.outbox().find((op) => parseChange(op.change)?.kind === 'group.created')
+      : undefined;
+    const entered = firstOp
+      ? await backend.publishGroup({ groupId, inviteCode }, firstOp)
       : await backend.joinGroup(inviteCode);
     return entered.ok ? null : entered.failure;
   }

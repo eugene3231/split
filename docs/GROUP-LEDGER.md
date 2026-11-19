@@ -45,6 +45,7 @@ phone: GroupLog { confirmed (by seq), pending (by order) } ──push──▶ s
 ```
 
 - **Writing.** `GroupSync.submit(change)` writes a `PendingOp` to the device log synchronously, so it survives a reload before any network call, then syncs.
+- **Creating a group.** `publishGroup(group, firstOp)` creates the group, makes the caller a member and writes the group's `group.created` at `seq` 1 in one transaction, so a group never exists with an empty log. The fold ignores whatever comes before `group.created`, and a friend who joined the moment the group appeared could otherwise write ahead of it and lose that change. The engine publishes once the outbox holds the `group.created`; a screen that makes a group submits it in the same tick it starts the engine.
 - **Ordering.** `append_ops` locks the group row and gives each op the next `seq`, so commit order equals `seq` order and a puller can never skip a row. Phone clocks never order anything.
 - **Retries.** The op id is made on the phone and is the server's idempotency key. Pushing an op twice stores it once and reports it accepted both times.
 - **Crashes.** A pending op leaves the device log only when a pull brings it back confirmed. A crash at any step means the next sync pushes it again, harmlessly.

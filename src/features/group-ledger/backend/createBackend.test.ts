@@ -8,7 +8,11 @@ import {
 } from '@features/group-ledger/backend/createBackend';
 import { createFakeBackend } from '@features/group-ledger/backend/fakeBackend';
 import { createMemoryServer } from '@features/group-ledger/backend/fakeServer';
-import { newGroup, pendingOp } from '@features/group-ledger/backend/testing/backendContract';
+import {
+  createdOp,
+  newGroup,
+  pendingOp,
+} from '@features/group-ledger/backend/testing/backendContract';
 
 const supabaseEnv = { VITE_SUPABASE_URL: 'https://x.supabase.co', VITE_SUPABASE_ANON_KEY: 'key' };
 
@@ -38,7 +42,7 @@ describe('choosing a backend', () => {
     const backend = createBackend({});
     const group = newGroup();
 
-    const published = await backend.publishGroup(group);
+    const published = await backend.publishGroup(group, createdOp());
     const pushed = await backend.push(group.groupId, [pendingOp()]);
 
     expect(published).toEqual({ ok: true, value: undefined });
@@ -72,10 +76,10 @@ describe('a backend loaded on first use', () => {
     const op = pendingOp();
 
     const session = await backend.session();
-    await backend.publishGroup(group);
+    await backend.publishGroup(group, createdOp());
     const joined = await backend.joinGroup(group.inviteCode);
     const pushed = await backend.push(group.groupId, [op]);
-    const pulled = await backend.pull(group.groupId, 0);
+    const pulled = await backend.pull(group.groupId, 1);
     const groups = await backend.myGroups();
     const started = await backend.startEmailSignIn('ana@example.com');
     const verified = await backend.verifyEmailCode('ana@example.com', '000000');

@@ -94,7 +94,7 @@ const opRowsSchema = z.array(
 );
 
 /**
- * An op as `append_ops` takes it. The change goes as text, so the server counts the bytes this
+ * An op as `append_ops` and `create_group` take it. The change goes as text, so the server counts the bytes this
  * phone counted rather than the bytes of its own jsonb rendering, which spaces things apart.
  */
 function toWire({ id, at, change }: OutgoingOp) {
@@ -215,10 +215,14 @@ export function createSupabaseBackend(client: SupabaseClient): LedgerBackend {
 
     myGroups: () => rpc('my_groups', {}, myGroupsReplySchema),
 
-    async publishGroup(group) {
+    async publishGroup(group, firstOp) {
       const created = await rpc(
         'create_group',
-        { p_group_id: group.groupId, p_invite_code: group.inviteCode },
+        {
+          p_group_id: group.groupId,
+          p_invite_code: group.inviteCode,
+          p_first_op: toWire(firstOp),
+        },
         z.unknown(),
       );
       return created.ok ? ok(undefined) : created;

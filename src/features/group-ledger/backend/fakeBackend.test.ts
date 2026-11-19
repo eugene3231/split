@@ -7,7 +7,11 @@ import {
   tabProfile,
 } from '@features/group-ledger/backend/fakeBackend';
 import { createMemoryServer, type FakeServer } from '@features/group-ledger/backend/fakeServer';
-import { newGroup, pendingOp } from '@features/group-ledger/backend/testing/backendContract';
+import {
+  createdOp,
+  newGroup,
+  pendingOp,
+} from '@features/group-ledger/backend/testing/backendContract';
 
 function phone(server: FakeServer, profile: string, signal = { online: true }) {
   return createFakeBackend({ server, profile, isOnline: () => signal.online });
@@ -74,13 +78,13 @@ describe('fake backend sessions', () => {
     const signal = { online: true };
     const ana = phone(server, 'ana', signal);
     const group = newGroup();
-    await ana.publishGroup(group);
+    await ana.publishGroup(group, createdOp());
     const onPoke = vi.fn();
     ana.subscribe(group.groupId, onPoke);
     signal.online = false;
     const offline = { ok: false, failure: { kind: 'offline' } };
 
-    expect(await ana.publishGroup(group)).toEqual(offline);
+    expect(await ana.publishGroup(group, createdOp())).toEqual(offline);
     expect(await ana.joinGroup(group.inviteCode)).toEqual(offline);
     expect(await ana.push(group.groupId, [pendingOp()])).toEqual(offline);
     expect(await ana.pull(group.groupId, 0)).toEqual(offline);
@@ -101,7 +105,7 @@ describe('fake backend email sign-in', () => {
     const server = createMemoryServer();
     const ana = phone(server, 'ana');
     const group = newGroup();
-    await ana.publishGroup(group);
+    await ana.publishGroup(group, createdOp());
     const before = await userId(ana);
 
     const started = await ana.startEmailSignIn('ana@example.com');
@@ -120,7 +124,7 @@ describe('fake backend email sign-in', () => {
     const server = createMemoryServer();
     const oldPhone = phone(server, 'old');
     const group = newGroup();
-    await oldPhone.publishGroup(group);
+    await oldPhone.publishGroup(group, createdOp());
     await oldPhone.verifyEmailCode('ana@example.com', FAKE_EMAIL_CODE);
     const newPhone = phone(server, 'new');
     const anonymous = await userId(newPhone);

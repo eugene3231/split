@@ -46,6 +46,11 @@ function memberPutOfBytes(bytes: number): Change {
   return named(`é${'x'.repeat(bytes - empty)}`);
 }
 
+/** The op every group starts with. */
+export function createdOp(): PendingOp {
+  return pendingOp({ kind: 'group.created', name: 'Japan 2026', currency: 'SGD' });
+}
+
 async function value<T>(
   result: Promise<{ ok: true; value: T } | { ok: false; failure: unknown }>,
 ): Promise<T> {
@@ -60,24 +65,69 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
       const world = await makeWorld();
       const ana = await world.phone();
       const group = newGroup();
-      await value(ana.publishGroup(group));
-      return { world, ana, group };
+      const first = createdOp();
+      await value(ana.publishGroup(group, first));
+      return { world, ana, group, first };
     }
 
-    it('numbers ops 1, 2, 3 in the order pushed and stamps the caller on each', async () => {
+    it('creates a group with its first op already at seq 1, stamped with the caller', async () => {
+      const { ana, group, first } = await publishedGroup();
+
+      const pulled = await value(ana.pull(group.groupId, 0));
+      const me = await value(ana.session());
+
+      expect(pulled.ops.map(({ seq, id, change, userId }) => [seq, id, change, userId])).toEqual([
+        [1, first.id, first.change, me.userId],
+      ]);
+    });
+
+    it('creates nothing when the first op is one it would never take', async () => {
+      const world = await makeWorld();
+      const ana = await world.phone();
+      const group = newGroup();
+      const tooBig = pendingOp({
+        kind: 'group.created',
+        name: 'x'.repeat(70_000),
+        currency: 'SGD',
+      });
+
+      const published = await ana.publishGroup(group, tooBig);
+      const joined = await ana.joinGroup(group.inviteCode);
+
+      expect(published.ok).toBe(false);
+      expect(joined).toEqual({ ok: false, failure: { kind: 'invite-not-found' } });
+    });
+
+    it('lets a friend who joins the moment the group exists write only after its first op', async () => {
+      const { world, ana, group, first } = await publishedGroup();
+      const ben = await world.phone();
+      const fromBen = pendingOp();
+
+      await value(ben.joinGroup(group.inviteCode));
+      await value(ben.push(group.groupId, [fromBen]));
+      await value(ana.push(group.groupId, [first]));
+      const pulled = await value(ana.pull(group.groupId, 0));
+
+      expect(pulled.ops.map((op) => [op.seq, op.id])).toEqual([
+        [1, first.id],
+        [2, fromBen.id],
+      ]);
+    });
+
+    it('numbers ops 2, 3, 4 after the first, in the order pushed, and stamps the caller on each', async () => {
       const { ana, group } = await publishedGroup();
       const ops = [pendingOp(), pendingOp(), pendingOp()];
 
       const outcome = await value(ana.push(group.groupId, ops));
-      const pulled = await value(ana.pull(group.groupId, 0));
+      const pulled = await value(ana.pull(group.groupId, 1));
       const me = await value(ana.session());
 
       expect(outcome).toEqual({ accepted: ops.map((op) => op.id), rejected: [] });
       expect(pulled.more).toBe(false);
       expect(pulled.ops.map((op) => [op.seq, op.id])).toEqual([
-        [1, ops[0].id],
-        [2, ops[1].id],
-        [3, ops[2].id],
+        [2, ops[0].id],
+        [3, ops[1].id],
+        [4, ops[2].id],
       ]);
       expect(pulled.ops.map((op) => op.userId)).toEqual([me.userId, me.userId, me.userId]);
       expect(pulled.ops[0].change).toEqual({ kind: 'group.renamed', name: 'Japan 2026' });
@@ -90,12 +140,12 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
 
       await value(ana.push(group.groupId, [first]));
       const again = await value(ana.push(group.groupId, [first, second]));
-      const pulled = await value(ana.pull(group.groupId, 0));
+      const pulled = await value(ana.pull(group.groupId, 1));
 
       expect(again).toEqual({ accepted: [first.id, second.id], rejected: [] });
       expect(pulled.ops.map((op) => [op.seq, op.id])).toEqual([
-        [1, first.id],
-        [2, second.id],
+        [2, first.id],
+        [3, second.id],
       ]);
     });
 
@@ -106,12 +156,12 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
       const after = pendingOp();
 
       const outcome = await value(ana.push(group.groupId, [before, huge, after]));
-      const pulled = await value(ana.pull(group.groupId, 0));
+      const pulled = await value(ana.pull(group.groupId, 1));
 
       expect(outcome).toEqual({ accepted: [before.id, after.id], rejected: [huge.id] });
       expect(pulled.ops.map((op) => [op.seq, op.id])).toEqual([
-        [1, before.id],
-        [2, after.id],
+        [2, before.id],
+        [3, after.id],
       ]);
     });
 
@@ -143,12 +193,12 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
     it('rejects an op id that another group already holds', async () => {
       const { ana, group } = await publishedGroup();
       const other = newGroup();
-      await value(ana.publishGroup(other));
+      await value(ana.publishGroup(other, createdOp()));
       const op = pendingOp();
       await value(ana.push(group.groupId, [op]));
 
       const outcome = await value(ana.push(other.groupId, [op]));
-      const pulled = await value(ana.pull(other.groupId, 0));
+      const pulled = await value(ana.pull(other.groupId, 1));
 
       expect(outcome).toEqual({ accepted: [], rejected: [op.id] });
       expect(pulled.ops).toEqual([]);
@@ -160,11 +210,11 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
       const known = pendingOp();
 
       await value(ana.push(group.groupId, [fromTheFuture, known]));
-      const pulled = await value(ana.pull(group.groupId, 0));
+      const pulled = await value(ana.pull(group.groupId, 1));
 
       expect(pulled.ops.map((op) => [op.seq, op.change])).toEqual([
-        [1, null],
-        [2, { kind: 'group.renamed', name: 'Japan 2026' }],
+        [2, null],
+        [3, { kind: 'group.renamed', name: 'Japan 2026' }],
       ]);
     });
 
@@ -199,15 +249,15 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
       const joinedAgain = await value(ben.joinGroup(group.inviteCode));
       await value(ana.push(group.groupId, [fromAna]));
       await value(ben.push(group.groupId, [fromBen]));
-      const anaSees = await value(ana.pull(group.groupId, 0));
-      const benSees = await value(ben.pull(group.groupId, 0));
+      const anaSees = await value(ana.pull(group.groupId, 1));
+      const benSees = await value(ben.pull(group.groupId, 1));
       const benSession = await value(ben.session());
 
       expect(joined).toEqual(group);
       expect(joinedAgain).toEqual(group);
       expect(benSees.ops.map((op) => [op.seq, op.id])).toEqual([
-        [1, fromAna.id],
-        [2, fromBen.id],
+        [2, fromAna.id],
+        [3, fromBen.id],
       ]);
       expect(benSees.ops[1].userId).toBe(benSession.userId);
       expect(anaSees).toEqual(benSees);
@@ -223,15 +273,17 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
     });
 
     it('publishes the same group twice without changing it', async () => {
-      const { ana, group } = await publishedGroup();
+      const { ana, group, first } = await publishedGroup();
       const op = pendingOp();
       await value(ana.push(group.groupId, [op]));
 
-      const again = await ana.publishGroup(group);
+      const again = await ana.publishGroup(group, first);
+      const withAnotherFirstOp = await ana.publishGroup(group, createdOp());
       const pulled = await value(ana.pull(group.groupId, 0));
 
       expect(again).toEqual({ ok: true, value: undefined });
-      expect(pulled.ops.map((op) => op.id)).toEqual([op.id]);
+      expect(withAnotherFirstOp).toEqual({ ok: true, value: undefined });
+      expect(pulled.ops.map((op) => op.id)).toEqual([first.id, op.id]);
     });
 
     it('gives nothing to someone who knows a group id but not its code', async () => {
@@ -239,10 +291,10 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
       await value(ana.push(group.groupId, [pendingOp()]));
       const eve = await world.phone();
 
-      const published = await eve.publishGroup({
-        groupId: group.groupId,
-        inviteCode: newGroup().inviteCode,
-      });
+      const published = await eve.publishGroup(
+        { groupId: group.groupId, inviteCode: newGroup().inviteCode },
+        createdOp(),
+      );
       const pushed = await eve.push(group.groupId, [pendingOp()]);
       const pulled = await value(eve.pull(group.groupId, 0));
 
@@ -255,10 +307,10 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
       const { world, group } = await publishedGroup();
       const eve = await world.phone();
 
-      const published = await eve.publishGroup({
-        groupId: newGroup().groupId,
-        inviteCode: group.inviteCode,
-      });
+      const published = await eve.publishGroup(
+        { groupId: newGroup().groupId, inviteCode: group.inviteCode },
+        createdOp(),
+      );
 
       expect(published.ok).toBe(false);
     });
@@ -266,7 +318,7 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
     it('lists the groups a user is in, with the code that opens each', async () => {
       const { world, ana, group } = await publishedGroup();
       const second = newGroup();
-      await value(ana.publishGroup(second));
+      await value(ana.publishGroup(second, createdOp()));
       const ben = await world.phone();
       await value(ben.joinGroup(second.inviteCode));
 
@@ -280,12 +332,12 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
 
     it('pulls a long log in pages of 500 and says when more remain', async () => {
       const { ana, group } = await publishedGroup();
-      for (let batch = 0; batch < 11; batch += 1) {
-        const size = batch === 10 ? 1 : 50;
+      // With the op that created the group, 501 in all.
+      for (let batch = 0; batch < 10; batch += 1) {
         await value(
           ana.push(
             group.groupId,
-            Array.from({ length: size }, () => pendingOp()),
+            Array.from({ length: 50 }, () => pendingOp()),
           ),
         );
       }
