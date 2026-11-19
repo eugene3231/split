@@ -3,7 +3,6 @@ import type {
   GroupId,
   InviteCode,
   OpId,
-  PendingOp,
   UserId,
 } from '@features/group-ledger/domain/types';
 
@@ -28,6 +27,16 @@ export type BackendFailure =
   | { kind: 'failed'; message: string };
 
 export type Result<T> = { ok: true; value: T } | { ok: false; failure: BackendFailure };
+
+/**
+ * An op on its way to the server. `change` is whatever the phone stored: the server never reads
+ * it, so a change this version of Split cannot read is sent like any other.
+ */
+export interface OutgoingOp {
+  id: OpId;
+  at: string;
+  change: unknown;
+}
 
 export interface PushOutcome {
   /** Every op now in the group's log, whether this call put it there or an earlier one did. */
@@ -71,7 +80,7 @@ export interface LedgerBackend {
   joinGroup(inviteCode: InviteCode): Promise<Result<JoinedGroup>>;
 
   /** Appends ops in order. An op id the log already holds is left alone and reported accepted. */
-  push(groupId: GroupId, ops: readonly PendingOp[]): Promise<Result<PushOutcome>>;
+  push(groupId: GroupId, ops: readonly OutgoingOp[]): Promise<Result<PushOutcome>>;
 
   pull(groupId: GroupId, afterSeq: number): Promise<Result<Pulled>>;
 

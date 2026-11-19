@@ -115,6 +115,16 @@ export interface PendingOp {
   change: Change;
 }
 
+/**
+ * A change queued on this device that this version of Split cannot read, because another
+ * version wrote it before the app was updated. It is still sent as it was stored.
+ */
+export interface UnreadablePendingOp {
+  id: OpId;
+  order: number;
+  at: string;
+}
+
 /** A change the server has taken. `seq` runs 1, 2, 3… per group with no gaps. */
 export interface ConfirmedOp {
   id: OpId;
@@ -135,6 +145,8 @@ export interface GroupLog {
   confirmed: ConfirmedOp[];
   /** In `order` order. An op that is also confirmed is ignored. */
   pending: PendingOp[];
+  /** Queued here too, and ordered with `pending` by `order`. Left out when there are none. */
+  unreadablePending?: UnreadablePendingOp[];
 }
 
 export interface PostedEntry {

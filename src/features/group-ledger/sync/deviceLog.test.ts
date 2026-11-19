@@ -127,12 +127,33 @@ describe('device log', () => {
     ).toEqual([1]);
   });
 
+  it('keeps a queued change this version cannot read, as stored, in the order it was made', () => {
+    const log = openDeviceLog('ana', groupId);
+    const first = log.appendPending(rename('one'));
+    const fromAnotherVersion = {
+      id: '0b9d5c1e-6f0a-4c3e-9d2b-1a2b3c4d5e6f',
+      order: 2,
+      at: '2026-11-19T10:00:00.000Z',
+      change: { kind: 'group.archived', reason: 'trip over' },
+    };
+    window.localStorage.setItem(
+      `split:g:ana:g-1:out:${fromAnotherVersion.id}`,
+      JSON.stringify(fromAnotherVersion),
+    );
+    const third = log.appendPending(rename('three'));
+
+    expect(log.outbox()).toEqual([first, fromAnotherVersion, third]);
+    expect(log.pending()).toEqual([first, third]);
+    expect(third.order).toBe(3);
+  });
+
   it('skips a pending key that no longer parses', () => {
     const log = openDeviceLog('ana', groupId);
     const good = log.appendPending(rename('good'));
     window.localStorage.setItem('split:g:ana:g-1:out:broken', '{not json');
 
     expect(log.pending().map((op) => op.id)).toEqual([good.id]);
+    expect(log.outbox().map((op) => op.id)).toEqual([good.id]);
   });
 
   it('drops the pending ops the server refused', () => {

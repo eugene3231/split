@@ -461,6 +461,48 @@ describe('group sync', () => {
     expect(ben.getSnapshot().log.confirmed.map((op) => op.change)).toEqual([null]);
   });
 
+  it('sends a queued change this version cannot read as it was stored, and counts it until then', async () => {
+    const server = createMemoryServer();
+    const group = newGroup();
+    const anaPhone = phone(server, 'ana');
+    anaPhone.signal.online = false;
+    // Queued by another version of Split on this phone, before the app was updated.
+    const queued = {
+      ...pendingOp({ kind: 'group.archived', reason: 'trip over' } as unknown as Change),
+      order: 1,
+    };
+    window.localStorage.setItem(
+      `split:g:ana:${group.groupId}:out:${queued.id}`,
+      JSON.stringify(queued),
+    );
+    const ana = anaPhone.open(group, true);
+    await ana.syncNow();
+    const offline = ana.getSnapshot();
+
+    anaPhone.signal.online = true;
+    await ana.syncNow();
+    const reader = createFakeBackend({ server, profile: 'reader', isOnline: () => true });
+    const readerSession = await reader.session();
+    await reader.joinGroup(group.inviteCode);
+    const stored = await server.opsAfter(
+      readerSession.ok ? readerSession.value.userId : '',
+      group.groupId,
+      0,
+      10,
+    );
+
+    expect(offline.sync.pending).toBe(1);
+    expect(offline.log.pending).toEqual([]);
+    expect(offline.log.unreadablePending).toEqual([{ id: queued.id, order: 1, at: queued.at }]);
+    expect(stored.ok && stored.value.map((op) => [op.id, op.change])).toEqual([
+      [queued.id, { kind: 'group.archived', reason: 'trip over' }],
+    ]);
+    expect(ana.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0, rejected: [] });
+    expect(ana.getSnapshot().log.confirmed.map((op) => [op.id, op.change])).toEqual([
+      [queued.id, null],
+    ]);
+  });
+
   it('pulls when the server pokes, without being asked', async () => {
     const server = createMemoryServer();
     const group = newGroup();

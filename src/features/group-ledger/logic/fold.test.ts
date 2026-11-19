@@ -417,6 +417,25 @@ describe('foldLedger: the order of ops', () => {
     expect(ledger.activity[0]).toMatchObject({ opId: 'p1', pending: true, replaced: null });
   });
 
+  it('shows a pending change this version cannot read as unknown, where this phone made it', () => {
+    const ledger = fold({
+      ...makeLog(start, [
+        pending(1, addGrab),
+        pending(3, { kind: 'group.renamed', name: 'Tokyo' }),
+      ]),
+      unreadablePending: [{ id: asOpId('p2'), order: 2, at: '2026-11-19T11:00:02Z' }],
+    });
+
+    expect(
+      ledger.activity.slice(0, 3).map((row) => [row.opId, row.what.kind, row.pending]),
+    ).toEqual([
+      ['p3', 'group-renamed', true],
+      ['p2', 'unknown', true],
+      ['p1', 'entry-added', true],
+    ]);
+    expect(ledger.activity[1].undo).toBeNull();
+  });
+
   it('skips a pending op the server has already confirmed', () => {
     const sent: ConfirmedOp = { ...confirmed(3, addGrab), id: asOpId('p1') };
     const ledger = fold(makeLog([...start, sent], [pending(1, addGrab)]));

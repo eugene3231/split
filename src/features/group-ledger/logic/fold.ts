@@ -54,7 +54,8 @@ type Outcome = Pick<Activity, 'what' | 'replaced' | 'undo'>;
 
 /**
  * Reads a group's log into what the screens show. Confirmed ops come first, in `seq` order, then
- * this device's pending ops in `order` order, as if written by `self`. Null until the log holds
+ * this device's pending ops in `order` order, as if written by `self`. A pending op this version
+ * cannot read shows as unknown, like a confirmed one. Null until the log holds
  * the op that created the group.
  *
  * An op that changes nothing (a second `group.created`, removing an entry that is already gone,
@@ -73,7 +74,7 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
         author: userId,
         pending: false,
       })),
-    ...log.pending
+    ...[...log.pending, ...(log.unreadablePending ?? []).map((op) => ({ ...op, change: null }))]
       .filter((op) => !confirmedIds.has(op.id))
       .toSorted((a, b) => a.order - b.order)
       .map(({ id, at, change }): Op => ({ id, at, change, author: me, pending: true })),

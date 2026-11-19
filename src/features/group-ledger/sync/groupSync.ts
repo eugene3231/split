@@ -4,10 +4,13 @@ import type {
   GroupLog,
   InviteCode,
   OpId,
+  PendingOp,
+  UnreadablePendingOp,
 } from '@features/group-ledger/domain/types';
 import { createBackend, deviceProfile } from '@features/group-ledger/backend/createBackend';
 import { PUSH_BATCH_SIZE } from '@features/group-ledger/backend/limits';
 import type { BackendFailure, LedgerBackend } from '@features/group-ledger/backend/port';
+import { parseChange } from '@features/group-ledger/logic/codec';
 import { openDeviceLog, type DeviceLog } from '@features/group-ledger/sync/deviceLog';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 
@@ -27,7 +30,7 @@ export type SyncState =
 
 export interface SyncStatus {
   state: SyncState;
-  /** Changes still only on this phone. */
+  /** Changes still only on this phone, counting any this version of Split cannot read. */
   pending: number;
   /** When this tab last reached the head of the log. Null until it has. */
   lastSyncedAt: string | null;
@@ -82,11 +85,19 @@ export function createGroupSync({
   let rereadUnreadable = true;
 
   function readLog(): GroupLog {
-    return { groupId, inviteCode, confirmed: log.confirmed(), pending: log.pending() };
+    const pending: PendingOp[] = [];
+    const unreadablePending: UnreadablePendingOp[] = [];
+    for (const { id, order, at, change: stored } of log.outbox()) {
+      const change = parseChange(stored);
+      if (change === null) unreadablePending.push({ id, order, at });
+      else pending.push({ id, order, at, change });
+    }
+    return { groupId, inviteCode, confirmed: log.confirmed(), pending, unreadablePending };
   }
 
   function snapshotOf(held: GroupLog): GroupSnapshot {
-    return { log: held, sync: { ...status, pending: held.pending.length } };
+    const queued = held.pending.length + (held.unreadablePending?.length ?? 0);
+    return { log: held, sync: { ...status, pending: queued } };
   }
 
   function publish(next: Partial<SyncStatus>, held: GroupLog = snapshot.log) {
@@ -109,7 +120,7 @@ export function createGroupSync({
   }
 
   async function pushPending(reenter: () => Promise<BackendFailure | null>) {
-    const pending = log.pending();
+    const pending = log.outbox();
     let reentered = false;
     for (let start = 0; start < pending.length; start += PUSH_BATCH_SIZE) {
       const batch = pending.slice(start, start + PUSH_BATCH_SIZE);
