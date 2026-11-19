@@ -466,17 +466,43 @@ describe('a group', () => {
     expect(window.location.pathname).toBe(`/g/${groupId}`);
   });
 
-  it('says so when an entry or the group itself is not there', () => {
+  it('says so when an entry or the group itself is not there', async () => {
     const groupId = makeGroup(['Ben']);
     render(<App />);
 
     go(`/g/${groupId}/e/nothing`);
-    expect(screen.getByRole('heading', { name: 'This entry is gone' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'This entry is gone' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Japan 2026' })).toBeInTheDocument();
     go(`/g/${newGroupId()}`);
     expect(
       screen.getByRole('heading', { name: "This group isn't on this phone" }),
     ).toBeInTheDocument();
+  });
+
+  it('opens an entry that arrives after its screen did', async () => {
+    const groupId = makeGroup(['Ben']);
+    const [ana, ben] = ledgerOf(groupId).members.map((member) => member.id);
+    const lunch = postWeights(
+      {
+        id: newEntryId(),
+        title: 'Lunch',
+        date: asLocalDate('2026-11-19'),
+        currency: 'SGD',
+        rate: 1,
+        payment: { payer: ana, others: {} },
+      },
+      3000,
+      { [ana]: 1, [ben]: 1 },
+    );
+    if (!lunch) throw new Error('lunch did not post');
+    setFakeOffline(true);
+    render(<App />);
+    go(`/g/${groupId}/e/${lunch.id}`);
+    expect(screen.queryByRole('heading', { name: 'This entry is gone' })).not.toBeInTheDocument();
+
+    act(() => groupSyncFor(groupId)?.submit({ kind: 'entry.put', entry: lunch, base: null }));
+
+    expect(await screen.findByDisplayValue('Lunch')).toBeInTheDocument();
   });
 
   it('keeps working offline and says what is waiting', async () => {
