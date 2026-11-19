@@ -58,7 +58,7 @@ function EntryRow({ group, posted }: { group: ReadyGroup; posted: PostedEntry })
     detail = formatCurrencyFromCents(entry.cents, ledger.currency);
     avatar = (
       <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
-        <Icon name="payments" className="text-xl" />
+        <Icon name="payments" className="text-xl!" />
       </span>
     );
   } else {
@@ -85,11 +85,11 @@ function EntryRow({ group, posted }: { group: ReadyGroup; posted: PostedEntry })
         <span className="flex items-center gap-1.5 font-semibold text-on-surface">
           <span className="truncate">{title}</span>
           {entry.kind === 'expense' && entry.basis.kind === 'receipt' && (
-            <Icon name="receipt_long" className="text-base text-outline" />
+            <Icon name="receipt_long" className="text-base! text-outline" />
           )}
           {posted.pending && (
             <span title="Waiting to sync" className="flex">
-              <Icon name="cloud_upload" className="text-base text-outline" />
+              <Icon name="cloud_upload" className="text-base! text-outline" />
               <span className="sr-only">Waiting to sync</span>
             </span>
           )}

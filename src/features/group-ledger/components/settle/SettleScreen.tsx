@@ -38,7 +38,7 @@ export function SettleScreen({ group }: { group: ReadyGroup }) {
         {transfers.length === 0 ? (
           <div className="flex flex-col items-center px-6 pt-16 text-center">
             <span className="flex size-16 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container motion-safe:animate-pop-in">
-              <Icon name="done_all" className="text-3xl" />
+              <Icon name="done_all" className="text-3xl!" />
             </span>
             <h1 className="mt-5 font-headline text-2xl font-bold">Everyone's settled up</h1>
             <p className="mt-1.5 text-on-surface-variant">Nobody owes anybody in {ledger.name}.</p>
@@ -65,7 +65,7 @@ export function SettleScreen({ group }: { group: ReadyGroup }) {
               ))}
             </ul>
             <Button variant="ghost" className="mt-4 w-full" onClick={copySummary}>
-              <Icon name={copied ? 'check' : 'content_copy'} className="text-xl" />
+              <Icon name={copied ? 'check' : 'content_copy'} className="text-xl!" />
               {copied ? 'Copied for the group chat' : 'Copy summary for the group chat'}
             </Button>
           </>
@@ -96,7 +96,7 @@ function TransferCard({ group, transfer }: { group: ReadyGroup; transfer: Transf
 
   const markPaid = () => {
     const paid = act.markPaid(transfer);
-    showToast(`Marked paid: ${from} paid ${to} ${amount}`, {
+    showToast(`${from} paid ${to} ${amount}`, {
       label: 'Undo',
       run: () => act.removeEntry(paid.entryId, paid.rev),
     });
@@ -107,7 +107,7 @@ function TransferCard({ group, transfer }: { group: ReadyGroup; transfer: Transf
       <div className="flex items-center gap-3">
         <div className="flex shrink-0 items-center">
           <MemberAvatar ledger={ledger} memberId={transfer.from} />
-          <Icon name="arrow_forward" className="mx-1 text-lg text-outline" />
+          <Icon name="arrow_forward" className="mx-1 text-lg! text-outline" />
           <MemberAvatar ledger={ledger} memberId={transfer.to} />
         </div>
         <p className="min-w-0 flex-1 text-sm leading-snug">
@@ -124,12 +124,12 @@ function TransferCard({ group, transfer }: { group: ReadyGroup; transfer: Transf
             aria-expanded={showQr}
             onClick={() => setShowQr(!showQr)}
           >
-            <Icon name="qr_code_2" className="text-xl" />
+            <Icon name="qr_code_2" className="text-xl!" />
             PayNow
           </Button>
         )}
         <Button className="flex-1" onClick={markPaid}>
-          <Icon name="check" className="text-xl" />
+          <Icon name="check" className="text-xl!" />
           Mark paid
         </Button>
       </div>

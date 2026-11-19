@@ -45,16 +45,16 @@ export function InviteSheet({ group, open, onOpenChange }: InviteSheetProps) {
           {qr ? (
             <img src={qr} alt={`QR code to join ${group.ledger.name}`} className="size-full" />
           ) : (
-            <Icon name="qr_code_2" className="text-5xl text-outline" />
+            <Icon name="qr_code_2" className="text-5xl! text-outline" />
           )}
         </div>
       </div>
-      <p className="mt-4 truncate rounded-xl bg-surface-container px-4 py-3 font-mono text-xs text-on-surface-variant select-all">
+      <p className="mt-4 rounded-xl bg-surface-container px-4 py-3 font-mono text-xs break-all text-on-surface-variant select-all">
         {link}
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Button variant="secondary" onClick={copy}>
-          <Icon name={copied ? 'check' : 'content_copy'} className="text-xl" />
+          <Icon name={copied ? 'check' : 'content_copy'} className="text-xl!" />
           {copied ? 'Copied' : 'Copy link'}
         </Button>
         {canShare ? (
@@ -69,7 +69,7 @@ export function InviteSheet({ group, open, onOpenChange }: InviteSheetProps) {
                 .catch(() => {})
             }
           >
-            <Icon name="ios_share" className="text-xl" />
+            <Icon name="ios_share" className="text-xl!" />
             Share
           </Button>
         ) : (

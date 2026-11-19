@@ -40,7 +40,7 @@ export function GroupRow({ held }: { held: JoinedGroupEntry }) {
       </span>
       {waiting && (
         <span title="Changes waiting to sync" className="flex text-outline">
-          <Icon name="cloud_upload" className="text-xl" />
+          <Icon name="cloud_upload" className="text-xl!" />
           <span className="sr-only">Changes waiting to sync</span>
         </span>
       )}

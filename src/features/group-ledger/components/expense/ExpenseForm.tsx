@@ -105,7 +105,6 @@ export function ExpenseForm({ group, editing }: ExpenseFormProps) {
             maxLength={80}
           />
           <label className="inline-flex h-10 items-center gap-2 rounded-full bg-surface-container px-3.5 text-sm font-semibold transition focus-within:ring-2 focus-within:ring-primary/20">
-            <Icon name="calendar_today" className="text-lg text-on-surface-variant" />
             <span className="sr-only">Date</span>
             <input
               type="date"
@@ -150,7 +149,7 @@ export function ExpenseForm({ group, editing }: ExpenseFormProps) {
           className={actionBarButtonClass(check.ok)}
         >
           {editing ? 'Save' : 'Add'}
-          <Icon name="check" className="text-lg" />
+          <Icon name="check" className="text-lg!" />
         </button>
       </ActionBar>
     </div>

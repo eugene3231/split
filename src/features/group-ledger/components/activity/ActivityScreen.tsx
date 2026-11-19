@@ -54,7 +54,7 @@ function ActivityRow({
     <div className={cn('flex gap-3 px-4 py-3', replaced && 'bg-warning-container/70')}>
       {activity.by === null ? (
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
-          <Icon name="person" className="text-lg" />
+          <Icon name="person" className="text-lg!" />
         </span>
       ) : (
         <MemberAvatar ledger={ledger} memberId={activity.by} size="sm" />
@@ -65,7 +65,7 @@ function ActivityRow({
           {timeAgo(activity.at, now)}
           {activity.pending && (
             <span className="inline-flex items-center gap-0.5">
-              <Icon name="cloud_upload" className="text-sm" />
+              <Icon name="cloud_upload" className="text-sm!" />
               On this phone only
             </span>
           )}
@@ -77,7 +77,7 @@ function ActivityRow({
               {describeEntry(replaced, ledger)}.
             </p>
             <Button variant="secondary" className="mt-2 h-9" onClick={restoreOther}>
-              <Icon name="restore" className="text-lg" />
+              <Icon name="restore" className="text-lg!" />
               Restore the other version
             </Button>
           </div>

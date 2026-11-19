@@ -49,7 +49,7 @@ export function MembersSheet({ group, open, onOpenChange }: MembersSheetProps) {
           disabled={!friend.trim()}
           className="flex h-10 items-center gap-1 rounded-lg bg-primary px-3.5 text-sm font-semibold text-on-primary transition active:scale-95 disabled:opacity-45"
         >
-          <Icon name="add" className="text-xl" />
+          <Icon name="add" className="text-xl!" />
           Add
         </button>
       </form>
@@ -107,7 +107,7 @@ export function MembersSheet({ group, open, onOpenChange }: MembersSheetProps) {
                       .join(' · ')}
                   </span>
                 </span>
-                <Icon name="edit" className="text-lg text-outline" />
+                <Icon name="edit" className="text-lg! text-outline" />
               </button>
             </li>
           ),
@@ -131,7 +131,7 @@ function DuplicateHints({ group }: { group: ReadyGroup }) {
             key={`${first}:${second}`}
             className="flex items-center gap-3 rounded-2xl bg-warning-container p-3 text-sm text-on-warning-container"
           >
-            <Icon name="group" className="text-xl" />
+            <Icon name="group" className="text-xl!" />
             <p className="min-w-0 flex-1">
               Two people called <strong>{memberName(ledger, first)}</strong>. Same person?
             </p>
@@ -197,7 +197,7 @@ function MemberEditor({ member, paynow, onSave, onCancel }: MemberEditorProps) {
           onClick={() => onSave({ ...member, archived: !member.archived })}
           className="mr-auto px-3"
         >
-          <Icon name={member.archived ? 'unarchive' : 'archive'} className="text-xl" />
+          <Icon name={member.archived ? 'unarchive' : 'archive'} className="text-xl!" />
           {member.archived ? 'Bring back' : 'Archive'}
         </Button>
         <Button variant="ghost" onClick={onCancel}>

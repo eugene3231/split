@@ -137,7 +137,7 @@ function SaveToGroup({ group, members, editing, receipt, draftKey }: SaveToGroup
             {payer === ledger.me
               ? 'You'
               : ledger.members.find((member) => member.id === payer)?.name}
-            <Icon name="expand_more" className="text-lg" />
+            <Icon name="expand_more" className="text-lg!" />
           </span>
           <select
             aria-label="Paid by"
@@ -160,8 +160,8 @@ function SaveToGroup({ group, members, editing, receipt, draftKey }: SaveToGroup
         onClick={save}
         className={actionBarButtonClass(fits)}
       >
-        {editing ? 'Save' : 'Save to group'}
-        <Icon name="check" className="text-lg" />
+        Save
+        <Icon name="check" className="text-lg!" />
       </button>
     </>
   );

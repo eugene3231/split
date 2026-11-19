@@ -25,7 +25,7 @@ export function AmountHero({ draft, groupCurrency, onChange, onCurrencyChange }:
       <label className="relative flex h-9 items-center gap-1 rounded-full bg-surface-container pr-2.5 pl-3.5 text-sm font-semibold transition hover:bg-surface-container-high">
         <span className="sr-only">Currency</span>
         {draft.currency}
-        <Icon name="expand_more" className="text-lg" />
+        <Icon name="expand_more" className="text-lg!" />
         <select
           value={draft.currency}
           onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}

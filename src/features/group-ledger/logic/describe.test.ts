@@ -83,7 +83,7 @@ describe('describeActivity', () => {
   });
 
   it('describes the group being created and renamed', () => {
-    expect(latest(makeLog([confirmed(1, created)]))).toBe('Someone created Japan 2026');
+    expect(latest(makeLog([confirmed(1, created)]))).toBe('Japan 2026 was created');
     expect(latest(benDoes({ kind: 'group.renamed', name: 'Tokyo' }))).toBe(
       'Ben renamed the group to Tokyo',
     );
@@ -103,7 +103,7 @@ describe('describeActivity', () => {
       'Ben brought back Cat',
     );
     expect(latest(benDoes(catAdded, put(makeMember(cat, { paynowMobile: '91234567' }))))).toBe(
-      'Ben updated Cat',
+      "Ben set Cat's PayNow number",
     );
     expect(latest(benDoes(catAdded, { kind: 'member.merged', from: cat, into: ana }))).toBe(
       'Ben merged Cat into Ana',

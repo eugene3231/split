@@ -84,7 +84,7 @@ function NewGroupForm() {
           <span className="mb-1.5 block section-label">Currency</span>
           <span className="relative flex h-12 items-center gap-1 field pr-2 pl-4 font-semibold">
             {currency}
-            <Icon name="expand_more" className="text-lg text-on-surface-variant" />
+            <Icon name="expand_more" className="text-lg! text-on-surface-variant" />
             <select
               value={currency}
               onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
@@ -123,7 +123,7 @@ function NewGroupForm() {
             >
               <PersonAvatar name={friend} colorIndex={index + 1} className="h-7 w-7 text-xs" />
               {friend}
-              <Icon name="close" className="text-sm text-on-surface-variant" />
+              <Icon name="close" className="text-sm! text-on-surface-variant" />
             </button>
           ))}
           <input
@@ -160,7 +160,7 @@ function NewGroupForm() {
                 onClick={() => addFriends(saved.names)}
                 className="flex h-9 items-center gap-1.5 rounded-full border border-surface-container-highest bg-surface-container-lowest px-3 text-sm font-semibold transition hover:border-outline-variant active:scale-95"
               >
-                <Icon name="group_add" className="text-lg text-on-surface-variant" />
+                <Icon name="group_add" className="text-lg! text-on-surface-variant" />
                 {saved.name}
               </button>
             ))}

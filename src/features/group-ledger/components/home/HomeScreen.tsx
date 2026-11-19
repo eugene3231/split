@@ -28,7 +28,7 @@ export function HomeScreen() {
           </span>
           <IconButton
             label={linked ? 'Your account' : 'Keep your groups'}
-            icon={linked ? 'account_circle' : 'cloud_sync'}
+            icon="account_circle"
             onClick={() => setSheet('account')}
           />
         </div>
@@ -59,7 +59,7 @@ export function HomeScreen() {
           <h2 className="font-headline text-lg font-bold">Your groups</h2>
           {sorted.length > 0 && (
             <Button variant="ghost" className="-mr-2" onClick={() => setSheet('new-group')}>
-              <Icon name="add" className="text-xl" />
+              <Icon name="add" className="text-xl!" />
               New group
             </Button>
           )}
@@ -75,7 +75,7 @@ export function HomeScreen() {
               Everyone adds what they paid from their own phone, and Split works out who owes whom.
             </p>
             <Button size="lg" className="mt-5" onClick={() => setSheet('new-group')}>
-              <Icon name="add" className="text-xl" />
+              <Icon name="add" className="text-xl!" />
               New group
             </Button>
           </div>

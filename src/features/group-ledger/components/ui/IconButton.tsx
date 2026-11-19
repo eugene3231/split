@@ -34,7 +34,10 @@ export function IconLink({ label, icon, className, ...props }: IconLinkProps) {
 
 export function Icon({ name, className }: { name: string; className?: string }) {
   return (
-    <span aria-hidden="true" className={cn('material-symbols-outlined text-[1.375rem]', className)}>
+    <span
+      aria-hidden="true"
+      className={cn('material-symbols-outlined text-[1.375rem]!', className)}
+    >
       {name}
     </span>
   );

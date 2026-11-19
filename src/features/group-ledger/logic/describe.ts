@@ -35,7 +35,7 @@ export function describeActivity(activity: Activity, ledger: Ledger): string {
 
   switch (what.kind) {
     case 'group-created':
-      return `${who} created ${what.name}`;
+      return activity.by === null ? `${what.name} was created` : `${who} created ${what.name}`;
     case 'group-renamed':
       return `${who} renamed the group to ${what.to}`;
     case 'member-added':
@@ -65,6 +65,11 @@ function describeMemberChange(before: Member, after: Member): string {
   if (before.name !== after.name) return `renamed ${before.name} to ${after.name}`;
   if (before.archived !== after.archived) {
     return `${after.archived ? 'archived' : 'brought back'} ${after.name}`;
+  }
+  if (before.paynowMobile !== after.paynowMobile) {
+    return after.paynowMobile === null
+      ? `removed ${after.name}'s PayNow number`
+      : `set ${after.name}'s PayNow number`;
   }
   return `updated ${after.name}`;
 }

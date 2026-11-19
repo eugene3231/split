@@ -15,7 +15,7 @@ export function Toaster() {
 
   if (!toast) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-[60] flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(max(1rem,env(safe-area-inset-bottom))+4.75rem)] z-[60] flex justify-center px-4">
       <div
         key={toast.id}
         role="status"

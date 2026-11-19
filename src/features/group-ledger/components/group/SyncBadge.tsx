@@ -24,7 +24,10 @@ export function SyncBadge({ sync, className }: { sync: SyncStatus; className?: s
         className,
       )}
     >
-      <Icon name={stuck && sync.pending > 0 ? 'cloud_off' : 'sync_problem'} className="text-base" />
+      <Icon
+        name={stuck && sync.pending > 0 ? 'cloud_off' : 'sync_problem'}
+        className="text-base!"
+      />
       {label}
     </p>
   );

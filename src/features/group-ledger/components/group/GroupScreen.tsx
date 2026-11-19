@@ -73,58 +73,69 @@ export function GroupScreen({ group }: { group: ReadyGroup }) {
       <main className="mx-auto max-w-xl px-4 pt-5 motion-safe:animate-fade-in">
         <SyncBadge sync={sync} className="mb-4" />
 
-        <section aria-label="Your balance" className="px-1">
-          <p className="section-label">In {ledger.name}</p>
-          <p
-            className={cn(
-              'mt-1 font-headline text-[2rem] leading-tight font-bold tracking-tight first-letter:uppercase',
-              mine.direction === 'even' ? 'text-on-surface' : DIRECTION_TEXT[mine.direction],
+        {ledger.entries.length > 0 && (
+          <>
+            <section aria-label="Your balance" className="px-1">
+              <p className="section-label">In {ledger.name}</p>
+              <p
+                className={cn(
+                  'mt-1 font-headline text-[2rem] leading-tight font-bold tracking-tight first-letter:uppercase',
+                  mine.direction === 'even' ? 'text-on-surface' : DIRECTION_TEXT[mine.direction],
+                )}
+              >
+                {mine.text}
+              </p>
+            </section>
+
+            {others.length > 0 && (
+              <ul
+                aria-label="Everyone's balances"
+                className="mt-4 divide-y divide-surface-container-highest surface-card"
+              >
+                {others.map((id) => {
+                  const words = describeBalance(balances[id], ledger.currency);
+                  const member = ledger.members.find((candidate) => candidate.id === id);
+                  return (
+                    <li key={id} className="flex items-center gap-3 px-4 py-2.5">
+                      <MemberAvatar ledger={ledger} memberId={id} size="sm" />
+                      <span className="min-w-0 flex-1 truncate font-medium">{member?.name}</span>
+                      <span
+                        className={cn(
+                          'shrink-0 text-sm font-semibold tabular-nums',
+                          DIRECTION_TEXT[words.direction],
+                        )}
+                      >
+                        {words.text}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
-          >
-            {mine.text}
-          </p>
-        </section>
 
-        {others.length > 0 && (
-          <ul
-            aria-label="Everyone's balances"
-            className="mt-4 divide-y divide-surface-container-highest surface-card"
-          >
-            {others.map((id) => {
-              const words = describeBalance(balances[id], ledger.currency);
-              const member = ledger.members.find((candidate) => candidate.id === id);
-              return (
-                <li key={id} className="flex items-center gap-3 px-4 py-2.5">
-                  <MemberAvatar ledger={ledger} memberId={id} size="sm" />
-                  <span className="min-w-0 flex-1 truncate font-medium">{member?.name}</span>
-                  <span
-                    className={cn(
-                      'shrink-0 text-sm font-semibold tabular-nums',
-                      DIRECTION_TEXT[words.direction],
-                    )}
-                  >
-                    {words.text}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+            {transfers.length > 0 && (
+              <Link
+                to={{ kind: 'settle', groupId: ledger.groupId }}
+                className={cn(buttonClass('secondary', 'lg'), 'mt-3 w-full')}
+              >
+                <Icon name="handshake" className="text-xl!" />
+                Settle up
+              </Link>
+            )}
+          </>
         )}
 
-        {transfers.length > 0 && (
-          <Link
-            to={{ kind: 'settle', groupId: ledger.groupId }}
-            className={cn(buttonClass('secondary', 'lg'), 'mt-3 w-full')}
-          >
-            <Icon name="handshake" className="text-xl" />
-            Settle up
-          </Link>
-        )}
-
-        <h2 className="mt-8 mb-3 px-1 font-headline text-lg font-bold">Expenses</h2>
+        <h2
+          className={cn(
+            'mb-3 px-1 font-headline text-lg font-bold',
+            ledger.entries.length > 0 && 'mt-8',
+          )}
+        >
+          Expenses
+        </h2>
         {ledger.entries.length === 0 ? (
           <div className="flex flex-col items-center gap-1 rounded-card border border-dashed border-outline-variant px-6 py-10 text-center">
-            <Icon name="receipt_long" className="mb-1 text-2xl text-outline" />
+            <Icon name="receipt_long" className="mb-1 text-2xl! text-outline" />
             <p className="text-sm font-semibold">No expenses yet</p>
             <p className="text-sm text-on-surface-variant">
               Add what you paid, and Split keeps track of who owes whom.

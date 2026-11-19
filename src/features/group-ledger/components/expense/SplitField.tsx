@@ -76,7 +76,7 @@ export function SplitField({ ledger, members, draft, owed, onChange }: SplitFiel
                       />
                       {included && (
                         <span className="absolute -right-0.5 -bottom-0.5 flex size-5 items-center justify-center rounded-full bg-primary text-on-primary ring-2 ring-surface motion-safe:animate-pop-in">
-                          <Icon name="check" className="text-sm" />
+                          <Icon name="check" className="text-sm!" />
                         </span>
                       )}
                     </span>
@@ -185,7 +185,7 @@ function Stepper({
         disabled={value === 0}
         onClick={() => onChange(value - 1)}
       >
-        <Icon name="remove" className="text-lg" />
+        <Icon name="remove" className="text-lg!" />
       </button>
       <span
         aria-label={`${name}'s shares`}
@@ -199,7 +199,7 @@ function Stepper({
         className={step}
         onClick={() => onChange(value + 1)}
       >
-        <Icon name="add" className="text-lg" />
+        <Icon name="add" className="text-lg!" />
       </button>
     </div>
   );
