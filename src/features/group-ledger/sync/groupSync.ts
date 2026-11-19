@@ -107,6 +107,19 @@ export function createGroupSync({
   // so the first pull of each tab starts again from the first one.
   let rereadUnreadable = true;
 
+  /**
+   * A reply can arrive after `dispose`, which is how a group is forgotten. Writing it down would
+   * put the group back on a phone that has just cleared it.
+   */
+  function unlessDisposed<Args extends unknown[]>(write: (...args: Args) => void) {
+    return (...args: Args) => {
+      if (!disposed) write(...args);
+    };
+  }
+  const confirm = unlessDisposed(log.confirm);
+  const drop = unlessDisposed(log.drop);
+  const setMemberAs = unlessDisposed(log.setMemberAs);
+
   function readLog(): GroupLog {
     const pending: PendingOp[] = [];
     const unreadablePending: UnreadablePendingOp[] = [];
@@ -164,7 +177,7 @@ export function createGroupSync({
       }
       if (!pushed.ok) return pushed.failure;
       if (pushed.value.rejected.length > 0) {
-        log.drop(pushed.value.rejected);
+        drop(pushed.value.rejected);
         reload({ rejected: [...status.rejected, ...pushed.value.rejected] });
       }
     }
@@ -180,11 +193,11 @@ export function createGroupSync({
       if (!pulled.ok) return pulled.failure;
       const last = pulled.value.ops.at(-1);
       if (last) {
-        log.confirm(pulled.value.ops);
+        confirm(pulled.value.ops);
         reload();
         afterSeq = last.seq;
       }
-      if (!pulled.value.more || !last) break;
+      if (!pulled.value.more || !last || disposed) break;
     }
     rereadUnreadable = false;
     return null;
@@ -202,7 +215,7 @@ export function createGroupSync({
       // rather than an error, so the phone has to know it entered as this user.
       async function enterAsUser() {
         const failure = await enter();
-        if (failure === null) log.setMemberAs(userId);
+        if (failure === null) setMemberAs(userId);
         return failure;
       }
       if (log.memberAs() !== userId) {
@@ -352,7 +365,11 @@ export async function syncAllGroups(): Promise<void> {
   await Promise.all(groups.map((group) => groupSyncFor(group.groupId)?.syncNow()));
 }
 
-/** Takes a group off this phone: its engine, its log and any change not yet synced. */
+/**
+ * Takes a group off this phone: its engine, its log and any change not yet synced. A sync still
+ * on its way writes nothing afterwards. The server keeps this user as a member, so the invite
+ * link brings the group back.
+ */
 export function forgetGroup(groupId: GroupId): void {
   engines.get(groupId)?.dispose();
   engines.delete(groupId);

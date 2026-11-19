@@ -669,6 +669,36 @@ describe('group sync', () => {
     expect(openDeviceLog('ana', group.groupId).confirmed()).toEqual([]);
   });
 
+  it('writes nothing back to a phone that forgot the group while a pull was on its way', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    let answer = () => {};
+    const held = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    const pull = vi.fn();
+    const ana = phone(server, 'ana', (backend) => ({
+      ...backend,
+      async pull(groupId, afterSeq) {
+        const reply = await backend.pull(groupId, afterSeq);
+        pull();
+        await held;
+        return reply;
+      },
+    })).open(group, false);
+    await vi.waitFor(() => expect(pull).toHaveBeenCalled());
+
+    // What `forgetGroup` does.
+    ana.dispose();
+    openDeviceLog('ana', group.groupId).clear();
+    answer();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(Object.keys(window.localStorage).filter((key) => key.includes(group.groupId))).toEqual(
+      [],
+    );
+  });
+
   it('does nothing more once disposed', async () => {
     const server = createMemoryServer();
     const group = await foundedGroup(server);
