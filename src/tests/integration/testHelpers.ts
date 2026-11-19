@@ -7,7 +7,7 @@ import type {
   SplitResult,
 } from '@shared/types';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
-import { loadSavedWorkspace, useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { loadSavedWorkspace, quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import { isNonEmpty } from '@features/split-workspace/logic/nonEmpty';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
@@ -114,7 +114,7 @@ export function makeSplit(people: Record<string, PersonSplitInput>): SplitResult
 }
 
 export function resetAllStores() {
-  useReceiptStore.getState().resetSplit();
+  quickSplitStore.getState().resetSplit();
   useCurrencyStore.setState({
     exchangeRates: { SGD: 1 },
     exchangeRatesLastFetched: null,
@@ -134,7 +134,7 @@ export function seedStore(
   options?: { activeReceiptId?: string; exchangeRates?: Record<string, number> },
 ) {
   if (!isNonEmpty(receipts)) throw new Error('A workspace needs at least one receipt');
-  useReceiptStore.setState({
+  quickSplitStore.setState({
     people,
     receipts,
     activeReceiptId: options?.activeReceiptId ?? receipts[0].id,
@@ -147,7 +147,9 @@ export function seedStore(
 
 /** What reloading the page does: the store starts again from what the browser has saved. */
 export function reloadWorkspace() {
-  useReceiptStore.setState(loadSavedWorkspace());
+  const saved = loadSavedWorkspace(quickSplitStore.draftKey);
+  if (saved) quickSplitStore.setState(saved);
+  else quickSplitStore.getState().resetSplit();
 }
 
 export function sumValues(record: Record<string, number>): number {

@@ -2,7 +2,6 @@ import { z } from 'zod';
 import type { SessionDraft, WorkspaceState } from '@features/split-workspace/types';
 import { BASE_CURRENCY, CURRENCY_CODES } from '@shared/constants';
 import {
-  LOCAL_STORAGE_DRAFT_KEY,
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
@@ -158,8 +157,6 @@ function finishReceipt(
   };
 }
 
-const draftStorage = jsonStorage('localStorage', LOCAL_STORAGE_DRAFT_KEY, draftSchema);
-
 export function exportDraftToJson(state: WorkspaceState): string {
   const draft: SessionDraft = {
     version: 3,
@@ -177,10 +174,10 @@ export function importDraftFromJson(raw: string): SessionDraft | null {
   return parseJson(raw, draftSchema);
 }
 
-export function savePersistedDraft(draft: SessionDraft): void {
-  draftStorage.save(draft);
+export function savePersistedDraft(key: string, draft: SessionDraft): void {
+  jsonStorage('localStorage', key, draftSchema).save(draft);
 }
 
-export function loadPersistedDraft(): SessionDraft | null {
-  return draftStorage.load();
+export function loadPersistedDraft(key: string): SessionDraft | null {
+  return jsonStorage('localStorage', key, draftSchema).load();
 }

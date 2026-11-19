@@ -19,6 +19,12 @@ export function getAssignedItemsCount(items: EditableItem[], people: Person[]): 
   ).length;
 }
 
+/** At least one item has a price, and every priced item is assigned to someone in `people`. */
+export function isEveryPricedItemAssigned(items: EditableItem[], people: Person[]): boolean {
+  const detectedCount = getDetectedItemsCount(items);
+  return detectedCount > 0 && getAssignedItemsCount(items, people) === detectedCount;
+}
+
 export function isStepValid(
   step: WizardStep,
   args: { items: EditableItem[]; people: Person[] },
@@ -32,12 +38,7 @@ export function isStepValid(
   }
 
   if (step === 'items') {
-    const detectedCount = getDetectedItemsCount(args.items);
-    if (detectedCount === 0) {
-      return false;
-    }
-
-    return getAssignedItemsCount(args.items, args.people) === detectedCount;
+    return isEveryPricedItemAssigned(args.items, args.people);
   }
 
   return true;

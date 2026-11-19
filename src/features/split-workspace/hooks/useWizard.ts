@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { useShallow } from 'zustand/shallow';
+import {
+  selectActiveReceipt,
+  useReceiptStore,
+  useWorkspaceStoreApi,
+} from '@features/split-workspace/stores/receiptStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import type { EditableItem, Person, Receipt } from '@shared/types';
-import type { AssignMode, SessionDraft, WizardStep } from '@features/split-workspace/types';
+import {
+  WIZARD_STEPS,
+  type AssignMode,
+  type SessionDraft,
+  type WizardStep,
+} from '@features/split-workspace/types';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
 import { resolveWizardStep } from '@features/split-workspace/logic/wizardState';
 import { getContinueLabel } from '@features/split-workspace/logic/wizardSteps';
@@ -17,7 +27,13 @@ import {
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import { splitUnassignedItemsEqually } from '@features/split-workspace/logic/assignmentInteraction';
 
-export function useWizard(items: EditableItem[], people: Person[], receipts: Receipt[]) {
+export function useWizard(
+  items: EditableItem[],
+  people: Person[],
+  receipts: Receipt[],
+  /** The steps this wizard walks, in order; a step left out is never shown. */
+  steps: readonly WizardStep[] = WIZARD_STEPS,
+) {
   const geminiApiKeyInput = useGeminiStore((state) => state.geminiApiKeyInput);
   const setShowApiKeyModal = useGeminiStore((state) => state.setShowApiKeyModal);
   const addReceipt = useReceiptStore((state) => state.addReceipt);
@@ -25,9 +41,10 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const loadWorkspace = useReceiptStore((state) => state.loadWorkspace);
   const updateItems = useReceiptStore((state) => state.updateItems);
 
-  const [initialWizardState] = useState(() => loadWizardState());
+  const { wizardKey } = useWorkspaceStoreApi();
+  const [initialWizardState] = useState(() => loadWizardState(wizardKey));
   const [activeStepState, setActiveStep] = useState<WizardStep>(
-    initialWizardState?.step ?? 'people',
+    initialWizardState?.step ?? steps[0],
   );
   const [activePersonIdState, setActivePersonId] = useState(
     initialWizardState?.activePersonId ?? '',
@@ -40,7 +57,8 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const allReceiptItems = receipts.flatMap((receipt) => receipt.items);
   const allItemsAssigned = isStepValid('items', { items: allReceiptItems, people });
 
-  const activeStep = resolveWizardStep(activeStepState, items, allReceiptItems, people);
+  const resolvedStep = resolveWizardStep(activeStepState, items, allReceiptItems, people);
+  const activeStep = steps.includes(resolvedStep) ? resolvedStep : steps[0];
   const activePersonId = resolveActivePersonId(activePersonIdState, people);
   const claimContinue = resolveClaimContinue(
     assignMode,
@@ -50,8 +68,8 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   );
 
   useEffect(() => {
-    saveWizardState({ step: activeStep, activePersonId, assignMode });
-  }, [activeStep, activePersonId, assignMode]);
+    saveWizardState(wizardKey, { step: activeStep, activePersonId, assignMode });
+  }, [wizardKey, activeStep, activePersonId, assignMode]);
 
   const canContinue = activeStep === 'items' || isStepValid(activeStep, { items, people });
   const continueLabel = getContinueLabel(activeStep, claimContinue.label);
@@ -61,7 +79,7 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const canReachFinal = canReachItems && allItemsAssigned;
 
   const stepReachability: Record<WizardStep, boolean> = {
-    people: true,
+    people: steps.includes('people'),
     receipt: canReachReceipt,
     items: canReachItems,
     final: canReachFinal,
@@ -143,7 +161,7 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
       return;
     }
 
-    if (activeStep === 'receipt') {
+    if (activeStep === 'receipt' && steps.includes('people')) {
       setActiveStep('people');
     }
   };
@@ -179,6 +197,8 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   };
 
   return {
+    steps,
+    isFirstStep: activeStep === steps[0],
     activeStep,
     activePersonId,
     selectPerson,
@@ -197,4 +217,15 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
     confirmSplitLeftovers,
     cancelSplitLeftovers,
   };
+}
+
+export type Wizard = ReturnType<typeof useWizard>;
+
+/** The wizard over the workspace in the nearest store. */
+export function useWorkspaceWizard(steps?: readonly WizardStep[]): Wizard {
+  const { people, receipts } = useReceiptStore(
+    useShallow((state) => ({ people: state.people, receipts: state.receipts })),
+  );
+  const activeReceipt = useReceiptStore(selectActiveReceipt);
+  return useWizard(activeReceipt.items, people, receipts, steps);
 }

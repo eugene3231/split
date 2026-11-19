@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import { useSavedGroupsStore } from '@features/split-workspace/stores/savedGroupsStore';
 import { makeItem, makeReceipt } from '../../../../../tests/integration/testHelpers';
 import { loadSavedGroups } from '@features/split-workspace/logic/savedGroups';
@@ -8,7 +8,7 @@ import { PeopleStep } from './PeopleStep';
 import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/logic/assignment';
 
 function peopleNames() {
-  return useReceiptStore.getState().people.map((person) => person.name);
+  return quickSplitStore.getState().people.map((person) => person.name);
 }
 
 function addNames(names: string) {
@@ -18,7 +18,7 @@ function addNames(names: string) {
 
 beforeEach(() => {
   window.localStorage.clear();
-  useReceiptStore.getState().resetSplit();
+  quickSplitStore.getState().resetSplit();
   useSavedGroupsStore.setState({ groups: [] });
 });
 
@@ -162,7 +162,7 @@ describe('PeopleStep saved groups', () => {
         }),
       ],
     });
-    useReceiptStore.setState({
+    quickSplitStore.setState({
       people: [
         { id: 'p1', name: 'Ana' },
         { id: 'p2', name: 'Ben' },
@@ -178,8 +178,8 @@ describe('PeopleStep saved groups', () => {
     expect(peopleNames()).toEqual([]);
     expect(screen.getByTestId('people-input')).toHaveValue('Dee');
     expect(screen.queryByRole('button', { name: 'Remove all' })).not.toBeInTheDocument();
-    expect(useReceiptStore.getState().activeReceiptId).toBe('r2');
-    expect(useReceiptStore.getState().receipts).toEqual([
+    expect(quickSplitStore.getState().activeReceiptId).toBe('r2');
+    expect(quickSplitStore.getState().receipts).toEqual([
       {
         ...first,
         items: [{ ...first.items[0], assignment: NOBODY }],

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import {
   percentCharge,
   amountCharge,
@@ -19,7 +19,7 @@ import { NOBODY, equalShares, makeAssignment } from '@features/split-workspace/l
 function importWorkspaceJson(json: string) {
   const draft = importDraftFromJson(json);
   if (!draft) throw new Error('Workspace JSON did not parse');
-  useReceiptStore.getState().loadWorkspace(draft);
+  quickSplitStore.getState().loadWorkspace(draft);
 }
 
 beforeEach(() => {
@@ -75,13 +75,13 @@ describe('Persistence integration', () => {
       }),
     ];
     seedStore(people, receipts, { activeReceiptId: 'dinner' });
-    useReceiptStore.getState().setPayerMobile('91234567');
-    const json = exportDraftToJson(useReceiptStore.getState());
+    quickSplitStore.getState().setPayerMobile('91234567');
+    const json = exportDraftToJson(quickSplitStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);
 
-    const restored = useReceiptStore.getState();
+    const restored = quickSplitStore.getState();
     expect(restored.people).toEqual(people);
     expect(restored.receipts).toEqual(receipts);
     expect(restored.activeReceiptId).toBe('dinner');
@@ -91,12 +91,12 @@ describe('Persistence integration', () => {
   it('gives a receipt with no items one blank item after import', () => {
     const alice = makePerson('Alice');
     seedStore([alice], [makeReceipt({ id: 'empty', items: [] })]);
-    const json = exportDraftToJson(useReceiptStore.getState());
+    const json = exportDraftToJson(quickSplitStore.getState());
 
     resetAllStores();
     importWorkspaceJson(json);
 
-    expect(useReceiptStore.getState().receipts[0].items).toEqual([
+    expect(quickSplitStore.getState().receipts[0].items).toEqual([
       {
         id: expect.any(String),
         name: '',

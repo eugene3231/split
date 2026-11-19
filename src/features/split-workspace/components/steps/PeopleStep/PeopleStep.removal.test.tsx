@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import { PeopleStep } from './PeopleStep';
 
 // jsdom queues a timer for every localStorage write, and these tests count pending timers.
@@ -11,8 +11,8 @@ vi.mock('@features/split-workspace/logic/draftStorage', async (importActual) => 
 }));
 
 beforeEach(() => {
-  useReceiptStore.getState().resetSplit();
-  useReceiptStore.setState({
+  quickSplitStore.getState().resetSplit();
+  quickSplitStore.setState({
     people: [
       { id: 'p1', name: 'Alice' },
       { id: 'p2', name: 'Bob' },
@@ -33,13 +33,13 @@ describe('PeopleStep removal', () => {
     render(<PeopleStep />);
     fireEvent.click(screen.getByTestId('person-chip-p1'));
     expect(screen.getByTestId('person-chip-p1')).toBeDisabled();
-    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual([
+    expect(quickSplitStore.getState().people.map((person) => person.name)).toEqual([
       'Alice',
       'Bob',
     ]);
     act(() => vi.advanceTimersByTime(1000));
     expect(screen.queryByTestId('person-chip-p1')).not.toBeInTheDocument();
-    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
+    expect(quickSplitStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
   });
 
   it('finishes every pending removal on unmount in StrictMode', () => {
@@ -53,7 +53,7 @@ describe('PeopleStep removal', () => {
     fireEvent.click(screen.getByTestId('person-chip-p1'));
     fireEvent.click(screen.getByTestId('person-chip-p2'));
     unmount();
-    expect(useReceiptStore.getState().people).toEqual([]);
+    expect(quickSplitStore.getState().people).toEqual([]);
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -67,11 +67,11 @@ describe('PeopleStep removal', () => {
     const end = new Event('webkitAnimationEnd', { bubbles: true });
     Object.defineProperty(end, 'animationName', { value: 'shrink-out' });
     fireEvent(aliceChip, end);
-    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
+    expect(quickSplitStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
     expect(screen.getByTestId('person-chip-p2')).toBeDisabled();
     expect(vi.getTimerCount()).toBe(1);
     act(() => vi.advanceTimersByTime(1000));
-    expect(useReceiptStore.getState().people).toEqual([]);
+    expect(quickSplitStore.getState().people).toEqual([]);
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -81,7 +81,7 @@ describe('PeopleStep removal', () => {
     render(<PeopleStep />);
     fireEvent.click(screen.getByTestId('person-chip-p1'));
     expect(screen.queryByTestId('person-chip-p1')).not.toBeInTheDocument();
-    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
+    expect(quickSplitStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
     expect(vi.getTimerCount()).toBe(0);
   });
 });

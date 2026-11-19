@@ -1,19 +1,19 @@
 import type { ReactNode } from 'react';
-import { WIZARD_STEPS } from '@features/split-workspace/types';
 import { cn } from '@shared/utils/cn';
 import type { WizardStep } from '@features/split-workspace/types';
 import { STEP_LABELS } from '@features/split-workspace/logic/wizardSteps';
 import { CheckIcon } from '@features/split-workspace/components/shared/CheckIcon';
 
 interface Props {
+  steps: readonly WizardStep[];
   activeStep: WizardStep;
   stepReachability: Record<WizardStep, boolean>;
   onStepSelect: (step: WizardStep) => void;
   actions?: ReactNode;
 }
 
-export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions }: Props) {
-  const stepIndex = WIZARD_STEPS.indexOf(activeStep);
+export function TopAppBar({ steps, activeStep, stepReachability, onStepSelect, actions }: Props) {
+  const stepIndex = steps.indexOf(activeStep);
 
   return (
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">
@@ -29,7 +29,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
           aria-label="Wizard steps"
           className="hidden flex-1 items-center justify-center md:flex"
         >
-          {WIZARD_STEPS.map((step, i) => {
+          {steps.map((step, i) => {
             const completed = i < stepIndex;
             const isCurrent = step === activeStep;
             const disabled = !stepReachability[step];
@@ -67,7 +67,7 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
                     {STEP_LABELS[step]}
                   </span>
                 </button>
-                {i < WIZARD_STEPS.length - 1 && (
+                {i < steps.length - 1 && (
                   <div
                     className={cn(
                       'mx-1 h-0.5 w-4 lg:w-12',
@@ -91,8 +91,8 @@ export function TopAppBar({ activeStep, stepReachability, onStepSelect, actions 
           >
             {STEP_LABELS[activeStep]}
           </span>
-          <div className="grid shrink-0 grid-cols-4">
-            {WIZARD_STEPS.map((step, i) => {
+          <div className="flex shrink-0">
+            {steps.map((step, i) => {
               const completed = i < stepIndex;
               const isCurrent = step === activeStep;
               const disabled = !stepReachability[step];
