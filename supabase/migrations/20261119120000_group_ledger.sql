@@ -1,3 +1,6 @@
+-- Group ledger schema, row level security and functions. Setup: docs/SUPABASE.md. Design: docs/GROUP-LEDGER.md.
+-- backend/fakeServer.ts states the same rules in TypeScript; sqlContract.test.ts runs one suite against both.
+
 create table public.groups (
   id uuid primary key,
   invite_hash bytea not null unique,
