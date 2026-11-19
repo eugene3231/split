@@ -5,7 +5,7 @@ import type { ChargeState, EditableItem, PersonSplit, SplitResult } from '@share
 import { CURRENCY_CODES } from '@shared/constants';
 import { makeAssignment } from '@features/split-workspace/logic/assignment';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
-import { allocate, allocateCents } from './allocation';
+import { allocate, allocateCents } from '@shared/logic/core/allocation';
 import { resolveDiscountedAmountCents } from './pricing';
 import { computeSplit, type ReceiptPricing } from './split';
 

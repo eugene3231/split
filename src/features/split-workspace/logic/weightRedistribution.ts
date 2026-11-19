@@ -1,4 +1,4 @@
-import { allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { allocateCents } from '@shared/logic/core/allocation';
 
 /**
  * Tricount-style smart fill: typing a new value for one person pulls the

@@ -1,5 +1,5 @@
 import { parseCurrencyToCents } from '@shared/logic/core/money';
-import { allocate, allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { allocate, allocateCents } from '@shared/logic/core/allocation';
 import { redistributeOnChange } from '@features/split-workspace/logic/weightRedistribution';
 import {
   equalShares,
