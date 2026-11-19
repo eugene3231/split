@@ -61,6 +61,28 @@ export function describeEntry(entry: Entry, ledger: Ledger): string {
   return `${title} · ${formatCurrencyFromCents(totalCents(entry), entry.currency)}`;
 }
 
+/** A row of the expense list: "Grab" over "You paid $18.00", or "Ben paid you" over "$5.00". */
+export function describeEntryRow(
+  entry: Entry,
+  ledger: MyLedger,
+): { title: string; detail: string } {
+  if (entry.kind === 'transfer') {
+    return {
+      title: transferTitle(ledger, entry),
+      detail: formatCurrencyFromCents(entry.cents, ledger.currency),
+    };
+  }
+  const payers = Object.keys(entry.payment.others).length + 1;
+  const amount = formatCurrencyFromCents(totalCents(entry), entry.currency);
+  return {
+    title: entry.title || 'Untitled expense',
+    detail:
+      payers === 1
+        ? `${memberLabel(ledger, entry.payment.payer)} paid ${amount}`
+        : `${payers} people paid ${amount}`,
+  };
+}
+
 /** One line for the activity list, such as "Ben added Grab · $18.00". */
 export function describeActivity(activity: Activity, ledger: Ledger): string {
   const { what } = activity;

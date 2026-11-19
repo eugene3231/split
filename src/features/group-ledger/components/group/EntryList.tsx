@@ -1,14 +1,12 @@
 import type { LocalDate, PostedEntry } from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { dateLabel } from '@features/group-ledger/logic/dates';
-import { describeMyShare, memberLabel, transferTitle } from '@features/group-ledger/logic/describe';
+import { describeEntryRow, describeMyShare } from '@features/group-ledger/logic/describe';
 import { DIRECTION_TEXT } from '@features/group-ledger/components/ui/classes';
 import { todayLocalDate } from '@features/group-ledger/logic/ids';
-import { totalCents } from '@features/group-ledger/logic/post';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
 import { Link } from '@shared/routing';
-import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { cn } from '@shared/utils/cn';
 
 export function EntryList({ group }: { group: MyGroup }) {
@@ -41,39 +39,20 @@ function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
   const { entry } = posted;
   const groupId = ledger.groupId;
   const share = describeMyShare(entry, ledger);
-
-  let title: string;
-  let detail: string;
-  let avatar = (
-    <MemberAvatar
-      ledger={ledger}
-      memberId={entry.kind === 'transfer' ? entry.from : entry.payment.payer}
-    />
-  );
-  if (entry.kind === 'transfer') {
-    title = transferTitle(ledger, entry);
-    detail = formatCurrencyFromCents(entry.cents, ledger.currency);
-    avatar = (
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
-        <Icon name="payments" className="text-xl!" />
-      </span>
-    );
-  } else {
-    title = entry.title || 'Untitled expense';
-    const payers = Object.keys(entry.payment.others).length;
-    const amount = formatCurrencyFromCents(totalCents(entry), entry.currency);
-    detail =
-      payers === 0
-        ? `${memberLabel(ledger, entry.payment.payer)} paid ${amount}`
-        : `${payers + 1} people paid ${amount}`;
-  }
+  const { title, detail } = describeEntryRow(entry, ledger);
 
   return (
     <Link
       to={{ kind: 'entry', groupId, entryId: entry.id }}
       className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface-container-low"
     >
-      {avatar}
+      {entry.kind === 'transfer' ? (
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
+          <Icon name="payments" className="text-xl!" />
+        </span>
+      ) : (
+        <MemberAvatar ledger={ledger} memberId={entry.payment.payer} />
+      )}
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 font-semibold text-on-surface">
           <span className="truncate">{title}</span>

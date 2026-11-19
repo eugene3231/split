@@ -4,6 +4,7 @@ import {
   describeActivity,
   describeBalance,
   describeEntry,
+  describeEntryRow,
   describeMyBalance,
   describeMyShare,
   describeSettleUp,
@@ -208,5 +209,26 @@ describe('memberLabel and transfer words', () => {
       to: 'you',
     });
     expect(transferTitle(ledger, { from: ben, to: ana })).toBe('Ben paid you');
+  });
+});
+
+describe('describeEntryRow', () => {
+  const ledger = { ...fold(logOf(created, put(makeMember(ana)), put(makeMember(ben)))), me: ana };
+
+  it('titles an expense and says who paid it', () => {
+    expect(describeEntryRow(grab, ledger)).toEqual({ title: 'Grab', detail: 'You paid $18.00' });
+    expect(
+      describeEntryRow(makeExpense('x', { [ana]: 500 }, { payer: ben, title: '' }), ledger),
+    ).toEqual({ title: 'Untitled expense', detail: 'Ben paid $5.00' });
+    expect(
+      describeEntryRow(makeExpense('y', { [ana]: 500 }, { others: { [ben]: 200 } }), ledger).detail,
+    ).toBe('2 people paid $5.00');
+  });
+
+  it('titles a payment by who paid whom', () => {
+    expect(describeEntryRow(makeTransfer('t', ben, ana, 500), ledger)).toEqual({
+      title: 'Ben paid you',
+      detail: '$5.00',
+    });
   });
 });
