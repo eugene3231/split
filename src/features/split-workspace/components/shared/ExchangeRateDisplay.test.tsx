@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useCurrencyStore } from '@features/split-workspace/stores/currencyStore';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { useReceiptStore, quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import type { CurrencyCode } from '@shared/constants';
 import { makeReceipt, resetAllStores, seedStore } from '../../../../tests/integration/testHelpers';
 import { ExchangeRateDisplay } from './ExchangeRateDisplay';
@@ -18,7 +18,7 @@ function renderRate(currency: CurrencyCode, exchangeRateOverride: number | null 
 }
 
 function savedOverride() {
-  return useReceiptStore.getState().receipts[0].exchangeRateOverride;
+  return quickSplitStore.getState().receipts[0].exchangeRateOverride;
 }
 
 function typeRate(value: string, key: 'Enter' | 'Escape' = 'Enter') {

@@ -7,7 +7,10 @@ import { BottomNavStatus } from '@features/split-workspace/components/BottomNav'
 import { getShareSupport } from '@features/split-workspace/summary/shareSplit';
 import { PersonBreakdownCard } from '@features/split-workspace/summary/breakdown/PersonBreakdownCard';
 import { BASE_CURRENCY } from '@shared/constants';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import {
+  useReceiptStore,
+  useWorkspaceStoreApi,
+} from '@features/split-workspace/stores/receiptStore';
 import { SummaryTabs } from './SummaryTabs';
 import { CurrencyToggle } from './CurrencyToggle';
 import { GrandTotalCard } from './GrandTotalCard';
@@ -37,8 +40,9 @@ export type SummaryStepProps = {
 };
 
 export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryStepProps) {
+  const store = useWorkspaceStoreApi();
   const [activeTab, setActiveTab] = useState<string>(() => {
-    const receipts = useReceiptStore.getState().receipts;
+    const receipts = store.getState().receipts;
     return receipts.length > 1 ? 'total' : receipts[0].id;
   });
   const [detail, setDetail] = useState<SummaryDetail>('their-items');

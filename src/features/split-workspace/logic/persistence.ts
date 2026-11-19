@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { LOCAL_STORAGE_WIZARD_STATE_KEY } from '@features/split-workspace/constants';
 import { ASSIGN_MODES, WIZARD_STEPS } from '@features/split-workspace/types';
 import { jsonStorage } from './jsonStorage';
 
@@ -14,16 +13,10 @@ const wizardStateSchema = z.object({
 
 type PersistedWizardState = z.infer<typeof wizardStateSchema>;
 
-const wizardStateStorage = jsonStorage(
-  'localStorage',
-  LOCAL_STORAGE_WIZARD_STATE_KEY,
-  wizardStateSchema,
-);
-
-export function loadWizardState(): PersistedWizardState | null {
-  return wizardStateStorage.load();
+export function loadWizardState(key: string): PersistedWizardState | null {
+  return jsonStorage('localStorage', key, wizardStateSchema).load();
 }
 
-export function saveWizardState(state: Omit<PersistedWizardState, 'version'>): void {
-  wizardStateStorage.save({ version: 1, ...state });
+export function saveWizardState(key: string, state: Omit<PersistedWizardState, 'version'>): void {
+  jsonStorage('localStorage', key, wizardStateSchema).save({ version: 1, ...state });
 }

@@ -33,13 +33,13 @@ beforeEach(() => {
 describe('draft storage', () => {
   it('returns null for malformed draft JSON', () => {
     window.localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, '{broken');
-    expect(loadPersistedDraft()).toBeNull();
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)).toBeNull();
   });
 
   it('returns null for unsupported draft version', () => {
     const draft = JSON.parse(exportDraftToJson(minimalDraftState));
     window.localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, JSON.stringify({ ...draft, version: 4 }));
-    expect(loadPersistedDraft()).toBeNull();
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)).toBeNull();
   });
 
   it('loads a version 2 draft and brings it up to version 3', () => {
@@ -73,7 +73,7 @@ describe('draft storage', () => {
       }),
     );
 
-    const draft = loadPersistedDraft();
+    const draft = loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY);
     expect(draft?.version).toBe(3);
     expect(draft?.people).toEqual([{ id: 'p1', name: 'Alice' }]);
     expect(draft?.receipts).toHaveLength(1);
@@ -103,7 +103,7 @@ describe('draft storage', () => {
         savedAt: '',
       }),
     );
-    const draft = loadPersistedDraft();
+    const draft = loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY);
     expect(draft?.activeReceiptId).toBe('r1');
   });
 
@@ -130,7 +130,7 @@ describe('draft storage', () => {
       }),
     );
 
-    const draft = loadPersistedDraft();
+    const draft = loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY);
     expect(draft?.receipts[0].roundingInput).toBe('');
     expect(draft?.receipts[0].currency).toBe('SGD');
     expect(draft?.receipts[0].exchangeRateOverride).toBeNull();
@@ -161,7 +161,7 @@ describe('draft storage', () => {
       }),
     );
 
-    const draft = loadPersistedDraft();
+    const draft = loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY);
     expect(draft?.receipts[0].roundingInput).toBe('0.40');
     expect(draft?.receipts[0].currency).toBe('THB');
     expect(draft?.receipts[0].exchangeRateOverride).toBe(0.038);
@@ -179,7 +179,7 @@ describe('draft storage', () => {
       }),
     );
 
-    expect(loadPersistedDraft()?.receipts[0].currency).toBe('SGD');
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)?.receipts[0].currency).toBe('SGD');
   });
 
   it('ignores invalid exchangeRateOverride values (0 or negative)', () => {
@@ -207,7 +207,7 @@ describe('draft storage', () => {
       }),
     );
 
-    const draft = loadPersistedDraft();
+    const draft = loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY);
     expect(draft?.receipts[0].exchangeRateOverride).toBeNull();
   });
 });
@@ -896,10 +896,14 @@ describe('storage availability failures', () => {
       throw new Error('denied');
     });
 
-    expect(loadPersistedDraft()).toBeNull();
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)).toBeNull();
     expect(loadPersistedOcrSettings()).toBeNull();
     expect(() =>
-      savePersistedDraft({ version: 3, ...minimalDraftState, savedAt: '' }),
+      savePersistedDraft(LOCAL_STORAGE_DRAFT_KEY, {
+        version: 3,
+        ...minimalDraftState,
+        savedAt: '',
+      }),
     ).not.toThrow();
     expect(() =>
       savePersistedOcrSettings({ version: 1, geminiModel: '', savedAt: '' }),

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SummaryStep } from './SummaryStep';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import {
   amountCharge,
   makeItem,
@@ -275,12 +275,12 @@ describe('SummaryStep', () => {
     render(<SummaryStep onAddReceipt={vi.fn()} onResetSplit={vi.fn()} />);
 
     fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
-    const afterFirstTap = useReceiptStore.getState().receipts;
+    const afterFirstTap = quickSplitStore.getState().receipts;
     expect(afterFirstTap[0].discount).toMatchObject({ mode: 'amount', amountInput: '1.00' });
     expect(screen.getByText(/Mismatch found/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
-    expect(useReceiptStore.getState().receipts).toBe(afterFirstTap);
+    expect(quickSplitStore.getState().receipts).toBe(afterFirstTap);
   });
 
   it('adds a short receipt total as rounding that every card then shows', () => {
@@ -422,7 +422,7 @@ describe('SummaryStep', () => {
   });
   it('shows QR readiness only after generation and replaces it when the number changes', async () => {
     seedDinner();
-    const aliceId = useReceiptStore.getState().people[0].id;
+    const aliceId = quickSplitStore.getState().people[0].id;
     let complete!: (urls: Record<string, string>) => void;
     generatePaynowQrDataUrls.mockImplementation(
       () =>

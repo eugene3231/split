@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import {
+  useReceiptStore,
+  useWorkspaceStoreApi,
+} from '@features/split-workspace/stores/receiptStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import type { EditableItem, Person, Receipt } from '@shared/types';
 import type { AssignMode, SessionDraft, WizardStep } from '@features/split-workspace/types';
@@ -25,7 +28,8 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   const loadWorkspace = useReceiptStore((state) => state.loadWorkspace);
   const updateItems = useReceiptStore((state) => state.updateItems);
 
-  const [initialWizardState] = useState(() => loadWizardState());
+  const { wizardKey } = useWorkspaceStoreApi();
+  const [initialWizardState] = useState(() => loadWizardState(wizardKey));
   const [activeStepState, setActiveStep] = useState<WizardStep>(
     initialWizardState?.step ?? 'people',
   );
@@ -50,8 +54,8 @@ export function useWizard(items: EditableItem[], people: Person[], receipts: Rec
   );
 
   useEffect(() => {
-    saveWizardState({ step: activeStep, activePersonId, assignMode });
-  }, [activeStep, activePersonId, assignMode]);
+    saveWizardState(wizardKey, { step: activeStep, activePersonId, assignMode });
+  }, [wizardKey, activeStep, activePersonId, assignMode]);
 
   const canContinue = activeStep === 'items' || isStepValid(activeStep, { items, people });
   const continueLabel = getContinueLabel(activeStep, claimContinue.label);

@@ -1,4 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
+import {
+  LOCAL_STORAGE_WIZARD_STATE_KEY,
+  LOCAL_STORAGE_DRAFT_KEY,
+} from '@features/split-workspace/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OcrResponse } from '@shared/types';
 import { analyzeReceiptWithGemini } from '@features/receipt-scanner/api/geminiApi';
@@ -10,7 +14,7 @@ import { useWizard } from '@features/split-workspace/hooks/useWizard';
 import { loadPersistedDraft } from '@features/split-workspace/logic/draftStorage';
 import { loadWizardState, saveWizardState } from '@features/split-workspace/logic/persistence';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { useReceiptStore, quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import {
   makeItem,
   makePerson,
@@ -48,14 +52,18 @@ function seedSavedBill() {
       }),
     ],
   );
-  useReceiptStore.getState().setPayerMobile('91234567');
+  quickSplitStore.getState().setPayerMobile('91234567');
   useGeminiStore.setState({ geminiApiKeyInput: 'saved-key' });
-  saveWizardState({ step: 'final', activePersonId: '', assignMode: 'person' });
+  saveWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY, {
+    step: 'final',
+    activePersonId: '',
+    assignMode: 'person',
+  });
 }
 
 function renderWorkspaceHooks() {
   return renderHook(() => {
-    const state = useReceiptStore();
+    const state = useReceiptStore((state) => state);
     const wizard = useWizard(
       state.receipts.find((receipt) => receipt.id === state.activeReceiptId)?.items ?? [],
       state.people,
@@ -106,15 +114,17 @@ describe('workspace recovery', () => {
     );
     await act(async () => result.current.receiptImport.handleScanReceipt());
 
-    expect(loadPersistedDraft()?.receipts[0].items[0].amountInput).toBe('5.00');
-    expect(loadPersistedDraft()?.receipts[0].receiptTotalInput).toBe('5.00');
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)?.receipts[0].items[0].amountInput).toBe(
+      '5.00',
+    );
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)?.receipts[0].receiptTotalInput).toBe('5.00');
     expect(useScanStore.getState().scanStateByReceipt['dinner-a'].scanError).toBe(
       'Connection failed',
     );
     unmount();
     reloadWorkspace();
 
-    const restored = useReceiptStore.getState();
+    const restored = quickSplitStore.getState();
     expect(restored.receipts[0].name).toBe('Dinner A');
     expect(restored.receipts[0].items[0].name).toBe('Dinner A meal');
     expect(restored.receipts[0].items[0].amountInput).toBe('5.00');
@@ -140,13 +150,13 @@ describe('workspace recovery', () => {
 
     act(() => result.current.wizard.handleResetSplit());
 
-    const freshReceiptId = useReceiptStore.getState().activeReceiptId;
+    const freshReceiptId = quickSplitStore.getState().activeReceiptId;
     expect(freshReceiptId).not.toBe('dinner-a');
-    expect(loadPersistedDraft()?.people).toEqual([]);
-    expect(loadPersistedDraft()?.receipts).toHaveLength(1);
-    expect(loadPersistedDraft()?.receipts[0].id).toBe(freshReceiptId);
-    expect(loadPersistedDraft()?.payerMobile).toBe('');
-    expect(loadWizardState()).toEqual({
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)?.people).toEqual([]);
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)?.receipts).toHaveLength(1);
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)?.receipts[0].id).toBe(freshReceiptId);
+    expect(loadPersistedDraft(LOCAL_STORAGE_DRAFT_KEY)?.payerMobile).toBe('');
+    expect(loadWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY)).toEqual({
       version: 1,
       step: 'people',
       activePersonId: '',
@@ -161,8 +171,8 @@ describe('workspace recovery', () => {
       await scanPromise;
     });
 
-    expect(useReceiptStore.getState().receipts[0].items[0].amountInput).toBe('');
-    expect(useReceiptStore.getState().activeReceiptId).toBe(freshReceiptId);
+    expect(quickSplitStore.getState().receipts[0].items[0].amountInput).toBe('');
+    expect(quickSplitStore.getState().activeReceiptId).toBe(freshReceiptId);
     expect(
       getScanState(useScanStore.getState().scanStateByReceipt, freshReceiptId).scanWarnings,
     ).toEqual([]);
@@ -171,10 +181,10 @@ describe('workspace recovery', () => {
     ).toBeNull();
 
     act(() => {
-      useReceiptStore.getState().addPeople(['Bob']);
-      const state = useReceiptStore.getState();
+      quickSplitStore.getState().addPeople(['Bob']);
+      const state = quickSplitStore.getState();
       const [receipt] = state.receipts;
-      useReceiptStore.getState().updateItem(receipt.id, receipt.items[0].id, (item) => ({
+      quickSplitStore.getState().updateItem(receipt.id, receipt.items[0].id, (item) => ({
         ...item,
         name: 'Dinner B meal',
         amountInput: '20.00',
@@ -185,7 +195,7 @@ describe('workspace recovery', () => {
     unmount();
     reloadWorkspace();
 
-    const restored = useReceiptStore.getState();
+    const restored = quickSplitStore.getState();
     expect(restored.receipts).toHaveLength(1);
     expect(restored.receipts[0].id).toBe(freshReceiptId);
     expect(restored.receipts[0].items[0].name).toBe('Dinner B meal');

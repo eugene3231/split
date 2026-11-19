@@ -4,7 +4,7 @@ import { analyzeReceiptWithGemini } from '@features/receipt-scanner/api/geminiAp
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import type { OcrResponse } from '@shared/types';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import {
   makeItem,
   makePerson,
@@ -56,7 +56,7 @@ function seedReceiptWithFile(file: File) {
     ],
   });
   seedStore([alice], [receipt], { activeReceiptId: 'r1' });
-  useReceiptStore.getState().patchReceipt('r1', { receiptFile: file });
+  quickSplitStore.getState().patchReceipt('r1', { receiptFile: file });
 }
 
 describe('useReceiptImport', () => {
@@ -86,7 +86,7 @@ describe('useReceiptImport', () => {
       await scanPromise;
     });
 
-    const receipt = useReceiptStore.getState().receipts.find((r) => r.id === 'r1');
+    const receipt = quickSplitStore.getState().receipts.find((r) => r.id === 'r1');
     expect(receipt?.items[0].name).toBe('Nasi Lemak');
     expect(receipt?.receiptTotalInput).toBe('12.50');
     expect(receipt?.gst.enabled).toBe(true);
@@ -105,7 +105,7 @@ describe('useReceiptImport', () => {
     let scanPromise: Promise<void> = Promise.resolve();
     act(() => {
       scanPromise = result.current.handleScanReceipt();
-      useReceiptStore.getState().loadWorkspace(PRESET_WORKSPACES[0].build());
+      quickSplitStore.getState().loadWorkspace(PRESET_WORKSPACES[0].build());
     });
 
     await act(async () => {
@@ -113,7 +113,7 @@ describe('useReceiptImport', () => {
       await scanPromise;
     });
 
-    const { receipts } = useReceiptStore.getState();
+    const { receipts } = quickSplitStore.getState();
     expect(receipts).toHaveLength(1);
     expect(receipts[0].items.map((item) => item.name)).toEqual([
       'Chicken Rice',
@@ -150,7 +150,7 @@ describe('useReceiptImport', () => {
       await scanPromise;
     });
 
-    const receipt = useReceiptStore.getState().receipts.find((r) => r.id === 'r1');
+    const receipt = quickSplitStore.getState().receipts.find((r) => r.id === 'r1');
     expect(receipt?.items[0].name).toBe('Old item');
     expect(receipt?.receiptTotalInput).toBe('');
     expect(receipt?.serviceCharge.enabled).toBe(false);
@@ -182,7 +182,7 @@ describe('useReceiptImport', () => {
       await scanPromise;
     });
 
-    const receipt = useReceiptStore.getState().receipts.find((r) => r.id === 'r1');
+    const receipt = quickSplitStore.getState().receipts.find((r) => r.id === 'r1');
     expect(receipt?.items[0].name).toBe('Old item');
     expect(receipt?.receiptTotalInput).toBe('');
     expect(receipt?.gst.enabled).toBe(false);
@@ -190,32 +190,32 @@ describe('useReceiptImport', () => {
 
   it('keeps existing receipt data when a new file is selected and then removed', () => {
     seedReceiptWithFile(new File(['old'], 'old.jpg', { type: 'image/jpeg' }));
-    const before = useReceiptStore.getState().receipts[0];
+    const before = quickSplitStore.getState().receipts[0];
     const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
 
     act(() => result.current.handleReceiptFileChange(new File(['new'], 'new.jpg')));
-    expect(useReceiptStore.getState().receipts[0].items).toBe(before.items);
-    expect(useReceiptStore.getState().receipts[0].discount).toBe(before.discount);
-    expect(useReceiptStore.getState().receipts[0].serviceCharge).toBe(before.serviceCharge);
-    expect(useReceiptStore.getState().receipts[0].gst).toBe(before.gst);
+    expect(quickSplitStore.getState().receipts[0].items).toBe(before.items);
+    expect(quickSplitStore.getState().receipts[0].discount).toBe(before.discount);
+    expect(quickSplitStore.getState().receipts[0].serviceCharge).toBe(before.serviceCharge);
+    expect(quickSplitStore.getState().receipts[0].gst).toBe(before.gst);
     act(() => result.current.handleReceiptFileChange(null));
-    expect(useReceiptStore.getState().receipts[0].items[0].amountInput).toBe('5.00');
+    expect(quickSplitStore.getState().receipts[0].items[0].amountInput).toBe('5.00');
   });
 
   it.each([
     [
       'item amount',
       () =>
-        useReceiptStore
+        quickSplitStore
           .getState()
           .updateItem('r1', 'i1', (item) => ({ ...item, amountInput: '15.00' })),
     ],
     [
       'discount',
       () =>
-        useReceiptStore.getState().patchReceipt('r1', {
+        quickSplitStore.getState().patchReceipt('r1', {
           discount: {
-            ...useReceiptStore.getState().receipts[0].discount,
+            ...quickSplitStore.getState().receipts[0].discount,
             enabled: true,
             amountInput: '2.00',
             mode: 'amount',
@@ -224,15 +224,15 @@ describe('useReceiptImport', () => {
     ],
     [
       'receipt total',
-      () => useReceiptStore.getState().patchReceipt('r1', { receiptTotalInput: '15.00' }),
+      () => quickSplitStore.getState().patchReceipt('r1', { receiptTotalInput: '15.00' }),
     ],
-    ['receipt name', () => useReceiptStore.getState().renameReceipt('r1', 'Corrected dinner')],
-    ['currency', () => useReceiptStore.getState().setReceiptCurrency('r1', 'USD')],
-    ['people', () => useReceiptStore.getState().addPeople(['Bob'])],
+    ['receipt name', () => quickSplitStore.getState().renameReceipt('r1', 'Corrected dinner')],
+    ['currency', () => quickSplitStore.getState().setReceiptCurrency('r1', 'USD')],
+    ['people', () => quickSplitStore.getState().addPeople(['Bob'])],
     [
       'assignments',
       () =>
-        useReceiptStore
+        quickSplitStore
           .getState()
           .updateItem('r1', 'i1', (item) => ({ ...item, assignment: NOBODY })),
     ],
@@ -246,14 +246,14 @@ describe('useReceiptImport', () => {
       scanPromise = result.current.handleScanReceipt();
     });
     act(() => edit());
-    const edited = useReceiptStore.getState().receipts[0];
+    const edited = quickSplitStore.getState().receipts[0];
 
     await act(async () => {
       deferred.resolve(makeOcrPayload());
       await scanPromise;
     });
 
-    expect(useReceiptStore.getState().receipts[0]).toBe(edited);
+    expect(quickSplitStore.getState().receipts[0]).toBe(edited);
     expect(useScanStore.getState().scanStateByReceipt.r1.scanError).toMatch(/scan again/i);
   });
 
@@ -267,24 +267,24 @@ describe('useReceiptImport', () => {
       scanPromise = result.current.handleScanReceipt();
     });
     act(() => {
-      useReceiptStore.getState().addReceipt();
-      useReceiptStore.getState().setPayerMobile('91234567');
+      quickSplitStore.getState().addReceipt();
+      quickSplitStore.getState().setPayerMobile('91234567');
     });
-    const newReceiptId = useReceiptStore.getState().activeReceiptId;
+    const newReceiptId = quickSplitStore.getState().activeReceiptId;
 
     await act(async () => {
       deferred.resolve(makeOcrPayload());
       await scanPromise;
     });
 
-    expect(useReceiptStore.getState().receipts[0].items[0].name).toBe('Nasi Lemak');
-    expect(useReceiptStore.getState().activeReceiptId).toBe(newReceiptId);
-    expect(useReceiptStore.getState().payerMobile).toBe('91234567');
+    expect(quickSplitStore.getState().receipts[0].items[0].name).toBe('Nasi Lemak');
+    expect(quickSplitStore.getState().activeReceiptId).toBe(newReceiptId);
+    expect(quickSplitStore.getState().payerMobile).toBe('91234567');
   });
 
   it('keeps the complete receipt and feedback when a scan finds no items', async () => {
     seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
-    const before = useReceiptStore.getState().receipts[0];
+    const before = quickSplitStore.getState().receipts[0];
     useScanStore.getState().setScanWarnings('r1', ['No confident line items']);
     scanReceiptMock.mockResolvedValue({
       ...makeOcrPayload(),
@@ -295,7 +295,7 @@ describe('useReceiptImport', () => {
 
     await act(async () => result.current.handleScanReceipt());
 
-    expect(useReceiptStore.getState().receipts[0]).toBe(before);
+    expect(quickSplitStore.getState().receipts[0]).toBe(before);
     expect(useScanStore.getState().scanStateByReceipt.r1.scanWarnings).toEqual([
       'No confident line items',
     ]);
@@ -304,7 +304,7 @@ describe('useReceiptImport', () => {
 
   it('replaces successful extraction from fresh defaults while retaining receipt settings', async () => {
     seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
-    const state = useReceiptStore.getState();
+    const state = quickSplitStore.getState();
     state.patchReceipt('r1', {
       name: 'Dinner in Bangkok',
       currency: 'THB',
@@ -328,7 +328,7 @@ describe('useReceiptImport', () => {
 
     await act(async () => result.current.handleScanReceipt());
 
-    const receipt = useReceiptStore.getState().receipts[0];
+    const receipt = quickSplitStore.getState().receipts[0];
     expect(receipt.items[0].name).toBe('Nasi Lemak');
     expect(receipt.discount.enabled).toBe(false);
     expect(receipt.discount.amountInput).toBe('');

@@ -1,5 +1,8 @@
-import { create } from 'zustand';
+import { createContext, useContext } from 'react';
+import { createStore, useStore, type StoreApi } from 'zustand';
 import {
+  LOCAL_STORAGE_DRAFT_KEY,
+  LOCAL_STORAGE_WIZARD_STATE_KEY,
   defaultDiscountState,
   defaultGstState,
   defaultServiceChargeState,
@@ -65,10 +68,15 @@ function workspaceFromDraft(draft: SessionDraft): WorkspaceState {
   };
 }
 
-/** The workspace saved in this browser, or a blank one when nothing readable is saved. */
-export function loadSavedWorkspace(): WorkspaceState {
-  const draft = loadPersistedDraft();
-  return draft ? workspaceFromDraft(draft) : blankWorkspace();
+/** The workspace saved under `draftKey`, or null when nothing readable is saved there. */
+export function loadSavedWorkspace(draftKey: string): WorkspaceState | null {
+  const draft = loadPersistedDraft(draftKey);
+  return draft ? workspaceFromDraft(draft) : null;
+}
+
+/** The people are swapped in, and every item drops anyone who is no longer one of them. */
+function withPeople(workspace: WorkspaceState, people: Person[]): WorkspaceState {
+  return { ...workspace, people, receipts: syncReceiptsWithPeople(workspace.receipts, people) };
 }
 
 function updateReceipt(
@@ -130,6 +138,21 @@ interface ReceiptStoreActions {
 
 type ReceiptStore = WorkspaceState & ReceiptStoreActions;
 
+/** One workspace, saved under its own keys so several never overwrite each other's work. */
+export type WorkspaceStoreApi = StoreApi<ReceiptStore> & {
+  readonly draftKey: string;
+  readonly wizardKey: string;
+};
+
+interface WorkspaceStoreOptions {
+  draftKey: string;
+  wizardKey: string;
+  /** Where a key with nothing saved under it starts; a blank workspace otherwise. */
+  initial?: WorkspaceState;
+  /** Fixes who is in the split: a saved workspace keeps its receipts but takes these people. */
+  people?: Person[];
+}
+
 /** The store always holds at least one receipt, and `activeReceiptId` names one of them. */
 export function selectActiveReceipt(state: WorkspaceState): Receipt {
   return (
@@ -137,161 +160,188 @@ export function selectActiveReceipt(state: WorkspaceState): Receipt {
   );
 }
 
-export const useReceiptStore = create<ReceiptStore>((set) => ({
-  ...loadSavedWorkspace(),
+export function createWorkspaceStore({
+  draftKey,
+  wizardKey,
+  initial,
+  people,
+}: WorkspaceStoreOptions): WorkspaceStoreApi {
+  const saved = loadSavedWorkspace(draftKey) ?? initial ?? blankWorkspace();
+  const store = createStore<ReceiptStore>((set) => ({
+    ...(people ? withPeople(saved, people) : saved),
 
-  addPeople: (names) => {
-    set((state) => {
-      const existing = new Set(state.people.map((person) => person.name.toLowerCase()));
-      const additions = names
-        .map((name) => name.trim())
-        .filter((name) => {
-          const key = name.toLowerCase();
-          if (key.length === 0 || existing.has(key)) return false;
-          existing.add(key);
-          return true;
-        })
-        .map((name) => ({ id: createId(), name }));
+    addPeople: (names) => {
+      set((state) => {
+        const existing = new Set(state.people.map((person) => person.name.toLowerCase()));
+        const additions = names
+          .map((name) => name.trim())
+          .filter((name) => {
+            const key = name.toLowerCase();
+            if (key.length === 0 || existing.has(key)) return false;
+            existing.add(key);
+            return true;
+          })
+          .map((name) => ({ id: createId(), name }));
 
-      if (additions.length === 0) {
-        return state;
-      }
+        if (additions.length === 0) {
+          return state;
+        }
 
-      const people = [...state.people, ...additions];
-      return { people, receipts: syncReceiptsWithPeople(state.receipts, people) };
-    });
-  },
-  removePerson: (personId) => {
-    set((state) => {
-      const people = state.people.filter((person) => person.id !== personId);
-      return { people, receipts: syncReceiptsWithPeople(state.receipts, people) };
-    });
-  },
-  removeAllPeople: () => {
-    set((state) => ({ people: [], receipts: syncReceiptsWithPeople(state.receipts, []) }));
-  },
+        const people = [...state.people, ...additions];
+        return { people, receipts: syncReceiptsWithPeople(state.receipts, people) };
+      });
+    },
+    removePerson: (personId) => {
+      set((state) => {
+        const people = state.people.filter((person) => person.id !== personId);
+        return { people, receipts: syncReceiptsWithPeople(state.receipts, people) };
+      });
+    },
+    removeAllPeople: () => {
+      set((state) => ({ people: [], receipts: syncReceiptsWithPeople(state.receipts, []) }));
+    },
 
-  addReceipt: () => {
-    set((state) => {
-      const receipt = createBlankReceipt(`Receipt ${state.receipts.length + 1}`);
-      return { receipts: [...state.receipts, receipt], activeReceiptId: receipt.id };
-    });
-  },
-  removeReceipt: (receiptId) => {
-    set((state) => {
-      const remaining = state.receipts.filter((receipt) => receipt.id !== receiptId);
-      if (!isNonEmpty(remaining)) return state;
-      return {
-        receipts: remaining,
-        activeReceiptId:
-          state.activeReceiptId === receiptId
-            ? remaining[remaining.length - 1].id
-            : state.activeReceiptId,
-      };
-    });
-  },
-  setActiveReceiptId: (receiptId) => {
-    set((state) => {
-      if (!state.receipts.some((receipt) => receipt.id === receiptId)) return state;
-      return { activeReceiptId: receiptId };
-    });
-  },
-  renameReceipt: (receiptId, name) => {
-    set((state) => ({
-      receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
-        ...receipt,
-        name: name.trim() || receipt.name,
-      })),
-    }));
-  },
-  setReceiptCurrency: (receiptId, currency) => {
-    set((state) => ({
-      receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
-        ...receipt,
-        currency,
-        exchangeRateOverride: null,
-      })),
-    }));
-  },
-  patchReceipt: (receiptId, patch) => {
-    set((state) => ({
-      receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({ ...receipt, ...patch })),
-    }));
-  },
-  applyReceiptScan: ({ receipt, people, payload }) => {
-    let result: ReceiptScanCommit = { kind: 'changed' };
-    set((state) => {
-      const currentReceipt = state.receipts.find((candidate) => candidate.id === receipt.id);
-      if (!currentReceipt) {
-        result = { kind: 'removed' };
-        return state;
-      }
-      if (currentReceipt !== receipt || state.people !== people) {
-        return state;
-      }
-      if (payload.items.length === 0) {
-        result = { kind: 'empty' };
-        return state;
-      }
-
-      result = { kind: 'applied' };
-      const replacement = buildReceiptOcrReplacement(payload);
-      return {
-        receipts: updateReceipt(state.receipts, receipt.id, (candidate) => ({
-          ...candidate,
-          ...replacement,
+    addReceipt: () => {
+      set((state) => {
+        const receipt = createBlankReceipt(`Receipt ${state.receipts.length + 1}`);
+        return { receipts: [...state.receipts, receipt], activeReceiptId: receipt.id };
+      });
+    },
+    removeReceipt: (receiptId) => {
+      set((state) => {
+        const remaining = state.receipts.filter((receipt) => receipt.id !== receiptId);
+        if (!isNonEmpty(remaining)) return state;
+        return {
+          receipts: remaining,
+          activeReceiptId:
+            state.activeReceiptId === receiptId
+              ? remaining[remaining.length - 1].id
+              : state.activeReceiptId,
+        };
+      });
+    },
+    setActiveReceiptId: (receiptId) => {
+      set((state) => {
+        if (!state.receipts.some((receipt) => receipt.id === receiptId)) return state;
+        return { activeReceiptId: receiptId };
+      });
+    },
+    renameReceipt: (receiptId, name) => {
+      set((state) => ({
+        receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
+          ...receipt,
+          name: name.trim() || receipt.name,
         })),
-      };
+      }));
+    },
+    setReceiptCurrency: (receiptId, currency) => {
+      set((state) => ({
+        receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
+          ...receipt,
+          currency,
+          exchangeRateOverride: null,
+        })),
+      }));
+    },
+    patchReceipt: (receiptId, patch) => {
+      set((state) => ({
+        receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({ ...receipt, ...patch })),
+      }));
+    },
+    applyReceiptScan: ({ receipt, people, payload }) => {
+      let result: ReceiptScanCommit = { kind: 'changed' };
+      set((state) => {
+        const currentReceipt = state.receipts.find((candidate) => candidate.id === receipt.id);
+        if (!currentReceipt) {
+          result = { kind: 'removed' };
+          return state;
+        }
+        if (currentReceipt !== receipt || state.people !== people) {
+          return state;
+        }
+        if (payload.items.length === 0) {
+          result = { kind: 'empty' };
+          return state;
+        }
+
+        result = { kind: 'applied' };
+        const replacement = buildReceiptOcrReplacement(payload);
+        return {
+          receipts: updateReceipt(state.receipts, receipt.id, (candidate) => ({
+            ...candidate,
+            ...replacement,
+          })),
+        };
+      });
+      return result;
+    },
+
+    addItem: (receiptId) => {
+      set((state) => ({
+        receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
+          ...receipt,
+          items: [...receipt.items, createDefaultItem()],
+        })),
+      }));
+    },
+    removeItem: (receiptId, itemId) => {
+      set((state) => ({
+        receipts: updateReceipt(state.receipts, receiptId, (receipt) =>
+          receipt.items.length <= 1
+            ? receipt
+            : { ...receipt, items: receipt.items.filter((item) => item.id !== itemId) },
+        ),
+      }));
+    },
+    updateItem: (receiptId, itemId, update) => {
+      set((state) => ({
+        receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
+          ...receipt,
+          items: receipt.items.map((item) => (item.id === itemId ? update(item) : item)),
+        })),
+      }));
+    },
+    updateItems: (receiptId, update) => {
+      set((state) => ({
+        receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
+          ...receipt,
+          items: update(receipt.items, state.people),
+        })),
+      }));
+    },
+
+    setPayerMobile: (mobile) => set({ payerMobile: mobile }),
+    resetSplit: () => set(blankWorkspace()),
+    loadWorkspace: (draft) => set(workspaceFromDraft(draft)),
+  }));
+
+  store.subscribe(({ people, receipts, activeReceiptId, payerMobile }) => {
+    savePersistedDraft(draftKey, {
+      version: 3,
+      people,
+      receipts,
+      activeReceiptId,
+      payerMobile,
+      savedAt: new Date().toISOString(),
     });
-    return result;
-  },
-
-  addItem: (receiptId) => {
-    set((state) => ({
-      receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
-        ...receipt,
-        items: [...receipt.items, createDefaultItem()],
-      })),
-    }));
-  },
-  removeItem: (receiptId, itemId) => {
-    set((state) => ({
-      receipts: updateReceipt(state.receipts, receiptId, (receipt) =>
-        receipt.items.length <= 1
-          ? receipt
-          : { ...receipt, items: receipt.items.filter((item) => item.id !== itemId) },
-      ),
-    }));
-  },
-  updateItem: (receiptId, itemId, update) => {
-    set((state) => ({
-      receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
-        ...receipt,
-        items: receipt.items.map((item) => (item.id === itemId ? update(item) : item)),
-      })),
-    }));
-  },
-  updateItems: (receiptId, update) => {
-    set((state) => ({
-      receipts: updateReceipt(state.receipts, receiptId, (receipt) => ({
-        ...receipt,
-        items: update(receipt.items, state.people),
-      })),
-    }));
-  },
-
-  setPayerMobile: (mobile) => set({ payerMobile: mobile }),
-  resetSplit: () => set(blankWorkspace()),
-  loadWorkspace: (draft) => set(workspaceFromDraft(draft)),
-}));
-
-useReceiptStore.subscribe(({ people, receipts, activeReceiptId, payerMobile }) => {
-  savePersistedDraft({
-    version: 3,
-    people,
-    receipts,
-    activeReceiptId,
-    payerMobile,
-    savedAt: new Date().toISOString(),
   });
+
+  return Object.assign(store, { draftKey, wizardKey });
+}
+
+/** The quick split's workspace, kept under the keys it has always used. */
+export const quickSplitStore = createWorkspaceStore({
+  draftKey: LOCAL_STORAGE_DRAFT_KEY,
+  wizardKey: LOCAL_STORAGE_WIZARD_STATE_KEY,
 });
+
+/** The nearest `WorkspaceStoreProvider`'s workspace, or the quick split outside of one. */
+export const WorkspaceStoreContext = createContext<WorkspaceStoreApi>(quickSplitStore);
+
+export function useWorkspaceStoreApi(): WorkspaceStoreApi {
+  return useContext(WorkspaceStoreContext);
+}
+
+export function useReceiptStore<T>(selector: (state: ReceiptStore) => T): T {
+  return useStore(useWorkspaceStoreApi(), selector);
+}

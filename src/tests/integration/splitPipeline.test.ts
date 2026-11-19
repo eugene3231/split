@@ -5,6 +5,7 @@ import { useSplits } from '@features/split-workspace/hooks/useSplits';
 import {
   selectActiveReceipt,
   useReceiptStore,
+  quickSplitStore,
 } from '@features/split-workspace/stores/receiptStore';
 import {
   computeReceiptTotals,
@@ -54,7 +55,7 @@ function renderSplits(people: Person[], receipts: Receipt[], rates?: Record<stri
 }
 
 function reconcileActiveReceipt() {
-  const state = useReceiptStore.getState();
+  const state = quickSplitStore.getState();
   return resolveReconciliation(selectActiveReceipt(state), state.people);
 }
 
@@ -225,7 +226,7 @@ describe('Split pipeline integration', () => {
       const result = renderSplits([alice, bob], [local, abroad], { SGD: 1, USD: 1.35 });
       expect(result.current.consolidated.totals.totalCents).toBe(2350);
 
-      act(() => useReceiptStore.getState().patchReceipt(abroad.id, { exchangeRateOverride: 1.5 }));
+      act(() => quickSplitStore.getState().patchReceipt(abroad.id, { exchangeRateOverride: 1.5 }));
 
       expect(result.current.consolidated.totals.totalCents).toBe(2500);
     });
@@ -248,7 +249,7 @@ describe('Split pipeline integration', () => {
       expect(cents).toBe(-200);
       if (!fix) throw new Error('Expected a corrective discount');
 
-      act(() => useReceiptStore.getState().patchReceipt(receipt.id, fix));
+      act(() => quickSplitStore.getState().patchReceipt(receipt.id, fix));
 
       expect(result.current.active.totals.totalCents).toBe(800);
       expect(reconcileActiveReceipt().cents).toBe(0);

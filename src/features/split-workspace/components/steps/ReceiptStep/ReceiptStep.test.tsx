@@ -9,7 +9,7 @@ import {
   resetAllStores,
   seedStore,
 } from '../../../../../tests/integration/testHelpers';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import { equalShares } from '@features/split-workspace/logic/assignment';
 import { ReceiptStep } from './ReceiptStep';
 
@@ -50,7 +50,7 @@ function renderReceipt(receipt: Partial<Receipt> = {}) {
 }
 
 function activeReceipt() {
-  return useReceiptStore.getState().receipts[0];
+  return quickSplitStore.getState().receipts[0];
 }
 
 function computedTotal() {
@@ -85,7 +85,7 @@ describe('ReceiptStep', () => {
     render(<ReceiptStep onAddReceipt={vi.fn()} />);
     expect(screen.getAllByRole('button', { name: 'Remove item' })).toHaveLength(1);
 
-    act(() => useReceiptStore.getState().setActiveReceiptId('r2'));
+    act(() => quickSplitStore.getState().setActiveReceiptId('r2'));
 
     expect(screen.getAllByRole('button', { name: 'Remove item' })).toHaveLength(2);
     expect(screen.getByRole('heading', { name: 'Items 2' })).toBeInTheDocument();
