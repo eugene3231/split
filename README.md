@@ -27,6 +27,7 @@ Scan a receipt, assign items, and share the result via image or text — no acco
 - Zustand for state management
 - Tailwind CSS v4
 - Google Gemini API (`generateContent`) for receipt extraction
+- Hono and `node:sqlite` for the scan server in `server/` ([docs/SERVER.md](docs/SERVER.md))
 
 ## Architecture
 
@@ -63,8 +64,8 @@ Open the three-dot menu in the header and pick one of the `Test splits` to load 
 
 ## Notes
 
-- In this setup, Gemini is called directly from the browser.
+- A Gemini key typed into the app is used directly from the browser.
 - API key is never persisted to localStorage. It is stored only in `sessionStorage`, for the current browser tab session.
-- Currently there is no dedicated backend, future work will include integrating with one to allow persistent API key management per user.
+- The scan server in `server/` holds one shared key, gives each phone a pass after a bot check, and limits scans per phone and in total. See [docs/SERVER.md](docs/SERVER.md).
 - OCR extraction is largely correct but users are still able to edit items/amounts before finalizing.
 - Draft fields reset when a new receipt image is uploaded.

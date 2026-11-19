@@ -1,0 +1,9 @@
+*
+!package.json
+!pnpm-lock.yaml
+!vite.server.config.ts
+!server
+!src/shared
+!src/features/receipt-scanner
+server/test/fixtures
+**/*.test.ts

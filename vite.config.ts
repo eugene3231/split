@@ -47,11 +47,23 @@ export default defineConfig({
           exclude: ['**/node_modules/**', '.claude/**', '.worktrees/**'],
         },
       },
+      {
+        extends: true,
+        test: {
+          name: {
+            label: 'server',
+            color: 'magenta',
+          },
+          environment: 'node',
+          include: ['server/**/*.test.ts'],
+          exclude: ['**/node_modules/**', '.claude/**', '.worktrees/**'],
+        },
+      },
     ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'lcov'],
-      include: ['src/**/*.{ts,tsx}'],
+      include: ['src/**/*.{ts,tsx}', 'server/**/*.ts'],
       exclude: [
         '**/*.test.{ts,tsx}',
         '**/*.d.ts',
@@ -63,6 +75,8 @@ export default defineConfig({
         '**/constants.ts',
         '**/testHelpers.ts',
         'src/main.tsx',
+        'server/main.ts',
+        'server/test/**',
       ],
       thresholds: {
         lines: 90,
