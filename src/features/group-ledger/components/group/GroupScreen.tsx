@@ -8,6 +8,7 @@ import { Button } from '@features/group-ledger/components/ui/Button';
 import { Icon, IconButton, IconLink } from '@features/group-ledger/components/ui/IconButton';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
 import { ScreenHeader, ScreenTitle } from '@features/group-ledger/components/ui/ScreenHeader';
+import { sheetProps } from '@features/group-ledger/components/ui/sheetProps';
 import { Link } from '@shared/routing';
 import { cn } from '@shared/utils/cn';
 import { AddSheet } from './AddSheet';
@@ -165,21 +166,9 @@ export function GroupScreen({ group }: { group: MyGroup }) {
         </div>
       </div>
 
-      <AddSheet
-        groupId={ledger.groupId}
-        open={sheet === 'add'}
-        onOpenChange={(open) => openSheet(open ? 'add' : null)}
-      />
-      <InviteSheet
-        group={group}
-        open={sheet === 'invite'}
-        onOpenChange={(open) => openSheet(open ? 'invite' : null)}
-      />
-      <MembersSheet
-        group={group}
-        open={sheet === 'members'}
-        onOpenChange={(open) => openSheet(open ? 'members' : null)}
-      />
+      <AddSheet groupId={ledger.groupId} {...sheetProps(sheet, 'add', openSheet)} />
+      <InviteSheet group={group} {...sheetProps(sheet, 'invite', openSheet)} />
+      <MembersSheet group={group} {...sheetProps(sheet, 'members', openSheet)} />
     </div>
   );
 }

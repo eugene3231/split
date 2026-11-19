@@ -6,6 +6,7 @@ import { uniqueNames } from '@features/group-ledger/logic/newGroup';
 import { createGroup } from '@features/group-ledger/sync/createGroup';
 import { Button } from '@features/group-ledger/components/ui/Button';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
+import { PillSelect } from '@features/group-ledger/components/ui/PillSelect';
 import { Sheet } from '@features/group-ledger/components/ui/Sheet';
 import { TextField } from '@features/group-ledger/components/ui/TextField';
 import { OPEN_INVITE_STATE } from '@features/group-ledger/components/group/openInvite';
@@ -18,6 +19,7 @@ interface NewGroupSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const CURRENCY_OPTIONS = CURRENCY_CODES.map((code) => ({ value: code, label: code }));
 const myNameStorage = jsonStorage('localStorage', 'split:my-name', z.string());
 
 export function NewGroupSheet({ open, onOpenChange }: NewGroupSheetProps) {
@@ -72,22 +74,16 @@ function NewGroupForm() {
         />
         <label className="block">
           <span className="mb-1.5 block section-label">Currency</span>
-          <span className="relative flex h-12 items-center gap-1 field pr-2 pl-4 font-semibold">
+          <PillSelect
+            label="Currency"
+            value={currency}
+            options={CURRENCY_OPTIONS}
+            onChange={setCurrency}
+            className="flex h-12 items-center gap-1 field pr-2 pl-4 font-semibold"
+          >
             {currency}
             <Icon name="expand_more" className="text-lg! text-on-surface-variant" />
-            <select
-              aria-label="Currency"
-              value={currency}
-              onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            >
-              {CURRENCY_CODES.map((code) => (
-                <option key={code} value={code}>
-                  {code}
-                </option>
-              ))}
-            </select>
-          </span>
+          </PillSelect>
         </label>
       </div>
 

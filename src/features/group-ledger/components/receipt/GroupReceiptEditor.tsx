@@ -8,6 +8,7 @@ import { postReceipt } from '@features/group-ledger/logic/post';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { actionBarButtonClass } from '@features/group-ledger/components/ui/classes';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
+import { PillSelect } from '@features/group-ledger/components/ui/PillSelect';
 import {
   ReceiptEditor,
   discardReceiptDraft,
@@ -90,25 +91,19 @@ function SaveToGroup({ group, members, editing, receipt, draftKey }: SaveToGroup
       {entry !== null && !fits ? (
         <p className="min-w-0 flex-1 pl-3 text-sm text-white/70">{TOO_BIG}</p>
       ) : (
-        <label className="relative flex min-w-0 flex-1 flex-col justify-center rounded-2xl py-1 pl-3 hover:bg-white/10">
+        <PillSelect
+          label="Paid by"
+          value={payer}
+          options={members.map((member) => ({ value: member.id, label: member.name }))}
+          onChange={setPayer}
+          className="flex min-w-0 flex-1 flex-col justify-center rounded-2xl py-1 pl-3 hover:bg-white/10"
+        >
           <span className="text-xs text-white/60">Paid by</span>
           <span className="flex items-center gap-0.5 truncate font-semibold">
             {memberLabel(ledger, payer)}
             <Icon name="expand_more" className="text-lg!" />
           </span>
-          <select
-            aria-label="Paid by"
-            value={payer}
-            onChange={(event) => setPayer(event.target.value as MemberId)}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          >
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        </PillSelect>
       )}
       <button
         type="button"

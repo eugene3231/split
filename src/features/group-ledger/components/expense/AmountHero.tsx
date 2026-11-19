@@ -6,6 +6,9 @@ import {
 } from '@shared/logic/core/money';
 import type { ExpenseDraft } from '@features/group-ledger/logic/expenseForm';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
+import { PillSelect } from '@features/group-ledger/components/ui/PillSelect';
+
+const CURRENCY_OPTIONS = CURRENCY_CODES.map((code) => ({ value: code, label: code }));
 
 interface AmountHeroProps {
   draft: ExpenseDraft;
@@ -21,22 +24,16 @@ export function AmountHero({ draft, groupCurrency, onChange, onCurrencyChange }:
 
   return (
     <section className="flex flex-col items-center">
-      <div className="relative flex h-9 items-center gap-1 rounded-full bg-surface-container pr-2.5 pl-3.5 text-sm font-semibold transition hover:bg-surface-container-high">
+      <PillSelect
+        label="Currency"
+        value={draft.currency}
+        options={CURRENCY_OPTIONS}
+        onChange={onCurrencyChange}
+        className="flex h-9 items-center gap-1 rounded-full bg-surface-container pr-2.5 pl-3.5 text-sm font-semibold transition hover:bg-surface-container-high"
+      >
         {draft.currency}
         <Icon name="expand_more" className="text-lg!" />
-        <select
-          aria-label="Currency"
-          value={draft.currency}
-          onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}
-          className="absolute inset-0 cursor-pointer opacity-0"
-        >
-          {CURRENCY_CODES.map((code) => (
-            <option key={code} value={code}>
-              {code}
-            </option>
-          ))}
-        </select>
-      </div>
+      </PillSelect>
       <input
         aria-label="Amount"
         type="text"
