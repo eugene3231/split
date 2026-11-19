@@ -6,7 +6,7 @@
     "useDefineForClassFields": true,
     "lib": ["ES2025", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "types": ["vite/client"],
+    "types": ["vite/client", "vite-plugin-pwa/client"],
     "skipLibCheck": true,
 
     /* Bundler mode */
