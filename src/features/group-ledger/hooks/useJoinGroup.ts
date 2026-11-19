@@ -1,17 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { GroupId } from '@features/group-ledger/domain/types';
 import type { BackendFailure } from '@features/group-ledger/backend/port';
 import { asInviteCode } from '@features/group-ledger/logic/ids';
+import { joinStateOf, type JoinState } from '@features/group-ledger/logic/joinState';
 import { groupSyncFor, ledgerBackend } from '@features/group-ledger/sync/groupSync';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
-
-export type JoinState =
-  | { step: 'joining' }
-  | { step: 'joined'; groupId: GroupId }
-  /** No group opens with this code: mistyped, or made offline and not on the server yet. */
-  | { step: 'bad-link' }
-  | { step: 'offline'; retry: () => void }
-  | { step: 'failed'; message: string; retry: () => void };
 
 interface FailedJoin {
   code: string;
@@ -43,21 +35,9 @@ export function useJoinGroup(inviteCode: string): JoinState {
     };
   }, [held, inviteCode, tries]);
 
-  if (held) return { step: 'joined', groupId: held.groupId };
   const failure = failed?.code === inviteCode ? failed.failure : null;
-  const retry = () => {
+  return joinStateOf(held, failure, () => {
     setFailed(null);
     setTries((count) => count + 1);
-  };
-  switch (failure?.kind) {
-    case undefined:
-      return { step: 'joining' };
-    case 'invite-not-found':
-    case 'not-a-member':
-      return { step: 'bad-link' };
-    case 'offline':
-      return { step: 'offline', retry };
-    case 'failed':
-      return { step: 'failed', message: failure.message, retry };
-  }
+  });
 }

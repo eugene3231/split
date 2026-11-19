@@ -1,24 +1,21 @@
 import { z } from 'zod';
 import { create } from 'zustand';
 import { deviceProfile } from '@features/group-ledger/backend/createBackend';
-import type { BackendFailure, LedgerBackend, Session } from '@features/group-ledger/backend/port';
+import type { LedgerBackend, Session } from '@features/group-ledger/backend/port';
 import { idSchemas } from '@features/group-ledger/logic/codec';
+import {
+  accountStep,
+  initialAccount,
+  type AccountEvent,
+  type AccountState,
+} from '@features/group-ledger/sync/accountMachine';
 import { ledgerBackend, onSessionSeen, syncAllGroups } from '@features/group-ledger/sync/groupSync';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 import { jsonStorage } from '@shared/logic/jsonStorage';
 
-export type EmailSignIn =
-  | { step: 'idle' }
-  | { step: 'sending'; email: string }
-  /** `link` keeps this phone's identity; `sign-in` switches it to the account the email has. */
-  | { step: 'code-sent'; email: string; mode: 'link' | 'sign-in' }
-  | { step: 'verifying'; email: string; mode: 'link' | 'sign-in' };
+export type { EmailSignIn } from '@features/group-ledger/sync/accountMachine';
 
-interface AccountStore {
-  session: Session | null;
-  emailSignIn: EmailSignIn;
-  /** Why the last action did not work. A `failed` while verifying means the code was refused. */
-  failure: BackendFailure | null;
+interface AccountStore extends AccountState {
   load: () => Promise<void>;
   /**
    * Takes the session a group's sync ran as. Tabs share one backend session, so this is how a
@@ -40,15 +37,6 @@ const sessionSchema: z.ZodType<Session> = z.object({
   ]),
 });
 
-function sameSession(a: Session, b: Session): boolean {
-  return (
-    a.userId === b.userId &&
-    a.account.kind === b.account.kind &&
-    (a.account.kind === 'anonymous' ||
-      (b.account.kind === 'linked' && a.account.email === b.account.email))
-  );
-}
-
 export interface AccountStoreOptions {
   backend: () => LedgerBackend;
   profile: string;
@@ -59,6 +47,7 @@ export interface AccountStoreOptions {
   findGroups: () => Promise<void>;
 }
 
+/** A shell over `accountStep`: it calls the backend, feeds each answer in, and stores the session. */
 export function createAccountStore({
   backend: getBackend,
   profile,
@@ -67,67 +56,63 @@ export function createAccountStore({
   const storage = jsonStorage('localStorage', `split:account:${profile}`, sessionSchema);
 
   return create<AccountStore>((set, get) => {
-    async function become(session: Session) {
-      const before = get().session;
-      storage.save(session);
-      set({ session });
-      const userChanged = before !== null && before.userId !== session.userId;
-      if (userChanged || session.account.kind === 'linked') await findGroups();
+    /** Applies the event at once. Resolves after looking for groups, when the step asks for it. */
+    async function dispatch(event: AccountEvent): Promise<void> {
+      const { session, emailSignIn, failure } = get();
+      const step = accountStep({ session, emailSignIn, failure }, event);
+      if (step === null) return;
+      if (step.state.session !== null && step.state.session !== session) {
+        storage.save(step.state.session);
+      }
+      set(step.state);
+      if (step.findGroups) await findGroups();
     }
 
     return {
-      session: storage.load(),
-      emailSignIn: { step: 'idle' },
-      failure: null,
+      ...initialAccount(storage.load()),
 
       load: async () => {
         const session = await getBackend().session();
-        if (!session.ok) {
-          set({ failure: session.failure });
-          return;
-        }
-        set({ failure: null });
-        await become(session.value);
+        await dispatch(
+          session.ok
+            ? { type: 'session-loaded', session: session.value }
+            : { type: 'request-failed', failure: session.failure },
+        );
       },
 
-      adopt: (session) => {
-        const known = get().session;
-        if (known !== null && sameSession(known, session)) return;
-        void become(session);
-      },
+      adopt: (session) => void dispatch({ type: 'session-seen', session }),
 
       startEmailSignIn: async (email) => {
-        set({ emailSignIn: { step: 'sending', email }, failure: null });
+        void dispatch({ type: 'email-entered', email });
         const started = await getBackend().startEmailSignIn(email);
-        if (!started.ok) {
-          set({ emailSignIn: { step: 'idle' }, failure: started.failure });
-          return;
-        }
-        set({ emailSignIn: { step: 'code-sent', email, mode: started.value.mode } });
+        void dispatch(
+          started.ok
+            ? { type: 'code-sent', email, mode: started.value.mode }
+            : { type: 'code-not-sent', failure: started.failure },
+        );
       },
 
       verifyEmailCode: async (code) => {
         const flow = get().emailSignIn;
         if (flow.step !== 'code-sent') return;
-        set({ emailSignIn: { ...flow, step: 'verifying' }, failure: null });
+        void dispatch({ type: 'code-entered' });
         const verified = await getBackend().verifyEmailCode(flow.email, code);
-        if (!verified.ok) {
-          set({ emailSignIn: flow, failure: verified.failure });
-          return;
-        }
-        set({ emailSignIn: { step: 'idle' } });
-        await become(verified.value);
+        await dispatch(
+          verified.ok
+            ? { type: 'code-accepted', session: verified.value }
+            : { type: 'code-refused', flow, failure: verified.failure },
+        );
       },
 
-      cancelEmailSignIn: () => set({ emailSignIn: { step: 'idle' }, failure: null }),
+      cancelEmailSignIn: () => void dispatch({ type: 'email-cancelled' }),
 
       signOut: async () => {
         const signedOut = await getBackend().signOut();
         if (!signedOut.ok) {
-          set({ failure: signedOut.failure });
+          void dispatch({ type: 'request-failed', failure: signedOut.failure });
           return;
         }
-        set({ failure: null });
+        void dispatch({ type: 'signed-out' });
         await get().load();
       },
     };

@@ -13,6 +13,8 @@ import { confirmedOpSchema, idSchemas } from '@features/group-ledger/logic/codec
 
 type EmailMode = 'link' | 'sign-in';
 
+const SESSION_LOCK = 'split.session';
+
 interface ServerError {
   message: string;
   name?: string;
@@ -101,7 +103,24 @@ export function createSupabaseBackend(client: SupabaseClient): LedgerBackend {
   const emailModes = new Map<string, EmailMode>();
   let loadingSession: Promise<Result<Session>> | null = null;
 
-  async function loadSession(): Promise<Result<Session>> {
+  /**
+   * Every tab of a phone shares one stored session. Without the lock, two tabs that both find
+   * none each make an anonymous user, the later one replaces the earlier in storage, and
+   * whatever the earlier one already did (joined a group, picked a member) is left with a user
+   * this phone can never be again.
+   */
+  function oneTabAtATime<T>(work: () => Promise<T>): Promise<T> {
+    if (typeof navigator !== 'undefined' && navigator.locks) {
+      return navigator.locks.request(SESSION_LOCK, work);
+    }
+    return work();
+  }
+
+  function loadSession(): Promise<Result<Session>> {
+    return oneTabAtATime(getOrSignInAnonymously);
+  }
+
+  async function getOrSignInAnonymously(): Promise<Result<Session>> {
     try {
       const stored = await client.auth.getSession();
       if (stored.error) return fail(toFailure(stored.error));

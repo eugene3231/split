@@ -24,7 +24,8 @@
     "prepare": "husky",
     "typecheck": "tsc -b",
     "icons": "pwa-assets-generator",
-    "formal:sync": "formal/sync/run.sh"
+    "formal:sync": "formal/sync/run.sh",
+    "formal:identity": "sh formal/identity/run.sh"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
