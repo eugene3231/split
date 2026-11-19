@@ -80,4 +80,8 @@ Move the sync commit forward only after you have read those commits, confirmed t
 3. **The check is out of date** when the change was intended: a new `Change` kind, a new action in `groupActions.ts`, a different Restore in `ActivityScreen.tsx`. Update `intentChange`, `restoreOf` or the property to describe the new behaviour, and say so in the commit. Never loosen a property so the current code passes. If the code breaks a promise, move the property to the "breaks today" block with its counterexample.
 4. **A mutant reports STALE** when the code it mutates was reworded. Update `from`/`to` in `.agents/skills/ledger-model/scripts/mutants.mjs` to break the same rule in the new code. **MISSED** means a property no longer catches that break: strengthen the generator or the property until it does. **CRASH** means the mutant stopped the file loading, which proves nothing: pick a mutation that still runs.
 
+## The conflict chart
+
+`statechart/` holds a small TLA+ model of two friends changing one expense (`stepEntry`, Restore and the delete toast's Undo), drawn as the chart in `docs/flows/conflicts.md`. Run it and read its result with the pstack `/statechart` skill. When `stepEntry` or the Restore button changes, update `conflicts.tla` to match, rerun, and paste the new chart into the doc. The model's `knowing` set is worked out from `base` apart from the code's flag (`Unseen`), so the rule can fail; keep it that way.
+
 This file lives in `.agents/skills/ledger-model/`, and `.claude/skills/ledger-model` is a symlink to it, so edit the `.agents/` copy.
