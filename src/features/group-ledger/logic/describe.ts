@@ -13,8 +13,7 @@ import { entryEffect } from '@features/group-ledger/logic/balances';
 import { totalCents } from '@features/group-ledger/logic/post';
 
 export function memberName(ledger: Ledger, id: MemberId): string {
-  const current = ledger.aliases.get(id) ?? id;
-  return ledger.members.find((member) => member.id === current)?.name ?? 'Someone';
+  return ledger.members.find((member) => member.id === id)?.name ?? 'Someone';
 }
 
 /** "Grab · $18.00" for an expense, "Ben paid Ana · $18.00" for a transfer. */
@@ -115,7 +114,7 @@ export interface ShareWords {
 
 /** What an entry did to this phone's member, in group currency: "you lent" $9.00. */
 export function describeMyShare(entry: Entry, ledger: Ledger, me: MemberId | null): ShareWords {
-  const cents = me === null ? 0 : (entryEffect(entry, ledger.aliases)[me] ?? 0);
+  const cents = me === null ? 0 : (entryEffect(entry)[me] ?? 0);
   const direction = directionOf(cents);
   const transfer = entry.kind === 'transfer';
   const label = {

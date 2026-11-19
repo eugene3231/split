@@ -16,7 +16,7 @@ import {
   newGroupId,
   newInviteCode,
 } from '@features/group-ledger/logic/ids';
-import { postReceipt } from '@features/group-ledger/logic/post';
+import { postReceipt, postWeights } from '@features/group-ledger/logic/post';
 import { useAccountStore } from '@features/group-ledger/sync/accountStore';
 import { createGroup } from '@features/group-ledger/sync/createGroup';
 import { forgetGroup, groupSyncFor } from '@features/group-ledger/sync/groupSync';
@@ -362,6 +362,61 @@ describe('a group', () => {
     fireEvent.click(screen.getByTestId('save-receipt-to-group'));
 
     expect(await screen.findByText('you owe $20.00')).toBeInTheDocument();
+  });
+
+  it('edits an expense and a receipt saved for someone who was later merged', async () => {
+    const groupId = makeGroup(['Ben', 'Benny']);
+    const [ana, ben, benny] = ledgerOf(groupId).members.map((member) => member.id);
+    const header = {
+      date: asLocalDate('2026-11-19'),
+      currency: 'SGD' as const,
+      rate: 1,
+      payment: { payer: benny, others: {} },
+    };
+    const dinner = postWeights({ ...header, id: newEntryId(), title: 'Dinner' }, 2000, {
+      [ana]: 1,
+      [benny]: 1,
+    });
+    const snacks = postReceipt(
+      { ...header, id: newEntryId(), title: 'Snacks' },
+      makeReceipt({
+        name: 'Snacks',
+        items: [
+          makeItem({
+            amountInput: '6.00',
+            assignment: { shares: { [benny]: 1 }, unassignedShare: 0 },
+          }),
+        ],
+      }),
+      ledgerOf(groupId).members,
+    );
+    if (!dinner || !snacks) throw new Error('entries did not post');
+    const engine = groupSyncFor(groupId);
+    engine?.submit({ kind: 'entry.put', entry: dinner, base: null });
+    engine?.submit({ kind: 'entry.put', entry: snacks, base: null });
+    engine?.submit({ kind: 'member.merged', from: benny, into: ben });
+    render(<App />);
+
+    go(`/g/${groupId}/e/${dinner.id}`);
+    expect(
+      within(screen.getByRole('region', { name: 'Paid by' })).getByRole('button', {
+        name: 'Ben',
+        pressed: true,
+      }),
+    ).toBeInTheDocument();
+    click('Save');
+    expect(await screen.findByText('you owe $10.00')).toBeInTheDocument();
+
+    go(`/g/${groupId}/e/${snacks.id}`);
+    while (!screen.queryByTestId('save-receipt-to-group')) {
+      fireEvent.click(screen.getByTestId('wizard-continue-btn'));
+    }
+    expect(screen.getByLabelText('Paid by')).toHaveValue(ben);
+    fireEvent.click(screen.getByTestId('save-receipt-to-group'));
+    expect(await screen.findByText('you owe $10.00')).toBeInTheDocument();
+
+    const saved = engine?.getSnapshot().log.pending.map((op) => JSON.stringify(op.change)) ?? [];
+    expect(saved.slice(-2).some((change) => change.includes(benny))).toBe(false);
   });
 
   it('cancels a new receipt back to the group', () => {

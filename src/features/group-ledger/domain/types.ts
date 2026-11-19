@@ -187,9 +187,7 @@ export interface Ledger {
   currency: CurrencyCode;
   /** In the order they were added, archived ones included, merged-away ones left out. */
   members: Member[];
-  /** Merged-away member id to the member it now reads as, already followed to the end. */
-  aliases: ReadonlyMap<MemberId, MemberId>;
-  /** Live entries, newest date first, then newest in the log. */
+  /** Live entries, newest date first, then newest in the log. Merged-away ids already read as the member they became. */
   entries: PostedEntry[];
   /** The member this device has claimed; null means "ask who they are". */
   me: MemberId | null;

@@ -18,11 +18,10 @@ const SIZES = {
 };
 
 export function MemberAvatar({ ledger, memberId, size = 'md', className }: MemberAvatarProps) {
-  const id = ledger.aliases.get(memberId) ?? memberId;
-  const index = ledger.members.findIndex((member) => member.id === id);
+  const index = ledger.members.findIndex((member) => member.id === memberId);
   return (
     <PersonAvatar
-      name={memberName(ledger, id)}
+      name={memberName(ledger, memberId)}
       colorIndex={Math.max(index, 0)}
       className={cn(SIZES[size], className)}
     />

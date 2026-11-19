@@ -121,13 +121,17 @@ describe('describeActivity', () => {
 
 describe('describeEntry and memberName', () => {
   const ledger = fold(
-    benDoes(put(makeMember(cat)), { kind: 'member.merged', from: cat, into: ana }),
+    benDoes(
+      put(makeMember(cat)),
+      { kind: 'entry.put', entry: makeTransfer('paid', cat, ben, 500), base: null },
+      { kind: 'member.merged', from: cat, into: ana },
+    ),
   );
 
   it('names a merged-away member as the member they became, and a stranger as Someone', () => {
-    expect(memberName(ledger, cat)).toBe('Ana');
+    expect(describeEntry(ledger.entries[0].entry, ledger)).toBe('Ana paid Ben · $5.00');
     expect(memberName(ledger, ben)).toBe('Ben');
-    expect(describeEntry(makeTransfer('paid', cat, ben, 500), ledger)).toBe('Ana paid Ben · $5.00');
+    expect(memberName(ledger, cat)).toBe('Someone');
   });
 
   it('gives an expense with no title a placeholder', () => {

@@ -9,21 +9,16 @@ import { paidBy, totalCents } from '@features/group-ledger/logic/post';
  * figure is shared out twice, to whoever paid and to whoever owes, so no cent is lost to
  * converting each person's amount on its own.
  */
-export function entryEffect(
-  entry: Entry,
-  aliases: ReadonlyMap<MemberId, MemberId>,
-): Record<MemberId, Cents> {
-  const resolve = (id: MemberId) => aliases.get(id) ?? id;
-
+export function entryEffect(entry: Entry): Record<MemberId, Cents> {
   if (entry.kind === 'transfer') {
-    const effect: Record<MemberId, Cents> = { [resolve(entry.from)]: 0, [resolve(entry.to)]: 0 };
-    effect[resolve(entry.from)] += entry.cents;
-    effect[resolve(entry.to)] -= entry.cents;
+    const effect: Record<MemberId, Cents> = { [entry.from]: 0, [entry.to]: 0 };
+    effect[entry.from] += entry.cents;
+    effect[entry.to] -= entry.cents;
     return effect;
   }
 
-  const paid = resolveKeys(paidBy(entry), resolve);
-  const owed = resolveKeys(entry.owed, resolve);
+  const paid = paidBy(entry);
+  const owed = entry.owed;
   const groupCents = Math.round(totalCents(entry) * entry.rate);
   const involved = [...new Set([...memberIdsOf(paid), ...memberIdsOf(owed)])];
   const paidInGroup = allocateCents(groupCents, involved, paid);
@@ -40,7 +35,7 @@ export function computeBalances(ledger: Ledger): Record<MemberId, Cents> {
     ledger.members.map((member) => [member.id, 0]),
   );
   for (const { entry } of ledger.entries) {
-    const effect = entryEffect(entry, ledger.aliases);
+    const effect = entryEffect(entry);
     for (const id of memberIdsOf(effect)) {
       balances[id] = (balances[id] ?? 0) + effect[id];
     }
@@ -49,15 +44,4 @@ export function computeBalances(ledger: Ledger): Record<MemberId, Cents> {
     if (member.archived && balances[member.id] === 0) delete balances[member.id];
   }
   return balances;
-}
-
-function resolveKeys(
-  amounts: Record<MemberId, Cents>,
-  resolve: (id: MemberId) => MemberId,
-): Record<MemberId, Cents> {
-  const resolved: Record<MemberId, Cents> = {};
-  for (const id of memberIdsOf(amounts)) {
-    resolved[resolve(id)] = (resolved[resolve(id)] ?? 0) + amounts[id];
-  }
-  return resolved;
 }
