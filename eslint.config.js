@@ -37,4 +37,22 @@ export default defineConfig([
       ],
     },
   },
+  {
+    files: ['src/features/group-ledger/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@features/split-workspace/*', '@features/payments/*'],
+              message:
+                "Import another feature through its barrel, '@features/split-workspace' or '@features/payments', and export what you need from its index.ts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);

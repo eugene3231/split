@@ -1,7 +1,9 @@
 import { allocateCents } from '@shared/logic/core/allocation';
-import { isItemAssigned } from '@features/split-workspace/logic/assignment';
-import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
-import { computeSplit } from '@features/split-workspace/logic/split/split';
+import {
+  computeSplit,
+  isItemAssigned,
+  resolveDiscountedAmountCents,
+} from '@features/split-workspace';
 import type {
   Cents,
   ExpenseBasis,
