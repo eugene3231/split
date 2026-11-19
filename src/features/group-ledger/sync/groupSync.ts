@@ -1,0 +1,300 @@
+import type {
+  Change,
+  GroupId,
+  GroupLog,
+  InviteCode,
+  OpId,
+} from '@features/group-ledger/domain/types';
+import { createBackend, deviceProfile } from '@features/group-ledger/backend/createBackend';
+import { PUSH_BATCH_SIZE } from '@features/group-ledger/backend/limits';
+import type { BackendFailure, LedgerBackend } from '@features/group-ledger/backend/port';
+import { openDeviceLog, type DeviceLog } from '@features/group-ledger/sync/deviceLog';
+import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
+
+// One engine per group per tab. It owns the only path between the device log and the server:
+// push what is pending, then pull to the head. Every step can be repeated, so a crash or a lost
+// reply anywhere means the next run does it again and the log ends up the same.
+
+export type SyncState =
+  | 'idle'
+  | 'syncing'
+  /** No connection. Retries on a timer and when the phone comes back online. */
+  | 'offline'
+  /** The server failed. Retries on a timer. */
+  | 'error'
+  /** The invite code no longer opens the group. Nothing retries until `syncNow` is called. */
+  | 'not-a-member';
+
+export interface SyncStatus {
+  state: SyncState;
+  /** Changes still only on this phone. */
+  pending: number;
+  /** When this tab last reached the head of the log. Null until it has. */
+  lastSyncedAt: string | null;
+  /** Changes the server refused for good and this phone dropped, oldest first. */
+  rejected: OpId[];
+}
+
+export interface GroupSnapshot {
+  log: GroupLog;
+  sync: SyncStatus;
+}
+
+export interface GroupSync {
+  /** The same object until something changes, so it works with `useSyncExternalStore`. */
+  getSnapshot(): GroupSnapshot;
+  subscribe(listener: () => void): () => void;
+  /** Stores the change on this phone before it returns, then syncs. */
+  submit(change: Change): OpId;
+  /** Resolves when the run it started, or joined, has ended, whether or not it worked. */
+  syncNow(): Promise<void>;
+  dispose(): void;
+}
+
+export interface GroupSyncOptions {
+  group: { groupId: GroupId; inviteCode: InviteCode; createdHere: boolean };
+  backend: LedgerBackend;
+  log: DeviceLog;
+  now?: () => string;
+}
+
+const FIRST_RETRY_MS = 2_000;
+const LAST_RETRY_MS = 60_000;
+
+export function createGroupSync({
+  group,
+  backend,
+  log,
+  now = () => new Date().toISOString(),
+}: GroupSyncOptions): GroupSync {
+  const { groupId, inviteCode } = group;
+  const listeners = new Set<() => void>();
+
+  let status: SyncStatus = { state: 'idle', pending: 0, lastSyncedAt: null, rejected: [] };
+  let snapshot = snapshotOf(readLog());
+  let running: Promise<void> | null = null;
+  let requested = false;
+  let disposed = false;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  let retryMs = FIRST_RETRY_MS;
+  // An op a newer Split wrote is stored as unreadable. This version may be that newer Split,
+  // so the first pull of each tab starts again from the first one.
+  let rereadUnreadable = true;
+
+  function readLog(): GroupLog {
+    return { groupId, inviteCode, confirmed: log.confirmed(), pending: log.pending() };
+  }
+
+  function snapshotOf(held: GroupLog): GroupSnapshot {
+    return { log: held, sync: { ...status, pending: held.pending.length } };
+  }
+
+  function publish(next: Partial<SyncStatus>, held: GroupLog = snapshot.log) {
+    status = { ...status, ...next };
+    snapshot = snapshotOf(held);
+    for (const listener of listeners) listener();
+  }
+
+  /** Reads the device log again after it changed, and tells the listeners. */
+  function reload(next: Partial<SyncStatus> = {}) {
+    publish(next, readLog());
+  }
+
+  /** Creates the group on the server, or joins it. Both make this user a member, and repeat safely. */
+  async function enter(): Promise<BackendFailure | null> {
+    const entered = group.createdHere
+      ? await backend.publishGroup({ groupId, inviteCode })
+      : await backend.joinGroup(inviteCode);
+    return entered.ok ? null : entered.failure;
+  }
+
+  async function pushPending(reenter: () => Promise<BackendFailure | null>) {
+    const pending = log.pending();
+    let reentered = false;
+    for (let start = 0; start < pending.length; start += PUSH_BATCH_SIZE) {
+      const batch = pending.slice(start, start + PUSH_BATCH_SIZE);
+      let pushed = await backend.push(groupId, batch);
+      if (!pushed.ok && pushed.failure.kind === 'not-a-member' && !reentered) {
+        reentered = true;
+        const failure = await reenter();
+        if (failure !== null) return failure;
+        pushed = await backend.push(groupId, batch);
+      }
+      if (!pushed.ok) return pushed.failure;
+      if (pushed.value.rejected.length > 0) {
+        log.drop(pushed.value.rejected);
+        reload({ rejected: [...status.rejected, ...pushed.value.rejected] });
+      }
+    }
+    return null;
+  }
+
+  async function pullToHead() {
+    const confirmed = log.confirmed();
+    const firstUnreadable = rereadUnreadable ? confirmed.find((op) => op.change === null) : null;
+    let afterSeq = firstUnreadable ? firstUnreadable.seq - 1 : confirmed.length;
+    for (;;) {
+      const pulled = await backend.pull(groupId, afterSeq);
+      if (!pulled.ok) return pulled.failure;
+      const last = pulled.value.ops.at(-1);
+      if (last) {
+        log.confirm(pulled.value.ops);
+        reload();
+        afterSeq = last.seq;
+      }
+      if (!pulled.value.more || !last) break;
+    }
+    rereadUnreadable = false;
+    return null;
+  }
+
+  async function runOnce(): Promise<BackendFailure | null> {
+    try {
+      // The outbox is read after this await, so changes submitted in one go leave as one batch.
+      const session = await backend.session();
+      if (!session.ok) return session.failure;
+      const { userId } = session.value;
+
+      // Covers a group made offline and never published, a phone that signed in to another
+      // account, and a join whose reply was lost. Reading as an outsider returns nothing
+      // rather than an error, so the phone has to know it entered as this user.
+      async function enterAsUser() {
+        const failure = await enter();
+        if (failure === null) log.setMemberAs(userId);
+        return failure;
+      }
+      if (log.memberAs() !== userId) {
+        const failure = await enterAsUser();
+        if (failure !== null) return failure;
+      }
+
+      return (await pushPending(enterAsUser)) ?? (await pullToHead());
+    } catch (error) {
+      return { kind: 'failed', message: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  function settle(failure: BackendFailure | null) {
+    if (failure === null) {
+      retryMs = FIRST_RETRY_MS;
+      publish({ state: 'idle', lastSyncedAt: now() });
+      return;
+    }
+    if (failure.kind === 'not-a-member' || failure.kind === 'invite-not-found') {
+      publish({ state: 'not-a-member' });
+      return;
+    }
+    publish({ state: failure.kind === 'offline' ? 'offline' : 'error' });
+    retryTimer = setTimeout(() => void syncNow(), retryMs);
+    retryMs = Math.min(retryMs * 2, LAST_RETRY_MS);
+  }
+
+  async function drain() {
+    while (requested && !disposed) {
+      requested = false;
+      if (retryTimer !== null) clearTimeout(retryTimer);
+      retryTimer = null;
+      publish({ state: 'syncing' });
+      const failure = await runOnce();
+      if (disposed) return;
+      settle(failure);
+      // After a failure the timer decides when to try again, not whatever asked meanwhile.
+      if (failure !== null) requested = false;
+    }
+  }
+
+  function syncNow(): Promise<void> {
+    if (disposed) return Promise.resolve();
+    requested = true;
+    running ??= drain().finally(() => {
+      running = null;
+    });
+    return running;
+  }
+
+  const sync = () => void syncNow();
+  const syncWhenVisible = () => {
+    if (document.visibilityState === 'visible') sync();
+  };
+  // Another tab of this phone changed the log.
+  const onStorage = (event: StorageEvent) => {
+    if (log.owns(event.key)) reload();
+  };
+
+  const unsubscribe = backend.subscribe(groupId, sync);
+  window.addEventListener('online', sync);
+  window.addEventListener('storage', onStorage);
+  document.addEventListener('visibilitychange', syncWhenVisible);
+  sync();
+
+  return {
+    getSnapshot: () => snapshot,
+
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+
+    submit(change) {
+      const op = log.appendPending(change);
+      reload();
+      sync();
+      return op.id;
+    },
+
+    syncNow,
+
+    dispose() {
+      disposed = true;
+      if (retryTimer !== null) clearTimeout(retryTimer);
+      unsubscribe();
+      window.removeEventListener('online', sync);
+      window.removeEventListener('storage', onStorage);
+      document.removeEventListener('visibilitychange', syncWhenVisible);
+      listeners.clear();
+    },
+  };
+}
+
+let backend: LedgerBackend | null = null;
+
+/** The backend this tab talks to, made on first use. */
+export function ledgerBackend(): LedgerBackend {
+  backend ??= createBackend();
+  return backend;
+}
+
+const engines = new Map<GroupId, GroupSync>();
+
+/** The engine for a group this phone holds, started on first use. Null for any other group. */
+export function groupSyncFor(groupId: GroupId): GroupSync | null {
+  const running = engines.get(groupId);
+  if (running) return running;
+
+  const group = useJoinedGroupsStore.getState().groups.find((held) => held.groupId === groupId);
+  if (!group) return null;
+
+  const engine = createGroupSync({
+    group,
+    backend: ledgerBackend(),
+    log: openDeviceLog(deviceProfile(), groupId),
+  });
+  engines.set(groupId, engine);
+  return engine;
+}
+
+/** Syncs every group this phone holds, entering each as the current user where it has not. */
+export async function syncAllGroups(): Promise<void> {
+  const groups = useJoinedGroupsStore.getState().groups;
+  await Promise.all(groups.map((group) => groupSyncFor(group.groupId)?.syncNow()));
+}
+
+/** Takes a group off this phone: its engine, its log and any change not yet synced. */
+export function forgetGroup(groupId: GroupId): void {
+  engines.get(groupId)?.dispose();
+  engines.delete(groupId);
+  openDeviceLog(deviceProfile(), groupId).clear();
+  useJoinedGroupsStore.getState().remove(groupId);
+}
