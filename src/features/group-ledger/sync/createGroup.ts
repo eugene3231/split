@@ -10,12 +10,11 @@ import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsSt
  */
 export function createGroup(group: NewGroup): GroupId {
   const groupId = newGroupId();
-  const { changes } = newGroupChanges(group);
   useJoinedGroupsStore
     .getState()
     .add({ groupId, inviteCode: newInviteCode(), createdHere: true, name: group.name.trim() });
   const engine = groupSyncFor(groupId);
   if (engine === null) throw new Error('A group just added is not held on this phone.');
-  for (const change of changes) engine.submit(change);
+  for (const change of newGroupChanges(group)) engine.submit(change);
   return groupId;
 }

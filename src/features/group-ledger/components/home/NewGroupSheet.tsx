@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { CURRENCY_CODES, type CurrencyCode } from '@shared/constants';
 import { PersonAvatar } from '@shared/components/PersonAvatar';
+import { uniqueNames } from '@features/group-ledger/logic/newGroup';
 import { createGroup } from '@features/group-ledger/sync/createGroup';
 import { Button } from '@features/group-ledger/components/ui/Button';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
@@ -41,24 +42,14 @@ function NewGroupForm() {
   const [friends, setFriends] = useState<string[]>([]);
   const ready = name.trim() !== '' && myName.trim() !== '';
 
-  const addFriends = (names: string[]) => {
-    const known = new Set([myName, ...friends].map((friend) => friend.trim().toLowerCase()));
-    const fresh = names
-      .map((friend) => friend.trim())
-      .filter((friend) => {
-        const key = friend.toLowerCase();
-        if (key === '' || known.has(key)) return false;
-        known.add(key);
-        return true;
-      });
-    setFriends([...friends, ...fresh]);
-  };
+  const addFriends = (names: string[]) =>
+    setFriends([...friends, ...uniqueNames(names, [myName, ...friends])]);
 
   const create = () => {
     if (!ready) return;
     myNameStorage.save(myName.trim());
-    const pending = friendInput.trim() ? [...friends, friendInput] : friends;
-    const groupId = createGroup({ name, currency, myName, friendNames: pending });
+    const friendNames = [...friends, ...friendInput.split(',')];
+    const groupId = createGroup({ name, currency, myName, friendNames });
     navigate({ kind: 'group', groupId }, { state: OPEN_INVITE_STATE });
   };
 

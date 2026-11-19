@@ -114,6 +114,23 @@ describe('home', () => {
     );
   });
 
+  it('splits friend names typed but not yet entered on commas when the group is made', async () => {
+    render(<App />);
+    click('New group');
+    type('Group name', 'Lunch');
+    type('Your name', 'Ana');
+    type('Friends', 'Ben, Cat');
+    click('Create group');
+
+    await screen.findByRole('dialog', { name: 'Invite friends' });
+    const [held] = useJoinedGroupsStore.getState().groups;
+    expect(ledgerOf(held.groupId).members.map((member) => member.name)).toEqual([
+      'Ana',
+      'Ben',
+      'Cat',
+    ]);
+  });
+
   it('offers to continue a quick split that has work in it', () => {
     quickSplitStore.getState().addPeople(['Alice']);
     render(<App />);
