@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { Change, InviteCode, OpId, PendingOp } from '@features/group-ledger/domain/types';
+import type {
+  Change,
+  InviteCode,
+  MemberId,
+  OpId,
+  PendingOp,
+} from '@features/group-ledger/domain/types';
+import { fitsOnServer } from '@features/group-ledger/backend/limits';
 import type { JoinedGroup, LedgerBackend } from '@features/group-ledger/backend/port';
 import { newGroupId, newOpId, newUuid } from '@features/group-ledger/logic/ids';
 
@@ -27,6 +34,16 @@ export function pendingOp(
 ): PendingOp {
   order += 1;
   return { id: newOpId(), order, at: '2026-11-19T10:00:00.000Z', change };
+}
+
+/** A change with nested objects and a two-byte letter, whose JSON is exactly this many bytes of UTF-8. */
+function memberPutOfBytes(bytes: number): Change {
+  const named = (name: string): Change => ({
+    kind: 'member.put',
+    member: { id: 'm-1' as MemberId, name, paynowMobile: null, archived: false },
+  });
+  const empty = new TextEncoder().encode(JSON.stringify(named('é'))).length;
+  return named(`é${'x'.repeat(bytes - empty)}`);
 }
 
 async function value<T>(
@@ -95,6 +112,20 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
       expect(pulled.ops.map((op) => [op.seq, op.id])).toEqual([
         [1, before.id],
         [2, after.id],
+      ]);
+    });
+
+    it('takes a change of exactly 64 KB, measured as the phone measures it, and rejects one byte more', async () => {
+      const { ana, group } = await publishedGroup();
+      const atTheLimit = pendingOp(memberPutOfBytes(65536));
+      const oneByteOver = pendingOp(memberPutOfBytes(65537));
+
+      const outcome = await value(ana.push(group.groupId, [atTheLimit, oneByteOver]));
+
+      expect(outcome).toEqual({ accepted: [atTheLimit.id], rejected: [oneByteOver.id] });
+      expect([fitsOnServer(atTheLimit.change), fitsOnServer(oneByteOver.change)]).toEqual([
+        true,
+        false,
       ]);
     });
 

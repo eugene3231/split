@@ -50,7 +50,7 @@ phone: GroupLog { confirmed (by seq), pending (by order) } ──push──▶ s
 - **Crashes.** A pending op leaves the device log only when a pull brings it back confirmed. A crash at any step means the next sync pushes it again, harmlessly.
 - **Conflicts.** Two phones edit one expense offline: the later `seq` wins the whole entry. The fold sees that its `base` was not the head it landed on, and the activity row reads "Ben's change replaced Ana's" with a one-tap restore. An edit beats a remove it never saw, and the row says so.
 - **Two tabs.** Each pending op is its own storage key, so tabs never overwrite each other's outbox.
-- **Rejected ops.** An op the server will never take (too large) is dropped from the outbox and shown, rather than blocking the ops behind it.
+- **Rejected ops.** An op the server will never take (too large) is dropped from the outbox and shown, rather than blocking the ops behind it. Too large means over 64 KB as `changeBytes` counts it: the UTF-8 bytes of the change's JSON text. The Supabase adapter sends that text as a string and the SQL counts it before reading it, so the phone, the fake and Postgres agree to the byte. Screens call `fitsOnServer(change)` before they submit.
 - **Unreadable ops.** An op a newer Split wrote is kept with `change: null`, so `seq` stays gapless, and the activity list says "update Split to see this change". A change with a field this version does not know is unreadable as a whole, so an older phone never drops the field and then erases it with an edit. An op queued on this phone that the app, after an update, can no longer read stays in the outbox, is sent as it was stored, and shows the same way.
 
 ## Identity and access

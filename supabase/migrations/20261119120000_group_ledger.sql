@@ -154,12 +154,15 @@ begin
 end;
 $$;
 
--- Appends ops in the order given: `p_ops` is a JSON array of {id, at, change}.
+-- Appends ops in the order given: `p_ops` is a JSON array of {id, at, change}, where `change`
+-- is the change's JSON as a string. It comes as text so its size is the size the phone sent:
+-- the UTF-8 bytes of that text, which the phone can count before it sends (`changeBytes` in
+-- backend/limits.ts). The text of a jsonb value is spaced differently and would not match.
 -- Returns {"accepted": [id], "rejected": [id]}.
 --   accepted: the op is in this group's log, whether this call put it there or an earlier one.
 --   rejected: the op will never be taken, so the phone stops sending it. The id is not a
---             lowercase uuid, `at` is not a time, `change` is not an object or is over 64 KB,
---             or the id is already used in another group.
+--             lowercase uuid, `at` is not a time, `change` is over 64 KB or is not the text of
+--             a JSON object, or the id is already used in another group.
 -- One bad op never stops the ops around it.
 create function public.append_ops(p_group_id uuid, p_ops jsonb)
 returns jsonb
@@ -174,6 +177,8 @@ declare
   v_id_text text;
   v_id uuid;
   v_at timestamptz;
+  v_change_text text;
+  v_change jsonb;
   v_owner uuid;
   v_accepted jsonb := '[]'::jsonb;
   v_rejected jsonb := '[]'::jsonb;
@@ -204,11 +209,23 @@ begin
       v_at := null;
     end;
 
+    v_change := null;
+    if jsonb_typeof(v_op -> 'change') = 'string' then
+      v_change_text := v_op ->> 'change';
+      if octet_length(convert_to(v_change_text, 'UTF8')) <= 65536 then
+        begin
+          v_change := v_change_text::jsonb;
+        exception when others then
+          v_change := null;
+        end;
+      end if;
+    end if;
+
     if v_id_text is null
       or v_id_text !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       or v_at is null
-      or jsonb_typeof(v_op -> 'change') is distinct from 'object'
-      or octet_length((v_op -> 'change')::text) > 65536
+      or v_change is null
+      or jsonb_typeof(v_change) is distinct from 'object'
     then
       v_rejected := v_rejected || coalesce(to_jsonb(v_id_text), 'null'::jsonb);
       continue;
@@ -226,7 +243,7 @@ begin
     end if;
 
     insert into public.ops (group_id, seq, id, change, user_id, at)
-    values (p_group_id, v_head + 1, v_id, v_op -> 'change', v_user, v_at)
+    values (p_group_id, v_head + 1, v_id, v_change, v_user, v_at)
     on conflict (id) do nothing;
     if found then
       v_head := v_head + 1;

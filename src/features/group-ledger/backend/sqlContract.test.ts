@@ -10,6 +10,8 @@ import {
   type PgliteProject,
 } from '@features/group-ledger/backend/testing/pgliteSupabase';
 
+import { newUuid } from '@features/group-ledger/logic/ids';
+
 // The migration, run in a Postgres inside this process, behind the real Supabase adapter.
 
 let project: PgliteProject;
@@ -48,6 +50,30 @@ describe('what the migration lets a client do to the tables', () => {
 
     expect(asMember.data).toBe(1);
     expect(asOutsider.data).toBe(0);
+  });
+
+  it('rejects a change that is not the text of a JSON object, without failing the ops around it', async () => {
+    const { ana, group } = await groupWithOneOp();
+    const at = '2026-11-19T10:00:00.000Z';
+    const ops = [
+      { id: newUuid(), at, change: '{"kind":"group.renamed"' },
+      { id: newUuid(), at, change: '[1]' },
+      { id: newUuid(), at, change: { kind: 'group.renamed', name: 'sent as an object' } },
+      { id: newUuid(), at },
+      { id: newUuid(), at, change: '{"kind":"group.renamed","name":"fine"}' },
+    ];
+
+    const appended = await project.sql(
+      ana.userId,
+      'authenticated',
+      `select public.append_ops('${group.groupId}', '${JSON.stringify(ops)}') as data`,
+    );
+
+    expect(appended.error).toBeNull();
+    expect(appended.data).toEqual({
+      accepted: [ops[4].id],
+      rejected: ops.slice(0, 4).map((op) => op.id),
+    });
   });
 
   it('lets no client write an op directly, so none can pick a seq or an author', async () => {

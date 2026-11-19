@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Result } from '@features/group-ledger/backend/port';
-import { MAX_CHANGE_BYTES } from '@features/group-ledger/backend/limits';
+import { changeBytes, MAX_CHANGE_BYTES } from '@features/group-ledger/backend/limits';
 import { parseJson } from '@features/split-workspace/logic/jsonStorage';
 
 // The server's rules, stated once in TypeScript: the same rules as the SQL functions in
@@ -80,7 +80,7 @@ function isAcceptable(op: IncomingOp): boolean {
     typeof op.change === 'object' &&
     op.change !== null &&
     !Array.isArray(op.change) &&
-    new TextEncoder().encode(JSON.stringify(op.change)).length <= MAX_CHANGE_BYTES
+    changeBytes(op.change) <= MAX_CHANGE_BYTES
   );
 }
 
