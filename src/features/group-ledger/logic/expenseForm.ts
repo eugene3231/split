@@ -2,7 +2,7 @@ import { currencyInfo, type CurrencyCode } from '@shared/constants';
 import {
   formatCurrencyFromCents,
   formatExchangeRate,
-  formatMoneyAmount,
+  formatMoneyInput,
   parseCurrencyToCents,
   parseNumber,
 } from '@shared/logic/core/money';
@@ -39,6 +39,9 @@ export interface ExpenseDraft {
   splitBy: SplitBy;
 }
 
+/** Far above any real rate between two currencies, and low enough that cents never overflow. */
+const MAX_RATE = 1_000_000;
+
 export type ExpenseCheck = { ok: true; entry: ExpenseEntry } | { ok: false; reason: string };
 
 /** A blank expense paid by `payer` and split evenly between every member not archived. */
@@ -59,12 +62,27 @@ export function blankDraft(
   };
 }
 
+/**
+ * Cents as an amount to edit: written the way the currency is, but keeping any cents a split left,
+ * so Rp10.50 reopens as 10.5 rather than 11 and saving it unchanged keeps every cent.
+ */
+export function amountInput(cents: Cents, currency: CurrencyCode): string {
+  return formatMoneyInput(String(cents / 100), currency);
+}
+
+/** Whether splitting the entry's total by `weights` again gives the cents it has. A merge can break this. */
+function weightsStillGive(entry: ExpenseEntry, weights: Record<MemberId, number>): boolean {
+  const again = postWeights(entry, totalCents(entry), weights);
+  const ids = new Set([...memberIdsOf(entry.owed), ...(again ? memberIdsOf(again.owed) : [])]);
+  return again !== null && [...ids].every((member) => again.owed[member] === entry.owed[member]);
+}
+
 export function draftFromEntry(entry: ExpenseEntry): ExpenseDraft {
   const { currency, basis } = entry;
-  const typed = (cents: Cents) => formatMoneyAmount(cents, currency);
+  const typed = (cents: Cents) => amountInput(cents, currency);
   const others = memberIdsOf(entry.payment.others);
   let splitBy: SplitBy;
-  if (basis.kind === 'weights') {
+  if (basis.kind === 'weights' && weightsStillGive(entry, basis.weights)) {
     const weights = Object.values(basis.weights);
     splitBy = weights.every((weight) => weight === 1)
       ? { kind: 'evenly', between: memberIdsOf(basis.weights) }
@@ -142,6 +160,7 @@ export function checkExpense(
 
   const rate = draft.currency === groupCurrency ? 1 : parseNumber(draft.rate);
   if (rate === null || rate <= 0) return fail('Enter the exchange rate');
+  if (rate > MAX_RATE) return fail('That exchange rate is too high');
 
   const payment = paymentOf(draft, total);
   if ('reason' in payment) return payment;

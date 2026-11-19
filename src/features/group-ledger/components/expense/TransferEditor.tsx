@@ -10,7 +10,8 @@ import { actionBarButtonClass } from '@features/group-ledger/components/ui/class
 import { Icon, IconButton } from '@features/group-ledger/components/ui/IconButton';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
 import { ScreenHeader, ScreenTitle } from '@features/group-ledger/components/ui/ScreenHeader';
-import { formatMoneyAmount, parseCurrencyToCents } from '@shared/logic/core/money';
+import { parseCurrencyToCents } from '@shared/logic/core/money';
+import { amountInput } from '@features/group-ledger/logic/expenseForm';
 import { navigate } from '@shared/routing';
 
 interface TransferEditorProps {
@@ -21,7 +22,7 @@ interface TransferEditorProps {
 
 export function TransferEditor({ group, transfer, rev }: TransferEditorProps) {
   const { ledger, act } = group;
-  const [amount, setAmount] = useState(() => formatMoneyAmount(transfer.cents, ledger.currency));
+  const [amount, setAmount] = useState(() => amountInput(transfer.cents, ledger.currency));
   const cents = parseCurrencyToCents(amount);
   const valid = cents !== null && cents > 0;
   const changed = valid && cents !== transfer.cents;

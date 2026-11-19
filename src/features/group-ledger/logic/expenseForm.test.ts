@@ -14,7 +14,7 @@ import {
   type ExpenseDraft,
 } from './expenseForm';
 import { asEntryId, asLocalDate } from './ids';
-import { postReceipt } from './post';
+import { postReceipt, postWeights } from './post';
 import { ana, ben, cat, makeExpense, makeMember } from './testHelpers';
 import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
 
@@ -98,6 +98,14 @@ describe('checkExpense', () => {
   });
 });
 
+describe('exchange rates', () => {
+  it('refuses a rate too large to be real, which would overflow the cents', () => {
+    const check = checkExpense(draft({ currency: 'USD', rate: '1e308' }), id, 'SGD');
+
+    expect(check.ok).toBe(false);
+  });
+});
+
 describe('draftFromEntry', () => {
   it('reopens an even split as an even split paid by one person', () => {
     const check = checkExpense(draft({ amount: '1,234.50' }), id, 'SGD');
@@ -140,6 +148,43 @@ describe('draftFromEntry', () => {
     expect(draftFromEntry(check.entry).splitBy).toEqual({
       kind: 'shares',
       weights: { [ana]: 3, [ben]: 1 },
+    });
+  });
+
+  it('reopens fractions of a currency written without them, so an unchanged save keeps every cent', () => {
+    const entry = makeExpense('snack', { [ana]: 525, [ben]: 525 }, { currency: 'IDR' });
+
+    const reopened = draftFromEntry(entry);
+
+    expect(checkExpense(reopened, entry.id, 'IDR')).toMatchObject({
+      ok: true,
+      entry: { owed: entry.owed },
+    });
+  });
+
+  it('reopens weights that no longer give the saved cents, after a merge, as those cents', () => {
+    const entry = postWeights(
+      {
+        id,
+        title: 'Taxi',
+        date: today,
+        currency: 'SGD',
+        rate: 1,
+        payment: { payer: ana, others: {} },
+      },
+      302,
+      { [ana]: 1, [ben]: 1, [cat]: 1 },
+    );
+    if (entry === null) throw new Error('did not post');
+    const merged = {
+      ...entry,
+      owed: { [ana]: entry.owed[ana] + entry.owed[ben], [cat]: entry.owed[cat] },
+      basis: { kind: 'weights' as const, weights: { [ana]: 2, [cat]: 1 } },
+    };
+
+    expect(checkExpense(draftFromEntry(merged), id, 'SGD')).toMatchObject({
+      ok: true,
+      entry: { owed: merged.owed },
     });
   });
 
