@@ -159,9 +159,11 @@ export function createGroupSync({
       (value) => deliver(toEvent(value)),
       (error: unknown) => deliver({ type: 'threw', message: messageOf(error) }),
     );
+    return undefined;
   }
 
-  function run(effect: SyncEffect) {
+  /** Carries out one effect. A storage write that the machine must hear about returns that event. */
+  function run(effect: SyncEffect): SyncEvent | undefined {
     switch (effect.type) {
       case 'clear-retry':
         if (retryTimer !== null) clearTimeout(retryTimer);
@@ -200,7 +202,7 @@ export function createGroupSync({
       case 'confirm':
         log.confirm(effect.ops);
         reload();
-        return;
+        return { type: 'confirmed', held: snapshot.log.confirmed.length };
     }
   }
 
@@ -220,8 +222,9 @@ export function createGroupSync({
       drained?.resolve();
       drained = null;
     }
-    for (const effect of next.effects) run(effect);
+    const heard = next.effects.flatMap((effect) => run(effect) ?? []);
     publishIfShownChanged();
+    for (const event of heard) deliver(event);
   }
 
   /** A step that throws, reading or writing storage, ends the run as a failure. */
@@ -242,20 +245,15 @@ export function createGroupSync({
   const onOnline = () => deliver({ type: 'online' });
   const onVisibility = () =>
     deliver({ type: 'visibility', visible: document.visibilityState === 'visible' });
-  /**
-   * Another tab wrote this group's log. The machine syncs when it wrote back a shorter log, to
-   * pull what it missed, or queued a change, which this tab sends too in case that tab closes
-   * first. Pushing twice is safe: the server keeps one copy of each op.
-   */
+  /** Another tab wrote this group's log. Pushing twice is safe: the server keeps one copy of each op. */
   const onStorage = (event: StorageEvent) => {
     if (!log.owns(event.key)) return;
-    const held = snapshot.log.confirmed.length;
     const queued = snapshot.sync.pending;
     reload();
     deliver({
       type: 'other-tab-wrote',
-      removed: event.newValue === null,
-      confirmedShrank: snapshot.log.confirmed.length < held,
+      forgotten: log.memberAs() === null && snapshot.log.confirmed.length === 0,
+      held: snapshot.log.confirmed.length,
       outboxGrew: snapshot.sync.pending > queued,
     });
   };

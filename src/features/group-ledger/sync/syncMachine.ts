@@ -34,7 +34,15 @@ export type RunStep =
   /** The server said this session is not a member mid-push. Rejoining once, then pushing `index` again. */
   | { at: 'reentering'; userId: UserId; batches: OutboxOp[][]; index: number }
   /** `pushFailure` is a `failed` push: the run still pulls, and ends as an error. */
-  | { at: 'pulling'; afterSeq: number; pushFailure: BackendFailure | null };
+  | { at: 'pulling'; afterSeq: number; pushFailure: BackendFailure | null }
+  /** Storing the page of ops after `afterSeq` that ends at `last`. */
+  | {
+      at: 'confirming';
+      afterSeq: number;
+      last: number;
+      more: boolean;
+      pushFailure: BackendFailure | null;
+    };
 
 export type SyncPhase =
   /** Nothing running and nothing scheduled. */
@@ -54,6 +62,11 @@ export interface SyncMachine {
   retryMs: number;
   /** The first full pull starts at the first op this phone could not read, in case Split was updated. */
   rereadUnreadable: boolean;
+  /**
+   * The longest confirmed log this tab has seen stored. The stored log is shared by every tab and
+   * only a stale write by another tab makes it shorter, so finding it shorter means pull again.
+   */
+  heldHead: number;
   lastSyncedAt: string | null;
   rejected: OpId[];
   outboxStuck: boolean;
@@ -66,14 +79,19 @@ export type SyncEvent =
   | { type: 'poked' }
   | { type: 'online' }
   | { type: 'visibility'; visible: boolean }
-  /** Another tab wrote this group's log. The engine has already reread it. */
-  | { type: 'other-tab-wrote'; removed: boolean; confirmedShrank: boolean; outboxGrew: boolean }
+  /**
+   * Another tab wrote this group's log, and the engine reread it. `held` is how long the stored
+   * confirmed log is now. `forgotten`: the group was taken off this phone.
+   */
+  | { type: 'other-tab-wrote'; forgotten: boolean; held: number; outboxGrew: boolean }
   | { type: 'retry-due' }
   | { type: 'session-replied'; result: Result<Session> }
   /** `failure` is null when the group was created or joined. */
   | { type: 'entered'; failure: BackendFailure | null }
   | { type: 'pushed'; result: Result<PushOutcome> }
   | { type: 'pulled'; result: Result<Pulled> }
+  /** The confirm effect ran. `held` is how long the stored confirmed log is after it. */
+  | { type: 'confirmed'; held: number }
   /** A backend call or a storage step threw. */
   | { type: 'threw'; message: string }
   | { type: 'disposed' };
@@ -112,6 +130,7 @@ export const initialSyncMachine: SyncMachine = {
   phase: { kind: 'idle' },
   retryMs: FIRST_RETRY_MS,
   rereadUnreadable: true,
+  heldHead: 0,
   lastSyncedAt: null,
   rejected: [],
   outboxStuck: false,
@@ -251,6 +270,16 @@ function pushFailed(
   return startPull(machine, again, failure, reads);
 }
 
+function reachedHead(
+  machine: SyncMachine,
+  again: boolean,
+  pushFailure: BackendFailure | null,
+  reads: SyncReads,
+): SyncStep {
+  const outcome = { failure: pushFailure, reachedHead: true, outboxStuck: pushFailure !== null };
+  return settle({ ...machine, rereadUnreadable: false }, again, outcome, reads);
+}
+
 function stepRun(
   machine: SyncMachine,
   again: boolean,
@@ -331,20 +360,26 @@ function stepRun(
       return settle(machine, again, outcome, reads);
     }
     const last = result.value.ops.at(-1);
-    const confirm: SyncEffect[] = last ? [{ type: 'confirm', ops: result.value.ops }] : [];
-    if (last && result.value.more) {
-      return {
-        machine: withStep(machine, again, { ...step, afterSeq: last.seq }),
-        effects: [...confirm, { type: 'pull', afterSeq: last.seq }],
-      };
-    }
-    const outcome = {
-      failure: step.pushFailure,
-      reachedHead: true,
-      outboxStuck: step.pushFailure !== null,
+    if (!last) return reachedHead(machine, again, step.pushFailure, reads);
+    const { afterSeq, pushFailure } = step;
+    const confirming = { at: 'confirming' as const, afterSeq, last: last.seq, pushFailure };
+    return {
+      machine: withStep(machine, again, { ...confirming, more: result.value.more }),
+      effects: [{ type: 'confirm', ops: result.value.ops }],
     };
-    const next = settle({ ...machine, rereadUnreadable: false }, again, outcome, reads);
-    return { machine: next.machine, effects: [...confirm, ...next.effects] };
+  }
+
+  if (step.at === 'confirming' && event.type === 'confirmed') {
+    const held = { ...machine, heldHead: Math.max(machine.heldHead, event.held) };
+    const pull = (afterSeq: number): SyncStep => ({
+      machine: withStep(held, again, { at: 'pulling', afterSeq, pushFailure: step.pushFailure }),
+      effects: [{ type: 'pull', afterSeq }],
+    });
+    // Another tab wrote back a log shorter than where this page starts, so this tab's write
+    // kept only the part before the gap. A store that is full leaves it at `afterSeq`: no retry.
+    if (event.held < step.afterSeq) return pull(event.held);
+    if (step.more) return pull(step.last);
+    return reachedHead(held, again, step.pushFailure, reads);
   }
 
   return stay(machine);
@@ -369,13 +404,15 @@ export function stepSync(machine: SyncMachine, event: SyncEvent, reads: SyncRead
     case 'visibility':
       return event.visible ? ask(machine) : stay(machine);
     case 'other-tab-wrote': {
-      const missedOrQueued = event.confirmedShrank || event.outboxGrew;
-      return !event.removed && missedOrQueued ? ask(machine) : stay(machine);
+      // Pull what a stale write left out, and send what another tab queued in case it closes.
+      const missedOrQueued = event.held < machine.heldHead || event.outboxGrew;
+      return !event.forgotten && missedOrQueued ? ask(machine) : stay(machine);
     }
     case 'session-replied':
     case 'entered':
     case 'pushed':
     case 'pulled':
+    case 'confirmed':
     case 'threw':
       if (phase.kind !== 'running') return stay(machine);
       return stepRun(machine, phase.again, phase.step, event, reads);

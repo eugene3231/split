@@ -688,6 +688,56 @@ describe('group sync', () => {
     expect(openDeviceLog('ana', group.groupId).confirmed()).toHaveLength(3);
   });
 
+  it('pulls again after another tab wrote back a shorter log, even when an earlier event already showed it the shorter log', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const tab = phone(server, 'ana').open(group, false);
+    tab.submit(rename('one'));
+    tab.submit(rename('two'));
+    await tab.syncNow();
+    const key = `split:g:ana:${group.groupId}:confirmed`;
+    const stale = JSON.stringify(tab.getSnapshot().log.confirmed.slice(0, 1));
+    const retired = `split:g:ana:${group.groupId}:out:${tab.getSnapshot().log.confirmed[2].id}`;
+
+    window.localStorage.setItem(key, stale);
+    window.dispatchEvent(new StorageEvent('storage', { key: retired, newValue: null }));
+    window.dispatchEvent(new StorageEvent('storage', { key, newValue: stale }));
+
+    await vi.waitFor(() => expect(tab.getSnapshot().log.confirmed).toHaveLength(3));
+    expect(openDeviceLog('ana', group.groupId).confirmed()).toHaveLength(3);
+  });
+
+  it('pulls again when its own confirm landed on a shorter log another tab had just written', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const key = `split:g:ana:${group.groupId}:confirmed`;
+    let staleWrite: string | null = null;
+    const tab = phone(server, 'ana', (backend) => ({
+      ...backend,
+      subscribe: () => () => {},
+      async pull(groupId, afterSeq) {
+        const reply = await backend.pull(groupId, afterSeq);
+        if (staleWrite !== null) window.localStorage.setItem(key, staleWrite);
+        staleWrite = null;
+        return reply;
+      },
+    })).open(group, false);
+    tab.submit(rename('one'));
+    tab.submit(rename('two'));
+    await tab.syncNow();
+    const ben = phone(server, 'ben').open(group, false);
+    ben.submit(rename('three'));
+    await ben.syncNow();
+    const stale = JSON.stringify(tab.getSnapshot().log.confirmed.slice(0, 1));
+
+    staleWrite = stale;
+    await tab.syncNow();
+    window.dispatchEvent(new StorageEvent('storage', { key, newValue: stale }));
+
+    await vi.waitFor(() => expect(tab.getSnapshot().log.confirmed).toHaveLength(4));
+    expect(openDeviceLog('ana', group.groupId).confirmed()).toHaveLength(4);
+  });
+
   it('leaves a group forgotten in another tab forgotten', async () => {
     const server = createMemoryServer();
     const group = await foundedGroup(server);

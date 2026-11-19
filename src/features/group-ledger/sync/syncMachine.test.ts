@@ -78,6 +78,7 @@ const pullFailed = (failure: BackendFailure): SyncEvent => ({
   type: 'pulled',
   result: { ok: false, failure },
 });
+const stored = (held: number): SyncEvent => ({ type: 'confirmed', held });
 const offline: BackendFailure = { kind: 'offline' };
 const boom: BackendFailure = { kind: 'failed', message: 'boom' };
 
@@ -133,10 +134,10 @@ describe('sync machine', () => {
   it('goes back to idle with the time it reached the head, confirming what it pulled', () => {
     const ops = confirmedOf(2);
 
-    const { machine, effects, state } = drive([asked, sessionOk, pulled(ops)]);
+    const { machine, effects, state } = drive([asked, sessionOk, pulled(ops), stored(2)]);
 
     expect(state).toBe('idle');
-    expect(machine.lastSyncedAt).toBe(NOW);
+    expect(machine).toMatchObject({ lastSyncedAt: NOW, heldHead: 2 });
     expect(effects.slice(-2)).toEqual([
       { type: 'pull', afterSeq: 0 },
       { type: 'confirm', ops },
@@ -144,10 +145,29 @@ describe('sync machine', () => {
   });
 
   it('pulls page after page while the server says there is more', () => {
-    const { effects, state } = drive([asked, sessionOk, pulled(confirmedOf(2), true)]);
+    const { effects, state } = drive([asked, sessionOk, pulled(confirmedOf(2), true), stored(2)]);
 
     expect(state).toBe('syncing');
     expect(effects.at(-1)).toEqual({ type: 'pull', afterSeq: 2 });
+  });
+
+  it('pulls again from where the stored log ends when another tab cut it short under this page', () => {
+    const page = confirmedOf(4).slice(2);
+    const world = reads({ confirmed: confirmedOf(2) });
+
+    const { effects, state } = drive([asked, sessionOk, pulled(page), stored(1)], world);
+
+    expect(state).toBe('syncing');
+    expect(effects.at(-1)).toEqual({ type: 'pull', afterSeq: 1 });
+  });
+
+  it('settles when its page could not be stored at all, rather than pulling in a loop', () => {
+    const page = confirmedOf(4).slice(2);
+    const world = reads({ confirmed: confirmedOf(2) });
+
+    const { state } = drive([asked, sessionOk, pulled(page), stored(2)], world);
+
+    expect(state).toBe('idle');
   });
 
   it('pulls from the first op it could not read, once', () => {
@@ -296,14 +316,15 @@ describe('sync machine', () => {
     expect(drive([{ type: 'visibility', visible: true }]).state).toBe('syncing');
   });
 
-  it('syncs when another tab shrank the confirmed log or queued a change, but not when it removed the group', () => {
-    const wrote = (removed: boolean, confirmedShrank: boolean, outboxGrew: boolean) =>
-      drive([{ type: 'other-tab-wrote', removed, confirmedShrank, outboxGrew }]).state;
+  it('syncs when another tab left the stored log shorter than it has seen, or queued a change, but not when the group was forgotten', () => {
+    const synced = drive([asked, sessionOk, pulled(confirmedOf(3)), stored(3)]).machine;
+    const wrote = (forgotten: boolean, held: number, outboxGrew: boolean) =>
+      drive([{ type: 'other-tab-wrote', forgotten, held, outboxGrew }], reads(), synced).state;
 
-    expect(wrote(false, true, false)).toBe('syncing');
-    expect(wrote(false, false, true)).toBe('syncing');
-    expect(wrote(false, false, false)).toBe('idle');
-    expect(wrote(true, true, true)).toBe('idle');
+    expect(wrote(false, 2, false)).toBe('syncing');
+    expect(wrote(false, 3, true)).toBe('syncing');
+    expect(wrote(false, 3, false)).toBe('idle');
+    expect(wrote(true, 0, false)).toBe('idle');
   });
 
   it('ignores a reply the current state is not waiting for', () => {
