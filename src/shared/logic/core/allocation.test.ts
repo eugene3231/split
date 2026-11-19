@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allocate, allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { allocate, allocateCents } from '@shared/logic/core/allocation';
 
 describe('allocate', () => {
   it('shares a total in proportion to the weights', () => {

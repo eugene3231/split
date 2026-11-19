@@ -1,7 +1,7 @@
 import { CURRENCY_CODES, currencyInfo, type CurrencyCode } from '@shared/constants';
 import { CHARGE_KINDS } from '@shared/types';
 import type { Amounts, ChargeKind, SplitLine, SplitResult } from '@shared/types';
-import { allocate, allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { allocate, allocateCents } from '@shared/logic/core/allocation';
 import {
   centsByPerson,
   mapCharges,
