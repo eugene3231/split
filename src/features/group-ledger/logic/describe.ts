@@ -17,6 +17,40 @@ export function memberName(ledger: Ledger, id: MemberId): string {
   return ledger.members.find((member) => member.id === id)?.name ?? 'Someone';
 }
 
+/** "You" for this phone's member, the member's name for anyone else. */
+export function memberLabel(ledger: MyLedger, id: MemberId): string {
+  return id === ledger.me ? 'You' : memberName(ledger, id);
+}
+
+export interface TransferWords {
+  from: string;
+  verb: string;
+  to: string;
+}
+
+/**
+ * A transfer as this phone reads it: "You pay Ana" or "Ben pays you" while it is due, "Ben paid
+ * you" once done.
+ */
+export function transferWords(
+  ledger: MyLedger,
+  transfer: Pick<Transfer, 'from' | 'to'>,
+  tense: 'due' | 'done',
+): TransferWords {
+  const fromMe = transfer.from === ledger.me;
+  return {
+    from: memberLabel(ledger, transfer.from),
+    verb: tense === 'done' ? 'paid' : fromMe ? 'pay' : 'pays',
+    to: transfer.to === ledger.me ? 'you' : memberName(ledger, transfer.to),
+  };
+}
+
+/** "Ben paid you": a payment that was marked paid, as this phone reads it. */
+export function transferTitle(ledger: MyLedger, transfer: Pick<Transfer, 'from' | 'to'>): string {
+  const { from, verb, to } = transferWords(ledger, transfer, 'done');
+  return `${from} ${verb} ${to}`;
+}
+
 /** "Grab · $18.00" for an expense, "Ben paid Ana · $18.00" for a transfer. */
 export function describeEntry(entry: Entry, ledger: Ledger): string {
   if (entry.kind === 'transfer') {

@@ -4,6 +4,7 @@ import {
   changePaidBy,
   type ExpenseDraft,
 } from '@features/group-ledger/logic/expenseForm';
+import { memberLabel } from '@features/group-ledger/logic/describe';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
 import { MemberChip } from './MemberChip';
 import { MoneyInput } from './MoneyInput';
@@ -32,7 +33,7 @@ export function PaidByField({ ledger, members, draft, onChange }: PaidByFieldPro
             selected={paidBy.kind === 'one' && paidBy.payer === member.id}
             onClick={() => onChange({ paidBy: { kind: 'one', payer: member.id } })}
           >
-            {member.id === ledger.me ? 'You' : member.name}
+            {memberLabel(ledger, member.id)}
           </MemberChip>
         ))}
         <MemberChip

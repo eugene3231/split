@@ -7,7 +7,10 @@ import {
   describeMyBalance,
   describeMyShare,
   describeSettleUp,
+  memberLabel,
   memberName,
+  transferTitle,
+  transferWords,
 } from './describe';
 import { asOpId } from './ids';
 import {
@@ -182,5 +185,28 @@ describe('balance wording', () => {
       'Japan 2026: settling up\n• Ben pays Ana $42.10',
     );
     expect(describeSettleUp([], ledger)).toBe('Japan 2026: everyone is settled up.');
+  });
+});
+
+describe('memberLabel and transfer words', () => {
+  const ledger = { ...fold(logOf(created, put(makeMember(ana)), put(makeMember(ben)))), me: ana };
+
+  it('calls this phone’s member You and anyone else by name', () => {
+    expect(memberLabel(ledger, ana)).toBe('You');
+    expect(memberLabel(ledger, ben)).toBe('Ben');
+  });
+
+  it('picks the verb by who pays, not by the words', () => {
+    expect(transferWords(ledger, { from: ana, to: ben }, 'due')).toEqual({
+      from: 'You',
+      verb: 'pay',
+      to: 'Ben',
+    });
+    expect(transferWords({ ...ledger, me: ben }, { from: ana, to: ben }, 'due')).toEqual({
+      from: 'Ana',
+      verb: 'pays',
+      to: 'you',
+    });
+    expect(transferTitle(ledger, { from: ben, to: ana })).toBe('Ben paid you');
   });
 });

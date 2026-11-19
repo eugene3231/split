@@ -5,6 +5,7 @@ import {
   type ExpenseDraft,
   type SplitBy,
 } from '@features/group-ledger/logic/expenseForm';
+import { memberLabel } from '@features/group-ledger/logic/describe';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
 import { SegmentedToggle } from '@shared/components/SegmentedToggle';
@@ -85,7 +86,7 @@ export function SplitField({ ledger, members, draft, owed, onChange }: SplitFiel
                         included ? 'text-on-surface' : 'text-on-surface-variant',
                       )}
                     >
-                      {member.id === ledger.me ? 'You' : member.name}
+                      {memberLabel(ledger, member.id)}
                     </span>
                   </button>
                 </li>

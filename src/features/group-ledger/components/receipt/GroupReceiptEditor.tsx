@@ -3,6 +3,7 @@ import type { ExpenseEntry, Member, MemberId, OpId } from '@features/group-ledge
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { TOO_BIG, entryFits, groupRate } from '@features/group-ledger/logic/expenseForm';
 import { newEntryId, todayLocalDate } from '@features/group-ledger/logic/ids';
+import { memberLabel } from '@features/group-ledger/logic/describe';
 import { postReceipt } from '@features/group-ledger/logic/post';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { actionBarButtonClass } from '@features/group-ledger/components/ui/classes';
@@ -92,9 +93,7 @@ function SaveToGroup({ group, members, editing, receipt, draftKey }: SaveToGroup
         <label className="relative flex min-w-0 flex-1 flex-col justify-center rounded-2xl py-1 pl-3 hover:bg-white/10">
           <span className="text-xs text-white/60">Paid by</span>
           <span className="flex items-center gap-0.5 truncate font-semibold">
-            {payer === ledger.me
-              ? 'You'
-              : ledger.members.find((member) => member.id === payer)?.name}
+            {memberLabel(ledger, payer)}
             <Icon name="expand_more" className="text-lg!" />
           </span>
           <select

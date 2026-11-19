@@ -239,13 +239,13 @@ describe('a group', () => {
     click('Mark paid');
     go(`/g/${groupId}`);
 
-    fireEvent.click(await screen.findByRole('link', { name: /Ben paid Ana/ }));
+    fireEvent.click(await screen.findByRole('link', { name: /Ben paid you/ }));
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     type('Amount', '4');
     click('Save');
     expect(await screen.findByText("you're owed $6.00")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('link', { name: /Ben paid Ana/ }));
+    fireEvent.click(screen.getByRole('link', { name: /Ben paid you/ }));
     click('Delete payment');
     expect(await screen.findByText("you're owed $10.00")).toBeInTheDocument();
   });

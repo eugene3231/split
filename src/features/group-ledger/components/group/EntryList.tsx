@@ -1,7 +1,7 @@
 import type { LocalDate, PostedEntry } from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { dateLabel } from '@features/group-ledger/logic/dates';
-import { describeMyShare, memberName } from '@features/group-ledger/logic/describe';
+import { describeMyShare, memberLabel, transferTitle } from '@features/group-ledger/logic/describe';
 import { DIRECTION_TEXT } from '@features/group-ledger/components/ui/classes';
 import { todayLocalDate } from '@features/group-ledger/logic/ids';
 import { totalCents } from '@features/group-ledger/logic/post';
@@ -51,7 +51,7 @@ function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
     />
   );
   if (entry.kind === 'transfer') {
-    title = `${memberName(ledger, entry.from)} paid ${memberName(ledger, entry.to)}`;
+    title = transferTitle(ledger, entry);
     detail = formatCurrencyFromCents(entry.cents, ledger.currency);
     avatar = (
       <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
@@ -64,7 +64,7 @@ function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
     const amount = formatCurrencyFromCents(totalCents(entry), entry.currency);
     detail =
       payers === 0
-        ? `${memberName(ledger, entry.payment.payer)} paid ${amount}`
+        ? `${memberLabel(ledger, entry.payment.payer)} paid ${amount}`
         : `${payers + 1} people paid ${amount}`;
   }
 

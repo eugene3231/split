@@ -2,7 +2,12 @@ import { useState } from 'react';
 import type { Transfer } from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { useDataUrl } from '@features/group-ledger/hooks/useDataUrl';
-import { describeSettleUp, memberName } from '@features/group-ledger/logic/describe';
+import {
+  describeSettleUp,
+  memberName,
+  transferTitle,
+  transferWords,
+} from '@features/group-ledger/logic/describe';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { Button } from '@features/group-ledger/components/ui/Button';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
@@ -81,12 +86,11 @@ function TransferCard({ group, transfer }: { group: MyGroup; transfer: Transfer 
   const payee = ledger.members.find((member) => member.id === transfer.to);
   const mobile = ledger.currency === 'SGD' ? (payee?.paynowMobile ?? null) : null;
   const amount = formatCurrencyFromCents(transfer.cents, ledger.currency);
-  const from = transfer.from === ledger.me ? 'You' : memberName(ledger, transfer.from);
-  const to = transfer.to === ledger.me ? 'you' : memberName(ledger, transfer.to);
+  const words = transferWords(ledger, transfer, 'due');
   const mine = transfer.from === ledger.me || transfer.to === ledger.me;
   const qr = useDataUrl(showQr && mobile ? `${mobile}:${transfer.cents}` : null, async () => {
     const urls = await generatePaynowQrDataUrls(
-      [{ id: transfer.from, name: from }],
+      [{ id: transfer.from, name: memberName(ledger, transfer.from) }],
       { [transfer.from]: transfer.cents },
       mobile ?? '',
       180,
@@ -96,7 +100,7 @@ function TransferCard({ group, transfer }: { group: MyGroup; transfer: Transfer 
 
   const markPaid = () => {
     const paid = act.markPaid(transfer);
-    showToast(`${from} paid ${to} ${amount}`, {
+    showToast(`${transferTitle(ledger, transfer)} ${amount}`, {
       label: 'Undo',
       run: () => act.removeEntry(paid.entryId, paid.rev),
     });
@@ -111,8 +115,8 @@ function TransferCard({ group, transfer }: { group: MyGroup; transfer: Transfer 
           <MemberAvatar ledger={ledger} memberId={transfer.to} />
         </div>
         <p className="min-w-0 flex-1 text-sm leading-snug">
-          <span className="font-semibold">{from}</span> {from === 'You' ? 'pay' : 'pays'}{' '}
-          <span className="font-semibold">{to}</span>
+          <span className="font-semibold">{words.from}</span> {words.verb}{' '}
+          <span className="font-semibold">{words.to}</span>
         </p>
         <p className="shrink-0 font-headline text-xl font-bold tabular-nums">{amount}</p>
       </div>
@@ -138,7 +142,7 @@ function TransferCard({ group, transfer }: { group: MyGroup; transfer: Transfer 
           {qr ? (
             <img
               src={qr}
-              alt={`PayNow QR to pay ${to} ${amount}`}
+              alt={`PayNow QR to pay ${words.to} ${amount}`}
               className="max-h-[180px] max-w-full"
             />
           ) : (
