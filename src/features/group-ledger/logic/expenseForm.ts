@@ -92,15 +92,29 @@ export function draftFromEntry(entry: ExpenseEntry): ExpenseDraft {
   };
 }
 
-/** The rate to prefill when the expense's currency changes: group units per unit of `currency`. */
+/**
+ * Group-currency units per one unit of `currency`, from rates kept against the base currency. A
+ * rate typed on a receipt (`override`, base units per unit) wins over the live one.
+ */
+export function groupRate(
+  currency: CurrencyCode,
+  groupCurrency: CurrencyCode,
+  rates: Record<string, number>,
+  override: number | null = null,
+): number {
+  if (currency === groupCurrency) return 1;
+  const inBase = (code: CurrencyCode) => rates[code] ?? currencyInfo(code).fallbackRate;
+  const own = override !== null && override > 0 ? override : inBase(currency);
+  return own / inBase(groupCurrency);
+}
+
+/** The rate to prefill when the expense's currency changes. */
 export function rateInput(
   currency: CurrencyCode,
   groupCurrency: CurrencyCode,
   rates: Record<string, number>,
 ): string {
-  if (currency === groupCurrency) return '1';
-  const inBase = (code: CurrencyCode) => rates[code] ?? currencyInfo(code).fallbackRate;
-  return formatExchangeRate(inBase(currency) / inBase(groupCurrency));
+  return formatExchangeRate(groupRate(currency, groupCurrency, rates));
 }
 
 /** What the typed amounts still need to reach the total: positive is short, negative is over. */
@@ -191,4 +205,51 @@ function sumTyped(amounts: Record<MemberId, string>): Cents {
 
 function mapValues<T, U>(record: Record<MemberId, T>, map: (value: T) => U): Record<MemberId, U> {
   return Object.fromEntries(memberIdsOf(record).map((id) => [id, map(record[id])]));
+}
+
+/** Members the form offers: everyone not archived, and anyone archived the draft already names. */
+export function formMembers(members: Member[], draft: ExpenseDraft): Member[] {
+  const named = new Set<MemberId>([
+    ...(draft.paidBy.kind === 'one' ? [draft.paidBy.payer] : memberIdsOf(draft.paidBy.amounts)),
+    ...(draft.splitBy.kind === 'evenly'
+      ? draft.splitBy.between
+      : memberIdsOf(
+          draft.splitBy.kind === 'shares' ? draft.splitBy.weights : draft.splitBy.amounts,
+        )),
+  ]);
+  return members.filter((member) => !member.archived || named.has(member.id));
+}
+
+/** Moves the split to another kind, keeping who is in it. */
+export function changeSplitKind(splitBy: SplitBy, kind: SplitBy['kind']): SplitBy {
+  if (splitBy.kind === kind) return splitBy;
+  const included =
+    splitBy.kind === 'evenly'
+      ? splitBy.between
+      : splitBy.kind === 'shares'
+        ? memberIdsOf(splitBy.weights).filter((id) => splitBy.weights[id] > 0)
+        : memberIdsOf(splitBy.amounts).filter((id) => toCents(splitBy.amounts[id]) > 0);
+  switch (kind) {
+    case 'evenly':
+      return { kind, between: included };
+    case 'shares':
+      return { kind, weights: Object.fromEntries(included.map((id) => [id, 1])) };
+    case 'amounts':
+      return { kind, amounts: Object.fromEntries(included.map((id) => [id, ''])) };
+  }
+}
+
+/** Between one payer and several: the payer keeps the whole amount, or whoever paid most pays. */
+export function changePaidBy(draft: ExpenseDraft, several: boolean): PaidBy {
+  const { paidBy: paid } = draft;
+  if (several && paid.kind === 'one') {
+    return { kind: 'several', amounts: { [paid.payer]: draft.amount } };
+  }
+  if (!several && paid.kind === 'several') {
+    const [top] = memberIdsOf(paid.amounts).sort(
+      (a, b) => toCents(paid.amounts[b]) - toCents(paid.amounts[a]),
+    );
+    if (top !== undefined) return { kind: 'one', payer: top };
+  }
+  return paid;
 }

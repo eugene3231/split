@@ -152,16 +152,25 @@ describe('balance wording', () => {
     const ledger = fold(logOf(created, put(makeMember(ana)), put(makeMember(ben))));
     const usd = makeExpense('usd', { [ana]: 1000, [ben]: 1000 }, { currency: 'USD', rate: 1.5 });
 
-    expect(describeMyShare(usd, ledger, ana).text).toBe('you lent $15.00');
-    expect(describeMyShare(usd, ledger, ben).text).toBe('you owe $15.00');
-    expect(describeMyShare(usd, ledger, cat).text).toBe('not involved');
+    const transfer = makeTransfer('t', ben, ana, 500);
+    expect(describeMyShare(usd, ledger, ana)).toEqual({
+      direction: 'owed',
+      label: 'you lent',
+      amount: '$15.00',
+    });
+    expect(describeMyShare(usd, ledger, ben)).toEqual({
+      direction: 'owes',
+      label: 'you owe',
+      amount: '$15.00',
+    });
+    expect(describeMyShare(usd, ledger, cat)).toEqual({
+      direction: 'even',
+      label: 'not involved',
+      amount: null,
+    });
     expect(describeMyShare(usd, ledger, null).direction).toBe('even');
-    expect(describeMyShare(makeTransfer('t', ben, ana, 500), ledger, ben).text).toBe(
-      'you paid $5.00',
-    );
-    expect(describeMyShare(makeTransfer('t', ben, ana, 500), ledger, ana).text).toBe(
-      'you got $5.00',
-    );
+    expect(describeMyShare(transfer, ledger, ben).label).toBe('you paid');
+    expect(describeMyShare(transfer, ledger, ana).label).toBe('you got');
   });
 
   it('writes the settle-up list for a chat', () => {

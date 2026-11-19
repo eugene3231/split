@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import type {
   Cents,
   GroupId,
+  InviteCode,
   Ledger,
   MemberId,
   Transfer,
@@ -22,6 +23,8 @@ import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsSt
 export interface ReadyGroup {
   status: 'ready';
   ledger: Ledger;
+  /** Opens the group; the invite link carries it. */
+  inviteCode: InviteCode;
   /** Group cents per member: positive is owed money. */
   balances: Record<MemberId, Cents>;
   /** The fewest payments that settle everyone. */
@@ -79,6 +82,7 @@ export function useGroup(groupId: GroupId): GroupView {
   return {
     status: 'ready',
     ledger,
+    inviteCode: snapshot.log.inviteCode,
     balances,
     transfers: settleUp(balances),
     sync: snapshot.sync,

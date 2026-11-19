@@ -28,9 +28,18 @@ function currentRoute(): Route {
   return snapshot.route;
 }
 
-export function navigate(route: Route, options: { replace?: boolean } = {}): void {
-  if (options.replace) window.history.replaceState(null, '', href(route));
-  else window.history.pushState(null, '', href(route));
+interface NavigateOptions {
+  replace?: boolean;
+  /** Kept with the history entry, for the screen to read once, such as a sheet to open. */
+  state?: unknown;
+}
+
+export function navigate(
+  route: Route,
+  { replace = false, state = null }: NavigateOptions = {},
+): void {
+  if (replace) window.history.replaceState(state, '', href(route));
+  else window.history.pushState(state, '', href(route));
   notify();
 }
 

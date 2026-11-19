@@ -31,6 +31,12 @@ describe('useRoute', () => {
     expect(window.location.pathname).toBe('/split');
   });
 
+  it('keeps the state it was given with the new entry', () => {
+    act(() => navigate({ kind: 'home' }, { state: 'open-invite' }));
+
+    expect(window.history.state).toBe('open-invite');
+  });
+
   it('reads a join code from the hash as it changes', () => {
     const { result } = renderHook(() => useRoute());
 

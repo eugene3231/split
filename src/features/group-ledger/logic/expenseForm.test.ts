@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   amountsLeft,
   blankDraft,
+  changePaidBy,
+  changeSplitKind,
   checkExpense,
   draftFromEntry,
+  formMembers,
+  groupRate,
   rateInput,
   type ExpenseDraft,
 } from './expenseForm';
@@ -169,8 +173,59 @@ describe('rateInput', () => {
   });
 });
 
+describe('groupRate', () => {
+  it('lets a rate typed on a receipt win over the live one', () => {
+    expect(groupRate('USD', 'SGD', { USD: 1.35, SGD: 1 }, 1.4)).toBe(1.4);
+    expect(groupRate('USD', 'EUR', { USD: 1.35, EUR: 1.5, SGD: 1 })).toBe(0.9);
+    expect(groupRate('USD', 'USD', {}, 9)).toBe(1);
+  });
+});
+
 describe('amountsLeft', () => {
   it('counts blank and unreadable amounts as nothing', () => {
     expect(amountsLeft('20', { [ana]: '5', [ben]: '', [cat]: 'abc' })).toBe(1500);
+  });
+});
+
+describe('changing how the form splits', () => {
+  it('keeps who is in the split when moving between kinds', () => {
+    const evenly = { kind: 'evenly' as const, between: [ana, ben] };
+
+    const shares = changeSplitKind(evenly, 'shares');
+    expect(shares).toEqual({ kind: 'shares', weights: { [ana]: 1, [ben]: 1 } });
+    expect(changeSplitKind(evenly, 'amounts')).toEqual({
+      kind: 'amounts',
+      amounts: { [ana]: '', [ben]: '' },
+    });
+    expect(changeSplitKind({ kind: 'shares', weights: { [ana]: 2, [ben]: 0 } }, 'evenly')).toEqual({
+      kind: 'evenly',
+      between: [ana],
+    });
+    expect(
+      changeSplitKind({ kind: 'amounts', amounts: { [ben]: '4', [ana]: '' } }, 'evenly'),
+    ).toEqual({ kind: 'evenly', between: [ben] });
+    expect(changeSplitKind(evenly, 'evenly')).toBe(evenly);
+  });
+
+  it('hands the whole amount to the one payer when several paid, and back to whoever paid most', () => {
+    const several = changePaidBy(draft(), true);
+    expect(several).toEqual({ kind: 'several', amounts: { [ana]: '30' } });
+
+    expect(
+      changePaidBy(
+        draft({ paidBy: { kind: 'several', amounts: { [ana]: '5', [ben]: '25' } } }),
+        false,
+      ),
+    ).toEqual({ kind: 'one', payer: ben });
+    expect(changePaidBy(draft(), false)).toEqual({ kind: 'one', payer: ana });
+  });
+
+  it('offers archived members only when the draft already names them', () => {
+    expect(formMembers(members, draft()).map((member) => member.id)).toEqual([ana, ben]);
+    expect(
+      formMembers(members, draft({ splitBy: { kind: 'evenly', between: [cat] } })).map(
+        (member) => member.id,
+      ),
+    ).toEqual([ana, ben, cat]);
   });
 });

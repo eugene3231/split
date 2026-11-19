@@ -103,17 +103,26 @@ export function describeBalance(cents: Cents, currency: CurrencyCode): Worded {
   return { direction, text };
 }
 
-/** What an entry did to this phone's member: "you lent $9.00", "you owe $9.00", or not involved. */
-export function describeMyShare(entry: Entry, ledger: Ledger, me: MemberId | null): Worded {
+export interface ShareWords {
+  direction: Direction;
+  /** "you lent", "you owe", or "not involved". */
+  label: string;
+  /** Null when not involved. */
+  amount: string | null;
+}
+
+/** What an entry did to this phone's member, in group currency: "you lent" $9.00. */
+export function describeMyShare(entry: Entry, ledger: Ledger, me: MemberId | null): ShareWords {
   const cents = me === null ? 0 : (entryEffect(entry, ledger.aliases)[me] ?? 0);
-  const amount = formatCurrencyFromCents(Math.abs(cents), ledger.currency);
   const direction = directionOf(cents);
-  const text = {
-    owed: entry.kind === 'transfer' ? `you paid ${amount}` : `you lent ${amount}`,
-    owes: entry.kind === 'transfer' ? `you got ${amount}` : `you owe ${amount}`,
+  const transfer = entry.kind === 'transfer';
+  const label = {
+    owed: transfer ? 'you paid' : 'you lent',
+    owes: transfer ? 'you got' : 'you owe',
     even: 'not involved',
   }[direction];
-  return { direction, text };
+  const amount = cents === 0 ? null : formatCurrencyFromCents(Math.abs(cents), ledger.currency);
+  return { direction, label, amount };
 }
 
 /** "Ben pays Ana $42.10". */
