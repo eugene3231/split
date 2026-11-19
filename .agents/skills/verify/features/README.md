@@ -4,7 +4,7 @@ This directory is the maintained source for verifying what a Split user can do. 
 
 ## Baseline preconditions
 
-- Launch with `.agents/skills/verify/scripts/verify.mjs launch` and require `ready: <url>`.
+- Launch with `.agents/skills/verify/scripts/verify.mjs launch` and require `ready: head <url>`.
 - Run `.agents/skills/verify/scripts/verify.mjs doctor` and require exit 0.
 - Every `run` opens a fresh browser context, so a journey starts with no people, one empty receipt, and the People step showing.
 - Never drive a dev server this kit did not launch.
