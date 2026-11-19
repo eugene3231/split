@@ -23,7 +23,9 @@ import type {
 // Ops come from other phones, other versions of Split and this phone's storage. These schemas
 // are the one place that turns such a payload into the domain types. They are strict: a change
 // that does not fit is unreadable as a whole, never repaired field by field, because a repaired
-// entry would be an entry nobody wrote.
+// entry would be an entry nobody wrote. They check the rules domain/types.ts states and no
+// others: a schema stricter than `postWeights`, `postAmounts` or `postReceipt` would make this
+// phone unable to read back a change it wrote itself.
 
 function brandedId<Id extends string>() {
   return z
@@ -79,7 +81,7 @@ const itemSchema: z.ZodType<EditableItem> = z.object({
   amountInput: z.string(),
   discountPercentInput: z.string(),
   assignment: z.object({
-    shares: z.record(z.string().min(1), z.number().positive()),
+    shares: z.record(z.string().min(1), z.number().nonnegative()),
     unassignedShare: z.number().nonnegative(),
   }),
 });
@@ -98,7 +100,7 @@ const receiptSchema: z.ZodType<StoredReceipt> = z.object({
 });
 
 const basisSchema: z.ZodType<ExpenseBasis> = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('weights'), weights: byMember(z.number().positive()) }),
+  z.object({ kind: z.literal('weights'), weights: byMember(z.number().nonnegative()) }),
   z.object({ kind: z.literal('amounts') }),
   z.object({ kind: z.literal('receipt'), receipt: receiptSchema }),
 ]);
@@ -123,7 +125,7 @@ const transferSchema = z.object({
   date: localDate,
   from: memberId,
   to: memberId,
-  cents: cents.positive(),
+  cents: cents.nonnegative(),
 });
 
 const entrySchema: z.ZodType<Entry> = z.discriminatedUnion('kind', [expenseSchema, transferSchema]);
