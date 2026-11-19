@@ -242,8 +242,14 @@ function createFakeServer(store: ServerStore): FakeServer {
     joinGroup: (caller, inviteCode) =>
       store.transact((state) => joinGroup(state, caller, inviteCode)),
     async appendOps(caller, groupId, ops) {
-      const reply = await store.transact((state) => appendOps(state, caller, groupId, ops));
-      if (reply.ok) store.announce(groupId);
+      let inserted = false;
+      const reply = await store.transact((state) => {
+        const step = appendOps(state, caller, groupId, ops);
+        inserted = step.state.groups[groupId]?.head !== state.groups[groupId]?.head;
+        return step;
+      });
+      // Like Realtime, which reports inserts: a push that only repeated old ops is silent.
+      if (inserted) store.announce(groupId);
       return reply;
     },
     opsAfter: (caller, groupId, afterSeq, limit) =>
