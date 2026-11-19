@@ -20,7 +20,7 @@ export function AddSheet({ groupId, open, onOpenChange }: AddSheetProps) {
           body="An amount, who paid, who it's for."
         />
         <AddChoice
-          to={{ kind: 'receipt', groupId }}
+          to={{ kind: 'newReceipt', groupId }}
           icon="receipt_long"
           title="Scan a receipt"
           body="Split it item by item."

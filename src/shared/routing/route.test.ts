@@ -12,9 +12,8 @@ const everyRoute: Route[] = [
   { kind: 'join', code: 'k7Qp-x2' },
   { kind: 'group', groupId: 'g1' },
   { kind: 'newExpense', groupId: 'g1' },
-  { kind: 'editExpense', groupId: 'g1', entryId: 'e1' },
-  { kind: 'receipt', groupId: 'g1' },
-  { kind: 'receipt', groupId: 'g1', entryId: 'e1' },
+  { kind: 'newReceipt', groupId: 'g1' },
+  { kind: 'entry', groupId: 'g1', entryId: 'e1' },
   { kind: 'settle', groupId: 'g1' },
   { kind: 'activity', groupId: 'g1' },
 ];
@@ -31,16 +30,15 @@ describe('routes', () => {
       '/join#k7Qp-x2',
       '/g/g1',
       '/g/g1/new',
-      '/g/g1/e/e1',
       '/g/g1/receipt',
-      '/g/g1/receipt/e1',
+      '/g/g1/e/e1',
       '/g/g1/settle',
       '/g/g1/activity',
     ]);
   });
 
   it('keeps ids and codes with reserved characters intact', () => {
-    const group: Route = { kind: 'editExpense', groupId: 'a/b c', entryId: 'é#?' };
+    const group: Route = { kind: 'entry', groupId: 'a/b c', entryId: 'é#?' };
     const join: Route = { kind: 'join', code: 'a b#c' };
 
     expect(at(href(group))).toEqual(group);
@@ -61,7 +59,7 @@ describe('routes', () => {
     '/g/g1/unknown',
     '/g/g1/new/e1',
     '/g/g1/e',
-    '/g/g1/receipt/e1/extra',
+    '/g/g1/receipt/e1',
     '/g/%E0%A4%A',
   ])('opens home for %s', (address) => {
     expect(at(address)).toEqual({ kind: 'home' });

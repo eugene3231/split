@@ -4,8 +4,9 @@ export type Route =
   | { kind: 'join'; code: string }
   | { kind: 'group'; groupId: string }
   | { kind: 'newExpense'; groupId: string }
-  | { kind: 'editExpense'; groupId: string; entryId: string }
-  | { kind: 'receipt'; groupId: string; entryId?: string }
+  | { kind: 'newReceipt'; groupId: string }
+  /** An expense, a receipt or a payment, opened in the editor that fits it. */
+  | { kind: 'entry'; groupId: string; entryId: string }
   | { kind: 'settle'; groupId: string }
   | { kind: 'activity'; groupId: string };
 
@@ -31,13 +32,12 @@ export function parseRoute(location: Pick<Location, 'pathname' | 'hash'>): Route
   if (page === undefined) return { kind: 'group', groupId };
   if (entryId === undefined) {
     if (page === 'new') return { kind: 'newExpense', groupId };
-    if (page === 'receipt') return { kind: 'receipt', groupId };
+    if (page === 'receipt') return { kind: 'newReceipt', groupId };
     if (page === 'settle') return { kind: 'settle', groupId };
     if (page === 'activity') return { kind: 'activity', groupId };
     return HOME;
   }
-  if (page === 'e') return { kind: 'editExpense', groupId, entryId };
-  if (page === 'receipt') return { kind: 'receipt', groupId, entryId };
+  if (page === 'e') return { kind: 'entry', groupId, entryId };
   return HOME;
 }
 
@@ -53,12 +53,10 @@ export function href(route: Route): string {
       return groupPath(route.groupId);
     case 'newExpense':
       return groupPath(route.groupId, 'new');
-    case 'editExpense':
+    case 'newReceipt':
+      return groupPath(route.groupId, 'receipt');
+    case 'entry':
       return groupPath(route.groupId, 'e', route.entryId);
-    case 'receipt':
-      return route.entryId === undefined
-        ? groupPath(route.groupId, 'receipt')
-        : groupPath(route.groupId, 'receipt', route.entryId);
     case 'settle':
       return groupPath(route.groupId, 'settle');
     case 'activity':

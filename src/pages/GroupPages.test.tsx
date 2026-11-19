@@ -354,7 +354,6 @@ describe('a group', () => {
     render(<App />);
     go(`/g/${groupId}/e/${entry.id}`);
 
-    await waitFor(() => expect(window.location.pathname).toBe(`/g/${groupId}/receipt/${entry.id}`));
     while (!screen.queryByTestId('save-receipt-to-group')) {
       fireEvent.click(screen.getByTestId('wizard-continue-btn'));
     }
@@ -419,6 +418,27 @@ describe('a group', () => {
     expect(saved.slice(-2).some((change) => change.includes(benny))).toBe(false);
   });
 
+  it('keeps what is typed when someone else changes the entry meanwhile', async () => {
+    const groupId = makeGroup(['Ben']);
+    render(<App />);
+    await addQuickExpense(groupId, '20', 'Lunch');
+    const [posted] = ledgerOf(groupId).entries;
+    if (posted.entry.kind !== 'expense') throw new Error('expected an expense');
+    const lunch = posted.entry;
+    fireEvent.click(screen.getByRole('link', { name: /Lunch/ }));
+    type('What was it for?', 'Team lunch');
+
+    act(() => {
+      groupSyncFor(groupId)?.submit({
+        kind: 'entry.put',
+        entry: { ...lunch, title: 'Brunch' },
+        base: posted.rev,
+      });
+    });
+
+    expect(screen.getByLabelText('What was it for?')).toHaveValue('Team lunch');
+  });
+
   it('cancels a new receipt back to the group', () => {
     const groupId = makeGroup(['Ben']);
     render(<App />);
@@ -429,14 +449,13 @@ describe('a group', () => {
     expect(window.location.pathname).toBe(`/g/${groupId}`);
   });
 
-  it('says so when an expense, a receipt or the group itself is not there', () => {
+  it('says so when an entry or the group itself is not there', () => {
     const groupId = makeGroup(['Ben']);
     render(<App />);
 
     go(`/g/${groupId}/e/nothing`);
-    expect(screen.getByRole('heading', { name: 'This expense is gone' })).toBeInTheDocument();
-    go(`/g/${groupId}/receipt/nothing`);
-    expect(screen.getByRole('heading', { name: 'This receipt is gone' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'This entry is gone' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Japan 2026' })).toBeInTheDocument();
     go(`/g/${newGroupId()}`);
     expect(
       screen.getByRole('heading', { name: "This group isn't on this phone" }),

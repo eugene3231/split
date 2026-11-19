@@ -1,11 +1,5 @@
-import { useEffect, useState } from 'react';
-import type {
-  EntryId,
-  ExpenseEntry,
-  Member,
-  MemberId,
-  OpId,
-} from '@features/group-ledger/domain/types';
+import { useState } from 'react';
+import type { ExpenseEntry, Member, MemberId, OpId } from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { TOO_BIG, entryFits, groupRate } from '@features/group-ledger/logic/expenseForm';
 import { newEntryId, todayLocalDate } from '@features/group-ledger/logic/ids';
@@ -13,7 +7,6 @@ import { postReceipt } from '@features/group-ledger/logic/post';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { actionBarButtonClass } from '@features/group-ledger/components/ui/classes';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
-import { StateScreen } from '@features/group-ledger/components/ui/StateScreen';
 import {
   ReceiptEditor,
   discardReceiptDraft,
@@ -22,42 +15,12 @@ import {
 } from '@features/split-workspace';
 import { navigate } from '@shared/routing';
 
-interface GroupReceiptScreenProps {
-  group: MyGroup;
-  entryId?: EntryId;
-}
-
-export function GroupReceiptScreen({ group, entryId }: GroupReceiptScreenProps) {
-  const { ledger } = group;
-  const groupId = ledger.groupId;
-  const live = entryId && ledger.entries.find((posted) => posted.entry.id === entryId);
-  const [opened] = useState(() =>
-    live && live.entry.kind === 'expense' ? { entry: live.entry, rev: live.rev } : null,
-  );
-  const notReceipt = opened !== null && opened.entry.basis.kind !== 'receipt';
-
-  useEffect(() => {
-    if (notReceipt && entryId)
-      navigate({ kind: 'editExpense', groupId, entryId }, { replace: true });
-  }, [notReceipt, groupId, entryId]);
-
-  if (entryId !== undefined && opened === null) {
-    return (
-      <StateScreen icon="search_off" title="This receipt is gone">
-        Someone deleted it, maybe on another phone.
-      </StateScreen>
-    );
-  }
-  if (notReceipt) return null;
-  return <ReceiptForGroup group={group} editing={opened} />;
-}
-
-interface ReceiptForGroupProps {
+interface GroupReceiptEditorProps {
   group: MyGroup;
   editing: { entry: ExpenseEntry; rev: OpId } | null;
 }
 
-function ReceiptForGroup({ group, editing }: ReceiptForGroupProps) {
+export function GroupReceiptEditor({ group, editing }: GroupReceiptEditorProps) {
   const { ledger } = group;
   const holders = new Set(editing ? Object.keys(editing.entry.owed) : []);
   const members = ledger.members.filter((member) => !member.archived || holders.has(member.id));

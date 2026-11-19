@@ -7,7 +7,7 @@ import { todayLocalDate } from '@features/group-ledger/logic/ids';
 import { totalCents } from '@features/group-ledger/logic/post';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
-import { Link, type Route } from '@shared/routing';
+import { Link } from '@shared/routing';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { cn } from '@shared/utils/cn';
 
@@ -42,7 +42,6 @@ function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
   const groupId = ledger.groupId;
   const share = describeMyShare(entry, ledger);
 
-  let to: Route;
   let title: string;
   let detail: string;
   let avatar = (
@@ -52,7 +51,6 @@ function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
     />
   );
   if (entry.kind === 'transfer') {
-    to = { kind: 'editExpense', groupId, entryId: entry.id };
     title = `${memberName(ledger, entry.from)} paid ${memberName(ledger, entry.to)}`;
     detail = formatCurrencyFromCents(entry.cents, ledger.currency);
     avatar = (
@@ -61,10 +59,6 @@ function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
       </span>
     );
   } else {
-    to =
-      entry.basis.kind === 'receipt'
-        ? { kind: 'receipt', groupId, entryId: entry.id }
-        : { kind: 'editExpense', groupId, entryId: entry.id };
     title = entry.title || 'Untitled expense';
     const payers = Object.keys(entry.payment.others).length;
     const amount = formatCurrencyFromCents(totalCents(entry), entry.currency);
@@ -76,7 +70,7 @@ function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
 
   return (
     <Link
-      to={to}
+      to={{ kind: 'entry', groupId, entryId: entry.id }}
       className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface-container-low"
     >
       {avatar}

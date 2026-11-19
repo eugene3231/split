@@ -33,7 +33,7 @@ describe('App', () => {
   });
 
   it('routes a group address to its screen, and home again', () => {
-    window.history.replaceState(null, '', '/g/g1/receipt/e1');
+    window.history.replaceState(null, '', '/g/g1/e/e1');
     render(<App />);
 
     expect(
