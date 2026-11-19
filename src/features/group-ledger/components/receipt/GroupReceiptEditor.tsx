@@ -9,13 +9,9 @@ import { showToast } from '@features/group-ledger/stores/toastStore';
 import { actionBarButtonClass } from '@features/group-ledger/components/ui/classes';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
 import { PillSelect } from '@features/group-ledger/components/ui/PillSelect';
-import {
-  ReceiptEditor,
-  discardReceiptDraft,
-  useCurrencyStore,
-  type SavedReceipt,
-} from '@features/split-workspace';
+import { ReceiptEditor, useCurrencyStore, type SavedReceipt } from '@features/split-workspace';
 import { navigate } from '@shared/routing';
+import { discardGroupReceiptDraft, receiptDraftBase } from './receiptDraftBase';
 
 const initialReceipt = (entry: ExpenseEntry) =>
   entry.basis.kind === 'receipt' ? entry.basis.receipt : undefined;
@@ -32,6 +28,7 @@ export function GroupReceiptEditor({ group, editing }: GroupReceiptEditorProps) 
   const draftKey = `group:${ledger.groupId}:receipt:${editing?.entry.id ?? 'new'}`;
   const back = () => navigate({ kind: 'group', groupId: ledger.groupId });
   const initial = editing ? initialReceipt(editing.entry) : undefined;
+  const [base] = useState(() => editing && receiptDraftBase(draftKey, editing.rev));
 
   return (
     <ReceiptEditor
@@ -44,6 +41,7 @@ export function GroupReceiptEditor({ group, editing }: GroupReceiptEditorProps) 
           group={group}
           members={members}
           editing={editing}
+          base={base}
           receipt={receipt}
           draftKey={draftKey}
         />
@@ -56,11 +54,13 @@ interface SaveToGroupProps {
   group: MyGroup;
   members: Member[];
   editing: { entry: ExpenseEntry; rev: OpId } | null;
+  /** The revision the draft began on; null for a new receipt. */
+  base: OpId | null;
   receipt: SavedReceipt;
   draftKey: string;
 }
 
-function SaveToGroup({ group, members, editing, receipt, draftKey }: SaveToGroupProps) {
+function SaveToGroup({ group, members, editing, base, receipt, draftKey }: SaveToGroupProps) {
   const { ledger, act } = group;
   const rates = useCurrencyStore((state) => state.exchangeRates);
   const [entryId] = useState(() => editing?.entry.id ?? newEntryId());
@@ -92,9 +92,9 @@ function SaveToGroup({ group, members, editing, receipt, draftKey }: SaveToGroup
 
   const save = () => {
     if (entry === null || !fits) return;
-    if (editing) act.editEntry(entry, editing.rev);
+    if (base !== null) act.editEntry(entry, base);
     else act.addExpense(entry);
-    discardReceiptDraft(draftKey);
+    discardGroupReceiptDraft(draftKey);
     navigate({ kind: 'group', groupId: ledger.groupId });
     showToast(`${editing ? 'Saved' : 'Added'} ${entry.title}`);
   };
