@@ -2,11 +2,49 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
+
+// --color-surface in src/index.css
+const surfaceColor = '#f4f5f7';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'prompt',
+      includeManifestIcons: false,
+      injectRegister: false,
+      manifest: {
+        id: '/',
+        name: 'Split',
+        short_name: 'Split',
+        description: 'Split a bill with friends.',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        theme_color: surfaceColor,
+        background_color: surfaceColor,
+        icons: [
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          {
+            src: 'maskable-icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@shared': path.resolve(import.meta.dirname, 'src/shared'),
