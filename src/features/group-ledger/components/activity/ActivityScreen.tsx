@@ -51,46 +51,50 @@ function ActivityRow({
   };
 
   return (
-    <div className={cn('flex gap-3 px-4 py-3', replaced && 'bg-warning-container/70')}>
-      {activity.by === null ? (
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
-          <Icon name="person" className="text-lg!" />
-        </span>
-      ) : (
-        <MemberAvatar ledger={ledger} memberId={activity.by} size="sm" />
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="text-sm leading-snug text-on-surface">{describeActivity(activity, ledger)}</p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-on-surface-variant">
-          {timeAgo(activity.at, now)}
-          {activity.pending && (
-            <span className="inline-flex items-center gap-0.5">
-              <Icon name="cloud_upload" className="text-sm!" />
-              On this phone only
-            </span>
-          )}
-        </p>
-        {replaced && (
-          <div className="mt-2 rounded-xl bg-surface-container-lowest/80 p-3 text-sm text-on-warning-container">
-            <p>Replaced a change made at the same time: {describeEntry(replaced, ledger)}.</p>
-            <Button variant="secondary" className="mt-2 h-9 w-full" onClick={restoreOther}>
-              Restore the other version
-            </Button>
-          </div>
+    <div className={cn('px-4 py-3', replaced && 'bg-warning-container/70')}>
+      <div className="flex gap-3">
+        {activity.by === null ? (
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+            <Icon name="person" className="text-lg!" />
+          </span>
+        ) : (
+          <MemberAvatar ledger={ledger} memberId={activity.by} size="sm" />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm leading-snug text-on-surface">
+            {describeActivity(activity, ledger)}
+          </p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-on-surface-variant">
+            {timeAgo(activity.at, now)}
+            {activity.pending && (
+              <span className="inline-flex items-center gap-0.5">
+                <Icon name="cloud_upload" className="text-sm!" />
+                On this phone only
+              </span>
+            )}
+          </p>
+        </div>
+        {undo && (
+          <Button
+            variant="ghost"
+            className="h-9 shrink-0 px-3"
+            aria-label={`Undo: ${describeActivity(activity, ledger)}`}
+            onClick={() => {
+              act.undo(activity);
+              showToast('Undone');
+            }}
+          >
+            Undo
+          </Button>
         )}
       </div>
-      {undo && (
-        <Button
-          variant="ghost"
-          className="h-9 shrink-0 px-3"
-          aria-label={`Undo: ${describeActivity(activity, ledger)}`}
-          onClick={() => {
-            act.undo(activity);
-            showToast('Undone');
-          }}
-        >
-          Undo
-        </Button>
+      {replaced && (
+        <div className="mt-2 ml-11 rounded-xl bg-surface-container-lowest/80 p-3 text-sm text-on-warning-container">
+          <p>Replaced a change made at the same time: {describeEntry(replaced, ledger)}.</p>
+          <Button variant="secondary" className="mt-2 h-9 w-full" onClick={restoreOther}>
+            Restore the other version
+          </Button>
+        </div>
       )}
     </div>
   );
