@@ -1,213 +1,49 @@
 import { useState } from 'react';
-import { useShallow } from 'zustand/shallow';
-import {
-  selectActiveReceipt,
-  useReceiptStore,
-} from '@features/split-workspace/stores/receiptStore';
-import { useSplits } from '@features/split-workspace/hooks/useSplits';
-import { useWizard } from '@features/split-workspace/hooks/useWizard';
-import { useSlideDirection } from '@features/split-workspace/hooks/useSlideDirection';
+import { useWorkspaceWizard } from '@features/split-workspace/hooks/useWizard';
 import { useReceiptSplitterController } from '@features/split-workspace/hooks/useReceiptSplitterController';
-import { useAllAssignedMoment } from '@features/split-workspace/hooks/useAllAssignedMoment';
-import { countItems, countItemsLeft, firstName } from '@features/split-workspace/logic/claim';
-import { computeReceiptTotals } from '@features/split-workspace/logic/reconciliation';
-import { TopAppBar } from '@features/split-workspace/components/TopAppBar';
+import { WizardLayout } from '@features/split-workspace/components/WizardLayout';
 import { WorkspaceMenu } from '@features/split-workspace/components/WorkspaceMenu';
-import { BottomNav, BottomNavStatus } from '@features/split-workspace/components/BottomNav';
 import { AppFooter } from '@features/split-workspace/components/AppFooter';
-import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
-import { ClaimStatusReel } from '@features/split-workspace/components/ClaimStatusReel';
-import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
+import { withScrollToTop } from '@features/split-workspace/components/shared/scrollToTop';
 import { PeopleStep } from '@features/split-workspace/components/steps/PeopleStep/PeopleStep';
 import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptStep/ReceiptStep';
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
-import { SplitLeftoversDialog } from '@features/split-workspace/components/steps/AssignStep/SplitLeftoversDialog';
 import { SummaryStep } from '@features/split-workspace/summary/SummaryStep';
-import { formatCurrencyFromCents } from '@shared/logic/core/money';
-import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
-import type { Person } from '@shared/types';
-import { WIZARD_STEPS, type AssignMode, type WizardStep } from '@features/split-workspace/types';
 
+/** The quick split: everyone, every receipt, and a summary to save or share. */
 export function Workspace() {
   useReceiptSplitterController();
   const [finalActionSlot, setFinalActionSlot] = useState<HTMLDivElement | null>(null);
-
-  const { people, receipts } = useReceiptStore(
-    useShallow((state) => ({ people: state.people, receipts: state.receipts })),
-  );
-  const activeReceipt = useReceiptStore(selectActiveReceipt);
-  const { consolidated } = useSplits();
-
-  const {
-    activeStep,
-    activePersonId,
-    selectPerson,
-    assignMode,
-    setAssignMode,
-    canContinue,
-    continueLabel,
-    stepReachability,
-    handleNext,
-    handleBack,
-    handleStepSelect,
-    handleAddReceipt,
-    handleResetSplit,
-    handleLoadWorkspace,
-    leftoversToSplit,
-    confirmSplitLeftovers,
-    cancelSplitLeftovers,
-  } = useWizard(activeReceipt.items, people, receipts);
-
-  const activePerson = people.find((person) => person.id === activePersonId);
-  const stepDirection = useSlideDirection(WIZARD_STEPS.indexOf(activeStep));
-
-  const withScrollToTop =
-    <Args extends unknown[]>(action: (...args: Args) => void) =>
-    (...args: Args) => {
-      action(...args);
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    };
+  const wizard = useWorkspaceWizard();
+  const { activeStep } = wizard;
 
   return (
-    <div
-      className="flex min-h-dvh flex-col overflow-x-clip bg-surface font-body text-on-surface"
-      data-testid="workspace"
+    <WizardLayout
+      wizard={wizard}
+      actions={<WorkspaceMenu onLoadWorkspace={withScrollToTop(wizard.handleLoadWorkspace)} />}
+      finalActionRef={setFinalActionSlot}
+      footer={<AppFooter />}
     >
-      <TopAppBar
-        activeStep={activeStep}
-        stepReachability={stepReachability}
-        onStepSelect={withScrollToTop(handleStepSelect)}
-        actions={<WorkspaceMenu onLoadWorkspace={withScrollToTop(handleLoadWorkspace)} />}
-      />
+      {activeStep === 'people' && <PeopleStep />}
 
-      <main className="mx-auto w-full max-w-7xl flex-grow px-6 pt-4 pb-6 md:px-8 md:pt-10 md:pb-10">
-        <SlideIn key={activeStep} direction={stepDirection} data-testid="wizard-step-panel">
-          {activeStep === 'people' && <PeopleStep />}
+      {activeStep === 'receipt' && <ReceiptStep onAddReceipt={wizard.handleAddReceipt} />}
 
-          {activeStep === 'receipt' && <ReceiptStep onAddReceipt={handleAddReceipt} />}
-
-          {activeStep === 'items' && (
-            <AssignStep
-              mode={assignMode}
-              onModeChange={setAssignMode}
-              activePersonId={activePersonId}
-              onSelectPerson={selectPerson}
-            />
-          )}
-
-          {activeStep === 'final' && (
-            <SummaryStep
-              actionSlot={finalActionSlot}
-              onAddReceipt={handleAddReceipt}
-              onResetSplit={withScrollToTop(handleResetSplit)}
-            />
-          )}
-        </SlideIn>
-      </main>
-
-      <BottomNav
-        activeStep={activeStep}
-        continueLabel={continueLabel}
-        canContinue={canContinue}
-        onBack={withScrollToTop(handleBack)}
-        onNext={withScrollToTop(handleNext)}
-        finalActionRef={setFinalActionSlot}
-        status={
-          <WorkspaceNavStatus
-            key={activeStep}
-            itemCount={countItems(receipts)}
-            leftCount={countItemsLeft(receipts, people)}
-            activeStep={activeStep}
-            assignMode={assignMode}
-            activePerson={activePerson}
-            activePersonTotalCents={
-              activePerson ? consolidated.byPerson[activePerson.id].totalCents : 0
-            }
-            receiptTotalCents={computeReceiptTotals(activeReceipt, people).totalCents}
-            receiptCurrency={activeReceipt.currency}
-            peopleCount={people.length}
-          />
-        }
-      />
-
-      {leftoversToSplit && (
-        <SplitLeftoversDialog
-          items={leftoversToSplit}
-          peopleCount={people.length}
-          onCancel={cancelSplitLeftovers}
-          onConfirm={withScrollToTop(confirmSplitLeftovers)}
+      {activeStep === 'items' && (
+        <AssignStep
+          mode={wizard.assignMode}
+          onModeChange={wizard.setAssignMode}
+          activePersonId={wizard.activePersonId}
+          onSelectPerson={wizard.selectPerson}
         />
       )}
 
-      <AppFooter />
-    </div>
+      {activeStep === 'final' && (
+        <SummaryStep
+          actionSlot={finalActionSlot}
+          onAddReceipt={wizard.handleAddReceipt}
+          onResetSplit={withScrollToTop(wizard.handleResetSplit)}
+        />
+      )}
+    </WizardLayout>
   );
-}
-
-interface WorkspaceNavStatusProps {
-  itemCount: number;
-  leftCount: number;
-  activeStep: WizardStep;
-  assignMode: AssignMode;
-  activePerson: Person | undefined;
-  activePersonTotalCents: number;
-  receiptTotalCents: number;
-  receiptCurrency: CurrencyCode;
-  peopleCount: number;
-}
-
-function WorkspaceNavStatus({
-  itemCount,
-  leftCount,
-  activeStep,
-  assignMode,
-  activePerson,
-  activePersonTotalCents,
-  receiptTotalCents,
-  receiptCurrency,
-  peopleCount,
-}: WorkspaceNavStatusProps) {
-  const justFinished = useAllAssignedMoment(leftCount);
-  if (activeStep === 'items' && assignMode === 'item') {
-    return (
-      <ClaimStatusReel
-        label="Assigned"
-        value={`${itemCount - leftCount} of ${itemCount}`}
-        complete={justFinished}
-      />
-    );
-  }
-
-  if (activeStep === 'items' && activePerson) {
-    return (
-      <ClaimStatusReel
-        label={`${firstName(activePerson.name)} owes`}
-        value={<CountUpAmount cents={activePersonTotalCents} currency={BASE_CURRENCY} />}
-        complete={justFinished}
-      />
-    );
-  }
-
-  if (activeStep === 'receipt' && receiptTotalCents > 0) {
-    return (
-      <BottomNavStatus
-        label="Receipt total"
-        value={formatCurrencyFromCents(receiptTotalCents, receiptCurrency)}
-      />
-    );
-  }
-
-  if (activeStep === 'people') {
-    if (peopleCount === 0) {
-      return <p className="truncate text-sm text-white/60">Add someone first</p>;
-    }
-    return (
-      <BottomNavStatus
-        label="Splitting between"
-        value={peopleCount === 1 ? '1 person' : `${peopleCount} people`}
-      />
-    );
-  }
-
-  return null;
 }

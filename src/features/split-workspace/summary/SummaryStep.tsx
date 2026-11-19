@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ReconciliationNotice } from '@features/split-workspace/components/shared/ReconciliationNotice';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
@@ -33,13 +33,22 @@ import type { SummaryDetail } from '@features/split-workspace/summary/breakdown/
 const TOTALS_LIST_MIN_PEOPLE = 5;
 
 export type SummaryStepProps = {
-  /** Where the bottom bar takes the step's primary action, Save image. */
+  /** Where the bottom bar takes the step's primary action. */
   actionSlot?: HTMLDivElement | null;
-  onAddReceipt: () => void;
-  onResetSplit: () => void;
+  /** Takes the bottom bar's place of Save image. */
+  primaryAction?: ReactNode;
+  /** Left out, the summary offers no way to add another receipt. */
+  onAddReceipt?: () => void;
+  /** Left out, the summary offers no way to start over. */
+  onResetSplit?: () => void;
 };
 
-export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryStepProps) {
+export function SummaryStep({
+  actionSlot,
+  primaryAction,
+  onAddReceipt,
+  onResetSplit,
+}: SummaryStepProps) {
   const store = useWorkspaceStoreApi();
   const [activeTab, setActiveTab] = useState<string>(() => {
     const receipts = store.getState().receipts;
@@ -86,7 +95,7 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <SummaryModeToggle mode={mode} onModeChange={setMode} />
-          {receipts.length === 1 && (
+          {receipts.length === 1 && onAddReceipt && (
             <div className="-ml-2 w-full sm:ml-0 sm:w-auto [&>button]:mb-0">
               <AddReceiptButton
                 data-testid="summary-add-receipt-btn"
@@ -136,7 +145,7 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
             onShare={share}
             onPreview={preview}
           />
-          <ResetSplitAction onConfirm={onResetSplit} className="self-center" />
+          {onResetSplit && <ResetSplitAction onConfirm={onResetSplit} className="self-center" />}
         </div>
 
         <div className={cn('min-w-0', showTotalsList ? 'lg:col-span-8' : 'lg:col-span-12')}>
@@ -204,7 +213,7 @@ export function SummaryStep({ actionSlot, onAddReceipt, onResetSplit }: SummaryS
                 view.total.currency,
               )}
             />
-            <SaveImageButton exportState={exportState} onDownload={download} />
+            {primaryAction ?? <SaveImageButton exportState={exportState} onDownload={download} />}
           </>,
           actionSlot,
         )}
