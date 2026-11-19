@@ -4,9 +4,15 @@ import {
   setFakeOffline,
   tabProfile,
 } from '@features/group-ledger/backend/fakeBackend';
+import { supabaseConfig } from '@features/group-ledger/backend/createBackend';
 import { cn } from '@shared/utils/cn';
 
+/** The fake server's phone name and online switch, shown only while no Supabase project is set. */
 export function FakeServerChip() {
+  return supabaseConfig() === null ? <Chip /> : null;
+}
+
+function Chip() {
   const [online, setOnline] = useState(isFakeOnline);
   const [phone] = useState(() => tabProfile().slice(0, 8));
 

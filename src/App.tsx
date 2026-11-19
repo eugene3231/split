@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { useRoute, type Route } from '@shared/routing';
-import { AppOverlays } from '@features/group-ledger';
+import { FakeServerChip, Toaster } from '@features/group-ledger';
 import { ActivityPage } from '@pages/ActivityPage';
 import { EntryPage } from '@pages/EntryPage';
 import { GroupPage } from '@pages/GroupPage';
@@ -39,7 +39,8 @@ function App(): ReactElement {
   return (
     <>
       <Screen route={route} />
-      <AppOverlays groups={route.kind !== 'split'} />
+      <Toaster />
+      {route.kind !== 'split' && <FakeServerChip />}
     </>
   );
 }
