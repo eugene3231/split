@@ -36,6 +36,23 @@ export interface SyncStatus {
   lastSyncedAt: string | null;
   /** Changes the server refused for good and this phone dropped, oldest first. */
   rejected: OpId[];
+  /**
+   * The server failed when it was sent this phone's changes, on the last run. The changes are
+   * kept and sent again on the retry timer, and what others wrote is still read meanwhile.
+   */
+  outboxStuck: boolean;
+}
+
+/** How one run ended. */
+interface RunOutcome {
+  failure: BackendFailure | null;
+  /** The pull reached the head of the log, whatever became of the push. */
+  reachedHead: boolean;
+  outboxStuck: boolean;
+}
+
+function stopped(failure: BackendFailure): RunOutcome {
+  return { failure, reachedHead: false, outboxStuck: false };
 }
 
 export interface GroupSnapshot {
@@ -73,7 +90,13 @@ export function createGroupSync({
   const { groupId, inviteCode } = group;
   const listeners = new Set<() => void>();
 
-  let status: SyncStatus = { state: 'idle', pending: 0, lastSyncedAt: null, rejected: [] };
+  let status: SyncStatus = {
+    state: 'idle',
+    pending: 0,
+    lastSyncedAt: null,
+    rejected: [],
+    outboxStuck: false,
+  };
   let snapshot = snapshotOf(readLog());
   let running: Promise<void> | null = null;
   let requested = false;
@@ -159,11 +182,11 @@ export function createGroupSync({
     return null;
   }
 
-  async function runOnce(): Promise<BackendFailure | null> {
+  async function runOnce(): Promise<RunOutcome> {
     try {
       // The outbox is read after this await, so changes submitted in one go leave as one batch.
       const session = await backend.session();
-      if (!session.ok) return session.failure;
+      if (!session.ok) return stopped(session.failure);
       const { userId } = session.value;
 
       // Covers a group made offline and never published, a phone that signed in to another
@@ -176,26 +199,39 @@ export function createGroupSync({
       }
       if (log.memberAs() !== userId) {
         const failure = await enterAsUser();
-        if (failure !== null) return failure;
+        if (failure !== null) return stopped(failure);
       }
 
-      return (await pushPending(enterAsUser)) ?? (await pullToHead());
+      // A server that fails this phone's changes may still serve the log, and a group that
+      // cannot be read until its own outbox clears would stay stale for as long as that takes.
+      const pushFailure = await pushPending(enterAsUser);
+      if (pushFailure !== null && pushFailure.kind !== 'failed') return stopped(pushFailure);
+      const pullFailure = await pullToHead();
+      return {
+        failure: pushFailure ?? pullFailure,
+        reachedHead: pullFailure === null,
+        outboxStuck: pushFailure !== null,
+      };
     } catch (error) {
-      return { kind: 'failed', message: error instanceof Error ? error.message : String(error) };
+      return stopped({
+        kind: 'failed',
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
-  function settle(failure: BackendFailure | null) {
+  function settle({ failure, reachedHead, outboxStuck }: RunOutcome) {
+    const lastSyncedAt = reachedHead ? now() : status.lastSyncedAt;
     if (failure === null) {
       retryMs = FIRST_RETRY_MS;
-      publish({ state: 'idle', lastSyncedAt: now() });
+      publish({ state: 'idle', lastSyncedAt, outboxStuck });
       return;
     }
     if (failure.kind === 'not-a-member' || failure.kind === 'invite-not-found') {
-      publish({ state: 'not-a-member' });
+      publish({ state: 'not-a-member', outboxStuck });
       return;
     }
-    publish({ state: failure.kind === 'offline' ? 'offline' : 'error' });
+    publish({ state: failure.kind === 'offline' ? 'offline' : 'error', lastSyncedAt, outboxStuck });
     retryTimer = setTimeout(() => void syncNow(), retryMs);
     retryMs = Math.min(retryMs * 2, LAST_RETRY_MS);
   }
@@ -206,11 +242,11 @@ export function createGroupSync({
       if (retryTimer !== null) clearTimeout(retryTimer);
       retryTimer = null;
       publish({ state: 'syncing' });
-      const failure = await runOnce();
+      const outcome = await runOnce();
       if (disposed) return;
-      settle(failure);
+      settle(outcome);
       // After a failure the timer decides when to try again, not whatever asked meanwhile.
-      if (failure !== null) requested = false;
+      if (outcome.failure !== null) requested = false;
     }
   }
 

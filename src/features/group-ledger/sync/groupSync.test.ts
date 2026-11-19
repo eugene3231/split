@@ -347,6 +347,36 @@ describe('group sync', () => {
     expect(ana.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0 });
   });
 
+  it('still reads what others wrote while the server keeps failing its own changes, and says the outbox is stuck', async () => {
+    const server = createMemoryServer();
+    const group = newGroup();
+    const ben = phone(server, 'ben').open(group, true);
+    await ben.syncNow();
+    let pushFails = true;
+    const ana = phone(server, 'ana', (backend) => ({
+      ...backend,
+      push: (groupId, ops) =>
+        pushFails
+          ? Promise.resolve({ ok: false, failure: { kind: 'failed', message: 'boom' } })
+          : backend.push(groupId, ops),
+    })).open(group, false);
+    await ana.syncNow();
+
+    ana.submit(addMember('Ana'));
+    await ana.syncNow();
+    ben.submit(rename('Japan, by Ben'));
+    await ben.syncNow();
+    await ana.syncNow();
+    const whileFailing = ana.getSnapshot();
+    pushFails = false;
+    await ana.syncNow();
+
+    expect(names(whileFailing.log.confirmed)).toEqual(['Japan, by Ben']);
+    expect(whileFailing.sync).toMatchObject({ state: 'error', pending: 1, outboxStuck: true });
+    expect(whileFailing.sync.lastSyncedAt).not.toBeNull();
+    expect(ana.getSnapshot().sync).toMatchObject({ state: 'idle', pending: 0, outboxStuck: false });
+  });
+
   it('reports a backend that throws as an error instead of stopping for good', async () => {
     let throwing = true;
     const ana = phone(createMemoryServer(), 'ana', (backend) => ({
