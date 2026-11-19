@@ -1,11 +1,11 @@
 # Split verification map
 
-This directory is the maintained source for verifying what a Split user can do. Read this index before driving the app, then use the matching feature file as the recipe. The harness is `.claude/skills/verify/scripts/verify.mjs` (see [../SKILL.md](../SKILL.md)).
+This directory is the maintained source for verifying what a Split user can do. Read this index before driving the app, then use the matching feature file as the recipe. The harness is `.agents/skills/verify/scripts/verify.mjs` (see [../SKILL.md](../SKILL.md)).
 
 ## Baseline preconditions
 
-- Launch with `.claude/skills/verify/scripts/verify.mjs launch` and require `ready: <url>`.
-- Run `.claude/skills/verify/scripts/verify.mjs doctor` and require exit 0.
+- Launch with `.agents/skills/verify/scripts/verify.mjs launch` and require `ready: <url>`.
+- Run `.agents/skills/verify/scripts/verify.mjs doctor` and require exit 0.
 - Every `run` opens a fresh browser context, so a journey starts with no people, one empty receipt, and the People step showing.
 - Never drive a dev server this kit did not launch.
 

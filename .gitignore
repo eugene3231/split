@@ -43,5 +43,5 @@ PRD.md
 .worktrees
 .claude/worktrees
 
-# Verification runs (.claude/skills/verify)
+# Verification runs (.agents/skills/verify)
 .verify

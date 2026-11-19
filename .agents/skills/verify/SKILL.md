@@ -5,7 +5,7 @@ description: Drive the Split bill-splitting web app in a real Chromium the way a
 
 # Verify Split
 
-Split is a browser-only React app served by Vite. There is no backend. All state lives in `localStorage`, so every drive runs in a fresh browser context and starts from an empty split. The kit is one script, `.claude/skills/verify/scripts/verify.mjs`, plus journey files in `journeys/`. Run every command from the repo root.
+Split is a browser-only React app served by Vite. There is no backend. All state lives in `localStorage`, so every drive runs in a fresh browser context and starts from an empty split. The kit is one script, `.agents/skills/verify/scripts/verify.mjs`, plus journey files in `journeys/`. Run every command from the repo root. The skill lives in `.agents/skills/verify/` so any harness can read it. `.claude/skills/verify` is a symlink to it, so edit the `.agents/` copy.
 
 The feature map in [features/README.md](features/README.md) lists what users can do and how to drive each one. Read the matching feature file before you drive it.
 
@@ -14,7 +14,7 @@ The feature map in [features/README.md](features/README.md) lists what users can
 ```bash
 pnpm install                                  # once per checkout
 pnpm exec playwright install chromium         # once per machine, a no-op when cached
-.claude/skills/verify/scripts/verify.mjs launch
+.agents/skills/verify/scripts/verify.mjs launch
 ```
 
 `launch` starts Vite on a free port on `127.0.0.1` with `--strictPort`, writes `.verify/instance.json` (pid, port, url, git head), and logs to `.verify/vite.log`. It prints `ready: <url>` only after a headless Chromium loaded the page and found `[data-testid="workspace"]`, so ready means the app rendered, not just that the port answered. If an instance from this checkout is already live, `launch` says so and starts nothing.
@@ -24,7 +24,7 @@ Each checkout gets its own port and its own `.verify/` dir, so two worktrees can
 ## Doctor
 
 ```bash
-.claude/skills/verify/scripts/verify.mjs doctor
+.agents/skills/verify/scripts/verify.mjs doctor
 ```
 
 Read-only, and it needs nothing beyond Node, so it runs on macOS and Linux. Exits 0 when the recorded Vite pid is alive, the server on the recorded port serves this checkout's files through Vite's `/@fs/` route (a Vite started in another checkout answers 403), it serves `index.html`, and it compiles `src/main.tsx`. It also reports whether `HEAD` moved since launch. That line is informational, because Vite serves the working tree and picks up edits without a restart. Run doctor first whenever a drive fails in a way that looks environmental.
@@ -32,7 +32,7 @@ Read-only, and it needs nothing beyond Node, so it runs on macOS and Linux. Exit
 ## Drive
 
 ```bash
-.claude/skills/verify/scripts/verify.mjs run <journey> [--viewport phone|desktop] [--offline] [--headed]
+.agents/skills/verify/scripts/verify.mjs run <journey> [--viewport phone|desktop] [--offline] [--headed]
 ```
 
 `<journey>` is a file name in `journeys/` (with or without `.mjs`) or a path to any `.mjs` file. `phone` is 390x844 and is the default, because the app is mobile-first. `desktop` is 1280x900, which is past the `lg` breakpoint where the summary adds the "Who owes what" list for splits of 5 or more people. `--offline` aborts every request that leaves the app except Google Fonts. Without the fonts, icons render as words such as `more_vert`. With it, exchange rates use the built-in fallback, so two runs see the same rates. Use it for before/after screenshot comparisons. The process exits 0 only if the journey passed with no uncaught page errors.
@@ -92,7 +92,7 @@ Proof standards:
 ## Cleanup
 
 ```bash
-.claude/skills/verify/scripts/verify.mjs cleanup
+.agents/skills/verify/scripts/verify.mjs cleanup
 ```
 
 Stops the Vite process group the kit started (by recorded pid, never by name), then deletes `.verify/instance.json` and `.verify/vite.log`. Evidence in `.verify/evidence/` is kept. `.verify/` is gitignored. Run cleanup after a failed attempt too, so no port stays bound. Browsers close at the end of every `run`, so there is nothing else to stop.
