@@ -3,26 +3,24 @@ import { describe, expect, it } from 'vitest';
 import { useDataUrl } from './useDataUrl';
 
 describe('useDataUrl', () => {
-  it('gives the image made for the current key, and nothing while the next one is made', async () => {
+  it('gives the image drawn for the current key, and loading while the next one is drawn', async () => {
     const { result, rerender } = renderHook(
       ({ key }) => useDataUrl(key, async () => `url:${key}`),
-      {
-        initialProps: { key: 'a' as string | null },
-      },
+      { initialProps: { key: 'a' } },
     );
 
-    await waitFor(() => expect(result.current).toBe('url:a'));
+    expect(result.current).toEqual({ status: 'loading' });
+    await waitFor(() => expect(result.current).toEqual({ status: 'ready', url: 'url:a' }));
     rerender({ key: 'b' });
-    expect(result.current).toBeNull();
-    await waitFor(() => expect(result.current).toBe('url:b'));
-    rerender({ key: null });
-    expect(result.current).toBeNull();
+    expect(result.current).toEqual({ status: 'loading' });
+    await waitFor(() => expect(result.current).toEqual({ status: 'ready', url: 'url:b' }));
   });
 
-  it('stays empty when making the image fails', async () => {
-    const { result } = renderHook(() => useDataUrl('a', () => Promise.reject(new Error('no'))));
+  it('says it failed when drawing throws or gives nothing', async () => {
+    const thrown = renderHook(() => useDataUrl('a', () => Promise.reject(new Error('no'))));
+    const empty = renderHook(() => useDataUrl('a', async () => ''));
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(result.current).toBeNull();
+    await waitFor(() => expect(thrown.result.current).toEqual({ status: 'failed' }));
+    await waitFor(() => expect(empty.result.current).toEqual({ status: 'failed' }));
   });
 });

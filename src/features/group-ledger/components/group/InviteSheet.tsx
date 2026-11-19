@@ -16,9 +16,6 @@ interface InviteSheetProps {
 export function InviteSheet({ group, open, onOpenChange }: InviteSheetProps) {
   const link = `${window.location.origin}${href({ kind: 'join', code: group.inviteCode })}`;
   const [copied, setCopied] = useState(false);
-  const qr = useDataUrl(open ? link : null, () =>
-    QRCode.toDataURL(link, { margin: 1, width: 440, color: { dark: '#1b2130' } }),
-  );
   const canShare = typeof navigator.share === 'function';
 
   const copy = async () => {
@@ -40,15 +37,7 @@ export function InviteSheet({ group, open, onOpenChange }: InviteSheetProps) {
       title="Invite friends"
       description={`Anyone with this link can join ${group.ledger.name}. No account needed.`}
     >
-      <div className="flex justify-center">
-        <div className="flex size-56 items-center justify-center rounded-2xl border border-surface-container-highest bg-white p-3">
-          {qr ? (
-            <img src={qr} alt={`QR code to join ${group.ledger.name}`} className="size-full" />
-          ) : (
-            <Icon name="qr_code_2" className="text-5xl! text-outline" />
-          )}
-        </div>
-      </div>
+      <InviteQr link={link} groupName={group.ledger.name} />
       <p className="mt-4 rounded-xl bg-surface-container px-4 py-3 font-mono text-xs break-all text-on-surface-variant select-all">
         {link}
       </p>
@@ -77,5 +66,26 @@ export function InviteSheet({ group, open, onOpenChange }: InviteSheetProps) {
         )}
       </div>
     </Sheet>
+  );
+}
+
+function InviteQr({ link, groupName }: { link: string; groupName: string }) {
+  const qr = useDataUrl(link, () =>
+    QRCode.toDataURL(link, { margin: 1, width: 440, color: { dark: '#1b2130' } }),
+  );
+  return (
+    <div className="flex justify-center">
+      <div className="flex size-56 items-center justify-center rounded-2xl border border-surface-container-highest bg-white p-3 text-center">
+        {qr.status === 'ready' && (
+          <img src={qr.url} alt={`QR code to join ${groupName}`} className="size-full" />
+        )}
+        {qr.status === 'loading' && <Icon name="qr_code_2" className="text-5xl! text-outline" />}
+        {qr.status === 'failed' && (
+          <p className="text-sm text-on-surface-variant">
+            The QR code didn&apos;t load. Send the link below instead.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
