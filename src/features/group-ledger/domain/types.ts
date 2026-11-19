@@ -1,9 +1,6 @@
 import type { CurrencyCode } from '@shared/constants';
 import type { Receipt } from '@shared/types';
 
-// A group is an append-only list of ops. Everything a screen shows (members, entries, balances,
-// transfers, activity, who this device is) is folded from that list. See docs/GROUP-LEDGER.md.
-
 declare const brand: unique symbol;
 type Brand<T, Name extends string> = T & { readonly [brand]: Name };
 
@@ -12,7 +9,6 @@ export type MemberId = Brand<string, 'MemberId'>;
 export type EntryId = Brand<string, 'EntryId'>;
 /** Made on the device. It is the server's idempotency key and the id of the revision it wrote. */
 export type OpId = Brand<string, 'OpId'>;
-/** The backend's id for a device or an account. People never see it; they see members. */
 export type UserId = Brand<string, 'UserId'>;
 /** 128 random bits, base64url. Holding it is the only way into a group. */
 export type InviteCode = Brand<string, 'InviteCode'>;
@@ -21,7 +17,6 @@ export type LocalDate = Brand<string, 'LocalDate'>;
 /** Integer hundredths of the currency named beside it. */
 export type Cents = number;
 
-/** Someone in the group. They need no phone: anyone can add a friend by name. */
 export interface Member {
   id: MemberId;
   name: string;
@@ -93,7 +88,6 @@ export type Entry = ExpenseEntry | TransferEntry;
 export type Change =
   | { kind: 'group.created'; name: string; currency: CurrencyCode }
   | { kind: 'group.renamed'; name: string }
-  /** Adds a member or changes one, archiving included. */
   | { kind: 'member.put'; member: Member }
   /** Two phones added the same friend offline. Every reference to `from` reads as `into`. */
   | { kind: 'member.merged'; from: MemberId; into: MemberId }
@@ -132,7 +126,6 @@ export interface UnreadablePendingOp {
 export interface ConfirmedOp {
   id: OpId;
   seq: number;
-  /** The author's clock, for display. */
   at: string;
   /** Null when this version of Split can't read it (written by a newer version). Kept so `seq` stays gapless. */
   change: Change | null;
@@ -156,7 +149,6 @@ export interface PostedEntry {
   entry: Entry;
   /** The op that wrote this revision. Pass it as `base` when editing or removing. */
   rev: OpId;
-  /** Still only on this phone. */
   pending: boolean;
 }
 
@@ -171,7 +163,6 @@ export type ActivityWhat =
   | { kind: 'entry-changed'; before: Entry; after: Entry }
   | { kind: 'entry-removed'; entry: Entry }
   | { kind: 'entry-restored'; entry: Entry }
-  /** Written by a newer version of Split. */
   | { kind: 'unknown' };
 
 export interface Activity {
@@ -190,7 +181,6 @@ export interface Activity {
   undo: Change | null;
 }
 
-/** What the log says, in one pass. */
 export interface Ledger {
   groupId: GroupId;
   name: string;

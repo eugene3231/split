@@ -1,32 +1,7 @@
--- Group ledger: groups, memberships and the op log. Design: docs/GROUP-LEDGER.md.
---
--- How to run it, once per Supabase project:
---   1. Authentication > Sign In / Providers: turn on "Allow anonymous sign-ins" and keep Email on.
---   2. Authentication > Emails: put {{ .Token }} in the "Magic Link" and "Change Email Address"
---      templates, so both send a six-digit code. The app has no page for a link to land on.
---   3. SQL Editor: paste this whole file and run it. Or, with the CLI: `supabase db push`.
---   4. Copy the project URL and anon key into VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
---
--- What it guarantees:
---   - Clients read through row level security and only the groups they are in.
---   - Clients write only through the functions below. No table has an insert, update or delete
---     policy or grant, so a client can never choose a `seq` or a `user_id`.
---   - `seq` runs 1, 2, 3 per group with no gaps and in commit order, because `append_ops` holds
---     the group's row lock while it numbers and inserts.
---   - A group's `seq` 1 is the op it was created with, because `create_group` writes both in one
---     transaction. No group has an empty log.
---
--- `src/features/group-ledger/backend/fakeServer.ts` states the same rules in TypeScript, and
--- `sqlContract.test.ts` runs one contract suite against both. Change them together.
-
 create table public.groups (
   id uuid primary key,
-  -- sha256 of the invite code. `join_group` finds the group by it.
   invite_hash bytea not null unique,
-  -- The code itself, readable by members only, so a member who signs in on a new phone can
-  -- still share the link and rejoin. Anyone who can read it already holds it.
   invite_code text not null,
-  -- The highest `seq` given out. Only `append_ops` moves it, under this row's lock.
   head bigint not null default 0,
   created_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now()
@@ -44,13 +19,9 @@ create index memberships_user_id_idx on public.memberships (user_id);
 create table public.ops (
   group_id uuid not null references public.groups (id) on delete cascade,
   seq bigint not null,
-  -- Made on the phone. Unique across every group, so it is the idempotency key.
   id uuid not null unique,
-  -- Never read here. A new kind of change needs no migration.
   change jsonb not null,
-  -- No foreign key: an op outlives the account that wrote it, or the log would get gaps.
   user_id uuid not null,
-  -- The author's clock, for display only.
   at timestamptz not null,
   server_at timestamptz not null default now(),
   primary key (group_id, seq)
@@ -92,13 +63,6 @@ create policy ops_select_member on public.ops
 -- change's JSON as a string. It comes as text so its size is the size the phone sent: the
 -- UTF-8 bytes of that text, which the phone can count before it sends (`changeBytes` in
 -- backend/limits.ts). The text of a jsonb value is spaced differently and would not match.
--- Says what became of the op:
---   inserted: it is now at `p_seq`.
---   held:     this group's log already had it.
---   rejected: it will never be taken. The id is not a lowercase uuid, `at` is not a time,
---             `change` is over 64 KB or is not the text of a JSON object, or the id is already
---             used in another group.
--- Only `create_group` and `append_ops` call it, holding the group's row lock. No client may.
 create function public.insert_op(p_group_id uuid, p_user uuid, p_seq bigint, p_op jsonb)
 returns text
 language plpgsql
@@ -149,7 +113,6 @@ begin
   insert into public.ops (group_id, seq, id, change, user_id, at)
   values (p_group_id, p_seq, v_id, v_change, p_user, v_at)
   on conflict (id) do nothing;
-  -- Not found: another group took this id between the check and the insert.
   return case when found then 'inserted' else 'rejected' end;
 end;
 $$;
@@ -180,7 +143,6 @@ begin
 
   v_hash := sha256(convert_to(p_invite_code, 'UTF8'));
 
-  -- Does nothing when the id is taken, or when another group already has this code.
   insert into public.groups (id, invite_hash, invite_code, created_by)
   values (p_group_id, v_hash, p_invite_code, v_user)
   on conflict do nothing;
@@ -262,8 +224,6 @@ begin
   if jsonb_typeof(p_ops) is distinct from 'array' then
     raise exception 'invalid_ops';
   end if;
-  -- Before the lock, so someone outside the group cannot hold it. Also covers a group that
-  -- does not exist, without saying which of the two it was.
   if not public.is_member(p_group_id) then
     raise exception 'not_a_member';
   end if;
@@ -320,7 +280,6 @@ revoke execute on function
   public.my_groups()
 from public, anon, authenticated;
 
--- `insert_op` is not here: it takes the author as an argument.
 grant execute on function
   public.is_member(uuid),
   public.create_group(uuid, text, jsonb),

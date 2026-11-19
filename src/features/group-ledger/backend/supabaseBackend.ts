@@ -11,13 +11,8 @@ import type {
 } from '@features/group-ledger/backend/port';
 import { confirmedOpSchema, idSchemas } from '@features/group-ledger/logic/codec';
 
-// The only file that imports supabase-js or names a table. `createBackend` loads it on demand,
-// so a build without the env vars ships none of it. Tables and functions:
-// supabase/migrations/*_group_ledger.sql.
-
 type EmailMode = 'link' | 'sign-in';
 
-/** What supabase-js hands back when a call fails, from PostgREST or from Auth. */
 interface ServerError {
   message: string;
   name?: string;
@@ -49,7 +44,6 @@ function isNetworkError(error: ServerError): boolean {
   );
 }
 
-/** The SQL functions raise these names; see the migration. */
 function toFailure(error: ServerError): BackendFailure {
   if (isNetworkError(error)) return { kind: 'offline' };
   if (error.message.includes('not_a_member')) return { kind: 'not-a-member' };
@@ -73,7 +67,6 @@ function toSession(user: User): Session {
 
 const pushReplySchema = z.object({
   accepted: z.array(idSchemas.opId),
-  // An op sent without an id comes back as null. This app never sends one.
   rejected: z.array(z.string().nullable()).transform((ids) =>
     ids.flatMap((id) => {
       const parsed = idSchemas.opId.safeParse(id);
@@ -88,7 +81,6 @@ const myGroupsReplySchema = z.array(
     .transform((row) => ({ groupId: row.group_id, inviteCode: row.invite_code })),
 );
 
-/** A row of `ops` as PostgREST sends it, renamed to the domain's field names. */
 const opRowsSchema = z.array(
   z.preprocess((row) => (isRecord(row) ? { ...row, userId: row.user_id } : row), confirmedOpSchema),
 );
@@ -106,8 +98,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function createSupabaseBackend(client: SupabaseClient): LedgerBackend {
-  // Which code the last `startEmailSignIn` sent for an email. Lost on a reload, and then
-  // `verifyEmailCode` tries both.
   const emailModes = new Map<string, EmailMode>();
   let loadingSession: Promise<Result<Session>> | null = null;
 
@@ -125,7 +115,6 @@ export function createSupabaseBackend(client: SupabaseClient): LedgerBackend {
     }
   }
 
-  /** Callers that arrive together share one answer, so a new phone signs in once, not twice. */
   function session(): Promise<Result<Session>> {
     loadingSession ??= loadSession().finally(() => {
       loadingSession = null;
@@ -288,7 +277,6 @@ export function createSupabaseBackend(client: SupabaseClient): LedgerBackend {
 export function connectSupabaseBackend(url: string, anonKey: string): LedgerBackend {
   return createSupabaseBackend(
     createClient(url, anonKey, {
-      // The app never lands on an auth link: every sign-in is a typed code.
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
     }),
   );

@@ -6,7 +6,6 @@ import {
 } from '@features/group-ledger/backend/fakeBackend';
 import { cn } from '@shared/utils/cn';
 
-/** Dev only, on the fake server: which phone this tab is, and a switch to take it offline. */
 export function FakeServerChip() {
   const [online, setOnline] = useState(isFakeOnline);
   const [phone] = useState(() => tabProfile().slice(0, 8));

@@ -12,7 +12,6 @@ import type {
 } from '@features/group-ledger/domain/types';
 import { byCodeUnit, memberIdsOf } from '@features/group-ledger/logic/ids';
 
-/** Everything about an expense except who owes what. */
 export type ExpenseHeader = Omit<ExpenseEntry, 'kind' | 'owed' | 'basis'>;
 
 /**
@@ -70,10 +69,6 @@ export function postReceipt(
   return post(header, owed, { kind: 'receipt', receipt: storedReceipt(receipt) });
 }
 
-/**
- * The fields an op carries and no others. The wizard's receipt also holds the photo, and the
- * codec cannot read back a change with a field it does not know.
- */
 function storedReceipt(receipt: StoredReceipt): StoredReceipt {
   return {
     id: receipt.id,

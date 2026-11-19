@@ -16,7 +16,6 @@ function afterPaying(balances: Record<MemberId, Cents>, transfers: Transfer[]) {
   return left;
 }
 
-/** The fewest payments by trying every way to square the first open member with another. */
 function fewestByBruteForce(cents: number[]): number {
   const first = cents.findIndex((value) => value !== 0);
   if (first === -1) return 0;

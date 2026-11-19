@@ -3,15 +3,12 @@ import type { Route } from '@shared/routing';
 import { IconLink } from './IconButton';
 
 interface ScreenHeaderProps {
-  /** Where the back arrow goes. */
   back?: Route;
   backLabel?: string;
   title: ReactNode;
-  /** Buttons on the right. */
   children?: ReactNode;
 }
 
-/** The bar at the top of every group screen, styled like the wizard's. */
 export function ScreenHeader({ back, backLabel = 'Back', title, children }: ScreenHeaderProps) {
   return (
     <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md">

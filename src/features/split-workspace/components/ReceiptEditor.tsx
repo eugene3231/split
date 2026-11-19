@@ -16,7 +16,6 @@ import { SummaryStep } from '@features/split-workspace/summary/SummaryStep';
 import type { Person, Receipt, SplitResult } from '@shared/types';
 import type { WizardStep } from '@features/split-workspace/types';
 
-/** A receipt as it is kept: the photo it was scanned from stays on this device. */
 export type SavedReceipt = Omit<Receipt, 'receiptFile'>;
 
 const RECEIPT_EDITOR_STEPS: readonly WizardStep[] = ['receipt', 'items', 'final'];
@@ -28,12 +27,10 @@ interface ReceiptEditorProps {
   initial?: SavedReceipt;
   /** Where the editor keeps its work in progress. Give each receipt being edited its own key. */
   draftKey: string;
-  /** The review step's primary action, given the receipt and its split as they stand. */
   renderSave: (receipt: SavedReceipt, split: SplitResult) => ReactNode;
   onCancel: () => void;
 }
 
-/** The receipt wizard for one receipt between people already known: receipt, items, review. */
 export function ReceiptEditor({
   people,
   initial,

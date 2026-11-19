@@ -14,10 +14,6 @@ import {
 } from '@features/group-ledger/sync/groupSync';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 
-// This tab is one phone, wired the way the app wires it: the joined-groups store, the account
-// store and the engine registry over the fake server in localStorage. Other phones are extra
-// backends on that same server.
-
 const created: Change = { kind: 'group.created', name: 'Japan 2026', currency: 'SGD' };
 const addMember = (name: string): Change => ({
   kind: 'member.put',

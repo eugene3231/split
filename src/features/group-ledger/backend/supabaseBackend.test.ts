@@ -8,14 +8,10 @@ import {
   pendingOp,
 } from '@features/group-ledger/backend/testing/backendContract';
 
-// The adapter's own decisions: which Auth call it makes, and how it reads what comes back.
-// What the SQL does is in sqlContract.test.ts.
-
 const anonymous = { id: 'u-anon', is_anonymous: true };
 const linked = { id: 'u-ana', is_anonymous: false, email: 'ana@example.com' };
 const noError = { error: null };
 
-/** A supabase-js stand-in. `user` is the stored session's user; null means never signed in. */
 function fakeClient(user: typeof anonymous | typeof linked | null = anonymous) {
   const channel = {
     on: vi.fn<(...args: unknown[]) => unknown>(),

@@ -10,7 +10,6 @@ interface SheetProps {
   children: ReactNode;
 }
 
-/** Rises from the bottom on a phone and sits in the middle on a wider screen. */
 export function Sheet({ open, onOpenChange, title, description, children }: SheetProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

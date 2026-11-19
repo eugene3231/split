@@ -5,11 +5,9 @@ import { cn } from '@shared/utils/cn';
 interface RemainderProps {
   cents: number;
   currency: CurrencyCode;
-  /** What a shortfall is called: "left to split", "still unpaid". */
   short: string;
 }
 
-/** How far typed amounts are from the total, live as they are typed. */
 export function Remainder({ cents, currency, short }: RemainderProps) {
   const amount = formatCurrencyFromCents(Math.abs(cents), currency);
   return (

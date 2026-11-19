@@ -2,17 +2,12 @@ import { PGlite } from '@electric-sql/pglite';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { newUuid } from '@features/group-ledger/logic/ids';
 
-// A Postgres in this process with the migration applied, and a stand-in for supabase-js that
-// runs each call there as one user, the way PostgREST would. It lets the contract suite run the
-// real adapter against the real SQL. Auth and Realtime are not part of it.
-
 const migrations = import.meta.glob<string>('/supabase/migrations/*.sql', {
   query: '?raw',
   import: 'default',
   eager: true,
 });
 
-/** What a new Supabase project has before any migration: the roles, `auth`, and its default grants. */
 const SUPABASE_BASELINE = `
   create role anon nologin;
   create role authenticated nologin;
@@ -49,11 +44,8 @@ function literal(value: unknown): string {
 }
 
 export interface PgliteProject {
-  /** A signed-in anonymous user with its own supabase-js stand-in. */
   client(): Promise<{ userId: string; client: SupabaseClient }>;
-  /** Runs SQL as a user, for what the adapter never does, such as writing to a table directly. */
   sql(userId: string, role: Role, query: string): Promise<Reply>;
-  /** Deletes the account, as the Supabase dashboard would. */
   deleteUser(userId: string): Promise<void>;
   close(): Promise<void>;
 }
@@ -92,7 +84,6 @@ export async function createPgliteProject(): Promise<PgliteProject> {
     return sql(userId, 'authenticated', query);
   }
 
-  /** `from(table).select(columns)` with the filters the adapter uses. */
   function select(userId: string, table: string, columns: string) {
     const where: string[] = [];
     let tail = '';

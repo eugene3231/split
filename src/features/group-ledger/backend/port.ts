@@ -6,10 +6,6 @@ import type {
   UserId,
 } from '@features/group-ledger/domain/types';
 
-// The seam between the sync engine and a server. The fake and Supabase adapters both implement
-// it and one contract suite runs against both. Nothing outside `backend/` imports supabase-js or
-// knows a table name.
-
 export type Account = { kind: 'anonymous' } | { kind: 'linked'; email: string };
 
 export interface Session {

@@ -194,7 +194,6 @@ describe('a group', () => {
     expect(screen.getAllByText('Adds up')).toHaveLength(2);
 
     fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'USD' } });
-    // Prefilled from whichever rates have loaded, live or fallback.
     expect(
       Number((screen.getByLabelText('SGD per USD') as HTMLInputElement).value),
     ).toBeGreaterThan(1);

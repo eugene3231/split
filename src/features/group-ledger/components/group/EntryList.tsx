@@ -11,7 +11,6 @@ import { Link, type Route } from '@shared/routing';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { cn } from '@shared/utils/cn';
 
-/** Every live entry, newest day first, each day under its own heading. */
 export function EntryList({ group }: { group: ReadyGroup }) {
   const days = new Map<LocalDate, PostedEntry[]>();
   for (const posted of group.ledger.entries) {

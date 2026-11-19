@@ -2,7 +2,6 @@ import type { SyncStatus } from '@features/group-ledger/sync/groupSync';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
 import { cn } from '@shared/utils/cn';
 
-/** Nothing while in step with the server; otherwise what is waiting and why. */
 export function SyncBadge({ sync, className }: { sync: SyncStatus; className?: string }) {
   const stuck = sync.state === 'offline' || sync.state === 'error';
   let label: string | null = null;

@@ -6,13 +6,10 @@ interface StateScreenProps {
   icon: string;
   title: string;
   children?: ReactNode;
-  /** What to do about it. */
   action?: ReactNode;
-  /** Spins the icon, for a wait. */
   busy?: boolean;
 }
 
-/** A whole screen that says where things stand: loading, offline, a link that opens nothing. */
 export function StateScreen({ icon, title, children, action, busy = false }: StateScreenProps) {
   return (
     <div className="min-h-dvh bg-surface font-body text-on-surface">

@@ -7,10 +7,8 @@ import { Link, navigate } from '@shared/routing';
 import { ExpenseForm } from './ExpenseForm';
 import { TransferEditor } from './TransferEditor';
 
-/** `/g/:id/new` and `/g/:id/e/:entryId`: the quick expense form, or a payment's own view. */
 export function ExpenseScreen({ group, entryId }: { group: ReadyGroup; entryId?: EntryId }) {
   const live = entryId && group.ledger.entries.find((posted) => posted.entry.id === entryId);
-  // The revision on screen when editing began, so a change from another phone shows as a conflict.
   const [opened] = useState<PostedEntry | undefined>(() => live || undefined);
   const groupId = group.ledger.groupId;
   const isReceipt = opened?.entry.kind === 'expense' && opened.entry.basis.kind === 'receipt';

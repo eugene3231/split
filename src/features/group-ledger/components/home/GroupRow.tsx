@@ -6,7 +6,6 @@ import { Icon } from '@features/group-ledger/components/ui/IconButton';
 import { Link } from '@shared/routing';
 import { cn } from '@shared/utils/cn';
 
-/** One group on the home list: its name, where you stand, and whether changes are waiting. */
 export function GroupRow({ held }: { held: JoinedGroupEntry }) {
   const group = useGroup(held.groupId);
   const name = group.status === 'ready' ? group.ledger.name : held.name || 'New group';

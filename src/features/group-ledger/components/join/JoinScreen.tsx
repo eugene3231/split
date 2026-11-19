@@ -5,7 +5,6 @@ import { StateScreen } from '@features/group-ledger/components/ui/StateScreen';
 import { buttonClass } from '@features/group-ledger/components/ui/classes';
 import { Link, navigate } from '@shared/routing';
 
-/** `/join#<code>`: joins, then hands over to the group, which asks who you are. */
 export function JoinScreen({ code }: { code: string }) {
   const join = useJoinGroup(code);
   const groupId = join.step === 'joined' ? join.groupId : null;

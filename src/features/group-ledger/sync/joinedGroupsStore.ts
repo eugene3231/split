@@ -5,7 +5,6 @@ import { deviceProfile } from '@features/group-ledger/backend/createBackend';
 import { idSchemas } from '@features/group-ledger/logic/codec';
 import { jsonStorage, lenientArray } from '@features/split-workspace/logic/jsonStorage';
 
-/** A group this phone holds. The invite code is what lets it sync, rejoin and invite others. */
 export interface JoinedGroupEntry {
   groupId: GroupId;
   inviteCode: InviteCode;

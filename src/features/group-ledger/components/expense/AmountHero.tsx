@@ -14,7 +14,6 @@ interface AmountHeroProps {
   onCurrencyChange: (currency: CurrencyCode) => void;
 }
 
-/** The amount, big, with its currency; in another currency, the rate it is frozen at. */
 export function AmountHero({ draft, groupCurrency, onChange, onCurrencyChange }: AmountHeroProps) {
   const foreign = draft.currency !== groupCurrency;
   const cents = parseCurrencyToCents(draft.amount);

@@ -10,11 +10,7 @@ import { fitsOnServer } from '@features/group-ledger/backend/limits';
 import type { JoinedGroup, LedgerBackend } from '@features/group-ledger/backend/port';
 import { newGroupId, newOpId, newUuid } from '@features/group-ledger/logic/ids';
 
-// What every server must do, written once. `backendContract.test.ts` runs it against the fake
-// and, when asked, a real Supabase project; `sqlContract.test.ts` runs it against the migration.
-
 export interface ContractWorld {
-  /** A phone nobody has used yet: its own anonymous user. */
   phone(): Promise<LedgerBackend>;
 }
 
@@ -36,7 +32,6 @@ export function pendingOp(
   return { id: newOpId(), order, at: '2026-11-19T10:00:00.000Z', change };
 }
 
-/** A change with nested objects and a two-byte letter, whose JSON is exactly this many bytes of UTF-8. */
 function memberPutOfBytes(bytes: number): Change {
   const named = (name: string): Change => ({
     kind: 'member.put',
@@ -46,7 +41,6 @@ function memberPutOfBytes(bytes: number): Change {
   return named(`é${'x'.repeat(bytes - empty)}`);
 }
 
-/** The op every group starts with. */
 export function createdOp(): PendingOp {
   return pendingOp({ kind: 'group.created', name: 'Japan 2026', currency: 'SGD' });
 }
@@ -332,7 +326,6 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
 
     it('pulls a long log in pages of 500 and says when more remain', async () => {
       const { ana, group } = await publishedGroup();
-      // With the op that created the group, 501 in all.
       for (let batch = 0; batch < 10; batch += 1) {
         await value(
           ana.push(

@@ -74,7 +74,6 @@ export function loadSavedWorkspace(draftKey: string): WorkspaceState | null {
   return draft ? workspaceFromDraft(draft) : null;
 }
 
-/** The people are swapped in, and every item drops anyone who is no longer one of them. */
 function withPeople(workspace: WorkspaceState, people: Person[]): WorkspaceState {
   return { ...workspace, people, receipts: syncReceiptsWithPeople(workspace.receipts, people) };
 }
@@ -138,7 +137,6 @@ interface ReceiptStoreActions {
 
 type ReceiptStore = WorkspaceState & ReceiptStoreActions;
 
-/** One workspace, saved under its own keys so several never overwrite each other's work. */
 export type WorkspaceStoreApi = StoreApi<ReceiptStore> & {
   readonly draftKey: string;
   readonly wizardKey: string;
@@ -329,7 +327,6 @@ export function createWorkspaceStore({
   return Object.assign(store, { draftKey, wizardKey });
 }
 
-/** The quick split's workspace, kept under the keys it has always used. */
 export const quickSplitStore = createWorkspaceStore({
   draftKey: LOCAL_STORAGE_DRAFT_KEY,
   wizardKey: LOCAL_STORAGE_WIZARD_STATE_KEY,

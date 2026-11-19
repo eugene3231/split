@@ -27,7 +27,6 @@ interface GroupReceiptScreenProps {
   entryId?: EntryId;
 }
 
-/** `/g/:id/receipt[/:entryId]`: the receipt wizard between the group's members, then Save to group. */
 export function GroupReceiptScreen({ group, entryId }: GroupReceiptScreenProps) {
   const { ledger } = group;
   const groupId = ledger.groupId;
@@ -61,7 +60,6 @@ interface ReceiptForGroupProps {
 function ReceiptForGroup({ group, editing }: ReceiptForGroupProps) {
   const { ledger } = group;
   const holders = new Set(editing ? Object.keys(editing.entry.owed) : []);
-  // Someone archived since keeps their share of a receipt being edited.
   const members = ledger.members.filter((member) => !member.archived || holders.has(member.id));
   const draftKey = `group:${ledger.groupId}:receipt:${editing?.entry.id ?? 'new'}`;
   const back = () => navigate({ kind: 'group', groupId: ledger.groupId });
@@ -88,7 +86,6 @@ function ReceiptForGroup({ group, editing }: ReceiptForGroupProps) {
 
 interface SaveToGroupProps {
   group: ReadyGroup;
-  /** Everyone the receipt is split between. */
   members: Member[];
   editing: { entry: ExpenseEntry; rev: OpId } | null;
   receipt: SavedReceipt;

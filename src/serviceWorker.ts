@@ -1,7 +1,5 @@
 import { registerSW } from 'virtual:pwa-register';
 
-// A new version reloads the page, so it waits until the app is out of sight
-// rather than reloading under the user's hands. Drafts are in localStorage and survive it.
 export function registerServiceWorker(): void {
   const updateServiceWorker = registerSW({
     onNeedRefresh() {

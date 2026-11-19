@@ -52,7 +52,6 @@ interface ExpenseOptions {
   others?: Record<MemberId, number>;
 }
 
-/** An expense with typed amounts, paid by Ana unless told otherwise. */
 export function makeExpense(
   id: string,
   owed: Record<MemberId, number>,
@@ -83,12 +82,10 @@ export function makeTransfer(
   return { kind: 'transfer', id: asEntryId(id), date: asLocalDate(date), from, to, cents };
 }
 
-/** Confirmed op number `seq`, with the id `c<seq>`. */
 export function confirmed(seq: number, change: Change | null, userId = anaPhone): ConfirmedOp {
   return { id: asOpId(`c${seq}`), seq, at: `2026-11-19T10:00:${pad(seq)}Z`, change, userId };
 }
 
-/** Pending op number `order`, with the id `p<order>`. */
 export function pending(order: number, change: Change): PendingOp {
   return { id: asOpId(`p${order}`), order, at: `2026-11-19T11:00:${pad(order)}Z`, change };
 }
@@ -102,7 +99,6 @@ export function makeLog(confirmedOps: ConfirmedOp[], pendingOps: PendingOp[] = [
   };
 }
 
-/** A log of confirmed changes, numbered from 1, all sent from Ana's phone. */
 export function logOf(...changes: Array<Change | null>): GroupLog {
   return makeLog(changes.map((change, index) => confirmed(index + 1, change)));
 }
@@ -113,7 +109,6 @@ export function put(member: Member): Change {
   return { kind: 'member.put', member };
 }
 
-/** Folds a log that is known to create its group. */
 export function fold(log: GroupLog, self: UserId | null = anaPhone): Ledger {
   const ledger = foldLedger(log, self);
   if (ledger === null) throw new Error('the log never creates its group');
@@ -160,10 +155,6 @@ export const transferArb: fc.Arbitrary<TransferEntry> = fc
 
 export const entryArb: fc.Arbitrary<Entry> = fc.oneof(expenseArb, transferArb);
 
-/**
- * A change that may point at any earlier op as its base, so generated logs hold stale edits,
- * removes of missing entries, repeated merges and the like.
- */
 export function changeArb(earlierOps: number): fc.Arbitrary<Change> {
   const opIdArb = fc.integer({ min: 0, max: Math.max(earlierOps, 1) }).map((n) => asOpId(`c${n}`));
   return fc.oneof(
@@ -199,7 +190,6 @@ export function changeArb(earlierOps: number): fc.Arbitrary<Change> {
   );
 }
 
-/** A confirmed log that creates its group first, then does anything at all. */
 export const confirmedOpsArb: fc.Arbitrary<ConfirmedOp[]> = fc
   .integer({ min: 0, max: 25 })
   .chain((length) =>

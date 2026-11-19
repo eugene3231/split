@@ -60,7 +60,6 @@ describe('the fake server in localStorage', () => {
     const op = pendingOp();
     await server.appendOps('u-ana', group.groupId, [op]);
     await vi.waitFor(() => expect(onPoke).toHaveBeenCalledTimes(1));
-    // The same op again adds nothing, so there is nothing to hear about.
     await server.appendOps('u-ana', group.groupId, [op]);
     await Promise.resolve();
     expect(onPoke).toHaveBeenCalledTimes(1);

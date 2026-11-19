@@ -7,7 +7,6 @@ import { forgetGroup } from '@features/group-ledger/sync/groupSync';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 import { useJoinGroup } from './useJoinGroup';
 
-/** A group another phone made and put on the shared fake server. */
 async function groupOnServer() {
   const group = newGroup();
   const other = createFakeBackend({

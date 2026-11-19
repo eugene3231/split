@@ -36,7 +36,6 @@ export function newGroupChanges(group: NewGroup): { changes: Change[]; me: Membe
     changes: [
       { kind: 'group.created', name: group.name.trim(), currency: group.currency },
       { kind: 'member.put', member: members[0] },
-      // Claimed before the friends are added, so the activity says who added them.
       { kind: 'member.claimed', memberId: me },
       ...members.slice(1).map((member): Change => ({ kind: 'member.put', member })),
     ],

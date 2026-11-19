@@ -17,7 +17,6 @@ interface NewGroupSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/** The name this person gave last time, so the next group starts with it. */
 const myNameStorage = jsonStorage('localStorage', 'split:my-name', z.string());
 
 export function NewGroupSheet({ open, onOpenChange }: NewGroupSheetProps) {

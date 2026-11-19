@@ -9,7 +9,6 @@ interface MemberChipProps extends ComponentProps<'button'> {
   selected: boolean;
 }
 
-/** A pill to pick someone with, or with no member, a plain choice such as "Several people". */
 export function MemberChip({
   ledger,
   memberId,

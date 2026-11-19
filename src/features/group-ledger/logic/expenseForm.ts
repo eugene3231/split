@@ -20,19 +20,12 @@ import { asOpId, memberIdsOf, newUuid } from '@features/group-ledger/logic/ids';
 import { fitsOnServer } from '@features/group-ledger/backend/limits';
 import { paidBy, postAmounts, postWeights, totalCents } from '@features/group-ledger/logic/post';
 
-// The quick expense form as typed. Text stays text until `checkExpense` turns the whole draft
-// into an entry through `postWeights` or `postAmounts`, or says the one thing still missing.
-
 export type PaidBy =
-  | { kind: 'one'; payer: MemberId }
-  /** Typed amounts in the expense's currency. */
-  | { kind: 'several'; amounts: Record<MemberId, string> };
+  { kind: 'one'; payer: MemberId } | { kind: 'several'; amounts: Record<MemberId, string> };
 
 export type SplitBy =
-  /** Equal shares between these members. */
   | { kind: 'evenly'; between: MemberId[] }
   | { kind: 'shares'; weights: Record<MemberId, number> }
-  /** Typed amounts in the expense's currency. */
   | { kind: 'amounts'; amounts: Record<MemberId, string> };
 
 export interface ExpenseDraft {
@@ -66,7 +59,6 @@ export function blankDraft(
   };
 }
 
-/** The form an expense was saved from, so editing it starts where its author left off. */
 export function draftFromEntry(entry: ExpenseEntry): ExpenseDraft {
   const { currency, basis } = entry;
   const typed = (cents: Cents) => formatMoneyAmount(cents, currency);
@@ -110,7 +102,6 @@ export function groupRate(
   return own / inBase(groupCurrency);
 }
 
-/** The rate to prefill when the expense's currency changes. */
 export function rateInput(
   currency: CurrencyCode,
   groupCurrency: CurrencyCode,
@@ -233,7 +224,6 @@ export function formMembers(members: Member[], draft: ExpenseDraft): Member[] {
   return members.filter((member) => !member.archived || named.has(member.id));
 }
 
-/** Moves the split to another kind, keeping who is in it. */
 export function changeSplitKind(splitBy: SplitBy, kind: SplitBy['kind']): SplitBy {
   if (splitBy.kind === kind) return splitBy;
   const included =

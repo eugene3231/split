@@ -10,7 +10,6 @@ import { ReceiptStep } from '@features/split-workspace/components/steps/ReceiptS
 import { AssignStep } from '@features/split-workspace/components/steps/AssignStep/AssignStep';
 import { SummaryStep } from '@features/split-workspace/summary/SummaryStep';
 
-/** The quick split: everyone, every receipt, and a summary to save or share. */
 export function Workspace() {
   useReceiptSplitterController();
   const [finalActionSlot, setFinalActionSlot] = useState<HTMLDivElement | null>(null);

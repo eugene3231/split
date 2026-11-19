@@ -20,15 +20,6 @@ import type {
   UserId,
 } from '@features/group-ledger/domain/types';
 
-// Ops come from other phones, other versions of Split and this phone's storage. These schemas
-// are the one place that turns such a payload into the domain types. They are strict: a change
-// that does not fit is unreadable as a whole, never repaired field by field, because a repaired
-// entry would be an entry nobody wrote. That covers a field this version has never heard of:
-// every object in a change is a `z.strictObject`, since reading past the field would drop it,
-// and the next edit from this phone would erase what a newer Split wrote. They check the rules domain/types.ts states and no
-// others: a schema stricter than `postWeights`, `postAmounts` or `postReceipt` would make this
-// phone unable to read back a change it wrote itself.
-
 function brandedId<Id extends string>() {
   return z
     .string()

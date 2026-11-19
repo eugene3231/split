@@ -6,7 +6,6 @@ const ICON_BUTTON =
   'flex size-10 shrink-0 items-center justify-center rounded-xl text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface active:scale-95';
 
 interface IconButtonProps extends Omit<ComponentProps<'button'>, 'children'> {
-  /** The accessible name, since the icon has none. */
   label: string;
   icon: string;
 }

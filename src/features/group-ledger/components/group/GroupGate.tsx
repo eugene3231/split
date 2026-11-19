@@ -8,7 +8,6 @@ import { WhoAreYou } from './WhoAreYou';
 
 interface GroupGateProps {
   groupId: GroupId;
-  /** The screen, once the group has loaded and this phone knows who it is in it. */
   children: (group: ReadyGroup) => ReactNode;
 }
 

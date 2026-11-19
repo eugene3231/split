@@ -6,7 +6,6 @@ interface LinkProps extends Omit<ComponentProps<'a'>, 'href'> {
   to: Route;
 }
 
-/** A real link, so it can open in a new tab, that moves within the app without a reload. */
 export function Link({ to, onClick, ...props }: LinkProps) {
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);

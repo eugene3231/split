@@ -23,11 +23,9 @@ import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsSt
 export interface ReadyGroup {
   status: 'ready';
   ledger: Ledger;
-  /** Opens the group; the invite link carries it. */
   inviteCode: InviteCode;
   /** Group cents per member: positive is owed money. */
   balances: Record<MemberId, Cents>;
-  /** The fewest payments that settle everyone. */
   transfers: Transfer[];
   sync: SyncStatus;
   act: GroupActions;
@@ -45,7 +43,6 @@ export type GroupView =
 const noSubscription = () => () => {};
 const noSnapshot = () => null;
 
-/** A group this phone holds, folded from its log and kept current as the log changes. */
 export function useGroup(groupId: GroupId): GroupView {
   const held = useJoinedGroupsStore((state) =>
     state.groups.find((group) => group.groupId === groupId),
@@ -59,12 +56,10 @@ export function useGroup(groupId: GroupId): GroupView {
   const ledger = snapshot && foldLedger(snapshot.log, self);
   const syncState = snapshot?.sync.state;
 
-  // A phone that was offline when it first opened Split learns who it is from the first sync.
   useEffect(() => {
     if (self === null && syncState !== undefined) void useAccountStore.getState().load();
   }, [self, syncState]);
 
-  // Restored groups arrive with no name, and a rename on another phone changes it.
   const name = ledger?.name;
   useEffect(() => {
     if (name !== undefined && held && held.name !== name) {

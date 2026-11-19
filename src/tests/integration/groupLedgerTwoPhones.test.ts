@@ -21,10 +21,6 @@ import { openDeviceLog } from '@features/group-ledger/sync/deviceLog';
 import { groupActions } from '@features/group-ledger/sync/groupActions';
 import { createGroupSync, type GroupSync } from '@features/group-ledger/sync/groupSync';
 
-// Two phones on one in-memory fake server, each wired the way the screens wire a group: changes
-// go in through `groupActions`, expenses are built by the quick expense form's `checkExpense`,
-// and what each phone shows is folded from its own log.
-
 function phone(server: FakeServer, profile: string) {
   let online = true;
   const backend = createFakeBackend({ server, profile, isOnline: () => online });
@@ -65,7 +61,6 @@ function phone(server: FakeServer, profile: string) {
   };
 }
 
-/** A quick expense as the form would build it, paid by this phone's member. */
 function expense(ledger: Ledger, amount: string, title: string, patch: Partial<ExpenseDraft> = {}) {
   if (ledger.me === null) throw new Error('this phone has not said who it is');
   const draft = {
@@ -91,7 +86,6 @@ describe('two phones sharing a group', () => {
     const ana = phone(server, 'ana');
     const ben = phone(server, 'ben');
 
-    // Ana makes the group with two friends.
     const group = { groupId: newGroupId(), inviteCode: newInviteCode() };
     const engineA = ana.open(group, true);
     const { changes } = newGroupChanges({
@@ -103,7 +97,6 @@ describe('two phones sharing a group', () => {
     for (const change of changes) engineA.submit(change);
     await ana.sync();
 
-    // Ben opens the invite link and says which member he is.
     const joined = await ben.backend.joinGroup(group.inviteCode);
     expect(joined.ok).toBe(true);
     ben.open(group, false);
@@ -113,7 +106,6 @@ describe('two phones sharing a group', () => {
     await ben.sync();
     expect(ben.ledger().me).toBe(byName(ben.ledger(), 'Ben'));
 
-    // Ana pays 90 for dinner between all three. Ben pays 40 for a taxi, offline, between him and Ana.
     ana.act().addExpense(expense(ana.ledger(), '90', 'Dinner'));
     await ana.sync();
     ben.setOnline(false);
@@ -150,7 +142,6 @@ describe('two phones sharing a group', () => {
       { from: b, to: a, cents: 1000 },
     ]);
 
-    // Ben marks both paid from his phone.
     for (const transfer of transfers) ben.act().markPaid(transfer);
     await ben.sync();
     await ana.sync();

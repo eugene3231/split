@@ -25,7 +25,6 @@ export function GroupScreen({ group }: { group: ReadyGroup }) {
     window.history.state === OPEN_INVITE_STATE ? 'invite' : null,
   );
   const openSheet = (next: OpenSheet) => {
-    // The invite opens once; going back or reloading lands on the plain group.
     if (window.history.state === OPEN_INVITE_STATE) window.history.replaceState(null, '');
     setSheet(next);
   };

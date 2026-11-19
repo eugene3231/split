@@ -25,13 +25,10 @@ export function settleUp(balances: Record<MemberId, Cents>): Transfer[] {
   return circles.flatMap(settleCircle);
 }
 
-/** Splits the members into the most groups that each add up to zero. */
 function settlingCircles(open: Balance[]): Balance[][] {
   const full = (1 << open.length) - 1;
   const sum = new Float64Array(full + 1);
-  // The most zero-sum groups the members in each subset can be split into.
   const most = new Int8Array(full + 1);
-  // The member to take out of each subset on the way to that best split.
   const dropped = new Int8Array(full + 1);
 
   for (let subset = 1; subset <= full; subset++) {
@@ -62,7 +59,6 @@ function settlingCircles(open: Balance[]): Balance[][] {
   return circles.map((members) => members.sort((a, b) => byCodeUnit(a.id, b.id)));
 }
 
-/** The biggest debtor pays the biggest creditor until one side runs out. */
 function settleCircle(circle: Balance[]): Transfer[] {
   const left = circle.map((balance) => ({ ...balance }));
   const transfers: Transfer[] = [];
@@ -77,7 +73,6 @@ function settleCircle(circle: Balance[]): Transfer[] {
   }
 }
 
-/** The first of the largest, so a tie goes to the member whose id sorts first. */
 function largest(balances: Balance[]): Balance | undefined {
   return balances.reduce<Balance | undefined>(
     (best, balance) =>

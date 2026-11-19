@@ -11,18 +11,6 @@ import { confirmedOpSchema, idSchemas, parseChange } from '@features/group-ledge
 import { newOpId } from '@features/group-ledger/logic/ids';
 import { jsonStorage, lenientArray, parseJson } from '@features/split-workspace/logic/jsonStorage';
 
-// This phone's copy of one group, in localStorage:
-//   split:g:<profile>:<groupId>:confirmed    every op the server has confirmed, rewritten whole
-//   split:g:<profile>:<groupId>:out:<opId>   one key per op the server has not confirmed yet
-//   split:g:<profile>:<groupId>:member       the user this phone last entered the group as
-//   split:g:<profile>:order                  the counter that orders this phone's own ops
-// A pending op has its own key so two tabs can each add one without overwriting the other.
-// Moving to IndexedDB changes this file only.
-
-/**
- * A queued op as it is stored and as it will be sent. `change` is the stored JSON, which this
- * version of Split may not be able to read when another version queued it.
- */
 export interface OutboxOp {
   id: OpId;
   order: number;
@@ -42,7 +30,6 @@ export interface DeviceLog {
   confirmed(): ConfirmedOp[];
   /** Every op the server has not confirmed, in the order this phone made them. */
   outbox(): OutboxOp[];
-  /** The ops in the outbox this version of Split can read. */
   pending(): PendingOp[];
   /** Stored before it returns, so the op survives a reload that comes before any network call. */
   appendPending(change: Change): PendingOp;
@@ -64,7 +51,6 @@ export interface DeviceLog {
   clear(): void;
 }
 
-/** The ops from `seq` 1 up to the first gap. What follows a gap is pulled again. */
 function withoutGaps(ops: readonly ConfirmedOp[]): ConfirmedOp[] {
   const sorted = [...ops].sort((a, b) => a.seq - b.seq);
   const firstGap = sorted.findIndex((op, index) => op.seq !== index + 1);
@@ -105,8 +91,6 @@ export function openDeviceLog(
     `split:g:${profile}:order`,
     z.number().int().nonnegative(),
   );
-  // Ops that could not be written because storage is full or blocked. They last as long as the
-  // tab does, which is long enough to push them when the phone is online.
   const unsaved = new Map<OpId, PendingOp>();
 
   function confirmed(): ConfirmedOp[] {
@@ -138,7 +122,6 @@ export function openDeviceLog(
     pending,
 
     appendPending(change) {
-      // The counter alone would restart at 1 if only its key were lost.
       const lastOrder = Math.max(orderStore.load() ?? 0, ...outbox().map((op) => op.order));
       const op: PendingOp = {
         id: newOpId(),
@@ -161,8 +144,6 @@ export function openDeviceLog(
       for (const op of ops) bySeq.set(op.seq, op);
       confirmedStore.save(withoutGaps([...bySeq.values()]));
 
-      // Retire only what the stored log now holds. If the write failed, the op stays pending
-      // and on screen, and is pushed again, which the server answers with "accepted".
       const held = new Set(confirmed().map((op) => op.id));
       for (const op of ops) {
         if (!held.has(op.id)) continue;

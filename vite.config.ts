@@ -5,7 +5,6 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
-// --color-surface in src/index.css
 const surfaceColor = '#f4f5f7';
 
 // https://vite.dev/config/

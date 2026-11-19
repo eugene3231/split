@@ -9,7 +9,6 @@ interface WorkspaceStoreProviderProps {
   children: ReactNode;
 }
 
-/** Everything inside reads and edits `store` instead of the quick split. */
 export function WorkspaceStoreProvider({ store, children }: WorkspaceStoreProviderProps) {
   return <WorkspaceStoreContext value={store}>{children}</WorkspaceStoreContext>;
 }

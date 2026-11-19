@@ -1,4 +1,3 @@
-/** Every screen the app has, with what its address carries. */
 export type Route =
   | { kind: 'home' }
   | { kind: 'split' }
@@ -24,7 +23,6 @@ export function parseRoute(location: Pick<Location, 'pathname' | 'hash'>): Route
   if (segments.length === 0) return HOME;
   if (first === 'split' && segments.length === 1) return { kind: 'split' };
   if (first === 'join' && segments.length === 1) {
-    // The code rides in the hash so it never reaches a server log.
     const code = decodeSegment(location.hash.replace(/^#/, ''));
     return code ? { kind: 'join', code } : HOME;
   }

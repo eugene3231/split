@@ -12,7 +12,6 @@ import type {
 import { entryEffect } from '@features/group-ledger/logic/balances';
 import { totalCents } from '@features/group-ledger/logic/post';
 
-/** A member's name as it reads now, following a merge. */
 export function memberName(ledger: Ledger, id: MemberId): string {
   const current = ledger.aliases.get(id) ?? id;
   return ledger.members.find((member) => member.id === current)?.name ?? 'Someone';
@@ -74,7 +73,6 @@ function describeMemberChange(before: Member, after: Member): string {
   return `updated ${after.name}`;
 }
 
-/** Which way a balance or a share points, so a screen can colour it. */
 export type Direction = 'owed' | 'owes' | 'even';
 
 export interface Worded {
@@ -112,7 +110,6 @@ export interface ShareWords {
   direction: Direction;
   /** "you lent", "you owe", or "not involved". */
   label: string;
-  /** Null when not involved. */
   amount: string | null;
 }
 
@@ -136,7 +133,6 @@ export function describeTransfer(transfer: Transfer, ledger: Ledger): string {
   return `${memberName(ledger, transfer.from)} pays ${memberName(ledger, transfer.to)} ${amount}`;
 }
 
-/** The settle-up list as a message for the group chat. */
 export function describeSettleUp(transfers: Transfer[], ledger: Ledger): string {
   if (transfers.length === 0) return `${ledger.name}: everyone is settled up.`;
   return [

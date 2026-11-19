@@ -124,7 +124,6 @@ function DuplicateHints({ group }: { group: ReadyGroup }) {
   return (
     <div className="mt-4 space-y-2">
       {pairs.map(([first, second]) => {
-        // Keep the one somebody has claimed, so their phone still knows who they are.
         const [from, into] = ledger.claimed.has(second) ? [first, second] : [second, first];
         return (
           <div

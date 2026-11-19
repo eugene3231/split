@@ -221,7 +221,6 @@ export function useWizard(
 
 export type Wizard = ReturnType<typeof useWizard>;
 
-/** The wizard over the workspace in the nearest store. */
 export function useWorkspaceWizard(steps?: readonly WizardStep[]): Wizard {
   const { people, receipts } = useReceiptStore(
     useShallow((state) => ({ people: state.people, receipts: state.receipts })),

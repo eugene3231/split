@@ -32,7 +32,6 @@ export function actionBarButtonClass(enabled: boolean) {
   );
 }
 
-/** Owed money reads green, owing reads amber, settled recedes. */
 export const DIRECTION_TEXT: Record<Direction, string> = {
   owed: 'text-secondary',
   owes: 'text-warning',

@@ -43,7 +43,6 @@ export function navigate(
   notify();
 }
 
-/** The screen the address bar names, kept current through links, back and forward. */
 export function useRoute(): Route {
   return useSyncExternalStore(subscribe, currentRoute);
 }

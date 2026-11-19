@@ -18,10 +18,6 @@ interface FailedJoin {
   failure: BackendFailure;
 }
 
-/**
- * Joins the group an invite code opens and adds it to this phone. A group the phone already holds
- * opens at once, offline too. Who you are in the group is asked once it has loaded.
- */
 export function useJoinGroup(inviteCode: string): JoinState {
   const held = useJoinedGroupsStore((state) =>
     state.groups.find((group) => group.inviteCode === inviteCode),

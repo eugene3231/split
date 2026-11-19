@@ -13,8 +13,6 @@ import type {
 } from '@features/group-ledger/domain/types';
 import { byCodeUnit } from '@features/group-ledger/logic/ids';
 
-// Stands in for this device's user while the session is not known yet, so its pending ops still
-// share one author.
 const THIS_DEVICE: unique symbol = Symbol('this device');
 type Author = UserId | typeof THIS_DEVICE;
 
@@ -30,7 +28,6 @@ interface Head {
   entry: Entry;
   rev: OpId;
   pending: boolean;
-  /** Where in the log the entry was first added. An edit keeps it, so the list does not jump. */
   position: number;
 }
 
@@ -43,7 +40,6 @@ interface Removed {
 interface Folding {
   group: { name: string; currency: CurrencyCode } | null;
   members: Map<MemberId, Member>;
-  /** Neither end of a link is ever itself merged away when the link is made, so no cycles. */
   aliases: Map<MemberId, MemberId>;
   claims: Map<Author, MemberId | null>;
   entries: Map<EntryId, Head>;
@@ -98,7 +94,6 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
     activity.push({
       opId: op.id,
       at: op.at,
-      // "Ana joined" is written by Ana, though she was nobody until this op.
       by: state.claims.get(op.author) ?? claimBefore,
       pending: op.pending,
       ...outcome,
@@ -158,7 +153,6 @@ function apply(state: Folding, op: Op, position: number): Outcome | null {
     }
     case 'member.put': {
       const { member } = change;
-      // A phone that has not seen the merge yet is still editing the member merged away.
       if (state.aliases.has(member.id)) return null;
       const before = state.members.get(member.id);
       state.members.set(member.id, member);
@@ -182,8 +176,6 @@ function apply(state: Folding, op: Op, position: number): Outcome | null {
     case 'member.claimed': {
       const claimed =
         change.memberId === null ? null : resolveAlias(state.aliases, change.memberId);
-      // Whoever claimed a member first keeps it, until they step back or claim someone else.
-      // Two friends who tap the same name offline would otherwise both be that member.
       if (claimed !== null && isHeldByAnother(state, claimed, op.author)) return null;
       state.claims.set(op.author, change.memberId);
       const member = claimed === null ? null : (state.members.get(claimed) ?? null);
@@ -215,7 +207,6 @@ function apply(state: Folding, op: Op, position: number): Outcome | null {
       if (base === removed.by) {
         return { what: { kind: 'entry-restored', entry }, replaced: null, undo: remove };
       }
-      // An edit written without seeing the remove brings the entry back.
       return {
         what: { kind: 'entry-changed', before: removed.entry, after: entry },
         replaced: removed.entry,

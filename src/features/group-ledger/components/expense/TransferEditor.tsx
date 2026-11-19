@@ -19,7 +19,6 @@ interface TransferEditorProps {
   rev: OpId;
 }
 
-/** A payment someone marked as paid: change the amount, or delete it. */
 export function TransferEditor({ group, transfer, rev }: TransferEditorProps) {
   const { ledger, act } = group;
   const [amount, setAmount] = useState(() => formatMoneyAmount(transfer.cents, ledger.currency));

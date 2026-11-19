@@ -33,7 +33,6 @@ import type { SummaryDetail } from '@features/split-workspace/summary/breakdown/
 const TOTALS_LIST_MIN_PEOPLE = 5;
 
 export type SummaryStepProps = {
-  /** Where the bottom bar takes the step's primary action. */
   actionSlot?: HTMLDivElement | null;
   /** Takes the bottom bar's place of Save image. */
   primaryAction?: ReactNode;

@@ -24,16 +24,13 @@ import type { AssignMode, WizardStep } from '@features/split-workspace/types';
 
 interface WizardLayoutProps {
   wizard: Wizard;
-  /** Beside the steps in the top bar. */
   actions: ReactNode;
   /** The summary renders its primary action into this element of the bottom bar. */
   finalActionRef: (element: HTMLDivElement | null) => void;
-  /** The active step. */
   children: ReactNode;
   footer?: ReactNode;
 }
 
-/** The wizard's frame: the step bar on top, the active step, and the bar that moves between them. */
 export function WizardLayout({
   wizard,
   actions,

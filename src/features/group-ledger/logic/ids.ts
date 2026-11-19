@@ -8,9 +8,6 @@ import type {
   UserId,
 } from '@features/group-ledger/domain/types';
 
-// The only casts into the branded types. Text from outside (a URL, storage, the server) goes
-// through one of these once it has been checked; everything else gets its ids from the makers.
-
 export const asGroupId = (value: string) => value as GroupId;
 export const asMemberId = (value: string) => value as MemberId;
 export const asEntryId = (value: string) => value as EntryId;

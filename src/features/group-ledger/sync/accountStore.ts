@@ -7,7 +7,6 @@ import { ledgerBackend, syncAllGroups } from '@features/group-ledger/sync/groupS
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 import { jsonStorage } from '@features/split-workspace/logic/jsonStorage';
 
-/** Where "Keep my groups" is: nothing asked, a code on its way, or a code being checked. */
 export type EmailSignIn =
   | { step: 'idle' }
   | { step: 'sending'; email: string }
@@ -16,15 +15,10 @@ export type EmailSignIn =
   | { step: 'verifying'; email: string; mode: 'link' | 'sign-in' };
 
 interface AccountStore {
-  /**
-   * Who this phone is, as last heard from the backend. Kept in storage so a group still knows
-   * which member is "you" when the phone opens with no signal.
-   */
   session: Session | null;
   emailSignIn: EmailSignIn;
   /** Why the last action did not work. A `failed` while verifying means the code was refused. */
   failure: BackendFailure | null;
-  /** Signs in anonymously the first time, then confirms the stored session. */
   load: () => Promise<void>;
   startEmailSignIn: (email: string) => Promise<void>;
   verifyEmailCode: (code: string) => Promise<void>;
@@ -42,13 +36,8 @@ const sessionSchema: z.ZodType<Session> = z.object({
 });
 
 export interface AccountStoreOptions {
-  /** Asked for on each call, so importing the store does not start the backend. */
   backend: () => LedgerBackend;
   profile: string;
-  /**
-   * Runs after this phone becomes a different user. Its groups do not know the new user yet,
-   * and the account may have groups this phone has never held.
-   */
   onUserChanged: () => Promise<void>;
 }
 
@@ -98,7 +87,6 @@ export function createAccountStore({
         set({ emailSignIn: { ...flow, step: 'verifying' }, failure: null });
         const verified = await getBackend().verifyEmailCode(flow.email, code);
         if (!verified.ok) {
-          // Back to the code, so the person can type it again.
           set({ emailSignIn: flow, failure: verified.failure });
           return;
         }
@@ -121,12 +109,10 @@ export function createAccountStore({
   });
 }
 
-/** Adds the account's groups this phone has never held, then enters and syncs every group. */
 async function adoptAccountGroups(): Promise<void> {
   const mine = await ledgerBackend().myGroups();
   if (mine.ok) {
     for (const group of mine.value) {
-      // The name arrives with the group's log.
       useJoinedGroupsStore.getState().add({ ...group, createdHere: false, name: '' });
     }
   }

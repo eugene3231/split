@@ -17,7 +17,6 @@ interface SplitFieldProps {
   ledger: Ledger;
   members: Member[];
   draft: ExpenseDraft;
-  /** What each member owes once the draft adds up; null until then. */
   owed: Record<MemberId, Cents> | null;
   onChange: (patch: Partial<ExpenseDraft>) => void;
 }

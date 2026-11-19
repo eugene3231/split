@@ -27,7 +27,6 @@ import { SplitField } from './SplitField';
 
 interface ExpenseFormProps {
   group: ReadyGroup;
-  /** The expense being edited and the revision it was opened at; nothing for a new one. */
   editing?: { entry: ExpenseEntry; rev: OpId };
 }
 

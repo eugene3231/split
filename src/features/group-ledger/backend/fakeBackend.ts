@@ -20,13 +20,11 @@ import { jsonStorage } from '@features/split-workspace/logic/jsonStorage';
 
 export interface FakeBackendOptions {
   server: FakeServer;
-  /** Names the phone. Two backends with different profiles are two phones, even in one tab. */
   profile: string;
   /** False makes every call that needs the server fail with `offline`. */
   isOnline: () => boolean;
 }
 
-/** Any email verifies with this code. */
 export const FAKE_EMAIL_CODE = '000000';
 
 const OFFLINE: { ok: false; failure: BackendFailure } = { ok: false, failure: { kind: 'offline' } };
@@ -46,10 +44,6 @@ function toSession(stored: StoredSession): Session {
   };
 }
 
-/**
- * A phone talking to a fake server. Like Supabase, the session is kept on the phone, so
- * `session()` answers offline once the phone has signed in; every other call needs the server.
- */
 export function createFakeBackend({
   server,
   profile,
@@ -67,7 +61,6 @@ export function createFakeBackend({
     return fresh;
   }
 
-  /** Runs a call as the signed-in user, or fails with `offline`. */
   async function online<T>(
     call: (session: StoredSession) => Promise<Result<T>>,
   ): Promise<Result<T>> {
@@ -86,7 +79,6 @@ export function createFakeBackend({
         const owner = await server.emailOwner(email);
         if (!owner.ok) return owner;
         if (owner.value !== null) return { ok: true, value: { mode: 'sign-in' } };
-        // Supabase only attaches an email to an anonymous user.
         return session.email === null
           ? { ok: true, value: { mode: 'link' } }
           : failed('No account uses that email.');
@@ -176,10 +168,6 @@ export function createFakeBackend({
 
 const PROFILE_KEY = 'split.fakeBackend.profile';
 
-/**
- * The phone this tab is. Kept in sessionStorage, so each tab is its own phone and two tabs can
- * share a group. `?phone=ana` names it, which brings the same phone back in a new tab.
- */
 export function tabProfile(): string {
   const storage = jsonStorage('sessionStorage', PROFILE_KEY, z.string().min(1));
   const named = new URLSearchParams(window.location.search).get('phone');
@@ -190,13 +178,11 @@ export function tabProfile(): string {
 
 let switchedOffline = false;
 
-/** The dev toggle for "no signal". Switching back on syncs at once. */
 export function setFakeOffline(offline: boolean): void {
   switchedOffline = offline;
   if (!offline) window.dispatchEvent(new Event('online'));
 }
 
-/** False while the dev toggle is off or the URL has `?offline`. */
 export function isFakeOnline(): boolean {
   return !switchedOffline && !new URLSearchParams(window.location.search).has('offline');
 }

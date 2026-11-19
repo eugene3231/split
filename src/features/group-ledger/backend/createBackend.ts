@@ -11,27 +11,18 @@ interface BackendEnv {
   VITE_SUPABASE_ANON_KEY?: string;
 }
 
-/** Null without both env vars, and then the app runs on the fake server in localStorage. */
 export function supabaseConfig(env: BackendEnv = import.meta.env) {
   const url = env.VITE_SUPABASE_URL;
   const anonKey = env.VITE_SUPABASE_ANON_KEY;
   return url && anonKey ? { url, anonKey } : null;
 }
 
-/**
- * Names this phone's storage. One browser is one phone, except on the fake server, where each
- * tab is its own phone so two tabs can share a group.
- */
 export function deviceProfile(env: BackendEnv = import.meta.env): string {
   return supabaseConfig(env) === null ? tabProfile() : 'main';
 }
 
 const OFFLINE: Result<never> = { ok: false, failure: { kind: 'offline' } };
 
-/**
- * A backend that loads its code on first use. A phone that is offline before the code has been
- * cached reads as offline, and the next call tries the download again.
- */
 export function lazyBackend(load: () => Promise<LedgerBackend>): LedgerBackend {
   let loading: Promise<LedgerBackend> | null = null;
 
@@ -70,7 +61,6 @@ export function lazyBackend(load: () => Promise<LedgerBackend>): LedgerBackend {
   };
 }
 
-/** Supabase when `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set, else the local fake. */
 export function createBackend(env: BackendEnv = import.meta.env): LedgerBackend {
   const config = supabaseConfig(env);
   if (config === null) {

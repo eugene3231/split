@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-/** The dark bar pinned to the bottom, as in the wizard: what is going on, then the one action. */
 export function ActionBar({ status, children }: { status: ReactNode; children: ReactNode }) {
   return (
     <footer className="sticky bottom-0 z-30 w-full pb-[max(1rem,env(safe-area-inset-bottom))]">

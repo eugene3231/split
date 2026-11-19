@@ -13,8 +13,6 @@ import {
 
 import { newUuid } from '@features/group-ledger/logic/ids';
 
-// The migration, run in a Postgres inside this process, behind the real Supabase adapter.
-
 let project: PgliteProject;
 
 beforeAll(async () => {

@@ -6,7 +6,6 @@ import { ScreenHeader } from '@features/group-ledger/components/ui/ScreenHeader'
 import { TextField } from '@features/group-ledger/components/ui/TextField';
 import { cn } from '@shared/utils/cn';
 
-/** Asked once per group: which member is the person holding this phone. */
 export function WhoAreYou({ group }: { group: ReadyGroup }) {
   const { ledger, act } = group;
   const [newName, setNewName] = useState<string | null>(null);

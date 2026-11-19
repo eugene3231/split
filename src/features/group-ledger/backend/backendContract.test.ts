@@ -17,15 +17,11 @@ describeBackendContract('memory fake', async () => {
   };
 });
 
-// Against a real project, with the migration run and anonymous sign-ins on:
-//   VITE_CONTRACT_SUPABASE_URL=... VITE_CONTRACT_SUPABASE_ANON_KEY=... pnpm test backendContract
-// Every run leaves its groups behind, so point it at a project made for testing.
 const url: string | undefined = import.meta.env.VITE_CONTRACT_SUPABASE_URL;
 const anonKey: string | undefined = import.meta.env.VITE_CONTRACT_SUPABASE_ANON_KEY;
 
 describe.skipIf(!url || !anonKey)('against Supabase', () => {
   describeBackendContract('supabase', async () => ({
-    // Without a persisted session each client signs in as a new anonymous user: a new phone.
     phone: async () =>
       createSupabaseBackend(
         createClient(url ?? '', anonKey ?? '', {

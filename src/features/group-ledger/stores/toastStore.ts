@@ -14,7 +14,6 @@ interface ToastStore {
 
 let nextId = 1;
 
-/** One message at a time, such as "Deleted Grab" with Undo. It outlives the screen that said it. */
 export const useToastStore = create<ToastStore>((set, get) => ({
   toast: null,
   show: (message, action) => set({ toast: { id: nextId++, message, action } }),

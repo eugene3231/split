@@ -29,7 +29,6 @@ import {
 
 const grab = makeExpense('grab', { [ana]: 900, [ben]: 900 }, { title: 'Grab' });
 
-/** The group with Ana and Ben in it and Ben on his own phone, then `changes` from that phone. */
 function benDoes(...changes: Array<Change | null>): GroupLog {
   const start = [created, put(makeMember(ana)), put(makeMember(ben))];
   return makeLog([

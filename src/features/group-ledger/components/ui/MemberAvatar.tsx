@@ -17,7 +17,6 @@ const SIZES = {
   lg: 'h-14 w-14 text-lg',
 };
 
-/** A member's initial in the colour of their place in the group, the same on every phone. */
 export function MemberAvatar({ ledger, memberId, size = 'md', className }: MemberAvatarProps) {
   const id = ledger.aliases.get(memberId) ?? memberId;
   const index = ledger.members.findIndex((member) => member.id === id);

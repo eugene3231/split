@@ -8,7 +8,6 @@ interface MoneyInputProps extends Omit<ComponentProps<'input'>, 'onChange'> {
   onValueChange: (value: string) => void;
 }
 
-/** A small amount field with the currency's symbol in front, for one person's share. */
 export function MoneyInput({ currency, onValueChange, className, ...props }: MoneyInputProps) {
   return (
     <label className={cn('flex h-11 w-32 shrink-0 items-center gap-1 field px-3', className)}>

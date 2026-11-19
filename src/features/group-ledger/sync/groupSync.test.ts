@@ -19,7 +19,6 @@ const addMember = (name: string): Change => ({
 
 const engines: GroupSync[] = [];
 
-/** One phone: its own profile, user and signal. `open` is the app opening a group. */
 function phone(server: FakeServer, profile: string, wrap = (backend: LedgerBackend) => backend) {
   const signal = { online: true };
   const backend = wrap(createFakeBackend({ server, profile, isOnline: () => signal.online }));
@@ -41,7 +40,6 @@ function phone(server: FakeServer, profile: string, wrap = (backend: LedgerBacke
 const names = (ops: readonly ConfirmedOp[]) =>
   ops.map((op) => (op.change?.kind === 'group.renamed' ? op.change.name : op.change?.kind));
 
-/** Everything the server holds for the group, read by someone who has joined it. */
 async function serverLog(server: FakeServer, group: JoinedGroup) {
   const reader = createFakeBackend({ server, profile: 'reader', isOnline: () => true });
   await reader.joinGroup(group.inviteCode);
@@ -50,7 +48,6 @@ async function serverLog(server: FakeServer, group: JoinedGroup) {
   return pulled.value.ops;
 }
 
-/** A group someone else made earlier: on the server, with its `group.created` at seq 1. */
 async function foundedGroup(server: FakeServer): Promise<JoinedGroup> {
   const group = newGroup();
   const founder = createFakeBackend({ server, profile: 'founder', isOnline: () => true });
@@ -58,7 +55,6 @@ async function foundedGroup(server: FakeServer): Promise<JoinedGroup> {
   return group;
 }
 
-/** What a log holds after the op that created the group. */
 const sinceFounded = <Op>(ops: readonly Op[]) => ops.slice(1);
 
 beforeEach(() => {
@@ -156,7 +152,6 @@ describe('group sync', () => {
   it('pushes again after a crash between push and confirm, without a duplicate', async () => {
     const server = createMemoryServer();
     const group = await foundedGroup(server);
-    // The push reaches the server, then the tab dies before the pull that would confirm it.
     const dying = phone(server, 'ana', (backend) => ({
       ...backend,
       pull: () => new Promise(() => {}),
@@ -329,7 +324,6 @@ describe('group sync', () => {
     const benBackend = phone(server, 'ben').backend;
     const ana = phone(server, 'ana', (backend) => ({
       ...backend,
-      // Ben opens the link and adds himself between Ana's publish and her first push.
       async publishGroup(...published) {
         const reply = await backend.publishGroup(...published);
         await benBackend.joinGroup(group.inviteCode);
@@ -463,7 +457,6 @@ describe('group sync', () => {
     const ana = phone(server, 'ana').open(group, false);
     await ana.syncNow();
     const benPhone = phone(server, 'ben');
-    // This phone believes it joined, as after a server reset or a restored backup.
     const session = await benPhone.backend.session();
     if (!session.ok) throw new Error('no session');
     openDeviceLog('ben', group.groupId).setMemberAs(session.value.userId);
@@ -505,7 +498,6 @@ describe('group sync', () => {
     ana.submit(rename('Japan 2026'));
     await ana.syncNow();
     const [founding, first, second] = ana.getSnapshot().log.confirmed;
-    // An older Split on this phone stored the first rename as unreadable.
     openDeviceLog('ben', group.groupId).confirm([founding, { ...first, change: null }, second]);
 
     const ben = phone(server, 'ben').open(group, false);
@@ -538,7 +530,6 @@ describe('group sync', () => {
     const group = await foundedGroup(server);
     const anaPhone = phone(server, 'ana');
     anaPhone.signal.online = false;
-    // Queued by another version of Split on this phone, before the app was updated.
     const queued = {
       ...pendingOp({ kind: 'group.archived', reason: 'trip over' } as unknown as Change),
       order: 1,
@@ -636,7 +627,6 @@ describe('group sync', () => {
     tab.submit(rename('two'));
     await tab.syncNow();
     const key = `split:g:ana:${group.groupId}:confirmed`;
-    // The other tab read the log before this tab's last page and wrote it back after.
     const stale = JSON.stringify(tab.getSnapshot().log.confirmed.slice(0, 2));
 
     window.localStorage.setItem(key, stale);
@@ -688,7 +678,6 @@ describe('group sync', () => {
     })).open(group, false);
     await vi.waitFor(() => expect(pull).toHaveBeenCalled());
 
-    // What `forgetGroup` does.
     ana.dispose();
     openDeviceLog('ana', group.groupId).clear();
     answer();

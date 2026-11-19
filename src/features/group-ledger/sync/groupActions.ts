@@ -10,7 +10,6 @@ import type {
 } from '@features/group-ledger/domain/types';
 import { newEntryId, newMemberId, todayLocalDate } from '@features/group-ledger/logic/ids';
 
-/** Everything a screen can do to a group. Each one is a change stored on this phone first. */
 export interface GroupActions {
   /** Returns the op that added it, the `base` for taking it back out. */
   addExpense: (entry: Entry) => OpId;

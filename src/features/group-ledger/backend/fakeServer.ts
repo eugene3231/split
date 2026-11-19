@@ -3,14 +3,6 @@ import type { Result } from '@features/group-ledger/backend/port';
 import { changeBytes, MAX_CHANGE_BYTES } from '@features/group-ledger/backend/limits';
 import { parseJson } from '@features/split-workspace/logic/jsonStorage';
 
-// The server's rules, stated once in TypeScript: the same rules as the SQL functions in
-// supabase/migrations/*_group_ledger.sql, and `sqlContract.test.ts` holds the two together.
-// A rule is a pure function from a state to the next state and a reply. A store runs one rule
-// at a time, in memory for tests or in localStorage for `pnpm dev`.
-//
-// Ids are plain strings here. Like the real server, this one knows nothing about the domain
-// types, and the backend parses what it sends back.
-
 const storedOpSchema = z.object({
   id: z.string(),
   seq: z.number(),
@@ -24,22 +16,18 @@ const serverStateSchema = z.object({
     z.string(),
     z.object({
       inviteCode: z.string(),
-      /** The highest `seq` given out. */
       head: z.number(),
       members: z.array(z.string()),
       ops: z.array(storedOpSchema),
     }),
   ),
-  /** Op id to the group that holds it: the `unique (id)` index. */
   opGroup: z.record(z.string(), z.string()),
-  /** Email to the user it signs in, standing in for Supabase Auth. */
   emails: z.record(z.string(), z.string()),
 });
 
 export type StoredOp = z.infer<typeof storedOpSchema>;
 export type ServerState = z.infer<typeof serverStateSchema>;
 
-/** What a phone sends for one op. The server stamps the rest. */
 export interface IncomingOp {
   id: string;
   at: string;
@@ -84,10 +72,6 @@ function isAcceptable(op: IncomingOp): boolean {
   );
 }
 
-/**
- * `create_group`. The group and `firstOp` at `seq` 1 are made together or not at all. The same
- * id and code again is the same call; the id with another code gets nothing.
- */
 export function createGroup(
   state: ServerState,
   caller: string,
@@ -130,7 +114,6 @@ export function createGroup(
   );
 }
 
-/** `join_group`. */
 export function joinGroup(state: ServerState, caller: string, inviteCode: string): Step<string> {
   const groupId = Object.keys(state.groups).find(
     (id) => state.groups[id].inviteCode === inviteCode,
@@ -141,7 +124,6 @@ export function joinGroup(state: ServerState, caller: string, inviteCode: string
   return ok(withMember(state, groupId, caller), groupId);
 }
 
-/** `append_ops`. One bad op never stops the ops around it. */
 export function appendOps(
   state: ServerState,
   caller: string,
@@ -149,7 +131,6 @@ export function appendOps(
   incoming: readonly IncomingOp[],
 ): Step<{ accepted: string[]; rejected: string[] }> {
   const group = state.groups[groupId];
-  // A group that does not exist reads the same as one the caller is not in.
   if (!group?.members.includes(caller)) {
     return { state, reply: { ok: false, failure: { kind: 'not-a-member' } } };
   }
@@ -182,10 +163,6 @@ export function appendOps(
   );
 }
 
-/**
- * `select ... from ops where group_id = ? and seq > ? order by seq limit ?` under row level
- * security: someone outside the group gets no rows and no error.
- */
 export function opsAfter(
   state: ServerState,
   caller: string,
@@ -198,7 +175,6 @@ export function opsAfter(
   return ok(state, group.ops.filter((op) => op.seq > afterSeq).slice(0, limit));
 }
 
-/** `my_groups`. */
 export function myGroups(
   state: ServerState,
   caller: string,
@@ -211,12 +187,10 @@ export function myGroups(
   );
 }
 
-/** The user an email signs in, or null when no account has it. */
 export function emailOwner(state: ServerState, email: string): Step<string | null> {
   return ok(state, state.emails[normaliseEmail(email)] ?? null);
 }
 
-/** Attaches the email to the user unless an account already has it, and says whose it is now. */
 export function claimEmail(state: ServerState, email: string, userId: string): Step<string> {
   const key = normaliseEmail(email);
   const owner = state.emails[key];
@@ -228,9 +202,7 @@ function normaliseEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-/** Where the state lives, and how a tab hears that a group changed. */
 export interface ServerStore {
-  /** Runs one rule alone against the latest state and keeps the state it returns. */
   transact<T>(rule: (state: ServerState) => Step<T>): Promise<Result<T>>;
   announce(groupId: string): void;
   subscribe(groupId: string, onPoke: () => void): () => void;
@@ -274,7 +246,6 @@ function createFakeServer(store: ServerStore): FakeServer {
         inserted = step.state.groups[groupId]?.head !== state.groups[groupId]?.head;
         return step;
       });
-      // Like Realtime, which reports inserts: a push that only repeated old ops is silent.
       if (inserted) store.announce(groupId);
       return reply;
     },
@@ -304,7 +275,6 @@ function createListeners() {
   };
 }
 
-/** A server that lives as long as the object does. Phones in one test share it. */
 export function createMemoryServer(): FakeServer {
   let state = EMPTY_STATE;
   const listeners = createListeners();
@@ -315,7 +285,6 @@ export function createMemoryServer(): FakeServer {
       state = step.state;
       return step.reply;
     },
-    // After the caller's own reply, as a real poke would arrive.
     announce: (groupId) => queueMicrotask(() => listeners.notify(groupId)),
     subscribe: listeners.subscribe,
   });
@@ -325,11 +294,6 @@ const STATE_KEY = 'split.fakeServer.state';
 const LOCK_NAME = 'split.fakeServer.lock';
 const CHANNEL_NAME = 'split.fakeServer.pokes';
 
-/**
- * The server for `pnpm dev`: every tab of this browser is a phone talking to it. A Web Lock
- * makes a transaction's read and write one step across tabs, and a BroadcastChannel carries the
- * pokes between them.
- */
 export function createLocalStorageServer(): FakeServer {
   const listeners = createListeners();
   const channel =
@@ -338,7 +302,6 @@ export function createLocalStorageServer(): FakeServer {
     if (typeof event.data === 'string') listeners.notify(event.data);
   });
 
-  // Where Web Locks are missing, one tab still runs its own transactions in turn.
   let queue: Promise<unknown> = Promise.resolve();
   function alone<T>(work: () => Promise<T>): Promise<T> {
     if (typeof navigator !== 'undefined' && navigator.locks) {

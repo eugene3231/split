@@ -4,7 +4,6 @@ import type { WizardStep } from '@features/split-workspace/types';
 
 interface Props {
   activeStep: WizardStep;
-  /** The first step has nothing to go back to. */
   isFirstStep: boolean;
   continueLabel: string;
   canContinue: boolean;
