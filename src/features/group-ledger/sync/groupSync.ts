@@ -38,6 +38,8 @@ export interface SyncStatus {
    * kept and sent again on the retry timer, and what others wrote is still read meanwhile.
    */
   outboxStuck: boolean;
+  /** Changes this phone had no room to store, held in memory until the server takes them. */
+  unstored: number;
 }
 
 interface RunOutcome {
@@ -95,6 +97,7 @@ export function createGroupSync({
     lastSyncedAt: null,
     rejected: [],
     outboxStuck: false,
+    unstored: 0,
   };
   let snapshot = snapshotOf(readLog());
   let running: Promise<void> | null = null;
@@ -126,7 +129,7 @@ export function createGroupSync({
 
   function snapshotOf(held: GroupLog): GroupSnapshot {
     const queued = held.pending.length + (held.unreadablePending?.length ?? 0);
-    return { log: held, sync: { ...status, pending: queued } };
+    return { log: held, sync: { ...status, pending: queued, unstored: log.unstored() } };
   }
 
   function publish(next: Partial<SyncStatus>, held: GroupLog = snapshot.log) {

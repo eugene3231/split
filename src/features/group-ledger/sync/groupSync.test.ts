@@ -237,6 +237,34 @@ describe('group sync', () => {
     expect(sinceFounded(await serverLog(server, group)).map((op) => op.id)).toEqual([opId]);
   });
 
+  it('says how many changes only live in memory when the phone has no room to keep them', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const anaPhone = phone(server, 'ana');
+    const ana = anaPhone.open(group, false);
+    await ana.syncNow();
+    anaPhone.signal.online = false;
+    const setItem = Storage.prototype.setItem;
+    const full = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      if (key.includes(':out:')) throw new DOMException('full', 'QuotaExceededError');
+      setItem.call(this, key, value);
+    });
+
+    ana.submit(rename('Japan'));
+    await ana.syncNow();
+    const whileOffline = ana.getSnapshot().sync.unstored;
+    full.mockRestore();
+    anaPhone.signal.online = true;
+    await ana.syncNow();
+
+    expect(whileOffline).toBe(1);
+    expect(ana.getSnapshot().sync.unstored).toBe(0);
+  });
+
   it('pushes a long outbox in batches of 50 and pulls it back in order', async () => {
     const server = createMemoryServer();
     const group = await foundedGroup(server);

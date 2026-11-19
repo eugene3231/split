@@ -6,6 +6,8 @@ export function SyncBadge({ sync, className }: { sync: SyncStatus; className?: s
   const stuck = sync.state === 'offline' || sync.state === 'error';
   let label: string | null = null;
   if (sync.state === 'not-a-member') label = "Can't sync: this group's link stopped working";
+  else if (sync.unstored > 0)
+    label = `Phone storage is full · keep Split open until ${sync.unstored} sync`;
   else if (sync.outboxStuck) label = `Some changes can't sync · ${sync.pending} kept on this phone`;
   else if (stuck && sync.pending > 0) label = `Saved on this phone · ${sync.pending} waiting`;
   else if (sync.state === 'offline') label = 'Offline';

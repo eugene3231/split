@@ -31,8 +31,13 @@ export interface DeviceLog {
   /** Every op the server has not confirmed, in the order this phone made them. */
   outbox(): OutboxOp[];
   pending(): PendingOp[];
-  /** Stored before it returns, so the op survives a reload that comes before any network call. */
+  /**
+   * Stored before it returns, so the op survives a reload that comes before any network call.
+   * When storage is full it is kept in memory instead, and counted by `unstored` until confirmed.
+   */
   appendPending(change: Change): PendingOp;
+  /** Pending ops held only in memory because storage was full. A reload would lose them. */
+  unstored(): number;
   /**
    * Takes ops the server confirmed and retires the pending ops among them. Safe to repeat.
    * It reads the stored log and writes it back in one synchronous step, but two tabs are two
@@ -120,6 +125,7 @@ export function openDeviceLog(
     confirmed,
     outbox,
     pending,
+    unstored: () => unsaved.size,
 
     appendPending(change) {
       const lastOrder = Math.max(orderStore.load() ?? 0, ...outbox().map((op) => op.order));
