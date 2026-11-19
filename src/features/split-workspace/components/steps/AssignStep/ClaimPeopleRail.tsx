@@ -1,7 +1,7 @@
 import { cn } from '@shared/utils/cn';
 import { personColor } from '@shared/utils/personColors';
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
-import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { PersonAvatar } from '@shared/components/PersonAvatar';
 import { CountUpAmount } from '@features/split-workspace/components/shared/CountUpAmount';
 import { prefersMotion } from '@features/split-workspace/components/shared/motion';
 import type { CurrencyCode } from '@shared/constants';

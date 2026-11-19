@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { ClaimPerson } from '@features/split-workspace/logic/claim';
-import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { PersonAvatar } from '@shared/components/PersonAvatar';
 
 interface Props {
   person: ClaimPerson;

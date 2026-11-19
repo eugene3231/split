@@ -1,11 +1,15 @@
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
+import type { CurrencyCode } from '@shared/constants';
 import type {
   Activity,
+  Cents,
   Entry,
   Ledger,
   Member,
   MemberId,
+  Transfer,
 } from '@features/group-ledger/domain/types';
+import { entryEffect } from '@features/group-ledger/logic/balances';
 import { totalCents } from '@features/group-ledger/logic/post';
 
 /** A member's name as it reads now, following a merge. */
@@ -31,7 +35,7 @@ export function describeActivity(activity: Activity, ledger: Ledger): string {
 
   switch (what.kind) {
     case 'group-created':
-      return `${who} created ${what.name}`;
+      return activity.by === null ? `${what.name} was created` : `${who} created ${what.name}`;
     case 'group-renamed':
       return `${who} renamed the group to ${what.to}`;
     case 'member-added':
@@ -62,5 +66,81 @@ function describeMemberChange(before: Member, after: Member): string {
   if (before.archived !== after.archived) {
     return `${after.archived ? 'archived' : 'brought back'} ${after.name}`;
   }
+  if (before.paynowMobile !== after.paynowMobile) {
+    return after.paynowMobile === null
+      ? `removed ${after.name}'s PayNow number`
+      : `set ${after.name}'s PayNow number`;
+  }
   return `updated ${after.name}`;
+}
+
+/** Which way a balance or a share points, so a screen can colour it. */
+export type Direction = 'owed' | 'owes' | 'even';
+
+export interface Worded {
+  direction: Direction;
+  text: string;
+}
+
+function directionOf(cents: Cents): Direction {
+  return cents > 0 ? 'owed' : cents < 0 ? 'owes' : 'even';
+}
+
+/** "you're owed $42.10", "you owe $12.00" or "settled up", from a balance in group cents. */
+export function describeMyBalance(cents: Cents, currency: CurrencyCode): Worded {
+  const amount = formatCurrencyFromCents(Math.abs(cents), currency);
+  const direction = directionOf(cents);
+  const text = {
+    owed: `you're owed ${amount}`,
+    owes: `you owe ${amount}`,
+    even: 'settled up',
+  }[direction];
+  return { direction, text };
+}
+
+/** "gets back $42.10", "owes $12.00" or "settled up", for anyone else's balance. */
+export function describeBalance(cents: Cents, currency: CurrencyCode): Worded {
+  const amount = formatCurrencyFromCents(Math.abs(cents), currency);
+  const direction = directionOf(cents);
+  const text = { owed: `gets back ${amount}`, owes: `owes ${amount}`, even: 'settled up' }[
+    direction
+  ];
+  return { direction, text };
+}
+
+export interface ShareWords {
+  direction: Direction;
+  /** "you lent", "you owe", or "not involved". */
+  label: string;
+  /** Null when not involved. */
+  amount: string | null;
+}
+
+/** What an entry did to this phone's member, in group currency: "you lent" $9.00. */
+export function describeMyShare(entry: Entry, ledger: Ledger, me: MemberId | null): ShareWords {
+  const cents = me === null ? 0 : (entryEffect(entry, ledger.aliases)[me] ?? 0);
+  const direction = directionOf(cents);
+  const transfer = entry.kind === 'transfer';
+  const label = {
+    owed: transfer ? 'you paid' : 'you lent',
+    owes: transfer ? 'you got' : 'you owe',
+    even: 'not involved',
+  }[direction];
+  const amount = cents === 0 ? null : formatCurrencyFromCents(Math.abs(cents), ledger.currency);
+  return { direction, label, amount };
+}
+
+/** "Ben pays Ana $42.10". */
+export function describeTransfer(transfer: Transfer, ledger: Ledger): string {
+  const amount = formatCurrencyFromCents(transfer.cents, ledger.currency);
+  return `${memberName(ledger, transfer.from)} pays ${memberName(ledger, transfer.to)} ${amount}`;
+}
+
+/** The settle-up list as a message for the group chat. */
+export function describeSettleUp(transfers: Transfer[], ledger: Ledger): string {
+  if (transfers.length === 0) return `${ledger.name}: everyone is settled up.`;
+  return [
+    `${ledger.name}: settling up`,
+    ...transfers.map((transfer) => `• ${describeTransfer(transfer, ledger)}`),
+  ].join('\n');
 }

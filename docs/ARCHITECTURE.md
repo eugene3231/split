@@ -25,7 +25,7 @@ Steps live in `components/steps/`, apart from the summary. A step stays a flat f
 - `ReceiptStep/` — reads the active receipt from `useReceiptStore` and writes through its actions, delegates scan and OCR-patching workflows to `useReceiptImport`.
 - `WorkspaceMenu` — the header's three-dot menu. It saves the whole workspace as a `.json` file (`exportDraftToJson`), reads one back (`logic/workspaceTransfer.ts`), and loads the test splits in `logic/presetWorkspaces.ts`. Anything that would replace entered work asks first, then `useWizard.handleLoadWorkspace` swaps the store and lands on Items.
 - `ReceiptEditor` — the same wizard for one receipt between people fixed by its caller: Receipt, Items, then the summary with the caller's save action in the bottom bar. It owns a store under the caller's `draftKey`, so it never touches the quick split. `Workspace` and `ReceiptEditor` share `WizardLayout` and differ only in the steps they list and what fills each one.
-- `components/shared/` — reused across steps: receipt tabs, charge panels, selectors, field and avatar primitives.
+- `components/shared/` — reused across steps: receipt tabs, charge panels, selectors and field primitives. The person avatar and the two-way toggle are in `src/shared/components/`, since groups use them too.
 
 ## Summary
 

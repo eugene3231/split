@@ -8,7 +8,7 @@ import type {
   ReceiptBreakdownSection,
   ReceiptBreakdownTotal,
 } from '@features/split-workspace/summary/breakdown/types';
-import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { PersonAvatar } from '@shared/components/PersonAvatar';
 import {
   formatChargeAmount,
   formatConversionLines,

@@ -5,7 +5,7 @@ import type { Person } from '@shared/types';
 import { cn } from '@shared/utils/cn';
 import { personColor } from '@shared/utils/personColors';
 import { usePinnedSectionTitle } from './usePinnedSectionTitle';
-import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { PersonAvatar } from '@shared/components/PersonAvatar';
 import type {
   OverviewChargeRow,
   OverviewHeadingRow,

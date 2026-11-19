@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
-import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { PersonAvatar } from '@shared/components/PersonAvatar';
 import { prefersMotion } from '@features/split-workspace/components/shared/motion';
 import type { PersonBreakdown } from '@features/split-workspace/summary/breakdown/types';
 

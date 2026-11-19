@@ -15,7 +15,7 @@ import type { AssignMode } from '@features/split-workspace/types';
 import { BASE_CURRENCY } from '@shared/constants';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
 import { SlideIn } from '@features/split-workspace/components/shared/SlideIn';
-import { SegmentedToggle } from '@features/split-workspace/components/shared/SegmentedToggle';
+import { SegmentedToggle } from '@shared/components/SegmentedToggle';
 import { ClaimPeopleRail } from './ClaimPeopleRail';
 import { ItemClaimList } from './ItemClaimList';
 import { PersonClaimList } from './PersonClaimList';
