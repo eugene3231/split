@@ -1,0 +1,5 @@
+ts	phase	decision	why	evidence	result
+2026-11-19T10:13:01Z	frame	chose figure-it-out with architect inside it, scoped to issue #200 plus the installable-app part of #138	user stepped away and asked for a PR with data and experience settled, backend wired later	gh issue 200, gh issue 138	open
+2026-11-19T10:13:01Z	frame	picked Supabase as the backend	user asked me to pick; it gives Postgres, anonymous sign-in that upgrades to a real account (Tricount-style no-account start), row level security and realtime, and a free tier	gh issue 200 notes	decided
+2026-11-19T10:13:01Z	frame	native app (Skip) parked	user said park step 4	chat	parked
+2026-11-19T10:14:28Z	design	ran four design sketches in parallel (opus, fable, sonnet, haiku) from the same brief and a six-point rubric	the data model and sync model are the hard-to-undo part; comparing whole shapes beats committing to the first one	scratchpad arena/task.md, arena/rubric.md	running
