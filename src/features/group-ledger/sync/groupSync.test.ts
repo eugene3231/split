@@ -3,7 +3,7 @@ import type { Change, ConfirmedOp, MemberId } from '@features/group-ledger/domai
 import { createFakeBackend, FAKE_EMAIL_CODE } from '@features/group-ledger/backend/fakeBackend';
 import { createMemoryServer, type FakeServer } from '@features/group-ledger/backend/fakeServer';
 import type { JoinedGroup, LedgerBackend } from '@features/group-ledger/backend/port';
-import { newGroup } from '@features/group-ledger/backend/testing/backendContract';
+import { newGroup, pendingOp } from '@features/group-ledger/backend/testing/backendContract';
 import { openDeviceLog } from '@features/group-ledger/sync/deviceLog';
 import { createGroupSync, type GroupSync } from '@features/group-ledger/sync/groupSync';
 
@@ -442,6 +442,23 @@ describe('group sync', () => {
 
     expect(stored).toEqual([null, rename('Japan 2026')]);
     expect(names(ben.getSnapshot().log.confirmed)).toEqual(['Japan', 'Japan 2026']);
+  });
+
+  it('holds a change with a field a newer Split added as unreadable, rather than dropping the field', async () => {
+    const server = createMemoryServer();
+    const group = newGroup();
+    const newer = phone(server, 'newer');
+    await newer.open(group, true).syncNow();
+    const fromNewerSplit = {
+      kind: 'member.put',
+      member: { id: 'm-Ana', name: 'Ana', paynowMobile: null, archived: false, nickname: 'An' },
+    } as unknown as Change;
+    await newer.backend.push(group.groupId, [pendingOp(fromNewerSplit)]);
+
+    const ben = phone(server, 'ben').open(group, false);
+    await ben.syncNow();
+
+    expect(ben.getSnapshot().log.confirmed.map((op) => op.change)).toEqual([null]);
   });
 
   it('pulls when the server pokes, without being asked', async () => {

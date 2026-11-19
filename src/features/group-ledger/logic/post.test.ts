@@ -5,6 +5,7 @@ import { makeAssignment } from '@features/split-workspace/logic/assignment';
 import { computeSplit } from '@features/split-workspace/logic/split/split';
 import type { StoredReceipt } from '@features/group-ledger/domain/types';
 import { asEntryId, asLocalDate } from './ids';
+import { parseChange } from './codec';
 import {
   paidBy,
   postAmounts,
@@ -123,6 +124,19 @@ describe('postReceipt', () => {
 
     expect(entry?.owed).toEqual({ ana: 1430, ben: 330 });
     expect(entry?.basis).toEqual({ kind: 'receipt', receipt });
+  });
+
+  it('stores the receipt without the photo the wizard holds, so the codec reads the entry back', () => {
+    const fromTheWizard = {
+      ...makeReceipt({ items: [makeItem('ramen', '10.00', { [ana]: 1 })] }),
+      receiptFile: null,
+    };
+
+    const entry = postReceipt(header, fromTheWizard, members);
+    const change = { kind: 'entry.put', entry, base: null };
+
+    expect(entry).not.toBeNull();
+    expect(parseChange(JSON.parse(JSON.stringify(change)))).toEqual(change);
   });
 
   it('posts nothing while a priced item has nobody on it', () => {
