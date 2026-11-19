@@ -74,6 +74,42 @@ describe('supabase backend sessions', () => {
     expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
   });
 
+  it('makes one anonymous user for a new phone when two of its tabs start together', async () => {
+    let held = Promise.resolve();
+    const request = vi.fn((_name: string, work: () => Promise<unknown>) => {
+      const turn = held.then(work);
+      held = turn.then(
+        () => undefined,
+        () => undefined,
+      );
+      return turn;
+    });
+    vi.stubGlobal('navigator', { locks: { request } });
+    const stored: { user: { id: string; is_anonymous: boolean } | null } = { user: null };
+    let made = 0;
+    function tab() {
+      const { auth, backend } = fakeClient(null);
+      auth.getSession.mockImplementation(async () => ({
+        data: { session: stored.user && { user: stored.user } } as never,
+        ...noError,
+      }));
+      auth.signInAnonymously.mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 1));
+        made += 1;
+        stored.user = { id: `u-anon-${made}`, is_anonymous: true };
+        return { data: { user: stored.user as never }, ...noError };
+      });
+      return backend;
+    }
+
+    const [home, group] = await Promise.all([tab().session(), tab().session()]);
+    vi.unstubAllGlobals();
+
+    expect(made).toBe(1);
+    expect(home).toEqual(group);
+    expect(request).toHaveBeenCalledWith('split.session', expect.any(Function));
+  });
+
   it('reads a dropped connection as offline, from Auth and from the database', async () => {
     const offlinePhone = fakeClient(null);
     offlinePhone.auth.signInAnonymously.mockResolvedValue({
