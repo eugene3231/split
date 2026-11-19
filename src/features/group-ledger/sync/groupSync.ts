@@ -273,7 +273,13 @@ export function createGroupSync({
   };
   // Another tab of this phone changed the log.
   const onStorage = (event: StorageEvent) => {
-    if (log.owns(event.key)) reload();
+    if (!log.owns(event.key)) return;
+    const held = snapshot.log.confirmed.length;
+    reload();
+    // Two tabs that confirm at the same moment each write back the log they read plus their own
+    // page, and the later write can leave out the other tab's page. The ops are on the server,
+    // so pull them again. A removed key is the group being forgotten, which stays forgotten.
+    if (event.newValue !== null && snapshot.log.confirmed.length < held) sync();
   };
 
   const unsubscribe = backend.subscribe(groupId, sync);

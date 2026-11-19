@@ -628,6 +628,47 @@ describe('group sync', () => {
     expect(tabTwo.getSnapshot().log.pending.map((op) => op.id)).toEqual([opId]);
   });
 
+  it('pulls again when another tab, confirming at the same moment, wrote back a shorter log', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const tab = phone(server, 'ana').open(group, false);
+    tab.submit(rename('one'));
+    tab.submit(rename('two'));
+    await tab.syncNow();
+    const key = `split:g:ana:${group.groupId}:confirmed`;
+    // The other tab read the log before this tab's last page and wrote it back after.
+    const stale = JSON.stringify(tab.getSnapshot().log.confirmed.slice(0, 2));
+
+    window.localStorage.setItem(key, stale);
+    window.dispatchEvent(new StorageEvent('storage', { key, newValue: stale }));
+    const shrunk = tab.getSnapshot().log.confirmed.length;
+
+    await vi.waitFor(() => expect(tab.getSnapshot().log.confirmed).toHaveLength(3));
+    expect(shrunk).toBe(2);
+    expect(openDeviceLog('ana', group.groupId).confirmed()).toHaveLength(3);
+  });
+
+  it('leaves a group forgotten in another tab forgotten', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const tab = phone(server, 'ana').open(group, false);
+    await tab.syncNow();
+    const pulls = vi.spyOn(server, 'opsAfter');
+
+    openDeviceLog('ana', group.groupId).clear();
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: `split:g:ana:${group.groupId}:confirmed`,
+        newValue: null,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(tab.getSnapshot().log.confirmed).toEqual([]);
+    expect(pulls).not.toHaveBeenCalled();
+    expect(openDeviceLog('ana', group.groupId).confirmed()).toEqual([]);
+  });
+
   it('does nothing more once disposed', async () => {
     const server = createMemoryServer();
     const group = await foundedGroup(server);

@@ -46,7 +46,12 @@ export interface DeviceLog {
   pending(): PendingOp[];
   /** Stored before it returns, so the op survives a reload that comes before any network call. */
   appendPending(change: Change): PendingOp;
-  /** Takes ops the server confirmed and retires the pending ops among them. Safe to repeat. */
+  /**
+   * Takes ops the server confirmed and retires the pending ops among them. Safe to repeat.
+   * It reads the stored log and writes it back in one synchronous step, but two tabs are two
+   * processes, so one tab's write can still leave out a page the other just wrote. The engine
+   * hears that as a `storage` event with a shorter log and pulls again.
+   */
   confirm(ops: readonly ConfirmedOp[]): void;
   /** Forgets pending ops the server will never take. */
   drop(opIds: readonly OpId[]): void;
