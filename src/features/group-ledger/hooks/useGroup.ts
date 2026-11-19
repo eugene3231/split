@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import type {
   Cents,
   GroupId,
@@ -64,18 +64,6 @@ export function useGroup(groupId: GroupId): GroupView {
     engine?.getSnapshot ?? noSnapshot,
   );
   const ledger = snapshot && foldLedger(snapshot.log, self);
-  const syncState = snapshot?.sync.state;
-
-  useEffect(() => {
-    if (self === null && syncState !== undefined) void useAccountStore.getState().load();
-  }, [self, syncState]);
-
-  const name = ledger?.name;
-  useEffect(() => {
-    if (name !== undefined && held && held.name !== name) {
-      useJoinedGroupsStore.getState().setName(groupId, name);
-    }
-  }, [groupId, held, name]);
 
   if (!engine || !snapshot) return { status: 'missing' };
   if (ledger === null) {

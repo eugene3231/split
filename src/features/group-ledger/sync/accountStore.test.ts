@@ -29,6 +29,20 @@ describe('account', () => {
     expect(ana.onUserChanged).not.toHaveBeenCalled();
   });
 
+  it('adopts the session a sync ran as only while it knows none of its own', async () => {
+    const ana = phone(createMemoryServer(), 'ana');
+    const other = phone(createMemoryServer(), 'other');
+    await other.store.getState().load();
+    const seen = other.store.getState().session;
+    if (seen === null) throw new Error('no session');
+
+    ana.store.getState().adopt(seen);
+    ana.store.getState().adopt({ ...seen, account: { kind: 'linked', email: 'x@example.com' } });
+
+    expect(ana.store.getState().session).toEqual(seen);
+    expect(ana.open().getState().session).toEqual(seen);
+  });
+
   it('still knows who the phone is when it opens with no signal', async () => {
     const ana = phone(createMemoryServer(), 'ana');
     await ana.store.getState().load();

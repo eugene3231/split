@@ -1,6 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { GroupId } from '@features/group-ledger/domain/types';
 import { setFakeOffline } from '@features/group-ledger/backend/fakeBackend';
 import { newGroup } from '@features/group-ledger/backend/testing/backendContract';
 import { postWeights } from '@features/group-ledger/logic/post';
@@ -98,28 +97,12 @@ describe('useGroup', () => {
     await waitFor(() => expect(ready(result.current).sync.pending).toBe(0));
   });
 
-  it('keeps the home list name in step with the group, which a restored group arrives without', () => {
-    const groupId: GroupId = createGroup({
-      name: 'Trip',
-      currency: 'SGD',
-      myName: 'Ana',
-      friendNames: [],
-    });
-    useJoinedGroupsStore.getState().setName(groupId, '');
-
-    const { result } = renderHook(() => useGroup(groupId));
-    act(() => ready(result.current).act.rename('Bali trip'));
-
-    expect(useJoinedGroupsStore.getState().groups[0].name).toBe('Bali trip');
-  });
-
-  it('waits for a held group whose log has not arrived, and learns who this phone is', async () => {
+  it('waits for a held group whose log has not arrived', () => {
     const { groupId, inviteCode } = newGroup();
     useJoinedGroupsStore.getState().add({ groupId, inviteCode, createdHere: true, name: 'Soon' });
 
     const { result } = renderHook(() => useGroup(groupId));
 
     expect(result.current.status).toBe('loading');
-    await waitFor(() => expect(useAccountStore.getState().session).not.toBeNull());
   });
 });
