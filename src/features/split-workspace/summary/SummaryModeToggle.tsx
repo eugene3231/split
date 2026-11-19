@@ -1,4 +1,4 @@
-import { SegmentedToggle } from '@features/split-workspace/components/shared/SegmentedToggle';
+import { SegmentedToggle } from '@shared/components/SegmentedToggle';
 
 export type SummaryMode = 'by-person' | 'overview';
 
