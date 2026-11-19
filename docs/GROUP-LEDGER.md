@@ -50,17 +50,30 @@ phone: GroupLog { confirmed (by seq), pending (by order) } ──push──▶ s
 - **Retries.** The op id is made on the phone and is the server's idempotency key. Pushing an op twice stores it once and reports it accepted both times.
 - **Crashes.** A pending op leaves the device log only when a pull brings it back confirmed. A crash at any step means the next sync pushes it again, harmlessly.
 - **Conflicts.** Two phones edit one expense offline: the later `seq` wins the whole entry. The fold sees that its `base` was not the head it landed on, and the activity row reads "Ben's change replaced Ana's" with a one-tap restore. An edit beats a remove it never saw, and the row says so.
-- **Two tabs.** Each pending op is its own storage key, so tabs never overwrite each other's outbox. The confirmed log is one key that each tab reads and writes back whole; when two tabs confirm at the same moment and one write leaves out the other's page, the tab that sees the log shrink pulls again.
+- **Two tabs.** Each pending op is its own storage key, so tabs never overwrite each other's outbox, and a tab that hears another queue a change sends it too, in case that tab closes first. The confirmed log is one key that each tab reads and writes back whole, so two tabs confirming at the same moment can cut it short. Confirming is a step of its own that reports how long the stored log came out: shorter than where the page started means pull again from there. A `storage` event pulls when the stored log is shorter than the longest this tab has seen stored, not just shorter than its last read.
 - **A failing push.** When the server fails this phone's changes, the run still pulls, so the group keeps up with everyone else. `sync.outboxStuck` is true until a push gets through, and the changes stay queued for the retry.
 - **Rejected ops.** An op the server will never take (too large) is dropped from the outbox and shown, rather than blocking the ops behind it. Too large means over 64 KB as `changeBytes` counts it: the UTF-8 bytes of the change's JSON text. The Supabase adapter sends that text as a string and the SQL counts it before reading it, so the phone, the fake and Postgres agree to the byte. Screens call `fitsOnServer(change)` before they submit.
 - **Unreadable ops.** An op a newer Split wrote is kept with `change: null`, so `seq` stays gapless, and the activity list says "update Split to see this change". A change with a field this version does not know is unreadable as a whole, so an older phone never drops the field and then erases it with an edit. An op queued on this phone that the app, after an update, can no longer read stays in the outbox, is sent as it was stored, and shows the same way.
 
 ## Identity and access
 
-- **Device identity.** The first group action signs the device in anonymously (`supabase.auth.signInAnonymously`). That user is the device.
+- **Device identity.** The first group action signs the device in anonymously (`supabase.auth.signInAnonymously`). That user is the device. Tabs share the session, and a Web Lock named `split.session` around reading and creating it keeps two tabs of a new phone from making two anonymous users. A sign-in or sign-out in one tab reaches the others through the session each group sync runs as.
 - **The link is the key.** An invite link is `/join#<code>`: 128 random bits, in the fragment so it never reaches a server log. The server finds the group by `sha256(code)` and shows the code itself to members only, so a member who signs in on a new phone can still share the link. `join_group(code)` adds the caller to the group. Row level security lets members read their groups' ops and nothing else. All writes go through security-definer functions.
 - **Who you are in a group.** `member.claimed` in the log, stamped by the server with the sender's user id, so authorship can't be forged. Anyone can add a friend by name; the friend claims that name when they join. A claim on a member someone else already holds is ignored, so two friends who tap the same name end up as one member and one "who are you?" prompt, in the order the server took them.
 - **Optional login.** "Keep my groups" sends an email code. A new email is attached to the anonymous user (`auth.updateUser`), so the user id and every group stay. An email that already has an account signs the device in to it, and the engine rejoins every group with the invite codes it holds. No server-side merge is needed because the code is the key.
+
+## State machines
+
+Each moving part is an explicit state union with a pure step function beside its shell, and each has a check that covers every order of events in a stated scope. The flows are charted from those checked models in [flows/](flows/).
+
+| Part                        | States and steps                                                         | Shell                                    | Checked by                                                              | Flow chart                               |
+| --------------------------- | ------------------------------------------------------------------------ | ---------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------- |
+| Group sync                  | `sync/syncMachine.ts`                                                    | `sync/groupSync.ts`                      | TLA+, `pnpm formal:sync`, skill `sync-engine-model`                     | [flows/sync.md](flows/sync.md)           |
+| Account and email sign-in   | `sync/accountMachine.ts`                                                 | `sync/accountStore.ts`                   | TLA+, `pnpm formal:identity`, skill `identity-model`                    | [flows/account.md](flows/account.md)     |
+| Joining and the group gate  | `logic/joinState.ts`, `components/group/gateScreen.ts`                   | `hooks/useJoinGroup.ts`, `GroupGate.tsx` | TLA+, `pnpm formal:identity`                                            | [flows/join.md](flows/join.md)           |
+| Entries, members and claims | `logic/entryLifecycle.ts`, `logic/memberLifecycle.ts`, `logic/claims.ts` | `logic/fold.ts`                          | fast-check on the real fold, `pnpm formal:ledger`, skill `ledger-model` | [flows/conflicts.md](flows/conflicts.md) |
+
+A change to one of these files runs its check, as its skill says, before it ships.
 
 ## Where things live
 
@@ -118,4 +131,8 @@ Four designs were sketched in parallel and cross-judged. All four chose an op lo
 
 - The device log is in `localStorage` (about 5 MB). A group with around a thousand receipt edits would reach it; `sync/deviceLog.ts` is the only file that changes to move it to IndexedDB.
 - iOS Safari may clear storage for a site that is not installed and not opened for seven days. Pending changes on such a phone would be lost; installed apps are exempt.
+- Signing in to an existing account leaves behind the name you picked while anonymous: the group asks "who are you?" again and shows that name as taken by your old anonymous user (identity model, `NoOrphanedMember`).
+- A sync run in which the session changes twice (signed in, then out, in another tab) can end as "link stopped working" until the next poke, focus or reconnect (identity model, `LinkKeepsWorking`).
+- Merging two members can leave two phones claiming the one member, with nobody asked "who are you?" (ledger model, the claims property with merges).
+- Merging two members on a foreign-currency expense can move a cent onto someone outside the merge, because the converted total is rounded over fewer shares (ledger model, the merge property in any currency).
 - The invite link can't be rotated yet. The schema stores a hash per group, so a "Reset link" is one function away.
