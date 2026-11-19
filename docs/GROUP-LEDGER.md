@@ -8,15 +8,15 @@ All of it lives in `src/features/group-ledger/`. The server is Supabase; without
 
 The canonical state of a group is its **op log**: an append-only list of `Change`s (`domain/types.ts`). There is no expenses table, no balances table and no history table. The server orders ops and stores them; it never reads one.
 
-| Change           | What it does                                                                     |
-| ---------------- | -------------------------------------------------------------------------------- |
-| `group.created`  | Names the group and fixes its currency. Only the first one counts.               |
-| `group.renamed`  | Renames it.                                                                      |
-| `member.put`     | Adds a member, or changes one (name, PayNow number, archived).                   |
-| `member.merged`  | Two phones added the same friend offline; `from` now reads as `into`.            |
-| `member.claimed` | "This device is that member." The server stamps who sent it.                     |
-| `entry.put`      | Writes an expense or a transfer whole, with `base`, the revision its author saw. |
-| `entry.removed`  | Removes an entry.                                                                |
+| Change           | What it does                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `group.created`  | Names the group and fixes its currency. Only the first one counts.                    |
+| `group.renamed`  | Renames it.                                                                           |
+| `member.put`     | Adds a member, or changes one (name, PayNow number, archived).                        |
+| `member.merged`  | Two phones added the same friend offline; `from` now reads as `into`.                 |
+| `member.claimed` | "This device is that member." The server stamps who sent it. First to claim keeps it. |
+| `entry.put`      | Writes an expense or a transfer whole, with `base`, the revision its author saw.      |
+| `entry.removed`  | Removes an entry.                                                                     |
 
 `foldLedger(log, self)` turns a log into a `Ledger`: members, live entries, who this device is, and the activity list with an undo for each row. `computeBalances` and `settleUp` read the ledger. Nothing derived is stored.
 
@@ -59,7 +59,7 @@ phone: GroupLog { confirmed (by seq), pending (by order) } ──push──▶ s
 
 - **Device identity.** The first group action signs the device in anonymously (`supabase.auth.signInAnonymously`). That user is the device.
 - **The link is the key.** An invite link is `/join#<code>`: 128 random bits, in the fragment so it never reaches a server log. The server finds the group by `sha256(code)` and shows the code itself to members only, so a member who signs in on a new phone can still share the link. `join_group(code)` adds the caller to the group. Row level security lets members read their groups' ops and nothing else. All writes go through security-definer functions.
-- **Who you are in a group.** `member.claimed` in the log, stamped by the server with the sender's user id, so authorship can't be forged. Anyone can add a friend by name; the friend claims that name when they join.
+- **Who you are in a group.** `member.claimed` in the log, stamped by the server with the sender's user id, so authorship can't be forged. Anyone can add a friend by name; the friend claims that name when they join. A claim on a member someone else already holds is ignored, so two friends who tap the same name end up as one member and one "who are you?" prompt, in the order the server took them.
 - **Optional login.** "Keep my groups" sends an email code. A new email is attached to the anonymous user (`auth.updateUser`), so the user id and every group stay. An email that already has an account signs the device in to it, and the engine rejoins every group with the invite codes it holds. No server-side merge is needed because the code is the key.
 
 ## Where things live

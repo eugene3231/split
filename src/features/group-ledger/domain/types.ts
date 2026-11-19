@@ -97,7 +97,10 @@ export type Change =
   | { kind: 'member.put'; member: Member }
   /** Two phones added the same friend offline. Every reference to `from` reads as `into`. */
   | { kind: 'member.merged'; from: MemberId; into: MemberId }
-  /** "This device is that member." Null steps back to nobody. The latest per user wins. */
+  /**
+   * "This device is that member." Null steps back to nobody. The latest per user wins, except
+   * that a claim on a member another user holds is ignored: the first to claim keeps the member.
+   */
   | { kind: 'member.claimed'; memberId: MemberId | null }
   /** `base` is the revision the author was looking at; null for a new entry. */
   | { kind: 'entry.put'; entry: Entry; base: OpId | null }
@@ -200,7 +203,7 @@ export interface Ledger {
   entries: PostedEntry[];
   /** The member this device has claimed; null means "ask who they are". */
   me: MemberId | null;
-  /** Members some device has claimed, so the picker can show who is already taken. */
+  /** Members some device holds, so the picker can show who is already taken. */
   claimed: ReadonlySet<MemberId>;
   /** Newest first. */
   activity: Activity[];

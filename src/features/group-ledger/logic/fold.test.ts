@@ -177,14 +177,84 @@ describe('foldLedger: who is who', () => {
     const log = makeLog([
       ...base,
       confirmed(4, claim(ben), anaPhone),
-      confirmed(5, claim(ben), benPhone),
-      confirmed(6, claim(ana), anaPhone),
+      confirmed(5, claim(ana), anaPhone),
+      confirmed(6, claim(ben), benPhone),
     ]);
 
     expect(fold(log, anaPhone).me).toBe('ana');
     expect(fold(log, benPhone).me).toBe('ben');
     expect(fold(log, null).me).toBeNull();
     expect([...fold(log, anaPhone).claimed].sort()).toEqual(['ana', 'ben']);
+  });
+
+  it('ignores a claim on a member another device already holds, and leaves no row for it', () => {
+    const log = makeLog([
+      ...base,
+      confirmed(4, claim(ana), anaPhone),
+      confirmed(5, claim(ana), benPhone),
+      confirmed(6, claim(ana), anaPhone),
+    ]);
+
+    expect(fold(log, anaPhone).me).toBe('ana');
+    expect(fold(log, benPhone).me).toBeNull();
+    expect([...fold(log, benPhone).claimed]).toEqual(['ana']);
+    expect(fold(log, anaPhone).activity.map((row) => row.opId)).toEqual([
+      'c6',
+      'c4',
+      'c3',
+      'c2',
+      'c1',
+    ]);
+  });
+
+  it('keeps the claim a device already had when the member it asks for is taken', () => {
+    const log = makeLog([
+      ...base,
+      confirmed(4, claim(ana), anaPhone),
+      confirmed(5, claim(ben), benPhone),
+      confirmed(6, claim(ana), benPhone),
+    ]);
+
+    expect(fold(log, benPhone).me).toBe('ben');
+    expect([...fold(log, benPhone).claimed].sort()).toEqual(['ana', 'ben']);
+  });
+
+  it('frees a member for someone else once its holder steps back or claims another', () => {
+    const steppedBack = makeLog([
+      ...base,
+      confirmed(4, claim(ana), anaPhone),
+      confirmed(5, claim(null), anaPhone),
+      confirmed(6, claim(ana), benPhone),
+    ]);
+    const movedOn = makeLog([
+      ...base,
+      confirmed(4, claim(ana), anaPhone),
+      confirmed(5, claim(ben), anaPhone),
+      confirmed(6, claim(ana), benPhone),
+    ]);
+
+    expect(fold(steppedBack, benPhone).me).toBe('ana');
+    expect(fold(movedOn, benPhone).me).toBe('ana');
+    expect(fold(movedOn, anaPhone).me).toBe('ben');
+  });
+
+  it('counts a member as held under the name it was merged into', () => {
+    const log = makeLog([
+      ...base,
+      confirmed(4, claim(ana), anaPhone),
+      confirmed(5, { kind: 'member.merged', from: ben, into: ana }, anaPhone),
+      confirmed(6, claim(ben), benPhone),
+    ]);
+
+    expect(fold(log, benPhone).me).toBeNull();
+    expect(fold(log, anaPhone).me).toBe('ana');
+  });
+
+  it("ignores this phone's pending claim on a member someone else has since taken", () => {
+    const log = makeLog([...base, confirmed(4, claim(ben), benPhone)], [pending(1, claim(ben))]);
+
+    expect(fold(log, anaPhone).me).toBeNull();
+    expect([...fold(log, anaPhone).claimed]).toEqual(['ben']);
   });
 
   it('steps back to nobody on a null claim', () => {
