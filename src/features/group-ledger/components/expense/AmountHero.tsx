@@ -22,11 +22,11 @@ export function AmountHero({ draft, groupCurrency, onChange, onCurrencyChange }:
 
   return (
     <section className="flex flex-col items-center">
-      <label className="relative flex h-9 items-center gap-1 rounded-full bg-surface-container pr-2.5 pl-3.5 text-sm font-semibold transition hover:bg-surface-container-high">
-        <span className="sr-only">Currency</span>
+      <div className="relative flex h-9 items-center gap-1 rounded-full bg-surface-container pr-2.5 pl-3.5 text-sm font-semibold transition hover:bg-surface-container-high">
         {draft.currency}
         <Icon name="expand_more" className="text-lg!" />
         <select
+          aria-label="Currency"
           value={draft.currency}
           onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}
           className="absolute inset-0 cursor-pointer opacity-0"
@@ -37,7 +37,7 @@ export function AmountHero({ draft, groupCurrency, onChange, onCurrencyChange }:
             </option>
           ))}
         </select>
-      </label>
+      </div>
       <input
         aria-label="Amount"
         type="text"

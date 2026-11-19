@@ -25,20 +25,22 @@ describe('App', () => {
     quickSplitStore.getState().addPeople(['Alice']);
     render(<App />);
 
-    fireEvent.click(screen.getByRole('link', { name: 'Quick split' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Continue' }));
 
     expect(window.location.pathname).toBe('/split');
     expect(screen.getByTestId('workspace')).toBeInTheDocument();
     expect(screen.getByText('Alice')).toBeInTheDocument();
   });
 
-  it('shows the groups placeholder on every group address', () => {
+  it('routes a group address to its screen, and home again', () => {
     window.history.replaceState(null, '', '/g/g1/receipt/e1');
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'Groups are coming' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: "This group isn't on this phone" }),
+    ).toBeInTheDocument();
 
     act(() => navigate({ kind: 'home' }));
-    expect(screen.getByRole('link', { name: 'Quick split' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your groups' })).toBeInTheDocument();
   });
 });

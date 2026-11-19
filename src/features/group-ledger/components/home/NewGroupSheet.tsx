@@ -86,6 +86,7 @@ function NewGroupForm() {
             {currency}
             <Icon name="expand_more" className="text-lg! text-on-surface-variant" />
             <select
+              aria-label="Currency"
               value={currency}
               onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
               className="absolute inset-0 cursor-pointer opacity-0"
