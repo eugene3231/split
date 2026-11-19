@@ -9,6 +9,7 @@ import {
   formMembers,
   groupRate,
   rateInput,
+  receiptRate,
   TOO_BIG,
   type ExpenseDraft,
 } from './expenseForm';
@@ -179,6 +180,21 @@ describe('groupRate', () => {
     expect(groupRate('USD', 'SGD', { USD: 1.35, SGD: 1 }, 1.4)).toBe(1.4);
     expect(groupRate('USD', 'EUR', { USD: 1.35, EUR: 1.5, SGD: 1 })).toBe(0.9);
     expect(groupRate('USD', 'USD', {}, 9)).toBe(1);
+  });
+});
+
+describe('receiptRate', () => {
+  const rates = { USD: 1.35, SGD: 1 };
+  const saved = { currency: 'USD' as const, override: null, rate: 1.3 };
+
+  it('keeps the rate a receipt was saved with when its currency and typed rate are unchanged', () => {
+    expect(receiptRate({ currency: 'USD', override: null }, 'SGD', rates, saved)).toBe(1.3);
+  });
+
+  it('takes a new rate once the currency or the typed rate changes', () => {
+    expect(receiptRate({ currency: 'USD', override: 1.4 }, 'SGD', rates, saved)).toBe(1.4);
+    expect(receiptRate({ currency: 'SGD', override: null }, 'SGD', rates, saved)).toBe(1);
+    expect(receiptRate({ currency: 'USD', override: null }, 'SGD', rates, null)).toBe(1.35);
   });
 });
 

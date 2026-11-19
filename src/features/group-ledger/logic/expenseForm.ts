@@ -102,6 +102,22 @@ export function groupRate(
   return own / inBase(groupCurrency);
 }
 
+/**
+ * The rate to save a receipt with. An edited receipt keeps the rate it was saved with until its
+ * currency or typed rate changes, so reopening it after the live rates move changes no balance.
+ */
+export function receiptRate(
+  now: { currency: CurrencyCode; override: number | null },
+  groupCurrency: CurrencyCode,
+  rates: Record<string, number>,
+  saved: { currency: CurrencyCode; override: number | null; rate: number } | null,
+): number {
+  if (saved !== null && saved.currency === now.currency && saved.override === now.override) {
+    return saved.rate;
+  }
+  return groupRate(now.currency, groupCurrency, rates, now.override);
+}
+
 export function rateInput(
   currency: CurrencyCode,
   groupCurrency: CurrencyCode,

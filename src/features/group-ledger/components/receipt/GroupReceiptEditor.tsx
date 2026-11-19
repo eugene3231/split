@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ExpenseEntry, Member, MemberId, OpId } from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
-import { TOO_BIG, entryFits, groupRate } from '@features/group-ledger/logic/expenseForm';
+import { TOO_BIG, entryFits, receiptRate } from '@features/group-ledger/logic/expenseForm';
 import { newEntryId, todayLocalDate } from '@features/group-ledger/logic/ids';
 import { memberLabel } from '@features/group-ledger/logic/describe';
 import { postReceipt } from '@features/group-ledger/logic/post';
@@ -17,6 +17,9 @@ import {
 } from '@features/split-workspace';
 import { navigate } from '@shared/routing';
 
+const initialReceipt = (entry: ExpenseEntry) =>
+  entry.basis.kind === 'receipt' ? entry.basis.receipt : undefined;
+
 interface GroupReceiptEditorProps {
   group: MyGroup;
   editing: { entry: ExpenseEntry; rev: OpId } | null;
@@ -28,7 +31,7 @@ export function GroupReceiptEditor({ group, editing }: GroupReceiptEditorProps) 
   const members = ledger.members.filter((member) => !member.archived || holders.has(member.id));
   const draftKey = `group:${ledger.groupId}:receipt:${editing?.entry.id ?? 'new'}`;
   const back = () => navigate({ kind: 'group', groupId: ledger.groupId });
-  const initial = editing?.entry.basis.kind === 'receipt' ? editing.entry.basis.receipt : undefined;
+  const initial = editing ? initialReceipt(editing.entry) : undefined;
 
   return (
     <ReceiptEditor
@@ -62,13 +65,23 @@ function SaveToGroup({ group, members, editing, receipt, draftKey }: SaveToGroup
   const rates = useCurrencyStore((state) => state.exchangeRates);
   const [entryId] = useState(() => editing?.entry.id ?? newEntryId());
   const [payer, setPayer] = useState<MemberId>(() => editing?.entry.payment.payer ?? ledger.me);
+  const saved = editing && {
+    currency: editing.entry.currency,
+    override: initialReceipt(editing.entry)?.exchangeRateOverride ?? null,
+    rate: editing.entry.rate,
+  };
   const entry = postReceipt(
     {
       id: entryId,
       title: receipt.name.trim() || 'Receipt',
       date: editing?.entry.date ?? todayLocalDate(),
       currency: receipt.currency,
-      rate: groupRate(receipt.currency, ledger.currency, rates, receipt.exchangeRateOverride),
+      rate: receiptRate(
+        { currency: receipt.currency, override: receipt.exchangeRateOverride },
+        ledger.currency,
+        rates,
+        saved,
+      ),
       payment: { payer, others: {} },
     },
     receipt,
