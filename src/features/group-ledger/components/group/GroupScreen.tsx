@@ -4,6 +4,7 @@ import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsSt
 import { describeBalance, describeMyBalance } from '@features/group-ledger/logic/describe';
 import { memberIdsOf } from '@features/group-ledger/logic/ids';
 import { DIRECTION_TEXT, buttonClass } from '@features/group-ledger/components/ui/classes';
+import { Button } from '@features/group-ledger/components/ui/Button';
 import { Icon, IconButton, IconLink } from '@features/group-ledger/components/ui/IconButton';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
 import { ScreenHeader, ScreenTitle } from '@features/group-ledger/components/ui/ScreenHeader';
@@ -140,6 +141,12 @@ export function GroupScreen({ group }: { group: ReadyGroup }) {
             <p className="text-sm text-on-surface-variant">
               Add what you paid, and Split keeps track of who owes whom.
             </p>
+            {live.length - ledger.claimed.size > 0 && (
+              <Button variant="secondary" className="mt-4" onClick={() => openSheet('invite')}>
+                <Icon name="person_add" className="text-xl!" />
+                Invite friends
+              </Button>
+            )}
           </div>
         ) : (
           <EntryList group={group} />
