@@ -13,6 +13,7 @@ import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
 import {
   ReceiptEditor,
   computeSplit,
+  discardReceiptDraft,
   isEveryPricedItemAssigned,
   type SavedReceipt,
 } from '@features/split-workspace';
@@ -153,5 +154,16 @@ describe('ReceiptEditor', () => {
 
     expect(screen.getByTestId('wizard-step-nav-receipt')).toHaveAttribute('aria-current', 'step');
     expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled();
+  });
+
+  it('starts over once its draft is discarded', () => {
+    renderEditor();
+    assignEveryItem();
+    discardReceiptDraft(DRAFT_KEY);
+
+    document.body.innerHTML = '';
+    renderEditor({ initial: undefined });
+
+    expect(screen.getByTestId('wizard-step-nav-receipt')).toHaveAttribute('aria-current', 'step');
   });
 });

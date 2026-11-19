@@ -20,3 +20,14 @@ export function loadWizardState(key: string): PersistedWizardState | null {
 export function saveWizardState(key: string, state: Omit<PersistedWizardState, 'version'>): void {
   jsonStorage('localStorage', key, wizardStateSchema).save({ version: 1, ...state });
 }
+
+/** Forgets the work kept under `draftKey`, once the receipt has been saved where it belongs. */
+export function discardReceiptDraft(draftKey: string): void {
+  for (const key of [draftKey, `${draftKey}:wizard`]) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // Storage is blocked, so nothing was kept under the key.
+    }
+  }
+}
