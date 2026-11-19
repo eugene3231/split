@@ -9,7 +9,7 @@ import type {
 } from '@features/group-ledger/domain/types';
 import { confirmedOpSchema, idSchemas, parseChange } from '@features/group-ledger/logic/codec';
 import { newOpId } from '@features/group-ledger/logic/ids';
-import { jsonStorage, lenientArray, parseJson } from '@features/split-workspace/logic/jsonStorage';
+import { jsonStorage, lenientArray, parseJson } from '@shared/logic/jsonStorage';
 
 export interface OutboxOp {
   id: OpId;

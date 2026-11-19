@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import type { GroupId, InviteCode } from '@features/group-ledger/domain/types';
 import { deviceProfile } from '@features/group-ledger/backend/createBackend';
 import { idSchemas } from '@features/group-ledger/logic/codec';
-import { jsonStorage, lenientArray } from '@features/split-workspace/logic/jsonStorage';
+import { jsonStorage, lenientArray } from '@shared/logic/jsonStorage';
 
 export interface JoinedGroupEntry {
   groupId: GroupId;

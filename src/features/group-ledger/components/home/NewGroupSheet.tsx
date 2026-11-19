@@ -9,7 +9,7 @@ import { Sheet } from '@features/group-ledger/components/ui/Sheet';
 import { TextField } from '@features/group-ledger/components/ui/TextField';
 import { OPEN_INVITE_STATE } from '@features/group-ledger/components/group/openInvite';
 import { useSavedGroupsStore } from '@features/split-workspace';
-import { jsonStorage } from '@features/split-workspace/logic/jsonStorage';
+import { jsonStorage } from '@shared/logic/jsonStorage';
 import { navigate } from '@shared/routing';
 
 interface NewGroupSheetProps {

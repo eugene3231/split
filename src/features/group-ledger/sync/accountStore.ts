@@ -5,7 +5,7 @@ import type { BackendFailure, LedgerBackend, Session } from '@features/group-led
 import { idSchemas } from '@features/group-ledger/logic/codec';
 import { ledgerBackend, onSessionSeen, syncAllGroups } from '@features/group-ledger/sync/groupSync';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
-import { jsonStorage } from '@features/split-workspace/logic/jsonStorage';
+import { jsonStorage } from '@shared/logic/jsonStorage';
 
 export type EmailSignIn =
   | { step: 'idle' }
