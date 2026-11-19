@@ -1,3 +1,4 @@
+import { useHoldAppUpdate } from '@features/group-ledger/hooks/useHoldAppUpdate';
 import { useState } from 'react';
 import type { CurrencyCode } from '@shared/constants';
 import type { ExpenseEntry, OpId } from '@features/group-ledger/domain/types';
@@ -32,6 +33,7 @@ interface ExpenseFormProps {
 
 export function ExpenseForm({ group, editing }: ExpenseFormProps) {
   const { ledger, act } = group;
+  useHoldAppUpdate();
   const rates = useCurrencyStore((state) => state.exchangeRates);
   const [entryId] = useState(() => editing?.entry.id ?? newEntryId());
   const [draft, setDraft] = useState<ExpenseDraft>(() =>

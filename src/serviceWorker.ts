@@ -1,9 +1,10 @@
 import { registerSW } from 'virtual:pwa-register';
+import { appUpdateHeld } from '@shared/logic/appUpdateHold';
 
 export function registerServiceWorker(): void {
   const updateServiceWorker = registerSW({
     onNeedRefresh() {
-      whenHidden(() => void updateServiceWorker(true));
+      whenHiddenAndFree(() => void updateServiceWorker(true));
     },
     onRegisteredSW(_url, registration) {
       document.addEventListener('visibilitychange', () => {
@@ -13,13 +14,15 @@ export function registerServiceWorker(): void {
   });
 }
 
-function whenHidden(run: () => void): void {
-  if (document.visibilityState === 'hidden') {
+/** Runs once the app is out of sight with no form open, so the reload is never seen and loses nothing. */
+function whenHiddenAndFree(run: () => void): void {
+  const ready = () => document.visibilityState === 'hidden' && !appUpdateHeld();
+  if (ready()) {
     run();
     return;
   }
   const onChange = () => {
-    if (document.visibilityState !== 'hidden') return;
+    if (!ready()) return;
     document.removeEventListener('visibilitychange', onChange);
     run();
   };

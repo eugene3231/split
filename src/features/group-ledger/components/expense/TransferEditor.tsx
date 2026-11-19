@@ -1,3 +1,4 @@
+import { useHoldAppUpdate } from '@features/group-ledger/hooks/useHoldAppUpdate';
 import { useState } from 'react';
 import type { OpId, TransferEntry } from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
@@ -22,6 +23,7 @@ interface TransferEditorProps {
 
 export function TransferEditor({ group, transfer, rev }: TransferEditorProps) {
   const { ledger, act } = group;
+  useHoldAppUpdate();
   const [amount, setAmount] = useState(() => amountInput(transfer.cents, ledger.currency));
   const cents = parseCurrencyToCents(amount);
   const valid = cents !== null && cents > 0;

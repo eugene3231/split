@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RegisterSWOptions } from 'vite-plugin-pwa/types';
+import { holdAppUpdate } from '@shared/logic/appUpdateHold';
 import { registerServiceWorker } from './serviceWorker';
 
 const updateServiceWorker = vi.fn<(reloadPage?: boolean) => Promise<void>>();
@@ -37,6 +38,19 @@ describe('registerServiceWorker', () => {
     setVisibility('visible');
     setVisibility('hidden');
     expect(updateServiceWorker).toHaveBeenCalledOnce();
+  });
+
+  it('waits while a form is open, so what is typed there is not lost to the reload', () => {
+    const release = holdAppUpdate();
+    options.onNeedRefresh?.();
+
+    setVisibility('hidden');
+    expect(updateServiceWorker).not.toHaveBeenCalled();
+
+    release();
+    setVisibility('visible');
+    setVisibility('hidden');
+    expect(updateServiceWorker).toHaveBeenCalledExactlyOnceWith(true);
   });
 
   it('reloads into a new version at once when the app is already hidden', () => {
