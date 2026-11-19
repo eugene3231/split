@@ -36,37 +36,45 @@ export function createJoinedGroupsStore(
   profile: string,
   now: () => string = () => new Date().toISOString(),
 ) {
-  const storage = jsonStorage(
-    'localStorage',
-    `split:joined-groups:${profile}`,
-    lenientArray(entrySchema),
-  );
+  const key = `split:joined-groups:${profile}`;
+  const storage = jsonStorage('localStorage', key, lenientArray(entrySchema));
 
   return create<JoinedGroupsStore>((set, get) => {
-    function replace(groups: JoinedGroupEntry[]) {
+    /**
+     * Every tab of this profile shares one list, so each change starts from what is stored now,
+     * not from what this tab read earlier, and a group another tab added is never written away.
+     */
+    function update(next: (groups: JoinedGroupEntry[]) => JoinedGroupEntry[]) {
+      const groups = next(storage.load() ?? get().groups);
       storage.save(groups);
       set({ groups });
     }
 
     function change(groupId: GroupId, fields: Partial<JoinedGroupEntry>) {
-      replace(
-        get().groups.map((group) => (group.groupId === groupId ? { ...group, ...fields } : group)),
+      update((groups) =>
+        groups.map((group) => (group.groupId === groupId ? { ...group, ...fields } : group)),
       );
     }
+
+    window.addEventListener('storage', (event) => {
+      if (event.key === key || event.key === null) set({ groups: storage.load() ?? [] });
+    });
 
     return {
       groups: storage.load() ?? [],
 
-      add: (group) => {
-        if (get().groups.some((held) => held.groupId === group.groupId)) return;
-        replace([...get().groups, { ...group, lastOpenedAt: now() }]);
-      },
+      add: (group) =>
+        update((groups) =>
+          groups.some((held) => held.groupId === group.groupId)
+            ? groups
+            : [...groups, { ...group, lastOpenedAt: now() }],
+        ),
 
       setName: (groupId, name) => change(groupId, { name }),
 
       markOpened: (groupId) => change(groupId, { lastOpenedAt: now() }),
 
-      remove: (groupId) => replace(get().groups.filter((group) => group.groupId !== groupId)),
+      remove: (groupId) => update((groups) => groups.filter((group) => group.groupId !== groupId)),
     };
   });
 }

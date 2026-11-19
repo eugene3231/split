@@ -83,4 +83,19 @@ describe('joined groups', () => {
         .groups.map((held) => held.name),
     ).toEqual(['Lunch']);
   });
+
+  it('keeps a group another tab added, and shows it here too', () => {
+    const fromA = newGroup();
+    const fromB = newGroup();
+    const tabA = createJoinedGroupsStore('ana');
+    const tabB = createJoinedGroupsStore('ana');
+
+    tabA.getState().add({ ...fromA, createdHere: true, name: 'Japan 2026' });
+    window.dispatchEvent(new StorageEvent('storage', { key: 'split:joined-groups:ana' }));
+    tabB.getState().add({ ...fromB, createdHere: true, name: 'Lunch' });
+
+    const ids = (store: typeof tabA) => store.getState().groups.map((held) => held.groupId);
+    expect(ids(createJoinedGroupsStore('ana'))).toEqual([fromA.groupId, fromB.groupId]);
+    expect(ids(tabB)).toEqual([fromA.groupId, fromB.groupId]);
+  });
 });
