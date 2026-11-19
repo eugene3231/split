@@ -619,6 +619,28 @@ describe('group sync', () => {
     expect(tabTwo.getSnapshot().log.pending.map((op) => op.id)).toEqual([opId]);
   });
 
+  it('sends a change another tab queued, in case that tab closes before it can', async () => {
+    const server = createMemoryServer();
+    const group = await foundedGroup(server);
+    const anaPhone = phone(server, 'ana');
+    const tabTwo = anaPhone.open(group, false);
+    await tabTwo.syncNow();
+    anaPhone.signal.online = false;
+    const tabOne = anaPhone.open(group, false);
+
+    const opId = tabOne.submit(rename('Japan'));
+    await tabOne.syncNow();
+    tabOne.dispose();
+    anaPhone.signal.online = true;
+    const key = `split:g:ana:${group.groupId}:out:${opId}`;
+    window.dispatchEvent(
+      new StorageEvent('storage', { key, newValue: window.localStorage.getItem(key) }),
+    );
+
+    await vi.waitFor(() => expect(tabTwo.getSnapshot().sync.pending).toBe(0));
+    expect(names(await serverLog(server, group))).toContain('Japan');
+  });
+
   it('pulls again when another tab, confirming at the same moment, wrote back a shorter log', async () => {
     const server = createMemoryServer();
     const group = await foundedGroup(server);

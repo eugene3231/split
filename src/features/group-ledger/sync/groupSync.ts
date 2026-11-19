@@ -264,11 +264,19 @@ export function createGroupSync({
   const syncWhenVisible = () => {
     if (document.visibilityState === 'visible') sync();
   };
+  /**
+   * Another tab wrote this group's log. Sync when it wrote back a shorter log, to pull what it
+   * missed, or queued a change, which this tab sends too in case that tab closes first. Pushing
+   * twice is safe: the server keeps one copy of each op.
+   */
   const onStorage = (event: StorageEvent) => {
     if (!log.owns(event.key)) return;
     const held = snapshot.log.confirmed.length;
+    const queued = snapshot.sync.pending;
     reload();
-    if (event.newValue !== null && snapshot.log.confirmed.length < held) sync();
+    const shrank = snapshot.log.confirmed.length < held;
+    const grew = snapshot.sync.pending > queued;
+    if (event.newValue !== null && (shrank || grew)) sync();
   };
 
   const unsubscribe = backend.subscribe(groupId, sync);
