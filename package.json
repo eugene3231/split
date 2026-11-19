@@ -23,7 +23,8 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "typecheck": "tsc -b",
-    "icons": "pwa-assets-generator"
+    "icons": "pwa-assets-generator",
+    "formal:identity": "sh formal/identity/run.sh"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
