@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { Change, GroupLog, UserId } from '@features/group-ledger/domain/types';
-import { describeActivity, describeEntry, memberName } from './describe';
+import {
+  describeActivity,
+  describeBalance,
+  describeEntry,
+  describeMyBalance,
+  describeMyShare,
+  describeSettleUp,
+  memberName,
+} from './describe';
 import { asOpId } from './ids';
 import {
   ana,
@@ -15,6 +23,7 @@ import {
   makeLog,
   makeMember,
   makeTransfer,
+  logOf,
   put,
 } from './testHelpers';
 
@@ -124,5 +133,43 @@ describe('describeEntry and memberName', () => {
 
   it('gives an expense with no title a placeholder', () => {
     expect(describeEntry({ ...grab, title: '  ' }, ledger)).toBe('Untitled expense · $18.00');
+  });
+});
+
+describe('balance wording', () => {
+  it("words my balance and anyone else's by which way it points", () => {
+    expect(describeMyBalance(4210, 'SGD')).toEqual({
+      direction: 'owed',
+      text: "you're owed $42.10",
+    });
+    expect(describeMyBalance(-1200, 'SGD')).toEqual({ direction: 'owes', text: 'you owe $12.00' });
+    expect(describeMyBalance(0, 'SGD')).toEqual({ direction: 'even', text: 'settled up' });
+    expect(describeBalance(4210, 'SGD').text).toBe('gets back $42.10');
+    expect(describeBalance(-1200, 'SGD').text).toBe('owes $12.00');
+  });
+
+  it('says what an entry did to me, in the group currency', () => {
+    const ledger = fold(logOf(created, put(makeMember(ana)), put(makeMember(ben))));
+    const usd = makeExpense('usd', { [ana]: 1000, [ben]: 1000 }, { currency: 'USD', rate: 1.5 });
+
+    expect(describeMyShare(usd, ledger, ana).text).toBe('you lent $15.00');
+    expect(describeMyShare(usd, ledger, ben).text).toBe('you owe $15.00');
+    expect(describeMyShare(usd, ledger, cat).text).toBe('not involved');
+    expect(describeMyShare(usd, ledger, null).direction).toBe('even');
+    expect(describeMyShare(makeTransfer('t', ben, ana, 500), ledger, ben).text).toBe(
+      'you paid $5.00',
+    );
+    expect(describeMyShare(makeTransfer('t', ben, ana, 500), ledger, ana).text).toBe(
+      'you got $5.00',
+    );
+  });
+
+  it('writes the settle-up list for a chat', () => {
+    const ledger = fold(logOf(created, put(makeMember(ana)), put(makeMember(ben))));
+
+    expect(describeSettleUp([{ from: ben, to: ana, cents: 4210 }], ledger)).toBe(
+      'Japan 2026: settling up\n• Ben pays Ana $42.10',
+    );
+    expect(describeSettleUp([], ledger)).toBe('Japan 2026: everyone is settled up.');
   });
 });
