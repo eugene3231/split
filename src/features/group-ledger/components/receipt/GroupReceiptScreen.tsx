@@ -6,7 +6,7 @@ import type {
   MemberId,
   OpId,
 } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { TOO_BIG, entryFits, groupRate } from '@features/group-ledger/logic/expenseForm';
 import { newEntryId, todayLocalDate } from '@features/group-ledger/logic/ids';
 import { postReceipt } from '@features/group-ledger/logic/post';
@@ -23,7 +23,7 @@ import {
 import { navigate } from '@shared/routing';
 
 interface GroupReceiptScreenProps {
-  group: ReadyGroup;
+  group: MyGroup;
   entryId?: EntryId;
 }
 
@@ -53,7 +53,7 @@ export function GroupReceiptScreen({ group, entryId }: GroupReceiptScreenProps) 
 }
 
 interface ReceiptForGroupProps {
-  group: ReadyGroup;
+  group: MyGroup;
   editing: { entry: ExpenseEntry; rev: OpId } | null;
 }
 
@@ -85,7 +85,7 @@ function ReceiptForGroup({ group, editing }: ReceiptForGroupProps) {
 }
 
 interface SaveToGroupProps {
-  group: ReadyGroup;
+  group: MyGroup;
   members: Member[];
   editing: { entry: ExpenseEntry; rev: OpId } | null;
   receipt: SavedReceipt;
@@ -96,9 +96,7 @@ function SaveToGroup({ group, members, editing, receipt, draftKey }: SaveToGroup
   const { ledger, act } = group;
   const rates = useCurrencyStore((state) => state.exchangeRates);
   const [entryId] = useState(() => editing?.entry.id ?? newEntryId());
-  const [payer, setPayer] = useState<MemberId>(
-    () => editing?.entry.payment.payer ?? ledger.me ?? ledger.members[0].id,
-  );
+  const [payer, setPayer] = useState<MemberId>(() => editing?.entry.payment.payer ?? ledger.me);
   const entry = postReceipt(
     {
       id: entryId,

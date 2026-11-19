@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { GroupId } from '@features/group-ledger/domain/types';
-import { useGroup, type ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import { isMine, useGroup, type MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { StateScreen } from '@features/group-ledger/components/ui/StateScreen';
 import { buttonClass } from '@features/group-ledger/components/ui/classes';
 import { Link } from '@shared/routing';
@@ -8,7 +8,7 @@ import { WhoAreYou } from './WhoAreYou';
 
 interface GroupGateProps {
   groupId: GroupId;
-  children: (group: ReadyGroup) => ReactNode;
+  children: (group: MyGroup) => ReactNode;
 }
 
 export function GroupGate({ groupId, children }: GroupGateProps) {
@@ -41,6 +41,6 @@ export function GroupGate({ groupId, children }: GroupGateProps) {
         <StateScreen icon="progress_activity" title="Opening the group…" busy />
       );
     case 'ready':
-      return group.ledger.me === null ? <WhoAreYou group={group} /> : children(group);
+      return isMine(group) ? children(group) : <WhoAreYou group={group} />;
   }
 }

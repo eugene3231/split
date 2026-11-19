@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Transfer } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { useDataUrl } from '@features/group-ledger/hooks/useDataUrl';
 import { describeSettleUp, memberName } from '@features/group-ledger/logic/describe';
 import { showToast } from '@features/group-ledger/stores/toastStore';
@@ -14,7 +14,7 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { Link } from '@shared/routing';
 import { cn } from '@shared/utils/cn';
 
-export function SettleScreen({ group }: { group: ReadyGroup }) {
+export function SettleScreen({ group }: { group: MyGroup }) {
   const { ledger, transfers } = group;
   const [copied, setCopied] = useState(false);
 
@@ -75,7 +75,7 @@ export function SettleScreen({ group }: { group: ReadyGroup }) {
   );
 }
 
-function TransferCard({ group, transfer }: { group: ReadyGroup; transfer: Transfer }) {
+function TransferCard({ group, transfer }: { group: MyGroup; transfer: Transfer }) {
   const { ledger, act } = group;
   const [showQr, setShowQr] = useState(false);
   const payee = ledger.members.find((member) => member.id === transfer.to);

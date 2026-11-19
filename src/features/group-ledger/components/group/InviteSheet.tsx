@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import QRCode from 'qrcode';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { useDataUrl } from '@features/group-ledger/hooks/useDataUrl';
 import { Button } from '@features/group-ledger/components/ui/Button';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
@@ -8,7 +8,7 @@ import { Sheet } from '@features/group-ledger/components/ui/Sheet';
 import { href } from '@shared/routing';
 
 interface InviteSheetProps {
-  group: ReadyGroup;
+  group: MyGroup;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }

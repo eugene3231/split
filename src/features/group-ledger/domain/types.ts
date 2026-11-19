@@ -197,6 +197,11 @@ export interface Ledger {
   activity: Activity[];
 }
 
+/** A ledger on a phone that has said which member it is, as every screen behind the gate sees it. */
+export interface MyLedger extends Ledger {
+  me: MemberId;
+}
+
 /** One payment that helps settle the group, in the group's currency. */
 export interface Transfer {
   from: MemberId;

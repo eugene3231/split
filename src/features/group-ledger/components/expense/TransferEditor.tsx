@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { OpId, TransferEntry } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { dateLabel } from '@features/group-ledger/logic/dates';
 import { memberName } from '@features/group-ledger/logic/describe';
 import { todayLocalDate } from '@features/group-ledger/logic/ids';
@@ -14,7 +14,7 @@ import { formatMoneyAmount, parseCurrencyToCents } from '@shared/logic/core/mone
 import { navigate } from '@shared/routing';
 
 interface TransferEditorProps {
-  group: ReadyGroup;
+  group: MyGroup;
   transfer: TransferEntry;
   rev: OpId;
 }

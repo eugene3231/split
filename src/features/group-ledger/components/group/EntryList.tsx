@@ -1,5 +1,5 @@
 import type { LocalDate, PostedEntry } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { dateLabel } from '@features/group-ledger/logic/dates';
 import { describeMyShare, memberName } from '@features/group-ledger/logic/describe';
 import { DIRECTION_TEXT } from '@features/group-ledger/components/ui/classes';
@@ -11,7 +11,7 @@ import { Link, type Route } from '@shared/routing';
 import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { cn } from '@shared/utils/cn';
 
-export function EntryList({ group }: { group: ReadyGroup }) {
+export function EntryList({ group }: { group: MyGroup }) {
   const days = new Map<LocalDate, PostedEntry[]>();
   for (const posted of group.ledger.entries) {
     days.set(posted.entry.date, [...(days.get(posted.entry.date) ?? []), posted]);
@@ -36,11 +36,11 @@ export function EntryList({ group }: { group: ReadyGroup }) {
   );
 }
 
-function EntryRow({ group, posted }: { group: ReadyGroup; posted: PostedEntry }) {
+function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
   const { ledger } = group;
   const { entry } = posted;
   const groupId = ledger.groupId;
-  const share = describeMyShare(entry, ledger, ledger.me);
+  const share = describeMyShare(entry, ledger);
 
   let to: Route;
   let title: string;

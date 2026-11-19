@@ -1,4 +1,4 @@
-import type { Ledger, Member } from '@features/group-ledger/domain/types';
+import type { MyLedger, Member } from '@features/group-ledger/domain/types';
 import {
   amountsLeft,
   changePaidBy,
@@ -10,7 +10,7 @@ import { MoneyInput } from './MoneyInput';
 import { Remainder } from './Remainder';
 
 interface PaidByFieldProps {
-  ledger: Ledger;
+  ledger: MyLedger;
   members: Member[];
   draft: ExpenseDraft;
   onChange: (patch: Partial<ExpenseDraft>) => void;

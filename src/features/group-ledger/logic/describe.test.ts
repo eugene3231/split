@@ -156,24 +156,23 @@ describe('balance wording', () => {
     const usd = makeExpense('usd', { [ana]: 1000, [ben]: 1000 }, { currency: 'USD', rate: 1.5 });
 
     const transfer = makeTransfer('t', ben, ana, 500);
-    expect(describeMyShare(usd, ledger, ana)).toEqual({
+    expect(describeMyShare(usd, { ...ledger, me: ana })).toEqual({
       direction: 'owed',
       label: 'you lent',
       amount: '$15.00',
     });
-    expect(describeMyShare(usd, ledger, ben)).toEqual({
+    expect(describeMyShare(usd, { ...ledger, me: ben })).toEqual({
       direction: 'owes',
       label: 'you owe',
       amount: '$15.00',
     });
-    expect(describeMyShare(usd, ledger, cat)).toEqual({
+    expect(describeMyShare(usd, { ...ledger, me: cat })).toEqual({
       direction: 'even',
       label: 'not involved',
       amount: null,
     });
-    expect(describeMyShare(usd, ledger, null).direction).toBe('even');
-    expect(describeMyShare(transfer, ledger, ben).label).toBe('you paid');
-    expect(describeMyShare(transfer, ledger, ana).label).toBe('you got');
+    expect(describeMyShare(transfer, { ...ledger, me: ben }).label).toBe('you paid');
+    expect(describeMyShare(transfer, { ...ledger, me: ana }).label).toBe('you got');
   });
 
   it('writes the settle-up list for a chat', () => {

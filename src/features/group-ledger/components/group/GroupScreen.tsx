@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 import { describeBalance, describeMyBalance } from '@features/group-ledger/logic/describe';
 import { memberIdsOf } from '@features/group-ledger/logic/ids';
@@ -19,7 +19,7 @@ import { SyncBadge } from './SyncBadge';
 
 type OpenSheet = 'invite' | 'members' | 'add' | null;
 
-export function GroupScreen({ group }: { group: ReadyGroup }) {
+export function GroupScreen({ group }: { group: MyGroup }) {
   const { ledger, balances, transfers, sync } = group;
   const [sheet, setSheet] = useState<OpenSheet>(() =>
     window.history.state === OPEN_INVITE_STATE ? 'invite' : null,
@@ -30,7 +30,7 @@ export function GroupScreen({ group }: { group: ReadyGroup }) {
   };
   const me = ledger.me;
   useEffect(() => useJoinedGroupsStore.getState().markOpened(ledger.groupId), [ledger.groupId]);
-  const mine = describeMyBalance(me === null ? 0 : (balances[me] ?? 0), ledger.currency);
+  const mine = describeMyBalance(balances[me] ?? 0, ledger.currency);
   const live = ledger.members.filter((member) => !member.archived);
   const others = memberIdsOf(balances).filter((id) => id !== me);
 

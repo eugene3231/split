@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Member, MemberId } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { likelyDuplicates } from '@features/group-ledger/logic/duplicates';
 import { memberName } from '@features/group-ledger/logic/describe';
 import { Button } from '@features/group-ledger/components/ui/Button';
@@ -12,7 +12,7 @@ import { normalizeMobile } from '@features/payments';
 import { cn } from '@shared/utils/cn';
 
 interface MembersSheetProps {
-  group: ReadyGroup;
+  group: MyGroup;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -117,7 +117,7 @@ export function MembersSheet({ group, open, onOpenChange }: MembersSheetProps) {
   );
 }
 
-function DuplicateHints({ group }: { group: ReadyGroup }) {
+function DuplicateHints({ group }: { group: MyGroup }) {
   const { ledger, act } = group;
   const pairs = likelyDuplicates(ledger.members);
   if (pairs.length === 0) return null;

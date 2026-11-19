@@ -1,4 +1,4 @@
-import type { Cents, Ledger, Member, MemberId } from '@features/group-ledger/domain/types';
+import type { Cents, MyLedger, Member, MemberId } from '@features/group-ledger/domain/types';
 import {
   amountsLeft,
   changeSplitKind,
@@ -14,7 +14,7 @@ import { MoneyInput } from './MoneyInput';
 import { Remainder } from './Remainder';
 
 interface SplitFieldProps {
-  ledger: Ledger;
+  ledger: MyLedger;
   members: Member[];
   draft: ExpenseDraft;
   owed: Record<MemberId, Cents> | null;

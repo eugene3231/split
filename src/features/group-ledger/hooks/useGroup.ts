@@ -5,6 +5,7 @@ import type {
   InviteCode,
   Ledger,
   MemberId,
+  MyLedger,
   Transfer,
 } from '@features/group-ledger/domain/types';
 import { computeBalances } from '@features/group-ledger/logic/balances';
@@ -29,6 +30,15 @@ export interface ReadyGroup {
   transfers: Transfer[];
   sync: SyncStatus;
   act: GroupActions;
+}
+
+/** A ready group whose phone has said which member it is. */
+export interface MyGroup extends ReadyGroup {
+  ledger: MyLedger;
+}
+
+export function isMine(group: ReadyGroup): group is MyGroup {
+  return group.ledger.me !== null;
 }
 
 export type GroupView =
