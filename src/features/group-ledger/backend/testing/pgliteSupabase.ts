@@ -1,5 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { newUuid } from '@features/group-ledger/logic/ids';
 
 // A Postgres in this process with the migration applied, and a stand-in for supabase-js that
 // runs each call there as one user, the way PostgREST would. It lets the contract suite run the
@@ -126,7 +127,7 @@ export async function createPgliteProject(): Promise<PgliteProject> {
 
   return {
     async client() {
-      const userId = crypto.randomUUID();
+      const userId = newUuid();
       await db.query('insert into auth.users (id) values ($1)', [userId]);
       const user = { id: userId, is_anonymous: true };
       const client = {

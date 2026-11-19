@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type {
-  Change,
-  GroupId,
-  InviteCode,
-  OpId,
-  PendingOp,
-} from '@features/group-ledger/domain/types';
+import type { Change, InviteCode, OpId, PendingOp } from '@features/group-ledger/domain/types';
 import type { JoinedGroup, LedgerBackend } from '@features/group-ledger/backend/port';
+import { newGroupId, newOpId, newUuid } from '@features/group-ledger/logic/ids';
 
 // What every server must do, written once. `backendContract.test.ts` runs it against the fake
 // and, when asked, a real Supabase project; `sqlContract.test.ts` runs it against the migration.
@@ -22,7 +17,7 @@ export function newGroup(): JoinedGroup {
     .replaceAll('+', '-')
     .replaceAll('/', '_')
     .replaceAll('=', '');
-  return { groupId: crypto.randomUUID() as GroupId, inviteCode: code as InviteCode };
+  return { groupId: newGroupId(), inviteCode: code as InviteCode };
 }
 
 let order = 0;
@@ -31,7 +26,7 @@ export function pendingOp(
   change: Change = { kind: 'group.renamed', name: 'Japan 2026' },
 ): PendingOp {
   order += 1;
-  return { id: crypto.randomUUID() as OpId, order, at: '2026-11-19T10:00:00.000Z', change };
+  return { id: newOpId(), order, at: '2026-11-19T10:00:00.000Z', change };
 }
 
 async function value<T>(
@@ -106,7 +101,7 @@ export function describeBackendContract(name: string, makeWorld: () => Promise<C
     it('rejects an op whose id is not a lowercase uuid', async () => {
       const { ana, group } = await publishedGroup();
       const odd = { ...pendingOp(), id: 'op-1' as OpId };
-      const upper = { ...pendingOp(), id: crypto.randomUUID().toUpperCase() as OpId };
+      const upper = { ...pendingOp(), id: newUuid().toUpperCase() as OpId };
       const fine = pendingOp();
 
       const outcome = await value(ana.push(group.groupId, [odd, upper, fine]));

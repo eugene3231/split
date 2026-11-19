@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   Change,
   ConfirmedOp,
@@ -25,7 +25,19 @@ beforeEach(() => {
   window.localStorage.clear();
 });
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe('device log', () => {
+  it('makes a pending op on a plain-http page, where crypto.randomUUID is missing', () => {
+    vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });
+
+    const op = openDeviceLog('ana', groupId).appendPending(rename('Japan'));
+
+    expect(op.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
   it('stores a pending op under its own key before returning it', () => {
     const log = openDeviceLog('ana', groupId, () => '2026-11-19T10:00:00.000Z');
 

@@ -8,6 +8,7 @@ import type {
   UserId,
 } from '@features/group-ledger/domain/types';
 import { confirmedOpSchema, idSchemas, pendingOpSchema } from '@features/group-ledger/logic/codec';
+import { newOpId } from '@features/group-ledger/logic/ids';
 import { jsonStorage, lenientArray, parseJson } from '@features/split-workspace/logic/jsonStorage';
 
 // This phone's copy of one group, in localStorage:
@@ -107,7 +108,7 @@ export function openDeviceLog(
       // The counter alone would restart at 1 if only its key were lost.
       const lastOrder = Math.max(orderStore.load() ?? 0, ...pending().map((op) => op.order));
       const op: PendingOp = {
-        id: crypto.randomUUID() as OpId,
+        id: newOpId(),
         order: lastOrder + 1,
         at: now(),
         change,

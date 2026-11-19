@@ -23,4 +23,18 @@ export default defineConfig([
       },
     },
   },
+  {
+    files: ['src/features/group-ledger/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'crypto',
+          property: 'randomUUID',
+          message:
+            'crypto.randomUUID is missing on plain-http pages, such as the dev server opened on a phone over the LAN. Use newUuid(), or newOpId() and its siblings, from logic/ids.ts.',
+        },
+      ],
+    },
+  },
 ]);

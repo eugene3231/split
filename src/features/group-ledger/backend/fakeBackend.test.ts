@@ -25,11 +25,22 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   setFakeOffline(false);
   window.history.replaceState(null, '', '/');
 });
 
 describe('fake backend sessions', () => {
+  it('signs in and names the tab on a plain-http page, where crypto.randomUUID is missing', async () => {
+    vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });
+
+    const session = await phone(createMemoryServer(), 'ana').session();
+    const profile = tabProfile();
+
+    expect(session.ok).toBe(true);
+    expect(profile).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
   it('gives each phone its own anonymous user and keeps it across reloads', async () => {
     const server = createMemoryServer();
 
