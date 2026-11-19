@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { OpId, TransferEntry } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { dateLabel } from '@features/group-ledger/logic/dates';
-import { memberName } from '@features/group-ledger/logic/describe';
+import { transferTitle } from '@features/group-ledger/logic/describe';
 import { todayLocalDate } from '@features/group-ledger/logic/ids';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { ActionBar } from '@features/group-ledger/components/ui/ActionBar';
@@ -14,7 +14,7 @@ import { formatMoneyAmount, parseCurrencyToCents } from '@shared/logic/core/mone
 import { navigate } from '@shared/routing';
 
 interface TransferEditorProps {
-  group: ReadyGroup;
+  group: MyGroup;
   transfer: TransferEntry;
   rev: OpId;
 }
@@ -25,7 +25,7 @@ export function TransferEditor({ group, transfer, rev }: TransferEditorProps) {
   const cents = parseCurrencyToCents(amount);
   const valid = cents !== null && cents > 0;
   const changed = valid && cents !== transfer.cents;
-  const title = `${memberName(ledger, transfer.from)} paid ${memberName(ledger, transfer.to)}`;
+  const title = transferTitle(ledger, transfer);
   const back = () => navigate({ kind: 'group', groupId: ledger.groupId });
 
   const remove = () => {

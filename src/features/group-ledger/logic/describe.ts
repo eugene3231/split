@@ -7,14 +7,48 @@ import type {
   Ledger,
   Member,
   MemberId,
+  MyLedger,
   Transfer,
 } from '@features/group-ledger/domain/types';
 import { entryEffect } from '@features/group-ledger/logic/balances';
 import { totalCents } from '@features/group-ledger/logic/post';
 
 export function memberName(ledger: Ledger, id: MemberId): string {
-  const current = ledger.aliases.get(id) ?? id;
-  return ledger.members.find((member) => member.id === current)?.name ?? 'Someone';
+  return ledger.members.find((member) => member.id === id)?.name ?? 'Someone';
+}
+
+/** "You" for this phone's member, the member's name for anyone else. */
+export function memberLabel(ledger: MyLedger, id: MemberId): string {
+  return id === ledger.me ? 'You' : memberName(ledger, id);
+}
+
+export interface TransferWords {
+  from: string;
+  verb: string;
+  to: string;
+}
+
+/**
+ * A transfer as this phone reads it: "You pay Ana" or "Ben pays you" while it is due, "Ben paid
+ * you" once done.
+ */
+export function transferWords(
+  ledger: MyLedger,
+  transfer: Pick<Transfer, 'from' | 'to'>,
+  tense: 'due' | 'done',
+): TransferWords {
+  const fromMe = transfer.from === ledger.me;
+  return {
+    from: memberLabel(ledger, transfer.from),
+    verb: tense === 'done' ? 'paid' : fromMe ? 'pay' : 'pays',
+    to: transfer.to === ledger.me ? 'you' : memberName(ledger, transfer.to),
+  };
+}
+
+/** "Ben paid you": a payment that was marked paid, as this phone reads it. */
+export function transferTitle(ledger: MyLedger, transfer: Pick<Transfer, 'from' | 'to'>): string {
+  const { from, verb, to } = transferWords(ledger, transfer, 'done');
+  return `${from} ${verb} ${to}`;
 }
 
 /** "Grab · $18.00" for an expense, "Ben paid Ana · $18.00" for a transfer. */
@@ -25,6 +59,46 @@ export function describeEntry(entry: Entry, ledger: Ledger): string {
   }
   const title = entry.title.trim() || 'Untitled expense';
   return `${title} · ${formatCurrencyFromCents(totalCents(entry), entry.currency)}`;
+}
+
+/**
+ * Under an even split: "$30.00 each · 3 people". When the cents do not divide evenly some pay a
+ * cent more, so it says "about" the smaller share.
+ */
+export function describeEvenSplit(
+  people: number,
+  owed: Record<MemberId, Cents> | null,
+  currency: CurrencyCode,
+): string {
+  if (people === 0) return 'Tap the people who share it';
+  const count = `${people} ${people === 1 ? 'person' : 'people'}`;
+  if (owed === null) return count;
+  const shares = Object.values(owed);
+  const least = Math.min(...shares);
+  const each = formatCurrencyFromCents(least, currency);
+  return `${shares.every((cents) => cents === least) ? '' : 'about '}${each} each · ${count}`;
+}
+
+/** A row of the expense list: "Grab" over "You paid $18.00", or "Ben paid you" over "$5.00". */
+export function describeEntryRow(
+  entry: Entry,
+  ledger: MyLedger,
+): { title: string; detail: string } {
+  if (entry.kind === 'transfer') {
+    return {
+      title: transferTitle(ledger, entry),
+      detail: formatCurrencyFromCents(entry.cents, ledger.currency),
+    };
+  }
+  const payers = Object.keys(entry.payment.others).length + 1;
+  const amount = formatCurrencyFromCents(totalCents(entry), entry.currency);
+  return {
+    title: entry.title || 'Untitled expense',
+    detail:
+      payers === 1
+        ? `${memberLabel(ledger, entry.payment.payer)} paid ${amount}`
+        : `${payers} people paid ${amount}`,
+  };
 }
 
 /** One line for the activity list, such as "Ben added Grab · $18.00". */
@@ -114,8 +188,8 @@ export interface ShareWords {
 }
 
 /** What an entry did to this phone's member, in group currency: "you lent" $9.00. */
-export function describeMyShare(entry: Entry, ledger: Ledger, me: MemberId | null): ShareWords {
-  const cents = me === null ? 0 : (entryEffect(entry, ledger.aliases)[me] ?? 0);
+export function describeMyShare(entry: Entry, ledger: MyLedger): ShareWords {
+  const cents = entryEffect(entry)[ledger.me] ?? 0;
   const direction = directionOf(cents);
   const transfer = entry.kind === 'transfer';
   const label = {

@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { Change, ConfirmedOp } from '@features/group-ledger/domain/types';
 import { foldLedger } from './fold';
-import { asOpId } from './ids';
+import { asOpId, memberIdsOf } from './ids';
 import {
   ana,
   anaPhone,
@@ -22,6 +22,7 @@ import {
   pendingChangesArb,
   put,
 } from './testHelpers';
+import { makeItem, makeReceipt } from '../../../tests/integration/testHelpers';
 
 const grab = makeExpense('grab', { [ana]: 900, [ben]: 900 }, { title: 'Grab' });
 const grabEdited = makeExpense('grab', { [ana]: 1000, [ben]: 1000 }, { title: 'Grab' });
@@ -99,7 +100,6 @@ describe('foldLedger: members', () => {
     );
 
     expect(ledger.members).toEqual([makeMember(ana)]);
-    expect([...ledger.aliases]).toEqual([['ben', 'ana']]);
     expect(ledger.activity[0].what).toEqual({
       kind: 'member-merged',
       from: makeMember(ben),
@@ -115,16 +115,67 @@ describe('foldLedger: members', () => {
         put(makeMember(ana)),
         put(makeMember(ben)),
         put(makeMember(cat)),
+        { kind: 'entry.put', entry: makeTransfer('paid', ana, ben, 300), base: null },
         { kind: 'member.merged', from: ana, into: ben },
         { kind: 'member.merged', from: ben, into: cat },
       ),
     );
 
     expect(ledger.members.map((member) => member.id)).toEqual(['cat']);
-    expect([...ledger.aliases]).toEqual([
-      ['ana', 'cat'],
-      ['ben', 'cat'],
-    ]);
+    expect(ledger.entries[0].entry).toMatchObject({ from: cat, to: cat });
+  });
+
+  it('hands out entries that name only the member each merged-away member became', () => {
+    const receipt = {
+      ...makeExpense('receipt', { [ana]: 250, [ben]: 250, [cat]: 500 }),
+      basis: {
+        kind: 'receipt' as const,
+        receipt: makeReceipt({
+          items: [
+            makeItem({
+              assignment: { shares: { [ana]: 1, [ben]: 1, [cat]: 2 }, unassignedShare: 0 },
+            }),
+          ],
+        }),
+      },
+    };
+    const weighted = {
+      ...makeExpense(
+        'dinner',
+        { [ana]: 500, [ben]: 500, [cat]: 1000 },
+        {
+          payer: ben,
+          others: { [ana]: 400, [cat]: 600 },
+        },
+      ),
+      basis: { kind: 'weights' as const, weights: { [ana]: 1, [ben]: 1, [cat]: 2 } },
+    };
+    const ledger = fold(
+      logOf(
+        created,
+        put(makeMember(ana)),
+        put(makeMember(ben)),
+        put(makeMember(cat)),
+        { kind: 'entry.put', entry: weighted, base: null },
+        { kind: 'entry.put', entry: receipt, base: null },
+        { kind: 'entry.put', entry: makeTransfer('paid', ben, cat, 300), base: null },
+        { kind: 'member.merged', from: ben, into: ana },
+      ),
+    );
+    const byId = (id: string) => ledger.entries.find((posted) => posted.entry.id === id)?.entry;
+
+    expect(byId('dinner')).toMatchObject({
+      owed: { [ana]: 1000, [cat]: 1000 },
+      payment: { payer: ana, others: { [cat]: 600 } },
+      basis: { kind: 'weights', weights: { [ana]: 2, [cat]: 2 } },
+    });
+    expect(byId('receipt')).toMatchObject({
+      basis: { receipt: { items: [{ assignment: { shares: { [ana]: 2, [cat]: 2 } } }] } },
+    });
+    expect(byId('paid')).toMatchObject({ from: ana, to: cat });
+    expect(ledger.activity.find((row) => row.what.kind === 'entry-added')?.what).toMatchObject({
+      entry: { from: ana, to: cat },
+    });
   });
 
   it('ignores a merge that would loop back, a merge into itself and a merge of a stranger', () => {
@@ -141,7 +192,6 @@ describe('foldLedger: members', () => {
     );
 
     expect(ledger.members.map((member) => member.id)).toEqual(['ben']);
-    expect([...ledger.aliases]).toEqual([['ana', 'ben']]);
     expect(ledger.activity.map((row) => row.what.kind)).toEqual([
       'member-merged',
       'member-added',
@@ -564,7 +614,7 @@ describe('foldLedger properties', () => {
     );
   });
 
-  it('keeps the ledger whole: every member, alias, claim and entry points at something real', () => {
+  it('keeps the ledger whole: every member, claim and entry points at something real', () => {
     fc.assert(
       fc.property(confirmedOpsArb, pendingChangesArb, (ops, changes) => {
         const ledger = fold(
@@ -576,9 +626,21 @@ describe('foldLedger properties', () => {
         const live = new Set(ledger.members.map((member) => member.id));
 
         expect(live.size).toBe(ledger.members.length);
-        for (const [from, into] of ledger.aliases) {
-          expect(live.has(from)).toBe(false);
-          expect(live.has(into)).toBe(true);
+        const mergedAway = new Set(
+          ledger.activity.flatMap(({ what }) =>
+            what.kind === 'member-merged' ? [what.from.id] : [],
+          ),
+        );
+        for (const { entry } of ledger.entries) {
+          const named =
+            entry.kind === 'transfer'
+              ? [entry.from, entry.to]
+              : [
+                  entry.payment.payer,
+                  ...memberIdsOf(entry.payment.others),
+                  ...memberIdsOf(entry.owed),
+                ];
+          expect(named.filter((id) => mergedAway.has(id) && !live.has(id))).toEqual([]);
         }
         expect(ledger.me === null || live.has(ledger.me)).toBe(true);
         expect([...ledger.claimed].every((id) => live.has(id))).toBe(true);

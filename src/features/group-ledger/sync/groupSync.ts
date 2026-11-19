@@ -9,8 +9,9 @@ import type {
 } from '@features/group-ledger/domain/types';
 import { createBackend, deviceProfile } from '@features/group-ledger/backend/createBackend';
 import { PUSH_BATCH_SIZE } from '@features/group-ledger/backend/limits';
-import type { BackendFailure, LedgerBackend } from '@features/group-ledger/backend/port';
+import type { BackendFailure, LedgerBackend, Session } from '@features/group-ledger/backend/port';
 import { parseChange } from '@features/group-ledger/logic/codec';
+import { foldLedger } from '@features/group-ledger/logic/fold';
 import { openDeviceLog, type DeviceLog } from '@features/group-ledger/sync/deviceLog';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 
@@ -71,6 +72,8 @@ export interface GroupSyncOptions {
   backend: LedgerBackend;
   log: DeviceLog;
   now?: () => string;
+  /** Told the session each run starts from. */
+  onSession?: (session: Session) => void;
 }
 
 const FIRST_RETRY_MS = 2_000;
@@ -81,6 +84,7 @@ export function createGroupSync({
   backend,
   log,
   now = () => new Date().toISOString(),
+  onSession,
 }: GroupSyncOptions): GroupSync {
   const { groupId, inviteCode } = group;
   const listeners = new Set<() => void>();
@@ -189,6 +193,7 @@ export function createGroupSync({
     try {
       const session = await backend.session();
       if (!session.ok) return stopped(session.failure);
+      onSession?.(session.value);
       const { userId } = session.value;
 
       async function enterAsUser() {
@@ -311,8 +316,20 @@ export function ledgerBackend(): LedgerBackend {
 }
 
 const engines = new Map<GroupId, GroupSync>();
+const sessionListeners = new Set<(session: Session) => void>();
 
-/** The engine for a group this phone holds, started on first use. Null for any other group. */
+/** Tells `listener` the session every group's sync runs as, so the account learns who this phone is. */
+export function onSessionSeen(listener: (session: Session) => void): () => void {
+  sessionListeners.add(listener);
+  return () => {
+    sessionListeners.delete(listener);
+  };
+}
+
+/**
+ * The engine for a group this phone holds, started on first use. Null for any other group.
+ * It keeps the home list's copy of the group's name in step with the log.
+ */
 export function groupSyncFor(groupId: GroupId): GroupSync | null {
   const running = engines.get(groupId);
   if (running) return running;
@@ -324,9 +341,26 @@ export function groupSyncFor(groupId: GroupId): GroupSync | null {
     group,
     backend: ledgerBackend(),
     log: openDeviceLog(deviceProfile(), groupId),
+    onSession: (session) => {
+      for (const listener of sessionListeners) listener(session);
+    },
+  });
+  let named: GroupLog | null = null;
+  engine.subscribe(() => {
+    const { log } = engine.getSnapshot();
+    if (log === named) return;
+    named = log;
+    rememberName(groupId, log);
   });
   engines.set(groupId, engine);
   return engine;
+}
+
+function rememberName(groupId: GroupId, log: GroupLog) {
+  const name = foldLedger(log, null)?.name;
+  const joined = useJoinedGroupsStore.getState();
+  const held = joined.groups.find((group) => group.groupId === groupId);
+  if (name !== undefined && held !== undefined && held.name !== name) joined.setName(groupId, name);
 }
 
 /** Syncs every group this phone holds, entering each as the current user where it has not. */

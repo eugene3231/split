@@ -4,6 +4,7 @@ import { useAccountStore } from '@features/group-ledger/sync/accountStore';
 import { Button } from '@features/group-ledger/components/ui/Button';
 import { Icon, IconButton } from '@features/group-ledger/components/ui/IconButton';
 import { buttonClass } from '@features/group-ledger/components/ui/classes';
+import { sheetProps } from '@features/group-ledger/components/ui/sheetProps';
 import { useQuickSplitStarted } from '@features/split-workspace';
 import { Link } from '@shared/routing';
 import { AccountSheet } from './AccountSheet';
@@ -90,14 +91,8 @@ export function HomeScreen() {
         )}
       </main>
 
-      <NewGroupSheet
-        open={sheet === 'new-group'}
-        onOpenChange={(open) => setSheet(open ? 'new-group' : null)}
-      />
-      <AccountSheet
-        open={sheet === 'account'}
-        onOpenChange={(open) => setSheet(open ? 'account' : null)}
-      />
+      <NewGroupSheet {...sheetProps(sheet, 'new-group', setSheet)} />
+      <AccountSheet {...sheetProps(sheet, 'account', setSheet)} />
     </div>
   );
 }

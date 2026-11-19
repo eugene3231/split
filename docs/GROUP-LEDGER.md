@@ -83,16 +83,17 @@ Dependencies run one way: `group-ledger` imports `split-workspace` and `payments
 
 ## Routes
 
-| Route                            | Shows                                                 |
-| -------------------------------- | ----------------------------------------------------- |
-| `/`                              | Your groups, New group, Quick split                   |
-| `/split`                         | The existing wizard, unchanged, with its own draft    |
-| `/join#<code>`                   | Joins, then asks who you are                          |
-| `/g/:groupId`                    | Balances, then expenses; Add (quick or scan)          |
-| `/g/:groupId/new`, `/e/:entryId` | Quick expense form, new or editing                    |
-| `/g/:groupId/receipt[/:entryId]` | The receipt wizard for this group, then Save to group |
-| `/g/:groupId/settle`             | Fewest transfers, PayNow, Mark paid                   |
-| `/g/:groupId/activity`           | Who changed what, with restore                        |
+| Route                    | Shows                                                     |
+| ------------------------ | --------------------------------------------------------- |
+| `/`                      | Your groups, New group, Quick split                       |
+| `/split`                 | The existing wizard, unchanged, with its own draft        |
+| `/join#<code>`           | Joins, then asks who you are                              |
+| `/g/:groupId`            | Balances, then expenses; Add (quick or scan)              |
+| `/g/:groupId/new`        | A new quick expense                                       |
+| `/g/:groupId/receipt`    | The receipt wizard for this group, then Save to group     |
+| `/g/:groupId/e/:entryId` | The editor that fits the entry: expense, receipt, payment |
+| `/g/:groupId/settle`     | Fewest transfers, PayNow, Mark paid                       |
+| `/g/:groupId/activity`   | Who changed what, with restore                            |
 
 Routing is a typed `Route` union with an exhaustive switch, about 80 lines. A router library would add more than it hides for flat routes with no loaders.
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { CurrencyCode } from '@shared/constants';
 import type { ExpenseEntry, OpId } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import {
   blankDraft,
   checkExpense,
@@ -26,7 +26,7 @@ import { PaidByField } from './PaidByField';
 import { SplitField } from './SplitField';
 
 interface ExpenseFormProps {
-  group: ReadyGroup;
+  group: MyGroup;
   editing?: { entry: ExpenseEntry; rev: OpId };
 }
 
@@ -37,12 +37,7 @@ export function ExpenseForm({ group, editing }: ExpenseFormProps) {
   const [draft, setDraft] = useState<ExpenseDraft>(() =>
     editing
       ? draftFromEntry(editing.entry)
-      : blankDraft(
-          ledger.members,
-          ledger.me ?? ledger.members[0].id,
-          ledger.currency,
-          todayLocalDate(),
-        ),
+      : blankDraft(ledger.members, ledger.me, ledger.currency, todayLocalDate()),
   );
   const check = checkExpense(draft, entryId, ledger.currency);
   const members = formMembers(ledger.members, draft);

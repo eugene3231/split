@@ -4,6 +4,7 @@ import {
   selectActiveReceipt,
   useReceiptStore,
 } from '@features/split-workspace/stores/receiptStore';
+import { wizardKeyFor } from '@features/split-workspace/logic/persistence';
 import { WorkspaceStoreProvider } from '@features/split-workspace/stores/WorkspaceStoreProvider';
 import { useWorkspaceWizard } from '@features/split-workspace/hooks/useWizard';
 import { useSplits } from '@features/split-workspace/hooks/useSplits';
@@ -41,7 +42,7 @@ export function ReceiptEditor({
   const [store] = useState(() =>
     createWorkspaceStore({
       draftKey,
-      wizardKey: `${draftKey}:wizard`,
+      wizardKey: wizardKeyFor(draftKey),
       initial: initial && {
         people,
         receipts: [initial],

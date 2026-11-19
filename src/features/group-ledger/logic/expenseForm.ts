@@ -16,7 +16,7 @@ import type {
   MemberId,
   Payment,
 } from '@features/group-ledger/domain/types';
-import { asOpId, memberIdsOf, newUuid } from '@features/group-ledger/logic/ids';
+import { asOpId, memberIdsOf } from '@features/group-ledger/logic/ids';
 import { fitsOnServer } from '@features/group-ledger/backend/limits';
 import { paidBy, postAmounts, postWeights, totalCents } from '@features/group-ledger/logic/post';
 
@@ -183,12 +183,15 @@ function built(entry: ExpenseEntry | null, reason: string): ExpenseCheck {
 
 export const TOO_BIG = 'Too big to sync. Split it into smaller expenses';
 
+/** Stands in for the revision an edit is based on, which is always a UUID this long. */
+const ANY_BASE = asOpId('00000000-0000-4000-8000-000000000000');
+
 /**
  * Whether the server will take the entry, new or as an edit. One that does not fit would be
  * dropped after saving.
  */
 export function entryFits(entry: Entry): boolean {
-  return fitsOnServer({ kind: 'entry.put', entry, base: asOpId(newUuid()) });
+  return fitsOnServer({ kind: 'entry.put', entry, base: ANY_BASE });
 }
 
 function fail(reason: string): { ok: false; reason: string } {

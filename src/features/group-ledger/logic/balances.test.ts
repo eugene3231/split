@@ -1,6 +1,5 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import type { MemberId } from '@features/group-ledger/domain/types';
 import { computeBalances, entryEffect } from './balances';
 import { asEntryId, asMemberId, asOpId } from './ids';
 import {
@@ -17,26 +16,24 @@ import {
   makeLog,
   makeMember,
   makeTransfer,
-  memberIdArb,
   pending,
   pendingChangesArb,
   put,
 } from './testHelpers';
 
-const noAliases = new Map<MemberId, MemberId>();
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 
 describe('entryEffect', () => {
   it('credits the payer with what the others owe', () => {
     const entry = makeExpense('grab', { [ana]: 900, [ben]: 900 }, { payer: ana });
 
-    expect(entryEffect(entry, noAliases)).toEqual({ ana: 900, ben: -900 });
+    expect(entryEffect(entry)).toEqual({ ana: 900, ben: -900 });
   });
 
   it('credits a payer who owes nothing with the whole total', () => {
     const entry = makeExpense('gift', { [ben]: 1200, [cat]: 800 }, { payer: ana });
 
-    expect(entryEffect(entry, noAliases)).toEqual({ ana: 2000, ben: -1200, cat: -800 });
+    expect(entryEffect(entry)).toEqual({ ana: 2000, ben: -1200, cat: -800 });
   });
 
   it('credits several payers with what each put in', () => {
@@ -46,7 +43,7 @@ describe('entryEffect', () => {
       { payer: ana, others: { [ben]: 500 } },
     );
 
-    expect(entryEffect(entry, noAliases)).toEqual({ ana: 1500, ben: -500, cat: -1000 });
+    expect(entryEffect(entry)).toEqual({ ana: 1500, ben: -500, cat: -1000 });
   });
 
   it('converts the total once at the frozen rate, then shares it out', () => {
@@ -56,7 +53,7 @@ describe('entryEffect', () => {
       { payer: ana, currency: 'JPY', rate: 0.009 },
     );
 
-    expect(entryEffect(entry, noAliases)).toEqual({ ana: 60, ben: -30, cat: -30 });
+    expect(entryEffect(entry)).toEqual({ ana: 60, ben: -30, cat: -30 });
   });
 
   it('gives the cent a conversion leaves over to one member, so the entry still nets to zero', () => {
@@ -66,26 +63,14 @@ describe('entryEffect', () => {
       { payer: cat, currency: 'USD', rate: 0.125 },
     );
 
-    expect(entryEffect(entry, noAliases)).toEqual({ ana: -7, ben: -6, cat: 13 });
+    expect(entryEffect(entry)).toEqual({ ana: -7, ben: -6, cat: 13 });
   });
 
   it('moves a transfer from the member who paid to the member who was paid', () => {
-    expect(entryEffect(makeTransfer('paid', ben, ana, 300), noAliases)).toEqual({
+    expect(entryEffect(makeTransfer('paid', ben, ana, 300))).toEqual({
       ana: -300,
       ben: 300,
     });
-  });
-
-  it('reads a merged-away member as the member they became', () => {
-    const aliases = new Map([[ben, ana]]);
-    const entry = makeExpense('grab', { [ana]: 500, [ben]: 500 }, { payer: cat });
-
-    expect(entryEffect(entry, aliases)).toEqual({ ana: -1000, cat: 1000 });
-    expect(entryEffect(makeTransfer('paid', ben, cat, 300), aliases)).toEqual({
-      ana: 300,
-      cat: -300,
-    });
-    expect(entryEffect(makeTransfer('self', ben, ana, 300), aliases)).toEqual({ ana: 0 });
   });
 });
 
@@ -146,22 +131,15 @@ describe('computeBalances', () => {
 });
 
 describe('balance properties', () => {
-  it('nets every entry to exactly zero, whatever the rate and whoever was merged', () => {
+  it('nets every entry to exactly zero, whatever the rate', () => {
     fc.assert(
       fc.property(
         entryArb,
         fc.double({ min: 0.00001, max: 20_000, noNaN: true }),
-        fc.option(fc.tuple(memberIdArb, memberIdArb), { nil: null }),
-        (entry, rate, merge) => {
-          const aliases =
-            merge === null || merge[0] === merge[1] ? noAliases : new Map([[merge[0], merge[1]]]);
-          const effect = entryEffect(
-            entry.kind === 'expense' ? { ...entry, rate } : entry,
-            aliases,
-          );
+        (entry, rate) => {
+          const effect = entryEffect(entry.kind === 'expense' ? { ...entry, rate } : entry);
 
           expect(sum(Object.values(effect))).toBe(0);
-          expect(Object.keys(effect).some((id) => aliases.has(asMemberId(id)))).toBe(false);
         },
       ),
     );

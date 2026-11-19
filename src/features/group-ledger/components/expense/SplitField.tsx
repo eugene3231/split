@@ -1,10 +1,11 @@
-import type { Cents, Ledger, Member, MemberId } from '@features/group-ledger/domain/types';
+import type { Cents, MyLedger, Member, MemberId } from '@features/group-ledger/domain/types';
 import {
   amountsLeft,
   changeSplitKind,
   type ExpenseDraft,
   type SplitBy,
 } from '@features/group-ledger/logic/expenseForm';
+import { describeEvenSplit, memberLabel } from '@features/group-ledger/logic/describe';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
 import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar';
 import { SegmentedToggle } from '@shared/components/SegmentedToggle';
@@ -14,7 +15,7 @@ import { MoneyInput } from './MoneyInput';
 import { Remainder } from './Remainder';
 
 interface SplitFieldProps {
-  ledger: Ledger;
+  ledger: MyLedger;
   members: Member[];
   draft: ExpenseDraft;
   owed: Record<MemberId, Cents> | null;
@@ -85,7 +86,7 @@ export function SplitField({ ledger, members, draft, owed, onChange }: SplitFiel
                         included ? 'text-on-surface' : 'text-on-surface-variant',
                       )}
                     >
-                      {member.id === ledger.me ? 'You' : member.name}
+                      {memberLabel(ledger, member.id)}
                     </span>
                   </button>
                 </li>
@@ -93,11 +94,7 @@ export function SplitField({ ledger, members, draft, owed, onChange }: SplitFiel
             })}
           </ul>
           <p className="mt-3 text-center text-sm text-on-surface-variant">
-            {splitBy.between.length === 0
-              ? 'Tap the people who share it'
-              : owed
-                ? `${money(Math.max(...Object.values(owed)))} each · ${splitBy.between.length} ${splitBy.between.length === 1 ? 'person' : 'people'}`
-                : `${splitBy.between.length} ${splitBy.between.length === 1 ? 'person' : 'people'}`}
+            {describeEvenSplit(splitBy.between.length, owed, draft.currency)}
           </p>
         </>
       ) : (

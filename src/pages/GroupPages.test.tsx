@@ -16,7 +16,7 @@ import {
   newGroupId,
   newInviteCode,
 } from '@features/group-ledger/logic/ids';
-import { postReceipt } from '@features/group-ledger/logic/post';
+import { postReceipt, postWeights } from '@features/group-ledger/logic/post';
 import { useAccountStore } from '@features/group-ledger/sync/accountStore';
 import { createGroup } from '@features/group-ledger/sync/createGroup';
 import { forgetGroup, groupSyncFor } from '@features/group-ledger/sync/groupSync';
@@ -112,6 +112,23 @@ describe('home', () => {
     expect(await screen.findByRole('link', { name: /Japan 2026/ })).toHaveTextContent(
       /settled up/i,
     );
+  });
+
+  it('splits friend names typed but not yet entered on commas when the group is made', async () => {
+    render(<App />);
+    click('New group');
+    type('Group name', 'Lunch');
+    type('Your name', 'Ana');
+    type('Friends', 'Ben, Cat');
+    click('Create group');
+
+    await screen.findByRole('dialog', { name: 'Invite friends' });
+    const [held] = useJoinedGroupsStore.getState().groups;
+    expect(ledgerOf(held.groupId).members.map((member) => member.name)).toEqual([
+      'Ana',
+      'Ben',
+      'Cat',
+    ]);
   });
 
   it('offers to continue a quick split that has work in it', () => {
@@ -239,13 +256,13 @@ describe('a group', () => {
     click('Mark paid');
     go(`/g/${groupId}`);
 
-    fireEvent.click(await screen.findByRole('link', { name: /Ben paid Ana/ }));
+    fireEvent.click(await screen.findByRole('link', { name: /Ben paid you/ }));
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     type('Amount', '4');
     click('Save');
     expect(await screen.findByText("you're owed $6.00")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('link', { name: /Ben paid Ana/ }));
+    fireEvent.click(screen.getByRole('link', { name: /Ben paid you/ }));
     click('Delete payment');
     expect(await screen.findByText("you're owed $10.00")).toBeInTheDocument();
   });
@@ -354,7 +371,6 @@ describe('a group', () => {
     render(<App />);
     go(`/g/${groupId}/e/${entry.id}`);
 
-    await waitFor(() => expect(window.location.pathname).toBe(`/g/${groupId}/receipt/${entry.id}`));
     while (!screen.queryByTestId('save-receipt-to-group')) {
       fireEvent.click(screen.getByTestId('wizard-continue-btn'));
     }
@@ -362,6 +378,82 @@ describe('a group', () => {
     fireEvent.click(screen.getByTestId('save-receipt-to-group'));
 
     expect(await screen.findByText('you owe $20.00')).toBeInTheDocument();
+  });
+
+  it('edits an expense and a receipt saved for someone who was later merged', async () => {
+    const groupId = makeGroup(['Ben', 'Benny']);
+    const [ana, ben, benny] = ledgerOf(groupId).members.map((member) => member.id);
+    const header = {
+      date: asLocalDate('2026-11-19'),
+      currency: 'SGD' as const,
+      rate: 1,
+      payment: { payer: benny, others: {} },
+    };
+    const dinner = postWeights({ ...header, id: newEntryId(), title: 'Dinner' }, 2000, {
+      [ana]: 1,
+      [benny]: 1,
+    });
+    const snacks = postReceipt(
+      { ...header, id: newEntryId(), title: 'Snacks' },
+      makeReceipt({
+        name: 'Snacks',
+        items: [
+          makeItem({
+            amountInput: '6.00',
+            assignment: { shares: { [benny]: 1 }, unassignedShare: 0 },
+          }),
+        ],
+      }),
+      ledgerOf(groupId).members,
+    );
+    if (!dinner || !snacks) throw new Error('entries did not post');
+    const engine = groupSyncFor(groupId);
+    engine?.submit({ kind: 'entry.put', entry: dinner, base: null });
+    engine?.submit({ kind: 'entry.put', entry: snacks, base: null });
+    engine?.submit({ kind: 'member.merged', from: benny, into: ben });
+    render(<App />);
+
+    go(`/g/${groupId}/e/${dinner.id}`);
+    expect(
+      within(screen.getByRole('region', { name: 'Paid by' })).getByRole('button', {
+        name: 'Ben',
+        pressed: true,
+      }),
+    ).toBeInTheDocument();
+    click('Save');
+    expect(await screen.findByText('you owe $10.00')).toBeInTheDocument();
+
+    go(`/g/${groupId}/e/${snacks.id}`);
+    while (!screen.queryByTestId('save-receipt-to-group')) {
+      fireEvent.click(screen.getByTestId('wizard-continue-btn'));
+    }
+    expect(screen.getByLabelText('Paid by')).toHaveValue(ben);
+    fireEvent.click(screen.getByTestId('save-receipt-to-group'));
+    expect(await screen.findByText('you owe $10.00')).toBeInTheDocument();
+
+    const saved = engine?.getSnapshot().log.pending.map((op) => JSON.stringify(op.change)) ?? [];
+    expect(saved.slice(-2).some((change) => change.includes(benny))).toBe(false);
+  });
+
+  it('keeps what is typed when someone else changes the entry meanwhile', async () => {
+    const groupId = makeGroup(['Ben']);
+    render(<App />);
+    await addQuickExpense(groupId, '20', 'Lunch');
+    const [posted] = ledgerOf(groupId).entries;
+    if (posted.entry.kind !== 'expense') throw new Error('expected an expense');
+    const lunch = posted.entry;
+    fireEvent.click(screen.getByRole('link', { name: /Lunch/ }));
+    type('What was it for?', 'Team lunch');
+
+    act(() => {
+      groupSyncFor(groupId)?.submit({
+        kind: 'entry.put',
+        entry: { ...lunch, title: 'Brunch' },
+        base: posted.rev,
+      });
+    });
+
+    expect(screen.getByLabelText('What was it for?')).toHaveValue('Team lunch');
   });
 
   it('cancels a new receipt back to the group', () => {
@@ -374,14 +466,13 @@ describe('a group', () => {
     expect(window.location.pathname).toBe(`/g/${groupId}`);
   });
 
-  it('says so when an expense, a receipt or the group itself is not there', () => {
+  it('says so when an entry or the group itself is not there', () => {
     const groupId = makeGroup(['Ben']);
     render(<App />);
 
     go(`/g/${groupId}/e/nothing`);
-    expect(screen.getByRole('heading', { name: 'This expense is gone' })).toBeInTheDocument();
-    go(`/g/${groupId}/receipt/nothing`);
-    expect(screen.getByRole('heading', { name: 'This receipt is gone' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'This entry is gone' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Japan 2026' })).toBeInTheDocument();
     go(`/g/${newGroupId()}`);
     expect(
       screen.getByRole('heading', { name: "This group isn't on this phone" }),

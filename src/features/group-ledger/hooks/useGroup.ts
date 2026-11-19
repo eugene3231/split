@@ -1,10 +1,11 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import type {
   Cents,
   GroupId,
   InviteCode,
   Ledger,
   MemberId,
+  MyLedger,
   Transfer,
 } from '@features/group-ledger/domain/types';
 import { computeBalances } from '@features/group-ledger/logic/balances';
@@ -31,6 +32,15 @@ export interface ReadyGroup {
   act: GroupActions;
 }
 
+/** A ready group whose phone has said which member it is. */
+export interface MyGroup extends ReadyGroup {
+  ledger: MyLedger;
+}
+
+export function isMine(group: ReadyGroup): group is MyGroup {
+  return group.ledger.me !== null;
+}
+
 export type GroupView =
   /** This phone does not hold the group. */
   | { status: 'missing' }
@@ -54,18 +64,6 @@ export function useGroup(groupId: GroupId): GroupView {
     engine?.getSnapshot ?? noSnapshot,
   );
   const ledger = snapshot && foldLedger(snapshot.log, self);
-  const syncState = snapshot?.sync.state;
-
-  useEffect(() => {
-    if (self === null && syncState !== undefined) void useAccountStore.getState().load();
-  }, [self, syncState]);
-
-  const name = ledger?.name;
-  useEffect(() => {
-    if (name !== undefined && held && held.name !== name) {
-      useJoinedGroupsStore.getState().setName(groupId, name);
-    }
-  }, [groupId, held, name]);
 
   if (!engine || !snapshot) return { status: 'missing' };
   if (ledger === null) {

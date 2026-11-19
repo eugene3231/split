@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Result } from '@features/group-ledger/backend/port';
 import { changeBytes, MAX_CHANGE_BYTES } from '@features/group-ledger/backend/limits';
-import { parseJson } from '@features/split-workspace/logic/jsonStorage';
+import { parseJson } from '@shared/logic/jsonStorage';
 
 const storedOpSchema = z.object({
   id: z.string(),

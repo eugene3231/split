@@ -1,9 +1,11 @@
 import type { CurrencyCode } from '@shared/constants';
 import type {
   Activity,
+  ActivityWhat,
   Change,
   Entry,
   EntryId,
+  ExpenseBasis,
   GroupLog,
   Ledger,
   Member,
@@ -11,7 +13,7 @@ import type {
   OpId,
   UserId,
 } from '@features/group-ledger/domain/types';
-import { byCodeUnit } from '@features/group-ledger/logic/ids';
+import { asMemberId, byCodeUnit } from '@features/group-ledger/logic/ids';
 
 const THIS_DEVICE: unique symbol = Symbol('this device');
 type Author = UserId | typeof THIS_DEVICE;
@@ -102,32 +104,101 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
 
   if (state.group === null) return null;
 
+  const resolve = (id: MemberId) => resolveAlias(state.aliases, id);
   const liveMember = (id: MemberId | null): MemberId | null => {
     if (id === null) return null;
-    const resolved = resolveAlias(state.aliases, id);
-    return state.members.has(resolved) ? resolved : null;
+    return state.members.has(resolve(id)) ? resolve(id) : null;
   };
+  const current = (entry: Entry) =>
+    state.aliases.size === 0 ? entry : resolveEntry(entry, resolve);
 
   return {
     groupId: log.groupId,
     name: state.group.name,
     currency: state.group.currency,
     members: [...state.members.values()],
-    aliases: new Map(
-      [...state.aliases.keys()].map((from) => [from, resolveAlias(state.aliases, from)]),
-    ),
     entries: [...state.entries.values()]
       .sort((a, b) => byCodeUnit(b.entry.date, a.entry.date) || b.position - a.position)
-      .map(({ entry, rev, pending }) => ({ entry, rev, pending })),
+      .map(({ entry, rev, pending }) => ({ entry: current(entry), rev, pending })),
     me: liveMember(state.claims.get(me) ?? null),
     claimed: new Set([...state.claims.values()].map(liveMember).filter((id) => id !== null)),
     activity: activity
       .map((row) => ({
         ...row,
-        by: row.by === null ? null : resolveAlias(state.aliases, row.by),
+        by: row.by === null ? null : resolve(row.by),
+        what: resolveWhat(row.what, current),
+        replaced: row.replaced === null ? null : current(row.replaced),
       }))
       .reverse(),
   };
+}
+
+function resolveWhat(what: ActivityWhat, current: (entry: Entry) => Entry): ActivityWhat {
+  switch (what.kind) {
+    case 'entry-added':
+    case 'entry-removed':
+    case 'entry-restored':
+      return { ...what, entry: current(what.entry) };
+    case 'entry-changed':
+      return { ...what, before: current(what.before), after: current(what.after) };
+    default:
+      return what;
+  }
+}
+
+/**
+ * The entry as it reads after every merge: each merged-away member id becomes the member it
+ * merged into, adding up what the two had, so screens and the edit form only meet live ids.
+ */
+function resolveEntry(entry: Entry, resolve: (id: MemberId) => MemberId): Entry {
+  if (entry.kind === 'transfer') {
+    return { ...entry, from: resolve(entry.from), to: resolve(entry.to) };
+  }
+  const payer = resolve(entry.payment.payer);
+  const others = resolveKeys(entry.payment.others, resolve);
+  delete others[payer];
+  return {
+    ...entry,
+    owed: resolveKeys(entry.owed, resolve),
+    payment: { payer, others },
+    basis: resolveBasis(entry.basis, resolve),
+  };
+}
+
+function resolveBasis(basis: ExpenseBasis, resolve: (id: MemberId) => MemberId): ExpenseBasis {
+  switch (basis.kind) {
+    case 'weights':
+      return { kind: 'weights', weights: resolveKeys(basis.weights, resolve) };
+    case 'amounts':
+      return basis;
+    case 'receipt':
+      return {
+        kind: 'receipt',
+        receipt: {
+          ...basis.receipt,
+          items: basis.receipt.items.map((item) => ({
+            ...item,
+            assignment: {
+              ...item.assignment,
+              shares: resolveKeys(item.assignment.shares, (id) => resolve(asMemberId(id))),
+            },
+          })),
+        },
+      };
+    default:
+      return basis satisfies never;
+  }
+}
+
+function resolveKeys<K extends string>(
+  amounts: Record<K, number>,
+  resolve: (id: K) => K,
+): Record<K, number> {
+  const resolved = {} as Record<K, number>;
+  for (const id of Object.keys(amounts) as K[]) {
+    resolved[resolve(id)] = (resolved[resolve(id)] ?? 0) + amounts[id];
+  }
+  return resolved;
 }
 
 function apply(state: Folding, op: Op, position: number): Outcome | null {

@@ -4,10 +4,15 @@ import {
   describeActivity,
   describeBalance,
   describeEntry,
+  describeEntryRow,
+  describeEvenSplit,
   describeMyBalance,
   describeMyShare,
   describeSettleUp,
+  memberLabel,
   memberName,
+  transferTitle,
+  transferWords,
 } from './describe';
 import { asOpId } from './ids';
 import {
@@ -121,13 +126,17 @@ describe('describeActivity', () => {
 
 describe('describeEntry and memberName', () => {
   const ledger = fold(
-    benDoes(put(makeMember(cat)), { kind: 'member.merged', from: cat, into: ana }),
+    benDoes(
+      put(makeMember(cat)),
+      { kind: 'entry.put', entry: makeTransfer('paid', cat, ben, 500), base: null },
+      { kind: 'member.merged', from: cat, into: ana },
+    ),
   );
 
   it('names a merged-away member as the member they became, and a stranger as Someone', () => {
-    expect(memberName(ledger, cat)).toBe('Ana');
+    expect(describeEntry(ledger.entries[0].entry, ledger)).toBe('Ana paid Ben · $5.00');
     expect(memberName(ledger, ben)).toBe('Ben');
-    expect(describeEntry(makeTransfer('paid', cat, ben, 500), ledger)).toBe('Ana paid Ben · $5.00');
+    expect(memberName(ledger, cat)).toBe('Someone');
   });
 
   it('gives an expense with no title a placeholder', () => {
@@ -152,24 +161,23 @@ describe('balance wording', () => {
     const usd = makeExpense('usd', { [ana]: 1000, [ben]: 1000 }, { currency: 'USD', rate: 1.5 });
 
     const transfer = makeTransfer('t', ben, ana, 500);
-    expect(describeMyShare(usd, ledger, ana)).toEqual({
+    expect(describeMyShare(usd, { ...ledger, me: ana })).toEqual({
       direction: 'owed',
       label: 'you lent',
       amount: '$15.00',
     });
-    expect(describeMyShare(usd, ledger, ben)).toEqual({
+    expect(describeMyShare(usd, { ...ledger, me: ben })).toEqual({
       direction: 'owes',
       label: 'you owe',
       amount: '$15.00',
     });
-    expect(describeMyShare(usd, ledger, cat)).toEqual({
+    expect(describeMyShare(usd, { ...ledger, me: cat })).toEqual({
       direction: 'even',
       label: 'not involved',
       amount: null,
     });
-    expect(describeMyShare(usd, ledger, null).direction).toBe('even');
-    expect(describeMyShare(transfer, ledger, ben).label).toBe('you paid');
-    expect(describeMyShare(transfer, ledger, ana).label).toBe('you got');
+    expect(describeMyShare(transfer, { ...ledger, me: ben }).label).toBe('you paid');
+    expect(describeMyShare(transfer, { ...ledger, me: ana }).label).toBe('you got');
   });
 
   it('writes the settle-up list for a chat', () => {
@@ -179,5 +187,62 @@ describe('balance wording', () => {
       'Japan 2026: settling up\n• Ben pays Ana $42.10',
     );
     expect(describeSettleUp([], ledger)).toBe('Japan 2026: everyone is settled up.');
+  });
+});
+
+describe('memberLabel and transfer words', () => {
+  const ledger = { ...fold(logOf(created, put(makeMember(ana)), put(makeMember(ben)))), me: ana };
+
+  it('calls this phone’s member You and anyone else by name', () => {
+    expect(memberLabel(ledger, ana)).toBe('You');
+    expect(memberLabel(ledger, ben)).toBe('Ben');
+  });
+
+  it('picks the verb by who pays, not by the words', () => {
+    expect(transferWords(ledger, { from: ana, to: ben }, 'due')).toEqual({
+      from: 'You',
+      verb: 'pay',
+      to: 'Ben',
+    });
+    expect(transferWords({ ...ledger, me: ben }, { from: ana, to: ben }, 'due')).toEqual({
+      from: 'Ana',
+      verb: 'pays',
+      to: 'you',
+    });
+    expect(transferTitle(ledger, { from: ben, to: ana })).toBe('Ben paid you');
+  });
+});
+
+describe('describeEntryRow', () => {
+  const ledger = { ...fold(logOf(created, put(makeMember(ana)), put(makeMember(ben)))), me: ana };
+
+  it('titles an expense and says who paid it', () => {
+    expect(describeEntryRow(grab, ledger)).toEqual({ title: 'Grab', detail: 'You paid $18.00' });
+    expect(
+      describeEntryRow(makeExpense('x', { [ana]: 500 }, { payer: ben, title: '' }), ledger),
+    ).toEqual({ title: 'Untitled expense', detail: 'Ben paid $5.00' });
+    expect(
+      describeEntryRow(makeExpense('y', { [ana]: 500 }, { others: { [ben]: 200 } }), ledger).detail,
+    ).toBe('2 people paid $5.00');
+  });
+
+  it('titles a payment by who paid whom', () => {
+    expect(describeEntryRow(makeTransfer('t', ben, ana, 500), ledger)).toEqual({
+      title: 'Ben paid you',
+      detail: '$5.00',
+    });
+  });
+});
+
+describe('describeEvenSplit', () => {
+  it('gives the share each person pays, saying about when the cents do not divide', () => {
+    expect(describeEvenSplit(3, { [ana]: 3000, [ben]: 3000, [cat]: 3000 }, 'SGD')).toBe(
+      '$30.00 each · 3 people',
+    );
+    expect(describeEvenSplit(3, { [ana]: 333, [ben]: 333, [cat]: 334 }, 'SGD')).toBe(
+      'about $3.33 each · 3 people',
+    );
+    expect(describeEvenSplit(1, null, 'SGD')).toBe('1 person');
+    expect(describeEvenSplit(0, null, 'SGD')).toBe('Tap the people who share it');
   });
 });

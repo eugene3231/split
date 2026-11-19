@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import type { Transfer } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { Cents, Transfer } from '@features/group-ledger/domain/types';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { useDataUrl } from '@features/group-ledger/hooks/useDataUrl';
-import { describeSettleUp, memberName } from '@features/group-ledger/logic/describe';
+import {
+  describeSettleUp,
+  transferTitle,
+  transferWords,
+} from '@features/group-ledger/logic/describe';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { Button } from '@features/group-ledger/components/ui/Button';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
@@ -14,7 +18,7 @@ import { formatCurrencyFromCents } from '@shared/logic/core/money';
 import { Link } from '@shared/routing';
 import { cn } from '@shared/utils/cn';
 
-export function SettleScreen({ group }: { group: ReadyGroup }) {
+export function SettleScreen({ group }: { group: MyGroup }) {
   const { ledger, transfers } = group;
   const [copied, setCopied] = useState(false);
 
@@ -75,28 +79,18 @@ export function SettleScreen({ group }: { group: ReadyGroup }) {
   );
 }
 
-function TransferCard({ group, transfer }: { group: ReadyGroup; transfer: Transfer }) {
+function TransferCard({ group, transfer }: { group: MyGroup; transfer: Transfer }) {
   const { ledger, act } = group;
   const [showQr, setShowQr] = useState(false);
   const payee = ledger.members.find((member) => member.id === transfer.to);
   const mobile = ledger.currency === 'SGD' ? (payee?.paynowMobile ?? null) : null;
   const amount = formatCurrencyFromCents(transfer.cents, ledger.currency);
-  const from = transfer.from === ledger.me ? 'You' : memberName(ledger, transfer.from);
-  const to = transfer.to === ledger.me ? 'you' : memberName(ledger, transfer.to);
+  const words = transferWords(ledger, transfer, 'due');
   const mine = transfer.from === ledger.me || transfer.to === ledger.me;
-  const qr = useDataUrl(showQr && mobile ? `${mobile}:${transfer.cents}` : null, async () => {
-    const urls = await generatePaynowQrDataUrls(
-      [{ id: transfer.from, name: from }],
-      { [transfer.from]: transfer.cents },
-      mobile ?? '',
-      180,
-    );
-    return urls[transfer.from] ?? '';
-  });
 
   const markPaid = () => {
     const paid = act.markPaid(transfer);
-    showToast(`${from} paid ${to} ${amount}`, {
+    showToast(`${transferTitle(ledger, transfer)} ${amount}`, {
       label: 'Undo',
       run: () => act.removeEntry(paid.entryId, paid.rev),
     });
@@ -111,8 +105,8 @@ function TransferCard({ group, transfer }: { group: ReadyGroup; transfer: Transf
           <MemberAvatar ledger={ledger} memberId={transfer.to} />
         </div>
         <p className="min-w-0 flex-1 text-sm leading-snug">
-          <span className="font-semibold">{from}</span> {from === 'You' ? 'pay' : 'pays'}{' '}
-          <span className="font-semibold">{to}</span>
+          <span className="font-semibold">{words.from}</span> {words.verb}{' '}
+          <span className="font-semibold">{words.to}</span>
         </p>
         <p className="shrink-0 font-headline text-xl font-bold tabular-nums">{amount}</p>
       </div>
@@ -133,22 +127,41 @@ function TransferCard({ group, transfer }: { group: ReadyGroup; transfer: Transf
           Mark paid
         </Button>
       </div>
-      {showQr && (
-        <div className="mt-3 flex min-h-[180px] items-center justify-center rounded-xl bg-white p-2 motion-safe:animate-rise-in">
-          {qr ? (
-            <img
-              src={qr}
-              alt={`PayNow QR to pay ${to} ${amount}`}
-              className="max-h-[180px] max-w-full"
-            />
-          ) : (
-            <Icon name="progress_activity" className="text-outline motion-safe:animate-spin" />
-          )}
-        </div>
+      {showQr && mobile && (
+        <PaynowQr
+          mobile={mobile}
+          cents={transfer.cents}
+          alt={`PayNow QR to pay ${words.to} ${amount}`}
+        />
       )}
       {ledger.currency === 'SGD' && !mobile && transfer.to === ledger.me && (
         <p className="mt-2 text-xs text-on-surface-variant">
           Add your PayNow number under People to show a QR here.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PaynowQr({ mobile, cents, alt }: { mobile: string; cents: Cents; alt: string }) {
+  const qr = useDataUrl(`${mobile}:${cents}`, async () => {
+    const urls = await generatePaynowQrDataUrls(
+      [{ id: 'payee', name: '' }],
+      { payee: cents },
+      mobile,
+      180,
+    );
+    return urls.payee ?? '';
+  });
+  return (
+    <div className="mt-3 flex min-h-[180px] items-center justify-center rounded-xl bg-white p-2 text-center motion-safe:animate-rise-in">
+      {qr.status === 'ready' && <img src={qr.url} alt={alt} className="max-h-[180px] max-w-full" />}
+      {qr.status === 'loading' && (
+        <Icon name="progress_activity" className="text-outline motion-safe:animate-spin" />
+      )}
+      {qr.status === 'failed' && (
+        <p className="text-sm text-on-surface-variant">
+          The QR code didn&apos;t load. Pay {mobile} by PayNow instead.
         </p>
       )}
     </div>

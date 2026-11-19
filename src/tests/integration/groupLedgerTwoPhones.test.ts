@@ -88,7 +88,7 @@ describe('two phones sharing a group', () => {
 
     const group = { groupId: newGroupId(), inviteCode: newInviteCode() };
     const engineA = ana.open(group, true);
-    const { changes } = newGroupChanges({
+    const changes = newGroupChanges({
       name: 'Japan 2026',
       currency: 'SGD',
       myName: 'Ana',

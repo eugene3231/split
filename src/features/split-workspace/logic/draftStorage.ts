@@ -12,7 +12,7 @@ import {
   equalShares,
   makeAssignment,
 } from '@features/split-workspace/logic/assignment';
-import { jsonStorage, lenientArray, parseJson } from '@features/split-workspace/logic/jsonStorage';
+import { jsonStorage, lenientArray, parseJson } from '@shared/logic/jsonStorage';
 import { isNonEmpty, mapNonEmpty } from '@features/split-workspace/logic/nonEmpty';
 import { toNullableNumber } from '@shared/logic/core/money';
 import { createId } from '@shared/logic/core/id';

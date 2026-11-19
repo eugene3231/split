@@ -1,5 +1,5 @@
 import type { CurrencyCode } from '@shared/constants';
-import type { Change, MemberId } from '@features/group-ledger/domain/types';
+import type { Change, Member } from '@features/group-ledger/domain/types';
 import { newMemberId } from '@features/group-ledger/logic/ids';
 
 export interface NewGroup {
@@ -9,14 +9,10 @@ export interface NewGroup {
   friendNames: string[];
 }
 
-/**
- * The changes that start a group: it is named, everyone is added, and this phone claims its own
- * name. Blank names and repeats of a name already listed (ignoring case) are left out.
- */
-export function newGroupChanges(group: NewGroup): { changes: Change[]; me: MemberId } {
-  const myName = group.myName.trim() || 'Me';
-  const seen = new Set([myName.toLowerCase()]);
-  const friends = group.friendNames
+/** `names` trimmed, without blanks and without repeats of each other or of `taken`, ignoring case. */
+export function uniqueNames(names: string[], taken: string[] = []): string[] {
+  const seen = new Set(taken.map((name) => name.trim().toLowerCase()));
+  return names
     .map((name) => name.trim())
     .filter((name) => {
       const key = name.toLowerCase();
@@ -24,20 +20,27 @@ export function newGroupChanges(group: NewGroup): { changes: Change[]; me: Membe
       seen.add(key);
       return true;
     });
-  const members = [myName, ...friends].map((name) => ({
-    id: newMemberId(),
-    name,
-    paynowMobile: null,
-    archived: false,
+}
+
+/**
+ * The changes that start a group. The creator comes first: the group is named, this phone's
+ * member is added and claimed. Then each friend is added once.
+ */
+export function newGroupChanges(group: NewGroup): Change[] {
+  const myName = group.myName.trim();
+  const me = newMember(myName);
+  const creator: Change[] = [
+    { kind: 'group.created', name: group.name.trim(), currency: group.currency },
+    { kind: 'member.put', member: me },
+    { kind: 'member.claimed', memberId: me.id },
+  ];
+  const friends = uniqueNames(group.friendNames, [myName]).map((name): Change => ({
+    kind: 'member.put',
+    member: newMember(name),
   }));
-  const me = members[0].id;
-  return {
-    me,
-    changes: [
-      { kind: 'group.created', name: group.name.trim(), currency: group.currency },
-      { kind: 'member.put', member: members[0] },
-      { kind: 'member.claimed', memberId: me },
-      ...members.slice(1).map((member): Change => ({ kind: 'member.put', member })),
-    ],
-  };
+  return [...creator, ...friends];
+}
+
+function newMember(name: string): Member {
+  return { id: newMemberId(), name, paynowMobile: null, archived: false };
 }

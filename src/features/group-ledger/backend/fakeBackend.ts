@@ -16,7 +16,7 @@ import type {
 } from '@features/group-ledger/backend/port';
 import { confirmedOpSchema } from '@features/group-ledger/logic/codec';
 import { newUuid } from '@features/group-ledger/logic/ids';
-import { jsonStorage } from '@features/split-workspace/logic/jsonStorage';
+import { jsonStorage } from '@shared/logic/jsonStorage';
 
 export interface FakeBackendOptions {
   server: FakeServer;

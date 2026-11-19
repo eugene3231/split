@@ -3,9 +3,9 @@ import { create } from 'zustand';
 import { deviceProfile } from '@features/group-ledger/backend/createBackend';
 import type { BackendFailure, LedgerBackend, Session } from '@features/group-ledger/backend/port';
 import { idSchemas } from '@features/group-ledger/logic/codec';
-import { ledgerBackend, syncAllGroups } from '@features/group-ledger/sync/groupSync';
+import { ledgerBackend, onSessionSeen, syncAllGroups } from '@features/group-ledger/sync/groupSync';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
-import { jsonStorage } from '@features/split-workspace/logic/jsonStorage';
+import { jsonStorage } from '@shared/logic/jsonStorage';
 
 export type EmailSignIn =
   | { step: 'idle' }
@@ -20,6 +20,8 @@ interface AccountStore {
   /** Why the last action did not work. A `failed` while verifying means the code was refused. */
   failure: BackendFailure | null;
   load: () => Promise<void>;
+  /** Takes the session a group's sync ran as, while this phone does not know its own yet. */
+  adopt: (session: Session) => void;
   startEmailSignIn: (email: string) => Promise<void>;
   verifyEmailCode: (code: string) => Promise<void>;
   cancelEmailSignIn: () => void;
@@ -69,6 +71,12 @@ export function createAccountStore({
         }
         set({ failure: null });
         await become(session.value);
+      },
+
+      adopt: (session) => {
+        if (get().session !== null) return;
+        storage.save(session);
+        set({ session });
       },
 
       startEmailSignIn: async (email) => {
@@ -124,3 +132,5 @@ export const useAccountStore = createAccountStore({
   profile: deviceProfile(),
   onUserChanged: adoptAccountGroups,
 });
+
+onSessionSeen((session) => useAccountStore.getState().adopt(session));

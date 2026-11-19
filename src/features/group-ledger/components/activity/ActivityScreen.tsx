@@ -1,5 +1,5 @@
 import type { Activity } from '@features/group-ledger/domain/types';
-import type { ReadyGroup } from '@features/group-ledger/hooks/useGroup';
+import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { timeAgo } from '@features/group-ledger/logic/dates';
 import { describeActivity, describeEntry } from '@features/group-ledger/logic/describe';
 import { showToast } from '@features/group-ledger/stores/toastStore';
@@ -9,7 +9,7 @@ import { MemberAvatar } from '@features/group-ledger/components/ui/MemberAvatar'
 import { ScreenHeader, ScreenTitle } from '@features/group-ledger/components/ui/ScreenHeader';
 import { cn } from '@shared/utils/cn';
 
-export function ActivityScreen({ group }: { group: ReadyGroup }) {
+export function ActivityScreen({ group }: { group: MyGroup }) {
   const { ledger } = group;
   const now = new Date();
   return (
@@ -32,15 +32,7 @@ export function ActivityScreen({ group }: { group: ReadyGroup }) {
   );
 }
 
-function ActivityRow({
-  group,
-  activity,
-  now,
-}: {
-  group: ReadyGroup;
-  activity: Activity;
-  now: Date;
-}) {
+function ActivityRow({ group, activity, now }: { group: MyGroup; activity: Activity; now: Date }) {
   const { ledger, act } = group;
   const { replaced, undo } = activity;
   const restoreOther = () => {

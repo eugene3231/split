@@ -3,7 +3,7 @@ import {
   LOCAL_STORAGE_OCR_SETTINGS_KEY,
   SESSION_STORAGE_GEMINI_API_KEY,
 } from '@features/split-workspace/constants';
-import { jsonStorage } from './jsonStorage';
+import { jsonStorage } from '@shared/logic/jsonStorage';
 
 const ocrSettingsSchema = z.object({
   version: z.literal(1),
