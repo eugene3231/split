@@ -8,6 +8,7 @@ import {
 } from '@shared/logic/core/money';
 import type {
   Cents,
+  Entry,
   EntryId,
   ExpenseEntry,
   LocalDate,
@@ -15,7 +16,8 @@ import type {
   MemberId,
   Payment,
 } from '@features/group-ledger/domain/types';
-import { memberIdsOf } from '@features/group-ledger/logic/ids';
+import { asOpId, memberIdsOf, newUuid } from '@features/group-ledger/logic/ids';
+import { fitsOnServer } from '@features/group-ledger/backend/limits';
 import { paidBy, postAmounts, postWeights, totalCents } from '@features/group-ledger/logic/post';
 
 // The quick expense form as typed. Text stays text until `checkExpense` turns the whole draft
@@ -184,7 +186,18 @@ function paymentOf(draft: ExpenseDraft, total: Cents): Payment | { ok: false; re
 }
 
 function built(entry: ExpenseEntry | null, reason: string): ExpenseCheck {
-  return entry === null ? fail(reason) : { ok: true, entry };
+  if (entry === null) return fail(reason);
+  return entryFits(entry) ? { ok: true, entry } : fail(TOO_BIG);
+}
+
+export const TOO_BIG = 'Too big to sync. Split it into smaller expenses';
+
+/**
+ * Whether the server will take the entry, new or as an edit. One that does not fit would be
+ * dropped after saving.
+ */
+export function entryFits(entry: Entry): boolean {
+  return fitsOnServer({ kind: 'entry.put', entry, base: asOpId(newUuid()) });
 }
 
 function fail(reason: string): { ok: false; reason: string } {

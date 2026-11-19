@@ -9,6 +9,7 @@ import {
   formMembers,
   groupRate,
   rateInput,
+  TOO_BIG,
   type ExpenseDraft,
 } from './expenseForm';
 import { asEntryId, asLocalDate } from './ids';
@@ -227,5 +228,13 @@ describe('changing how the form splits', () => {
         (member) => member.id,
       ),
     ).toEqual([ana, ben, cat]);
+  });
+});
+
+describe('entries too big to sync', () => {
+  it('refuses an expense the server would drop, and says so', () => {
+    const huge = draft({ title: 'x'.repeat(70_000) });
+
+    expect(checkExpense(huge, id, 'SGD')).toEqual({ ok: false, reason: TOO_BIG });
   });
 });

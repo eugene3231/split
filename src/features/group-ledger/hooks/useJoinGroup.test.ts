@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createFakeBackend, setFakeOffline } from '@features/group-ledger/backend/fakeBackend';
 import { createLocalStorageServer } from '@features/group-ledger/backend/fakeServer';
-import { newGroup } from '@features/group-ledger/backend/testing/backendContract';
+import { createdOp, newGroup } from '@features/group-ledger/backend/testing/backendContract';
 import { forgetGroup } from '@features/group-ledger/sync/groupSync';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 import { useJoinGroup } from './useJoinGroup';
@@ -15,7 +15,7 @@ async function groupOnServer() {
     profile: 'other',
     isOnline: () => true,
   });
-  await other.publishGroup(group);
+  await other.publishGroup(group, createdOp());
   return group;
 }
 

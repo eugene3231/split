@@ -39,12 +39,13 @@ export function WhoAreYou({ group }: { group: ReadyGroup }) {
               <li key={member.id}>
                 <button
                   type="button"
+                  disabled={taken}
                   onClick={() => act.claim(member.id)}
                   className={cn(
-                    'flex h-16 w-full items-center gap-3 rounded-2xl border px-3 text-left transition active:scale-[0.98] motion-safe:animate-person-in',
+                    'flex h-16 w-full items-center gap-3 rounded-2xl border px-3 text-left transition motion-safe:animate-person-in',
                     taken
-                      ? 'border-surface-container-highest bg-surface-container-low text-on-surface-variant'
-                      : 'border-surface-container-highest bg-surface-container-lowest hover:border-outline-variant',
+                      ? 'cursor-not-allowed border-dashed border-outline-variant bg-transparent text-on-surface-variant'
+                      : 'border-surface-container-highest bg-surface-container-lowest hover:border-outline-variant active:scale-[0.98]',
                   )}
                 >
                   <MemberAvatar
@@ -54,7 +55,7 @@ export function WhoAreYou({ group }: { group: ReadyGroup }) {
                   />
                   <span className="min-w-0">
                     <span className="block truncate font-semibold">{member.name}</span>
-                    {taken && <span className="block text-xs">On another phone</span>}
+                    {taken && <span className="block text-xs">Taken</span>}
                   </span>
                 </button>
               </li>
