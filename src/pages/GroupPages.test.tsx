@@ -511,6 +511,42 @@ describe('a group', () => {
     expect(ledgerOf(groupId).entries[0].effect[third] ?? 0).toBe(before);
   });
 
+  it('leaves a bystander as they were when a conflict over a foreign expense is restored after a merge', async () => {
+    const groupId = makeGroup(['Ben', 'Cat']);
+    const [first, second, third] = ledgerOf(groupId)
+      .members.map((member) => member.id)
+      .toSorted();
+    const snack = postWeights(
+      {
+        id: newEntryId(),
+        title: 'Onigiri',
+        date: asLocalDate('2026-11-19'),
+        currency: 'JPY',
+        rate: 0.005,
+        payment: { payer: second, others: {} },
+      },
+      300,
+      { [first]: 1, [second]: 1, [third]: 1 },
+    );
+    if (!snack) throw new Error('did not post');
+    const engine = groupSyncFor(groupId);
+    const put = engine?.submit({ kind: 'entry.put', entry: snack, base: null });
+    if (!put) throw new Error('no engine');
+    engine?.submit({ kind: 'entry.put', entry: { ...snack, title: 'Onigiri set' }, base: put });
+    engine?.submit({ kind: 'entry.put', entry: { ...snack, title: 'Rice balls' }, base: put });
+    engine?.submit({ kind: 'member.merged', from: first, into: second });
+    const before = ledgerOf(groupId).entries[0].effect[third] ?? 0;
+    render(<App />);
+    go(`/g/${groupId}/activity`);
+
+    click('Restore the other version');
+
+    await waitFor(() =>
+      expect(ledgerOf(groupId).entries[0].entry).toMatchObject({ title: 'Onigiri set' }),
+    );
+    expect(ledgerOf(groupId).entries[0].effect[third] ?? 0).toBe(before);
+  });
+
   it('keeps someone archived while a new receipt is open in the split it saves', async () => {
     const groupId = makeGroup(['Ben', 'Cat']);
     const [, ben, cat] = ledgerOf(groupId).members;

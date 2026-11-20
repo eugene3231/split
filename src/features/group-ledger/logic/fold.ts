@@ -97,6 +97,7 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
       by: state.claims.get(op.author) ?? claimBefore,
       pending: op.pending,
       ...outcome,
+      replacedAsWritten: outcome.replaced,
     });
   });
 

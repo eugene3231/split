@@ -34,11 +34,11 @@ export function ActivityScreen({ group }: { group: MyGroup }) {
 
 function ActivityRow({ group, activity, now }: { group: MyGroup; activity: Activity; now: Date }) {
   const { ledger, act } = group;
-  const { replaced, undo } = activity;
+  const { replaced, replacedAsWritten, undo } = activity;
   const restoreOther = () => {
-    if (replaced === null) return;
+    if (replaced === null || replacedAsWritten === null) return;
     const head = ledger.entries.find((posted) => posted.entry.id === replaced.id);
-    act.editEntry(replaced, head?.rev ?? activity.opId);
+    act.editEntry(replacedAsWritten, head?.rev ?? activity.opId);
     showToast(`Restored ${describeEntry(replaced, ledger)}`);
   };
 

@@ -193,9 +193,15 @@ export interface Activity {
   what: ActivityWhat;
   /**
    * Set when this op replaced a version its author never saw: two phones changed the same entry
-   * apart from each other and this one landed later. Holds the version it replaced.
+   * apart from each other and this one landed later. Holds the version it replaced, as screens
+   * read it.
    */
   replaced: Entry | null;
+  /**
+   * The replaced version as its op wrote it, before any merge: what Restore puts back, so a merge
+   * since then resolves it as before and a converted total is not rounded again.
+   */
+  replacedAsWritten: Entry | null;
   /** The change that puts things back as they were before this op; null when there is none. */
   undo: Change | null;
 }
