@@ -13,10 +13,10 @@ The skill lives in `.agents/skills/sync-engine-model/` so any harness can read i
 
 ## Last synced
 
-The model describes the code at commit `e215b906d32bc48a9319ea0a0b5bc7e1926f10f3`. To see what changed in covered code since:
+The model describes the code at commit `1ebd03cbb1fcb70f4eef1f71b0357f9cd9524817`. To see what changed in covered code since:
 
 ```bash
-git log --oneline e215b906d32bc48a9319ea0a0b5bc7e1926f10f3..HEAD -- \
+git log --oneline 1ebd03cbb1fcb70f4eef1f71b0357f9cd9524817..HEAD -- \
   src/features/group-ledger/sync/syncMachine.ts src/features/group-ledger/sync/groupSync.ts \
   src/features/group-ledger/sync/deviceLog.ts src/features/group-ledger/backend/fakeServer.ts \
   src/features/group-ledger/backend/port.ts supabase/migrations/20261119120000_group_ledger.sql
