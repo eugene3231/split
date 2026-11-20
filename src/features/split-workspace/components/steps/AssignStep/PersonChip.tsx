@@ -1,5 +1,5 @@
 import type { ClaimChip } from '@features/split-workspace/logic/claim';
-import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { PersonAvatar } from '@shared/components/PersonAvatar';
 import { personColor } from '@shared/utils/personColors';
 import { cn } from '@shared/utils/cn';
 

@@ -1,13 +1,18 @@
 import { useShallow } from 'zustand/shallow';
 import { scanReceipt, useScanStore } from '@features/receipt-scanner';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import {
+  isWorkspaceRetired,
+  useReceiptStore,
+  useWorkspaceStoreApi,
+} from '@features/split-workspace/stores/receiptStore';
 
 interface UseReceiptImportArgs {
   activeReceiptId: string;
 }
 
 export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
+  const store = useWorkspaceStoreApi();
   const patchReceipt = useReceiptStore((state) => state.patchReceipt);
   const { geminiApiKeyInput, geminiModel } = useGeminiStore(
     useShallow((state) => ({
@@ -22,7 +27,7 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
   };
 
   const handleScanReceipt = async () => {
-    const { receipts, people } = useReceiptStore.getState();
+    const { receipts, people } = store.getState();
     const receipt = receipts.find((candidate) => candidate.id === activeReceiptId);
     if (!receipt) return;
     const scannedFile = receipt.receiptFile ?? null;
@@ -33,22 +38,23 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
       apiKeyInput: geminiApiKeyInput,
       model: geminiModel,
       isCurrent: () =>
-        useReceiptStore.getState().receipts.find((candidate) => candidate.id === activeReceiptId)
+        !isWorkspaceRetired(store) &&
+        store.getState().receipts.find((candidate) => candidate.id === activeReceiptId)
           ?.receiptFile === scannedFile,
     });
 
-    if (!payload) {
+    if (!payload || isWorkspaceRetired(store)) {
       return;
     }
 
-    const currentReceipt = useReceiptStore
+    const currentReceipt = store
       .getState()
       .receipts.find((candidate) => candidate.id === activeReceiptId);
     if (currentReceipt && (currentReceipt.receiptFile ?? null) !== scannedFile) {
       return;
     }
 
-    const result = useReceiptStore.getState().applyReceiptScan({ receipt, people, payload });
+    const result = store.getState().applyReceiptScan({ receipt, people, payload });
     if (result.kind === 'removed') {
       useScanStore.getState().clearScanFeedback(receipt.id);
       return;

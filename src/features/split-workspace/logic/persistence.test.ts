@@ -9,7 +9,7 @@ describe('loadWizardState', () => {
 
   it('returns null for malformed JSON', () => {
     window.localStorage.setItem(LOCAL_STORAGE_WIZARD_STATE_KEY, '{broken');
-    expect(loadWizardState()).toBeNull();
+    expect(loadWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY)).toBeNull();
   });
 
   it('returns null for non-v1 version', () => {
@@ -17,12 +17,16 @@ describe('loadWizardState', () => {
       LOCAL_STORAGE_WIZARD_STATE_KEY,
       JSON.stringify({ version: 2, step: 'people', activePersonId: 'p1' }),
     );
-    expect(loadWizardState()).toBeNull();
+    expect(loadWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY)).toBeNull();
   });
 
   it('loads a saved step, active person and assign mode', () => {
-    saveWizardState({ step: 'items', activePersonId: 'p2', assignMode: 'item' });
-    expect(loadWizardState()).toEqual({
+    saveWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY, {
+      step: 'items',
+      activePersonId: 'p2',
+      assignMode: 'item',
+    });
+    expect(loadWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY)).toEqual({
       version: 1,
       step: 'items',
       activePersonId: 'p2',
@@ -35,7 +39,7 @@ describe('loadWizardState', () => {
       LOCAL_STORAGE_WIZARD_STATE_KEY,
       JSON.stringify({ version: 1, step: 'items', activePersonId: 'p2' }),
     );
-    expect(loadWizardState()).toEqual({
+    expect(loadWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY)).toEqual({
       version: 1,
       step: 'items',
       activePersonId: 'p2',
@@ -48,7 +52,7 @@ describe('loadWizardState', () => {
       LOCAL_STORAGE_WIZARD_STATE_KEY,
       JSON.stringify({ version: 1, step: 'items', itemsSubPhase: 'review', activeItemIndex: 3 }),
     );
-    expect(loadWizardState()).toEqual({
+    expect(loadWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY)).toEqual({
       version: 1,
       step: 'items',
       activePersonId: '',
@@ -61,7 +65,7 @@ describe('loadWizardState', () => {
       LOCAL_STORAGE_WIZARD_STATE_KEY,
       JSON.stringify({ version: 1, step: 'unknown', activePersonId: 7, assignMode: 'sideways' }),
     );
-    expect(loadWizardState()).toEqual({
+    expect(loadWizardState(LOCAL_STORAGE_WIZARD_STATE_KEY)).toEqual({
       version: 1,
       step: 'people',
       activePersonId: '',

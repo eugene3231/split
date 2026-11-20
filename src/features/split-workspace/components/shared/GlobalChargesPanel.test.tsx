@@ -5,6 +5,7 @@ import { equalShares } from '@features/split-workspace/logic/assignment';
 import {
   selectActiveReceipt,
   useReceiptStore,
+  quickSplitStore,
 } from '@features/split-workspace/stores/receiptStore';
 import {
   amountCharge,
@@ -58,7 +59,7 @@ it('adds a short receipt total as rounding, after which the totals match', () =>
 
   fireEvent.click(screen.getByRole('button', { name: 'Add $0.40 as rounding' }));
 
-  expect(useReceiptStore.getState().receipts[0].roundingInput).toBe('0.40');
+  expect(quickSplitStore.getState().receipts[0].roundingInput).toBe('0.40');
   expect(screen.getByText('Totals match!')).toBeInTheDocument();
 });
 
@@ -78,7 +79,7 @@ it('reaches a lower receipt total with a discount before tax', () => {
 
   fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
 
-  expect(useReceiptStore.getState().receipts[0].discount).toMatchObject({
+  expect(quickSplitStore.getState().receipts[0].discount).toMatchObject({
     mode: 'amount',
     amountInput: '10.00',
   });
@@ -100,12 +101,12 @@ it('keeps showing a gap no discount can close, and a second tap changes nothing'
   fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
 
   expect(screen.getByText('Mismatch found ($0.40)')).toBeInTheDocument();
-  const afterFirstTap = useReceiptStore.getState().receipts;
+  const afterFirstTap = quickSplitStore.getState().receipts;
   expect(afterFirstTap[0].discount).toMatchObject({ mode: 'amount', amountInput: '1.00' });
 
   fireEvent.click(screen.getByTestId('apply-discount-reconcile-btn'));
 
-  expect(useReceiptStore.getState().receipts).toBe(afterFirstTap);
+  expect(quickSplitStore.getState().receipts).toBe(afterFirstTap);
   expect(screen.getByText('Mismatch found ($0.40)')).toBeInTheDocument();
 });
 
@@ -147,7 +148,7 @@ it('keeps what the person types until they leave the receipt total', () => {
   fireEvent.focus(input);
   fireEvent.change(input, { target: { value: '1234.5' } });
 
-  expect(useReceiptStore.getState().receipts[0].receiptTotalInput).toBe('1234.5');
+  expect(quickSplitStore.getState().receipts[0].receiptTotalInput).toBe('1234.5');
   expect(input).toHaveValue('1234.5');
 
   fireEvent.blur(input);
@@ -157,11 +158,11 @@ it('keeps what the person types until they leave the receipt total', () => {
 
 it('writes each charge to its own field of the receipt', () => {
   renderPanel({ currency: 'SGD' });
-  const before = useReceiptStore.getState().receipts[0];
+  const before = quickSplitStore.getState().receipts[0];
 
   fireEvent.click(screen.getByRole('switch', { name: 'Service Charge' }));
 
-  const after = useReceiptStore.getState().receipts[0];
+  const after = quickSplitStore.getState().receipts[0];
   expect(after.serviceCharge.enabled).toBe(true);
   expect(after.discount).toBe(before.discount);
   expect(after.gst).toBe(before.gst);
@@ -171,10 +172,10 @@ it('takes the rounding off the receipt', () => {
   const alice = makePerson('Alice');
   const meal = makeItem({ amountInput: '10.00', assignment: equalShares([alice.id]) });
   seedStore([alice], [makeReceipt({ id: 'r1', items: [meal] })]);
-  useReceiptStore.getState().patchReceipt('r1', { roundingInput: '0.02' });
+  quickSplitStore.getState().patchReceipt('r1', { roundingInput: '0.02' });
   render(<ActiveReceiptPanel />);
 
   fireEvent.click(screen.getByTestId('remove-rounding-btn'));
 
-  expect(useReceiptStore.getState().receipts[0].roundingInput).toBe('');
+  expect(quickSplitStore.getState().receipts[0].roundingInput).toBe('');
 });

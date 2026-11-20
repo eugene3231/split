@@ -33,6 +33,9 @@ const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 // A wrong selector fails in 8s instead of Playwright's 30s.
 const ACTION_TIMEOUT_MS = 8_000;
 
+// `/` is the home screen; the receipt wizard every journey drives lives at /split.
+const quickSplitUrl = (base) => new URL('split', base).href;
+
 const VIEWPORTS = {
   phone: {
     viewport: { width: 390, height: 844 },
@@ -231,7 +234,7 @@ async function launch(args) {
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
-    await page.goto(url);
+    await page.goto(quickSplitUrl(url));
     await page.getByTestId('workspace').waitFor({ timeout: 30_000 });
   } finally {
     await browser.close();
@@ -381,7 +384,7 @@ async function run(args) {
   const profile = async () => {
     const opened = await openContext(`profile${profiles.length + 2}`);
     profiles.push(opened);
-    await opened.page.goto(instance.url);
+    await opened.page.goto(quickSplitUrl(instance.url));
     await opened.page.getByTestId('workspace').waitFor();
     return opened.page;
   };
@@ -436,7 +439,7 @@ async function run(args) {
   let status = 'passed';
   let failure = null;
   try {
-    await page.goto(instance.url);
+    await page.goto(quickSplitUrl(instance.url));
     await page.getByTestId('workspace').waitFor();
     const { default: journey } = await import(pathToFileURL(journeyPath).href);
     await journey({

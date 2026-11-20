@@ -1,7 +1,6 @@
 import { z } from 'zod';
-import { LOCAL_STORAGE_WIZARD_STATE_KEY } from '@features/split-workspace/constants';
 import { ASSIGN_MODES, WIZARD_STEPS } from '@features/split-workspace/types';
-import { jsonStorage } from './jsonStorage';
+import { jsonStorage } from '@shared/logic/jsonStorage';
 
 // Saves from the item-by-item assign step carry extra fields; they are ignored and the
 // person falls back to the first one.
@@ -14,16 +13,26 @@ const wizardStateSchema = z.object({
 
 type PersistedWizardState = z.infer<typeof wizardStateSchema>;
 
-const wizardStateStorage = jsonStorage(
-  'localStorage',
-  LOCAL_STORAGE_WIZARD_STATE_KEY,
-  wizardStateSchema,
-);
-
-export function loadWizardState(): PersistedWizardState | null {
-  return wizardStateStorage.load();
+export function loadWizardState(key: string): PersistedWizardState | null {
+  return jsonStorage('localStorage', key, wizardStateSchema).load();
 }
 
-export function saveWizardState(state: Omit<PersistedWizardState, 'version'>): void {
-  wizardStateStorage.save({ version: 1, ...state });
+export function saveWizardState(key: string, state: Omit<PersistedWizardState, 'version'>): void {
+  jsonStorage('localStorage', key, wizardStateSchema).save({ version: 1, ...state });
+}
+
+/** Where the wizard's step is kept for the workspace saved under `draftKey`. */
+export function wizardKeyFor(draftKey: string): string {
+  return `${draftKey}:wizard`;
+}
+
+/** Forgets the work kept under `draftKey`, once the receipt has been saved where it belongs. */
+export function discardReceiptDraft(draftKey: string): void {
+  for (const key of [draftKey, wizardKeyFor(draftKey)]) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // Storage is blocked, so nothing was kept under the key.
+    }
+  }
 }

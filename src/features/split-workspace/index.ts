@@ -1,2 +1,11 @@
 export { Workspace } from './components/Workspace';
 export { GeminiApiKeyModal } from './components/GeminiApiKeyModal';
+export { ReceiptEditor, type SavedReceipt } from './components/ReceiptEditor';
+export { discardReceiptDraft } from './logic/persistence';
+export { computeSplit, type ReceiptPricing } from './logic/split/split';
+export { resolveDiscountedAmountCents } from './logic/split/pricing';
+export { isItemAssigned } from './logic/assignment';
+export { isEveryPricedItemAssigned } from './logic/wizardValidation';
+export { useQuickSplitStarted } from './hooks/useQuickSplitStarted';
+export { useSavedGroupsStore } from './stores/savedGroupsStore';
+export { useCurrencyStore } from './stores/currencyStore';

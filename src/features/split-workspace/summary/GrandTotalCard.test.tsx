@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GrandTotalCard } from './GrandTotalCard';
 import { resetAllStores } from '../../../tests/integration/testHelpers';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 
 beforeEach(resetAllStores);
 
@@ -40,7 +40,7 @@ describe('GrandTotalCard PayNow status', () => {
   });
 
   it('keeps the validation error visible after collapsing the number field', () => {
-    useReceiptStore.getState().setPayerMobile('123');
+    quickSplitStore.getState().setPayerMobile('123');
     render(<GrandTotalCard {...props} payNowStatus="invalid" />);
     fireEvent.click(screen.getByRole('button', { name: 'PayNow' }));
     expect(screen.getByLabelText('PayNow number')).toHaveAttribute('aria-invalid', 'true');

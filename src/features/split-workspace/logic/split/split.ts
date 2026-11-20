@@ -3,7 +3,7 @@ import { parseCurrencyToCents } from '@shared/logic/core/money';
 import { resolveReceiptCharges } from '@features/split-workspace/logic/split/charges';
 import { resolveDiscountedAmountCents } from '@features/split-workspace/logic/split/pricing';
 import { convertSplitResult } from '@features/split-workspace/logic/exchangeRates';
-import { allocateCents } from '@features/split-workspace/logic/split/allocation';
+import { allocateCents } from '@shared/logic/core/allocation';
 import { sumAmounts } from '@features/split-workspace/logic/split/amounts';
 import { BASE_CURRENCY, type CurrencyCode } from '@shared/constants';
 import { allocateItemShares } from '@features/split-workspace/logic/itemShare';

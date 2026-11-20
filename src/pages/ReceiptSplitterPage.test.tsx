@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from '@features/receipt-scanner/constants';
 import { LOCAL_STORAGE_OCR_SETTINGS_KEY } from '@features/split-workspace/constants';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 
 const { generatePersonBreakdownImageMock } = vi.hoisted(() => ({
@@ -23,7 +23,7 @@ import { reloadWorkspace } from '../tests/integration/testHelpers';
 // ---------------------------------------------------------------------------
 
 function resetStore() {
-  useReceiptStore.getState().resetSplit();
+  quickSplitStore.getState().resetSplit();
   useGeminiStore.setState({
     geminiApiKeyInput: 'test-key',
     geminiModel: DEFAULT_GEMINI_MODEL,
@@ -368,7 +368,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('wizard-continue-btn')).toBeDisabled();
 
       act(() =>
-        useReceiptStore.getState().patchReceipt('r1', {
+        quickSplitStore.getState().patchReceipt('r1', {
           items: [
             {
               id: 'r1-i1',
@@ -426,7 +426,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       expectActiveStepNav('items');
       expect(
-        Object.keys(useReceiptStore.getState().receipts[0].items[0].assignment.shares),
+        Object.keys(quickSplitStore.getState().receipts[0].items[0].assignment.shares),
       ).toEqual(['p1', 'p2']);
     });
 
@@ -472,10 +472,10 @@ describe('ReceiptSplitterPage integration', () => {
       );
 
       expectActiveStepNav('items');
-      expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual(
+      expect(quickSplitStore.getState().receipts[0].items[0].assignment).toEqual(
         makeAssignment({ p1: 2, p2: 1 }),
       );
-      expect(useReceiptStore.getState().receipts[1].items[0].assignment).toEqual(
+      expect(quickSplitStore.getState().receipts[1].items[0].assignment).toEqual(
         equalShares(['p1', 'p2']),
       );
     });
@@ -489,12 +489,12 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue();
       expect(screen.getByRole('button', { name: 'Split all evenly' })).toBeDisabled();
       fireEvent.click(screen.getByTestId('claim-item-toggle-r1-i1'));
-      const original = useReceiptStore.getState().receipts;
+      const original = quickSplitStore.getState().receipts;
       fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
       fireEvent.click(
         within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }),
       );
-      expect(useReceiptStore.getState().receipts).toEqual(original);
+      expect(quickSplitStore.getState().receipts).toEqual(original);
       fireEvent.click(screen.getByRole('button', { name: 'Split all evenly' }));
       fireEvent.click(
         within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Split evenly' }),
@@ -516,7 +516,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByTestId('receipt-empty-state')).not.toBeInTheDocument();
 
       // Remove all items via the store to trigger empty state
-      const { activeReceiptId, patchReceipt } = useReceiptStore.getState();
+      const { activeReceiptId, patchReceipt } = quickSplitStore.getState();
       act(() => patchReceipt(activeReceiptId, { items: [] }));
       await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument());
     });
@@ -529,12 +529,12 @@ describe('ReceiptSplitterPage integration', () => {
       clickContinue();
 
       // Clear items to trigger empty state
-      const { activeReceiptId, patchReceipt } = useReceiptStore.getState();
+      const { activeReceiptId, patchReceipt } = quickSplitStore.getState();
       act(() => patchReceipt(activeReceiptId, { items: [] }));
       await waitFor(() => expect(screen.getByTestId('receipt-empty-state')).toBeInTheDocument());
 
       fireEvent.click(screen.getByTestId('receipt-add-item-btn'));
-      expect(useReceiptStore.getState().receipts[0].items.length).toBe(1);
+      expect(quickSplitStore.getState().receipts[0].items.length).toBe(1);
     });
   });
 
@@ -662,7 +662,7 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Split evenly' }));
 
       expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
-      const items = useReceiptStore.getState().receipts[0].items;
+      const items = quickSplitStore.getState().receipts[0].items;
       expect(items[1].assignment).toEqual(equalShares(['p1', 'p2']));
       expect(items[0].assignment).toEqual(equalShares(['p1']));
     });
@@ -713,7 +713,7 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Split evenly' }));
 
       expect(screen.getByTestId('export-save-image-btn')).toBeInTheDocument();
-      const [item] = useReceiptStore.getState().receipts[0].items;
+      const [item] = quickSplitStore.getState().receipts[0].items;
       expect(item.assignment).toEqual({ shares: { p1: 3, p2: 1 }, unassignedShare: 0 });
     });
 
@@ -728,7 +728,7 @@ describe('ReceiptSplitterPage integration', () => {
 
       fireEvent.click(screen.getByTestId('claim-item-toggle-r2-i1'));
 
-      const [, r2] = useReceiptStore.getState().receipts;
+      const [, r2] = quickSplitStore.getState().receipts;
       expect(r2.items[0].assignment).toEqual(equalShares(['p1']));
     });
 
@@ -743,7 +743,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.getByTestId('wizard-continue-btn')).toHaveTextContent('Split 2 left evenly');
 
       fireEvent.click(screen.getByTestId('item-claim-chip-r1-i1-p2'));
-      expect(useReceiptStore.getState().receipts[0].items[0].assignment).toEqual(
+      expect(quickSplitStore.getState().receipts[0].items[0].assignment).toEqual(
         equalShares(['p2']),
       );
       expect(screen.getAllByTestId('claim-person-p2')[0]).toHaveTextContent('$2.00');
@@ -997,7 +997,7 @@ describe('ReceiptSplitterPage integration', () => {
       expect(screen.queryByTestId('wizard-continue-btn')).not.toBeInTheDocument();
 
       act(() =>
-        useReceiptStore.getState().updateItem('r1', 'r1-i1', (item) => ({
+        quickSplitStore.getState().updateItem('r1', 'r1-i1', (item) => ({
           ...item,
           assignment: NOBODY,
         })),
@@ -1017,7 +1017,7 @@ describe('ReceiptSplitterPage integration', () => {
       fireEvent.click(screen.getByTestId('workspace-preset-dinner-for-twelve'));
 
       expectActiveStepNav('items');
-      expect(useReceiptStore.getState().people).toHaveLength(12);
+      expect(quickSplitStore.getState().people).toHaveLength(12);
       expect(screen.getByTestId('wizard-step-nav-final')).not.toBeDisabled();
     });
 
@@ -1116,12 +1116,12 @@ it('completes a person removal when navigating away before the exit finishes', (
   try {
     render(<ReceiptSplitterPage />);
     addPeople('Alice, Bob');
-    const alice = useReceiptStore.getState().people.find((person) => person.name === 'Alice');
+    const alice = quickSplitStore.getState().people.find((person) => person.name === 'Alice');
     if (!alice) throw new Error('Alice was not added');
     fireEvent.click(screen.getByTestId(`person-chip-${alice.id}`));
     clickContinue();
     clickBack();
-    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
+    expect(quickSplitStore.getState().people.map((person) => person.name)).toEqual(['Bob']);
   } finally {
     vi.unstubAllGlobals();
   }

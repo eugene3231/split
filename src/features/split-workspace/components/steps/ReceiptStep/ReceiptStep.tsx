@@ -18,7 +18,8 @@ import {
 import { BASE_CURRENCY } from '@shared/constants';
 
 type Props = {
-  onAddReceipt: () => void;
+  /** Left out, the workspace keeps to the one receipt it has. */
+  onAddReceipt?: () => void;
 };
 
 export function ReceiptStep({ onAddReceipt }: Props) {
@@ -62,7 +63,11 @@ export function ReceiptStep({ onAddReceipt }: Props) {
         value={receipt.id}
         onValueChange={setActiveReceiptId}
         className="mb-6"
-        action={<AddReceiptButton data-testid="receipt-add-receipt-btn" onClick={onAddReceipt} />}
+        action={
+          onAddReceipt && (
+            <AddReceiptButton data-testid="receipt-add-receipt-btn" onClick={onAddReceipt} />
+          )
+        }
       >
         {receipts.map((tab) => (
           <ReceiptTab

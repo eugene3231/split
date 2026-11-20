@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type ComponentProps } from 'react';
 import { DropdownMenu } from 'radix-ui';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { useWorkspaceStoreApi } from '@features/split-workspace/stores/receiptStore';
 import { ConfirmDialog } from '@features/split-workspace/components/shared/ConfirmDialog';
 import { PRESET_WORKSPACES } from '@features/split-workspace/logic/presetWorkspaces';
 import { exportDraftToJson } from '@features/split-workspace/logic/draftStorage';
@@ -26,6 +26,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
   const [importFailed, setImportFailed] = useState(false);
   const [pendingLoad, setPendingLoad] = useState<PendingLoad | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const store = useWorkspaceStoreApi();
 
   const closeMenu = () => {
     setIsOpen(false);
@@ -34,7 +35,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
 
   const requestLoad = (load: PendingLoad) => {
     closeMenu();
-    const { people, receipts } = useReceiptStore.getState();
+    const { people, receipts } = store.getState();
     if (hasWorkspaceContent(people, receipts)) {
       setPendingLoad(load);
       return;
@@ -44,7 +45,7 @@ export function WorkspaceMenu({ onLoadWorkspace }: WorkspaceMenuProps) {
 
   const handleExport = () => {
     closeMenu();
-    downloadWorkspaceFile(exportDraftToJson(useReceiptStore.getState()));
+    downloadWorkspaceFile(exportDraftToJson(store.getState()));
   };
 
   const handleImportClick = () => {

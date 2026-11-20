@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
 import { StepHeader } from '@features/split-workspace/components/shared/StepHeader';
-import { PersonAvatar } from '@features/split-workspace/components/shared/PersonAvatar';
+import { PersonAvatar } from '@shared/components/PersonAvatar';
 import { usePersonRemoval } from '@features/split-workspace/hooks/usePersonRemoval';
 import { cn } from '@shared/utils/cn';
 import { SavedGroups } from './SavedGroups';

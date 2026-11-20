@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LOCAL_STORAGE_EXCHANGE_RATES_KEY } from '@features/split-workspace/constants';
-import { jsonStorage } from './jsonStorage';
+import { jsonStorage } from '@shared/logic/jsonStorage';
 
 const exchangeRatesSchema = z.object({
   rates: z

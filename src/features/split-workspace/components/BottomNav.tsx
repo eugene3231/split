@@ -4,6 +4,7 @@ import type { WizardStep } from '@features/split-workspace/types';
 
 interface Props {
   activeStep: WizardStep;
+  isFirstStep: boolean;
   continueLabel: string;
   canContinue: boolean;
   onBack: () => void;
@@ -62,6 +63,7 @@ function useVisualViewportBottomInset() {
 
 export function BottomNav({
   activeStep,
+  isFirstStep,
   continueLabel,
   canContinue,
   onBack,
@@ -69,7 +71,6 @@ export function BottomNav({
   status,
   finalActionRef,
 }: Props) {
-  const isFirstStep = activeStep === 'people';
   const isFinalStep = activeStep === 'final';
   const bottomInset = useVisualViewportBottomInset();
 

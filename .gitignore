@@ -45,3 +45,6 @@ PRD.md
 
 # Verification runs (.agents/skills/verify)
 .verify
+
+# TLC output from formal/sync/run.sh
+/formal/sync/out

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useSummaryModel } from './useSummaryModel';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import {
   percentCharge,
   makeItem,
@@ -31,7 +31,7 @@ beforeEach(() => {
 /** What the summary's fix button does: write the fix to the receipt on the open tab. */
 function applyFix(receiptId: string, { fix }: Reconciliation) {
   if (!fix) throw new Error('There is no fix to apply');
-  useReceiptStore.getState().patchReceipt(receiptId, fix);
+  quickSplitStore.getState().patchReceipt(receiptId, fix);
 }
 
 function deferredQrUrls() {
@@ -92,7 +92,7 @@ describe('useSummaryModel', () => {
       }),
     );
 
-    expect(useReceiptStore.getState().activeReceiptId).toBe('r1');
+    expect(quickSplitStore.getState().activeReceiptId).toBe('r1');
     expect(result.current.view.scope).toBe('one');
     expect(soleReceipt(result.current.view)).toBe(receipt2);
   });
@@ -123,7 +123,7 @@ describe('useSummaryModel', () => {
     expect(result.current.reconciliation.cents).toBe(-100);
     act(() => applyFix('r2', result.current.reconciliation));
 
-    const state = useReceiptStore.getState();
+    const state = quickSplitStore.getState();
     expect(state.activeReceiptId).toBe('r1');
     expect(state.receipts[0].discount).toEqual(receipt1.discount);
     expect(state.receipts[1].discount).toMatchObject({
@@ -158,8 +158,8 @@ describe('useSummaryModel', () => {
       useSummaryModel({ activeTab: 'selected', showBaseCurrency: true }),
     );
     act(() => applyFix('selected', result.current.reconciliation));
-    expect(useReceiptStore.getState().receipts[0]).toEqual(editor);
-    expect(useReceiptStore.getState().receipts[1].discount).toMatchObject({
+    expect(quickSplitStore.getState().receipts[0]).toEqual(editor);
+    expect(quickSplitStore.getState().receipts[1].discount).toMatchObject({
       mode: 'amount',
       amountInput: '10.00',
     });
@@ -199,7 +199,7 @@ describe('useSummaryModel', () => {
       items: [makeItem({ amountInput: '20.00', assignment })],
     });
     seedStore([alice], [receipt1, receipt2]);
-    useReceiptStore.getState().setPayerMobile('91234567');
+    quickSplitStore.getState().setPayerMobile('91234567');
     const first = deferredQrUrls();
     const second = deferredQrUrls();
     const third = deferredQrUrls();
@@ -222,7 +222,7 @@ describe('useSummaryModel', () => {
     await act(async () => second.resolve({ [alice.id]: 'data:r2' }));
     expect(result.current.summaryBreakdown.personBreakdowns[0].qrDataUrl).toBe('data:r2');
 
-    act(() => useReceiptStore.getState().setPayerMobile('98765432'));
+    act(() => quickSplitStore.getState().setPayerMobile('98765432'));
     expect(result.current.summaryBreakdown.personBreakdowns[0].qrDataUrl).toBeUndefined();
     expect(result.current.payNowStatus).toBe('generating');
     await act(async () => third.resolve({ [alice.id]: 'data:new-mobile' }));
@@ -244,7 +244,7 @@ describe('useSummaryModel', () => {
         }),
       ],
     );
-    useReceiptStore.getState().setPayerMobile('91234567');
+    quickSplitStore.getState().setPayerMobile('91234567');
     generatePaynowQrDataUrls.mockResolvedValue({ [alice.id]: 'data:alice', [bob.id]: '' });
     const { result } = renderHook(() =>
       useSummaryModel({ activeTab: 'total', showBaseCurrency: false }),
@@ -268,7 +268,7 @@ describe('useSummaryModel', () => {
         }),
       ],
     );
-    useReceiptStore.getState().setPayerMobile('91234567');
+    quickSplitStore.getState().setPayerMobile('91234567');
     generatePaynowQrDataUrls.mockRejectedValue(new Error('Canvas failed'));
     const { result } = renderHook(() =>
       useSummaryModel({ activeTab: 'total', showBaseCurrency: false }),

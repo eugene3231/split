@@ -23,4 +23,36 @@ export default defineConfig([
       },
     },
   },
+  {
+    files: ['src/features/group-ledger/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'crypto',
+          property: 'randomUUID',
+          message:
+            'crypto.randomUUID is missing on plain-http pages, such as the dev server opened on a phone over the LAN. Use newUuid(), or newOpId() and its siblings, from logic/ids.ts.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/features/group-ledger/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@features/split-workspace/*', '@features/payments/*'],
+              message:
+                "Import another feature through its barrel, '@features/split-workspace' or '@features/payments', and export what you need from its index.ts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);

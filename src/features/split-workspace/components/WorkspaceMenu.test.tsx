@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useReceiptStore } from '@features/split-workspace/stores/receiptStore';
+import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import { exportDraftToJson } from '@features/split-workspace/logic/draftStorage';
 import {
   makeItem,
@@ -120,6 +120,6 @@ describe('WorkspaceMenu', () => {
       expect(screen.getByRole('alert')).toHaveTextContent("That file isn't a Split export."),
     );
     expect(onLoadWorkspace).not.toHaveBeenCalled();
-    expect(useReceiptStore.getState().people.map((person) => person.name)).toEqual(['Zed']);
+    expect(quickSplitStore.getState().people.map((person) => person.name)).toEqual(['Zed']);
   });
 });

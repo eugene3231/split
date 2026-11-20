@@ -5,7 +5,7 @@ description: Drive the Split bill-splitting web app in a real Chromium the way a
 
 # Verify Split
 
-Split is a browser-only React app served by Vite. There is no backend. All state lives in `localStorage`, so every drive runs in a fresh browser context and starts from an empty split. The kit is one script, `.agents/skills/verify/scripts/verify.mjs`, plus journey files in `journeys/`. Run every command from the repo root. The skill lives in `.agents/skills/verify/` so any harness can read it. `.claude/skills/verify` is a symlink to it, so edit the `.agents/` copy.
+Split is a React app served by Vite. Groups sync through Supabase when its env vars are set and through a fake server in `localStorage` otherwise, so with no env vars all state lives in `localStorage` and every drive runs in a fresh browser context, starting from an empty split. `/` is the home screen; every journey here drives the quick split wizard at `/split`. The kit is one script, `.agents/skills/verify/scripts/verify.mjs`, plus journey files in `journeys/`. Run every command from the repo root. The skill lives in `.agents/skills/verify/` so any harness can read it. `.claude/skills/verify` is a symlink to it, so edit the `.agents/` copy.
 
 The feature map in [features/README.md](features/README.md) lists what users can do and how to drive each one. Read the matching feature file before you drive it.
 
@@ -17,7 +17,7 @@ pnpm exec playwright install chromium         # once per machine, a no-op when c
 .agents/skills/verify/scripts/verify.mjs launch
 ```
 
-`launch` starts Vite on a free port on `127.0.0.1` with `--strictPort`, records it in `.verify/instances/head.json`, and logs to `.verify/head.vite.log`. It prints `ready: head <url>` only after a headless Chromium loaded the page and found `[data-testid="workspace"]`, so ready means the app rendered, not just that the port answered. If the instance is already live, `launch` says so and starts nothing.
+`launch` starts Vite on a free port on `127.0.0.1` with `--strictPort`, records it in `.verify/instances/head.json`, and logs to `.verify/head.vite.log`. It prints `ready: head <url>` only after a headless Chromium loaded `/split` and found `[data-testid="workspace"]`, so ready means the app rendered, not just that the port answered. If the instance is already live, `launch` says so and starts nothing.
 
 Each checkout gets its own ports and its own `.verify/` dir, so worktrees can verify side by side. Never point the kit at a dev server you did not launch with it: port 5173 is often another project's Vite.
 

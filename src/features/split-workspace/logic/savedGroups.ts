@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LOCAL_STORAGE_SAVED_GROUPS_KEY } from '@features/split-workspace/constants';
-import { jsonStorage, lenientArray } from '@features/split-workspace/logic/jsonStorage';
+import { jsonStorage, lenientArray } from '@shared/logic/jsonStorage';
 import { createId } from '@shared/logic/core/id';
 
 const savedGroupSchema = z.object({
