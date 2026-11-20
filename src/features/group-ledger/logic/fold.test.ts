@@ -382,7 +382,7 @@ describe('foldLedger: entries', () => {
     const ledger = fold(logOf(...start, addGrab));
 
     expect(ledger.entries).toEqual([
-      { entry: grab, effect: entryEffect(grab), rev: 'c4', pending: false },
+      { entry: grab, written: grab, effect: entryEffect(grab), rev: 'c4', pending: false },
     ]);
     expect(ledger.activity[0]).toMatchObject({
       what: { kind: 'entry-added', entry: grab },
@@ -397,7 +397,13 @@ describe('foldLedger: entries', () => {
     );
 
     expect(ledger.entries).toEqual([
-      { entry: grabEdited, effect: entryEffect(grabEdited), rev: 'c5', pending: false },
+      {
+        entry: grabEdited,
+        written: grabEdited,
+        effect: entryEffect(grabEdited),
+        rev: 'c5',
+        pending: false,
+      },
     ]);
     expect(ledger.activity[0]).toMatchObject({
       what: { kind: 'entry-changed', before: grab, after: grabEdited },
@@ -417,7 +423,13 @@ describe('foldLedger: entries', () => {
     );
 
     expect(ledger.entries).toEqual([
-      { entry: grabByBen, effect: entryEffect(grabByBen), rev: 'c6', pending: false },
+      {
+        entry: grabByBen,
+        written: grabByBen,
+        effect: entryEffect(grabByBen),
+        rev: 'c6',
+        pending: false,
+      },
     ]);
     expect(ledger.activity[0].replaced).toEqual(grabEdited);
     expect(ledger.activity[0].undo).toEqual({ kind: 'entry.put', entry: grabEdited, base: 'c6' });
@@ -470,7 +482,7 @@ describe('foldLedger: entries', () => {
     );
 
     expect(ledger.entries).toEqual([
-      { entry: grab, effect: entryEffect(grab), rev: 'c6', pending: false },
+      { entry: grab, written: grab, effect: entryEffect(grab), rev: 'c6', pending: false },
     ]);
     expect(ledger.activity[0]).toMatchObject({
       what: { kind: 'entry-restored', entry: grab },
@@ -490,7 +502,13 @@ describe('foldLedger: entries', () => {
     );
 
     expect(ledger.entries).toEqual([
-      { entry: grabEdited, effect: entryEffect(grabEdited), rev: 'c6', pending: false },
+      {
+        entry: grabEdited,
+        written: grabEdited,
+        effect: entryEffect(grabEdited),
+        rev: 'c6',
+        pending: false,
+      },
     ]);
     expect(ledger.activity[0]).toMatchObject({
       what: { kind: 'entry-changed', before: grab, after: grabEdited },
@@ -545,7 +563,13 @@ describe('foldLedger: the order of ops', () => {
     );
 
     expect(ledger.entries).toEqual([
-      { entry: grabEdited, effect: entryEffect(grabEdited), rev: 'p1', pending: true },
+      {
+        entry: grabEdited,
+        written: grabEdited,
+        effect: entryEffect(grabEdited),
+        rev: 'p1',
+        pending: true,
+      },
     ]);
     expect(ledger.activity[0]).toMatchObject({ opId: 'p1', pending: true, replaced: null });
   });
@@ -574,7 +598,7 @@ describe('foldLedger: the order of ops', () => {
     const ledger = fold(makeLog([...start, sent], [pending(1, addGrab)]));
 
     expect(ledger.entries).toEqual([
-      { entry: grab, effect: entryEffect(grab), rev: 'p1', pending: false },
+      { entry: grab, written: grab, effect: entryEffect(grab), rev: 'p1', pending: false },
     ]);
     expect(ledger.activity.map((row) => row.opId)).toEqual(['p1', 'c2', 'c1']);
   });
@@ -590,7 +614,13 @@ describe('foldLedger: the order of ops', () => {
 
     expect(ledger.members).toEqual([makeMember(ana)]);
     expect(ledger.entries).toEqual([
-      { entry: grabEdited, effect: entryEffect(grabEdited), rev: 'p2', pending: true },
+      {
+        entry: grabEdited,
+        written: grabEdited,
+        effect: entryEffect(grabEdited),
+        rev: 'p2',
+        pending: true,
+      },
     ]);
     expect(ledger.activity[0].replaced).toBeNull();
   });

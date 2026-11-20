@@ -1,10 +1,16 @@
 import { useState } from 'react';
-import type { ExpenseEntry, Member, MemberId, OpId } from '@features/group-ledger/domain/types';
+import type {
+  EditingExpense,
+  ExpenseEntry,
+  Member,
+  MemberId,
+  OpId,
+} from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { TOO_BIG, entryFits, receiptRate } from '@features/group-ledger/logic/expenseForm';
 import { newEntryId, todayLocalDate } from '@features/group-ledger/logic/ids';
 import { memberLabel } from '@features/group-ledger/logic/describe';
-import { keepSavedCents, postReceipt } from '@features/group-ledger/logic/post';
+import { keepAsWritten, keepSavedCents, postReceipt } from '@features/group-ledger/logic/post';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { actionBarButtonClass } from '@features/group-ledger/components/ui/classes';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
@@ -18,13 +24,17 @@ const initialReceipt = (entry: ExpenseEntry) =>
 
 interface GroupReceiptEditorProps {
   group: MyGroup;
-  editing: { entry: ExpenseEntry; rev: OpId } | null;
+  editing: EditingExpense | null;
 }
 
 export function GroupReceiptEditor({ group, editing }: GroupReceiptEditorProps) {
   const { ledger } = group;
-  const holders = new Set(editing ? Object.keys(editing.entry.owed) : []);
-  const members = ledger.members.filter((member) => !member.archived || holders.has(member.id));
+  // Fixed when the editor opens, as its people are: a member archived on another phone meanwhile
+  // stays in the split rather than dropping out of it at save, leaving the others their share.
+  const [members] = useState(() => {
+    const holders = new Set(editing ? Object.keys(editing.entry.owed) : []);
+    return ledger.members.filter((member) => !member.archived || holders.has(member.id));
+  });
   const draftKey = `group:${ledger.groupId}:receipt:${editing?.entry.id ?? 'new'}`;
   const back = () => navigate({ kind: 'group', groupId: ledger.groupId });
   const initial = editing ? initialReceipt(editing.entry) : undefined;
@@ -56,7 +66,7 @@ export function GroupReceiptEditor({ group, editing }: GroupReceiptEditorProps) 
 interface SaveToGroupProps {
   group: MyGroup;
   members: Member[];
-  editing: { entry: ExpenseEntry; rev: OpId } | null;
+  editing: EditingExpense | null;
   /** The revision the draft began on; null for a new receipt. */
   base: OpId | null;
   /** Held by the editor, which stays mounted across steps, so going back keeps the pick. */
@@ -101,7 +111,8 @@ function SaveToGroup({
     receipt,
     members,
   );
-  const entry = posted && keepSavedCents(posted, editing?.entry ?? null);
+  const kept = posted && keepSavedCents(posted, editing?.entry ?? null);
+  const entry = kept && editing ? keepAsWritten(kept, editing.entry, editing.written) : kept;
 
   const fits = entry !== null && entryFits(entry);
 

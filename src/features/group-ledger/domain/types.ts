@@ -146,7 +146,13 @@ export interface GroupLog {
 }
 
 export interface PostedEntry {
+  /** As screens read it: every merged-away member already reads as the member it became. */
   entry: Entry;
+  /**
+   * As its op wrote it, before any merge. A save that leaves the amounts or the payer as they were
+   * writes these back, so a merge since then resolves them as before and rounds nothing again.
+   */
+  written: Entry;
   /**
    * What the entry does to each member's balance, in group cents. Worked out from the entry as it
    * was written and only then moved onto the members it merged into, so a merge never rounds a
@@ -156,6 +162,13 @@ export interface PostedEntry {
   /** The op that wrote this revision. Pass it as `base` when editing or removing. */
   rev: OpId;
   pending: boolean;
+}
+
+/** An expense opened for editing: as shown, as its op wrote it, and the revision to edit. */
+export interface EditingExpense {
+  entry: ExpenseEntry;
+  written: ExpenseEntry;
+  rev: OpId;
 }
 
 export type ActivityWhat =

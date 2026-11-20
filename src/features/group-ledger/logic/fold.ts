@@ -121,6 +121,7 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
       .sort((a, b) => byCodeUnit(b.entry.date, a.entry.date) || b.position - a.position)
       .map(({ entry, rev, pending }) => ({
         entry: current(entry),
+        written: entry,
         effect: merged ? resolveEffect(entryEffect(entry), resolve) : entryEffect(entry),
         rev,
         pending,

@@ -85,6 +85,42 @@ export function keepSavedCents(entry: ExpenseEntry, saved: ExpenseEntry | null):
   return { ...entry, owed: saved.owed };
 }
 
+/**
+ * A saved edit of an entry a merge has rewritten. Where the edit leaves the amounts owed, or who
+ * paid, as `shown` had them, it writes them back as `written` had them, before the merge. The fold
+ * then resolves them exactly as before; written with the merged ids instead, a converted total
+ * would be rounded over fewer shares and could move a cent onto someone outside the merge.
+ */
+export function keepAsWritten(
+  next: ExpenseEntry,
+  shown: ExpenseEntry,
+  written: ExpenseEntry,
+): ExpenseEntry {
+  if (written === shown) return next;
+  const sameOwed =
+    next.currency === shown.currency && canonicalJson(next.owed) === canonicalJson(shown.owed);
+  const sameSplit = sameOwed && sameBasis(next.basis, shown.basis);
+  const samePaid = canonicalJson(next.payment) === canonicalJson(shown.payment);
+  return {
+    ...next,
+    owed: sameOwed ? written.owed : next.owed,
+    basis: sameSplit ? renamedBasis(written.basis, next.basis) : next.basis,
+    payment: samePaid ? written.payment : next.payment,
+  };
+}
+
+const basisWithoutName = (basis: ExpenseBasis) =>
+  basis.kind === 'receipt' ? { ...basis, receipt: { ...basis.receipt, name: '' } } : basis;
+
+const sameBasis = (a: ExpenseBasis, b: ExpenseBasis) =>
+  canonicalJson(basisWithoutName(a)) === canonicalJson(basisWithoutName(b));
+
+/** `written`, carrying the receipt name `next` was saved with. */
+function renamedBasis(written: ExpenseBasis, next: ExpenseBasis): ExpenseBasis {
+  if (written.kind !== 'receipt' || next.kind !== 'receipt') return written;
+  return { ...written, receipt: { ...written.receipt, name: next.receipt.name } };
+}
+
 /** JSON with every object's keys sorted, so two values compare equal however they were built. */
 function canonicalJson(value: unknown): string {
   return JSON.stringify(value, (_key, inner: unknown) =>

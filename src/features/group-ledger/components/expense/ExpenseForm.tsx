@@ -1,7 +1,7 @@
 import { useHoldAppUpdate } from '@features/group-ledger/hooks/useHoldAppUpdate';
 import { useState } from 'react';
 import type { CurrencyCode } from '@shared/constants';
-import type { ExpenseEntry, OpId } from '@features/group-ledger/domain/types';
+import type { EditingExpense } from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import {
   blankDraft,
@@ -12,7 +12,7 @@ import {
   type ExpenseDraft,
 } from '@features/group-ledger/logic/expenseForm';
 import { asLocalDate, newEntryId, todayLocalDate } from '@features/group-ledger/logic/ids';
-import { totalCents } from '@features/group-ledger/logic/post';
+import { keepAsWritten, totalCents } from '@features/group-ledger/logic/post';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { ActionBar } from '@features/group-ledger/components/ui/ActionBar';
 import { actionBarButtonClass } from '@features/group-ledger/components/ui/classes';
@@ -28,7 +28,7 @@ import { SplitField } from './SplitField';
 
 interface ExpenseFormProps {
   group: MyGroup;
-  editing?: { entry: ExpenseEntry; rev: OpId };
+  editing?: EditingExpense;
 }
 
 export function ExpenseForm({ group, editing }: ExpenseFormProps) {
@@ -49,7 +49,8 @@ export function ExpenseForm({ group, editing }: ExpenseFormProps) {
 
   const save = () => {
     if (!check.ok) return;
-    if (editing) act.editEntry(check.entry, editing.rev);
+    if (editing)
+      act.editEntry(keepAsWritten(check.entry, editing.entry, editing.written), editing.rev);
     else act.addExpense(check.entry);
     back();
     showToast(`${editing ? 'Saved' : 'Added'} ${check.entry.title}`);
@@ -61,7 +62,7 @@ export function ExpenseForm({ group, editing }: ExpenseFormProps) {
     back();
     showToast(`Deleted ${editing.entry.title}`, {
       label: 'Undo',
-      run: () => act.editEntry(editing.entry, removedBy),
+      run: () => act.editEntry(editing.written, removedBy),
     });
   };
 

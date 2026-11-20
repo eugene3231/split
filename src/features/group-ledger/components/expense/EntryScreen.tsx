@@ -47,10 +47,9 @@ export function EntryScreen({ group, entryId }: { group: MyGroup; entryId: Entry
 
 /** Takes the entry as it was when it opened, so an edit made elsewhere meanwhile never throws away what is typed here. */
 function EntryEditor({ group, opened }: { group: MyGroup; opened: PostedEntry }) {
-  const { entry, rev } = opened;
+  const { entry, written, rev } = opened;
   if (entry.kind === 'transfer') return <TransferEditor group={group} transfer={entry} rev={rev} />;
-  if (entry.basis.kind === 'receipt') {
-    return <GroupReceiptEditor group={group} editing={{ entry, rev }} />;
-  }
-  return <ExpenseForm group={group} editing={{ entry, rev }} />;
+  const editing = { entry, written: written.kind === 'expense' ? written : entry, rev };
+  if (entry.basis.kind === 'receipt') return <GroupReceiptEditor group={group} editing={editing} />;
+  return <ExpenseForm group={group} editing={editing} />;
 }

@@ -7,6 +7,7 @@ import type { StoredReceipt } from '@features/group-ledger/domain/types';
 import { asEntryId, asLocalDate } from './ids';
 import { parseChange } from './codec';
 import {
+  keepAsWritten,
   keepSavedCents,
   paidBy,
   postAmounts,
@@ -326,5 +327,50 @@ describe('keepSavedCents', () => {
 
   it('leaves a new receipt as posted', () => {
     expect(keepSavedCents(saved, null)).toBe(saved);
+  });
+});
+
+describe('keepAsWritten', () => {
+  // As written: Ana, Ben and Cat each owe 100, and Ana paid. Shown after Ana merged into Ben.
+  const written = makeExpense(
+    'e1',
+    { [ana]: 100, [ben]: 100, [cat]: 100 },
+    { currency: 'JPY', rate: 0.005, payer: ana },
+  );
+  const shown = makeExpense(
+    'e1',
+    { [ben]: 200, [cat]: 100 },
+    { currency: 'JPY', rate: 0.005, payer: ben },
+  );
+
+  it('writes the amounts and payer back as written when an edit leaves them as shown', () => {
+    const renamed = { ...shown, title: 'Onigiri and tea' };
+
+    expect(keepAsWritten(renamed, shown, written)).toEqual({
+      ...renamed,
+      owed: written.owed,
+      basis: written.basis,
+      payment: written.payment,
+    });
+  });
+
+  it('keeps what the edit changed, and only that', () => {
+    const repaid = { ...shown, payment: { payer: cat, others: {} } };
+    const resplit = { ...shown, owed: { [ben]: 150, [cat]: 150 } };
+
+    expect(keepAsWritten(repaid, shown, written)).toMatchObject({
+      owed: written.owed,
+      payment: { payer: cat },
+    });
+    expect(keepAsWritten(resplit, shown, written)).toMatchObject({
+      owed: resplit.owed,
+      payment: written.payment,
+    });
+  });
+
+  it('leaves an entry no merge has rewritten as the edit made it', () => {
+    const renamed = { ...written, title: 'Onigiri and tea' };
+
+    expect(keepAsWritten(renamed, written, written)).toBe(renamed);
   });
 });

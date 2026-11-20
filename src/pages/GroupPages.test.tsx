@@ -26,6 +26,7 @@ import { useToastStore } from '@features/group-ledger/stores/toastStore';
 import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
+import { savePersistedDraft } from '@features/split-workspace/logic/draftStorage';
 import { navigate } from '@shared/routing';
 import App from '../App';
 import { makeItem, makeReceipt } from '../tests/integration/testHelpers';
@@ -473,6 +474,75 @@ describe('a group', () => {
     if (before.kind !== 'expense' || after.entry.kind !== 'expense')
       throw new Error('not an expense');
     expect(after.entry.owed).toEqual(before.owed);
+  });
+
+  it('leaves a bystander as they were when a foreign expense is renamed after a merge', async () => {
+    const groupId = makeGroup(['Ben', 'Cat']);
+    // ¥3 owed ¥1 each at 0.005 SGD per yen is 2 SGD cents, owed by the two lowest ids. Merging
+    // those two must leave the third owing nothing, and so must renaming the expense afterwards.
+    const [first, second, third] = ledgerOf(groupId)
+      .members.map((member) => member.id)
+      .toSorted();
+    const snack = postWeights(
+      {
+        id: newEntryId(),
+        title: 'Onigiri',
+        date: asLocalDate('2026-11-19'),
+        currency: 'JPY',
+        rate: 0.005,
+        payment: { payer: second, others: {} },
+      },
+      300,
+      { [first]: 1, [second]: 1, [third]: 1 },
+    );
+    if (!snack) throw new Error('did not post');
+    groupSyncFor(groupId)?.submit({ kind: 'entry.put', entry: snack, base: null });
+    groupSyncFor(groupId)?.submit({ kind: 'member.merged', from: first, into: second });
+    const before = ledgerOf(groupId).entries[0].effect[third] ?? 0;
+    render(<App />);
+    go(`/g/${groupId}/e/${snack.id}`);
+
+    type('What was it for?', 'Onigiri and tea');
+    click('Save');
+
+    await waitFor(() =>
+      expect(ledgerOf(groupId).entries[0].entry).toMatchObject({ title: 'Onigiri and tea' }),
+    );
+    expect(ledgerOf(groupId).entries[0].effect[third] ?? 0).toBe(before);
+  });
+
+  it('keeps someone archived while a new receipt is open in the split it saves', async () => {
+    const groupId = makeGroup(['Ben', 'Cat']);
+    const [, ben, cat] = ledgerOf(groupId).members;
+    const shared = { [ben.id]: 1, [cat.id]: 1 };
+    const receipt = makeReceipt({
+      name: 'Pizza',
+      items: [
+        makeItem({ amountInput: '20.00', assignment: { shares: shared, unassignedShare: 0 } }),
+      ],
+    });
+    savePersistedDraft(`group:${groupId}:receipt:new`, {
+      version: 3,
+      people: [ben, cat].map(({ id, name }) => ({ id, name })),
+      receipts: [receipt],
+      activeReceiptId: receipt.id,
+      payerMobile: '',
+      savedAt: '2026-11-20T00:00:00.000Z',
+    });
+    render(<App />);
+    go(`/g/${groupId}/receipt`);
+
+    act(() => {
+      groupSyncFor(groupId)?.submit({ kind: 'member.put', member: { ...cat, archived: true } });
+    });
+    toSaveStep();
+    fireEvent.click(screen.getByTestId('save-receipt-to-group'));
+
+    await waitFor(() =>
+      expect(ledgerOf(groupId).entries[0]?.entry).toMatchObject({
+        owed: { [ben.id]: 1000, [cat.id]: 1000 },
+      }),
+    );
   });
 
   it('opens a saved receipt in the receipt editor and saves it back with a new payer', async () => {
