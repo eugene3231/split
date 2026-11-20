@@ -50,7 +50,7 @@ When a fix lands, its `it.fails` turns red. Change it to `it`, move it into the 
 
 ## Coverage record
 
-Last synced at commit `0cfd319`: the properties were confirmed to describe these files as they were at that commit.
+Last synced at commit `0dea77e`: the properties were confirmed to describe these files as they were at that commit.
 
 | File                                                                                       | Functions                                                               |
 | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
