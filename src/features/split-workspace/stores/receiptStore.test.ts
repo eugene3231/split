@@ -12,6 +12,8 @@ import {
   loadSavedWorkspace,
   selectActiveReceipt,
   createWorkspaceStore,
+  retireWorkspace,
+  reviveWorkspace,
   quickSplitStore,
 } from '@features/split-workspace/stores/receiptStore';
 import { loadPersistedDraft } from '@features/split-workspace/logic/draftStorage';
@@ -194,6 +196,24 @@ describe('saving and loading the workspace', () => {
     expect(state.payerMobile).toBe('91234567');
     expect(state.receipts.map((receipt) => receipt.id)).toEqual([receiptId]);
     expect(state.activeReceiptId).toBe(receiptId);
+  });
+
+  it('saves nothing once its editor has closed, so a late change cannot overwrite a reopened draft', () => {
+    const workspace = createWorkspaceStore({ draftKey: 'test:draft', wizardKey: 'test:wizard' });
+    workspace.getState().addPeople(['Alice']);
+
+    retireWorkspace(workspace);
+    workspace.getState().addPeople(['Bob']);
+    const whileClosed = loadPersistedDraft('test:draft')?.people.map((person) => person.name);
+    reviveWorkspace(workspace);
+    workspace.getState().addPeople(['Cat']);
+
+    expect(whileClosed).toEqual(['Alice']);
+    expect(loadPersistedDraft('test:draft')?.people.map((person) => person.name)).toEqual([
+      'Alice',
+      'Bob',
+      'Cat',
+    ]);
   });
 
   it('opens with one blank receipt when nothing is saved', () => {

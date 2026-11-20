@@ -2,6 +2,7 @@ import { useShallow } from 'zustand/shallow';
 import { scanReceipt, useScanStore } from '@features/receipt-scanner';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import {
+  isWorkspaceRetired,
   useReceiptStore,
   useWorkspaceStoreApi,
 } from '@features/split-workspace/stores/receiptStore';
@@ -37,11 +38,12 @@ export function useReceiptImport({ activeReceiptId }: UseReceiptImportArgs) {
       apiKeyInput: geminiApiKeyInput,
       model: geminiModel,
       isCurrent: () =>
+        !isWorkspaceRetired(store) &&
         store.getState().receipts.find((candidate) => candidate.id === activeReceiptId)
           ?.receiptFile === scannedFile,
     });
 
-    if (!payload) {
+    if (!payload || isWorkspaceRetired(store)) {
       return;
     }
 

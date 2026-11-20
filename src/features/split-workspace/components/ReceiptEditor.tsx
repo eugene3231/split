@@ -1,6 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   createWorkspaceStore,
+  retireWorkspace,
+  reviveWorkspace,
   selectActiveReceipt,
   useReceiptStore,
 } from '@features/split-workspace/stores/receiptStore';
@@ -52,6 +54,10 @@ export function ReceiptEditor({
       people,
     }),
   );
+  useEffect(() => {
+    reviveWorkspace(store);
+    return () => retireWorkspace(store);
+  }, [store]);
 
   return (
     <WorkspaceStoreProvider store={store}>

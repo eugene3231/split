@@ -158,6 +158,25 @@ export function selectActiveReceipt(state: WorkspaceState): Receipt {
   );
 }
 
+const retired = new WeakSet<object>();
+
+/**
+ * Marks a workspace whose editor has closed. It saves nothing more, and a scan still on its way
+ * is dropped, so reopening the same draft in a new workspace is never overwritten by the old one.
+ */
+export function retireWorkspace(store: object): void {
+  retired.add(store);
+}
+
+/** Undoes `retireWorkspace`, for an editor that mounts again with the same workspace. */
+export function reviveWorkspace(store: object): void {
+  retired.delete(store);
+}
+
+export function isWorkspaceRetired(store: object): boolean {
+  return retired.has(store);
+}
+
 export function createWorkspaceStore({
   draftKey,
   wizardKey,
@@ -314,6 +333,7 @@ export function createWorkspaceStore({
   }));
 
   store.subscribe(({ people, receipts, activeReceiptId, payerMobile }) => {
+    if (retired.has(store)) return;
     savePersistedDraft(draftKey, {
       version: 3,
       people,

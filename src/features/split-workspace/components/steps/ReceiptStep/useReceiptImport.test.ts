@@ -4,7 +4,11 @@ import { analyzeReceiptWithGemini } from '@features/receipt-scanner/api/geminiAp
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { useScanStore } from '@features/receipt-scanner/stores/scanStore';
 import type { OcrResponse } from '@shared/types';
-import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
+import {
+  quickSplitStore,
+  retireWorkspace,
+  reviveWorkspace,
+} from '@features/split-workspace/stores/receiptStore';
 import {
   makeItem,
   makePerson,
@@ -91,6 +95,29 @@ describe('useReceiptImport', () => {
     expect(receipt?.receiptTotalInput).toBe('12.50');
     expect(receipt?.gst.enabled).toBe(true);
     expect(receipt?.gst.percentInput).toBe('9');
+  });
+
+  it('drops a scan that finishes after its workspace was closed', async () => {
+    seedReceiptWithFile(new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
+    let resolveScan!: (payload: OcrResponse) => void;
+    scanReceiptMock.mockImplementation(
+      () => new Promise<OcrResponse>((resolve) => (resolveScan = resolve)),
+    );
+
+    const { result } = renderHook(() => useReceiptImport({ activeReceiptId: 'r1' }));
+    let scanPromise: Promise<void> = Promise.resolve();
+    act(() => {
+      scanPromise = result.current.handleScanReceipt();
+    });
+    retireWorkspace(quickSplitStore);
+    await act(async () => {
+      resolveScan(makeOcrPayload());
+      await scanPromise;
+    });
+    reviveWorkspace(quickSplitStore);
+
+    const receipt = quickSplitStore.getState().receipts.find((r) => r.id === 'r1');
+    expect(receipt?.items[0].name).toBe('Old item');
   });
 
   it('keeps a loaded preset workspace when an older scan finishes', async () => {
