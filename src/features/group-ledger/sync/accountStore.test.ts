@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeBackend, FAKE_EMAIL_CODE } from '@features/group-ledger/backend/fakeBackend';
 import { createMemoryServer, type FakeServer } from '@features/group-ledger/backend/fakeServer';
 import { createAccountStore } from '@features/group-ledger/sync/accountStore';
+import type { HeldName, NameCarrier } from '@features/group-ledger/sync/carryNames';
 
 function phone(server: FakeServer, profile: string) {
   const signal = { online: true };
@@ -184,5 +185,99 @@ describe('account', () => {
 
     expect(ana.store.getState().session).toEqual(session);
     expect(ana.store.getState().failure).toEqual({ kind: 'offline' });
+  });
+});
+
+describe('keeping the names picked across a sign-in', () => {
+  const held = [{ groupId: 'g1', memberId: 'ana' }] as unknown as HeldName[];
+
+  async function signingIn(release: () => Promise<HeldName[] | null>) {
+    const server = createMemoryServer();
+    const laptop = phone(server, 'laptop');
+    await laptop.store.getState().load();
+    await laptop.store.getState().startEmailSignIn('ana@example.com');
+    await laptop.store.getState().verifyEmailCode(FAKE_EMAIL_CODE);
+    const account = laptop.store.getState().session?.userId;
+
+    const backend = createFakeBackend({ server, profile: 'phone', isOnline: () => true });
+    const order: string[] = [];
+    const verify = backend.verifyEmailCode.bind(backend);
+    backend.verifyEmailCode = (email, code) => {
+      order.push('verify');
+      return verify(email, code);
+    };
+    const names: NameCarrier = {
+      release: vi.fn(async () => {
+        order.push('release');
+        return release();
+      }),
+      restore: vi.fn(() => order.push('restore')),
+      reclaim: vi.fn(() => order.push('reclaim')),
+    };
+    const store = createAccountStore({
+      backend: () => backend,
+      profile: 'phone',
+      findGroups: async () => {
+        order.push('find groups');
+      },
+      names,
+    });
+    await store.getState().load();
+    const anonymous = store.getState().session?.userId;
+    await store.getState().startEmailSignIn('ana@example.com');
+    return { store, names, order, account, anonymous };
+  }
+
+  it('gives the names up as the old user, checks the code, then claims them as the account', async () => {
+    const { store, names, order, account, anonymous } = await signingIn(async () => held);
+
+    await store.getState().verifyEmailCode(FAKE_EMAIL_CODE);
+
+    expect(order).toEqual(['release', 'verify', 'find groups', 'reclaim']);
+    expect(names.release).toHaveBeenCalledWith(anonymous);
+    expect(names.reclaim).toHaveBeenCalledWith(held, account);
+  });
+
+  it('claims the names back when the code is wrong', async () => {
+    const { store, names, order } = await signingIn(async () => held);
+
+    await store.getState().verifyEmailCode('111111');
+
+    expect(order).toEqual(['release', 'verify', 'restore']);
+    expect(names.restore).toHaveBeenCalledWith(held);
+    expect(store.getState().emailSignIn).toMatchObject({ step: 'code-sent' });
+  });
+
+  it('does not check the code when giving the names up did not reach the server', async () => {
+    const { store, order, anonymous } = await signingIn(async () => null);
+
+    await store.getState().verifyEmailCode(FAKE_EMAIL_CODE);
+
+    expect(order).toEqual(['release']);
+    expect(store.getState().session?.userId).toBe(anonymous);
+    expect(store.getState().failure).toEqual({ kind: 'offline' });
+    expect(store.getState().emailSignIn).toMatchObject({ step: 'code-sent' });
+  });
+
+  it('leaves the names alone when a new email joins this phone, which keeps its user', async () => {
+    const names: NameCarrier = { release: vi.fn(), restore: vi.fn(), reclaim: vi.fn() };
+    const backend = createFakeBackend({
+      server: createMemoryServer(),
+      profile: 'phone',
+      isOnline: () => true,
+    });
+    const store = createAccountStore({
+      backend: () => backend,
+      profile: 'phone',
+      findGroups: async () => {},
+      names,
+    });
+    await store.getState().load();
+    await store.getState().startEmailSignIn('new@example.com');
+
+    await store.getState().verifyEmailCode(FAKE_EMAIL_CODE);
+
+    expect(names.release).not.toHaveBeenCalled();
+    expect(names.reclaim).toHaveBeenCalledWith([], store.getState().session?.userId);
   });
 });

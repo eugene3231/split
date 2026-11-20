@@ -9,6 +9,7 @@ import {
   type AccountEvent,
   type AccountState,
 } from '@features/group-ledger/sync/accountMachine';
+import { carryNames, type NameCarrier } from '@features/group-ledger/sync/carryNames';
 import { ledgerBackend, onSessionSeen, syncAllGroups } from '@features/group-ledger/sync/groupSync';
 import { useJoinedGroupsStore } from '@features/group-ledger/sync/joinedGroupsStore';
 import { jsonStorage } from '@shared/logic/jsonStorage';
@@ -45,6 +46,8 @@ export interface AccountStoreOptions {
    * user changes, and whenever a signed-in phone loads, since another phone may have joined a group.
    */
   findGroups: () => Promise<void>;
+  /** Keeps the names this phone picked when it signs in to an account the email already has. */
+  names?: NameCarrier;
 }
 
 /** A shell over `accountStep`: it calls the backend, feeds each answer in, and stores the session. */
@@ -52,6 +55,7 @@ export function createAccountStore({
   backend: getBackend,
   profile,
   findGroups,
+  names,
 }: AccountStoreOptions) {
   const storage = jsonStorage('localStorage', `split:account:${profile}`, sessionSchema);
 
@@ -96,12 +100,21 @@ export function createAccountStore({
         const flow = get().emailSignIn;
         if (flow.step !== 'code-sent') return;
         void dispatch({ type: 'code-entered' });
+        const before = get().session;
+        const switching = flow.mode === 'sign-in' && names !== undefined && before !== null;
+        const held = switching ? await names.release(before.userId) : [];
+        if (held === null) {
+          await dispatch({ type: 'code-refused', flow, failure: { kind: 'offline' } });
+          return;
+        }
         const verified = await getBackend().verifyEmailCode(flow.email, code);
-        await dispatch(
-          verified.ok
-            ? { type: 'code-accepted', session: verified.value }
-            : { type: 'code-refused', flow, failure: verified.failure },
-        );
+        if (!verified.ok) {
+          names?.restore(held);
+          await dispatch({ type: 'code-refused', flow, failure: verified.failure });
+          return;
+        }
+        await dispatch({ type: 'code-accepted', session: verified.value });
+        names?.reclaim(held, verified.value.userId);
       },
 
       cancelEmailSignIn: () => void dispatch({ type: 'email-cancelled' }),
@@ -133,6 +146,7 @@ export const useAccountStore = createAccountStore({
   backend: ledgerBackend,
   profile: deviceProfile(),
   findGroups: adoptAccountGroups,
+  names: carryNames,
 });
 
 onSessionSeen((session) => useAccountStore.getState().adopt(session));

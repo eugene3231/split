@@ -15,6 +15,7 @@ import {
   newEntryId,
   newGroupId,
   newInviteCode,
+  newOpId,
 } from '@features/group-ledger/logic/ids';
 import { postReceipt, postWeights } from '@features/group-ledger/logic/post';
 import { useAccountStore } from '@features/group-ledger/sync/accountStore';
@@ -156,6 +157,71 @@ describe('home', () => {
 
     click('Sign out');
     expect(await screen.findByRole('button', { name: 'Send me a code' })).toBeInTheDocument();
+  });
+
+  it('keeps the name picked before signing in to an account the email already has', async () => {
+    const laptop = createFakeBackend({
+      server: createLocalStorageServer(),
+      profile: 'laptop',
+      isOnline: () => true,
+    });
+    await laptop.session();
+    await laptop.startEmailSignIn('ana@example.com');
+    await laptop.verifyEmailCode('ana@example.com', FAKE_EMAIL_CODE);
+    const groupId = makeGroup(['Ben']);
+    const ana = ledgerOf(groupId).members.find((member) => member.name === 'Ana')?.id;
+    await act(() => groupSyncFor(groupId)?.syncNow());
+    render(<App />);
+
+    click('Keep your groups');
+    type('Email', 'ana@example.com');
+    click('Send me a code');
+    fireEvent.change(await screen.findByLabelText(/6-digit code/), {
+      target: { value: FAKE_EMAIL_CODE },
+    });
+    click('Confirm');
+    expect(await screen.findByText('ana@example.com')).toBeInTheDocument();
+
+    await waitFor(() => expect(ledgerOf(groupId).me).toBe(ana));
+    go(`/g/${groupId}`);
+    expect(screen.queryByRole('heading', { name: /who are you/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps the account's own name in a group where it already has one", async () => {
+    const laptop = createFakeBackend({
+      server: createLocalStorageServer(),
+      profile: 'laptop',
+      isOnline: () => true,
+    });
+    await laptop.session();
+    await laptop.startEmailSignIn('ana@example.com');
+    await laptop.verifyEmailCode('ana@example.com', FAKE_EMAIL_CODE);
+    const groupId = makeGroup(['Ben']);
+    const members = ledgerOf(groupId).members;
+    const ben = members.find((member) => member.name === 'Ben')?.id;
+    await act(() => groupSyncFor(groupId)?.syncNow());
+    const held = useJoinedGroupsStore.getState().groups.find((group) => group.groupId === groupId);
+    if (!held || !ben) throw new Error('the group was not made');
+    await laptop.joinGroup(held.inviteCode);
+    await laptop.push(groupId, [
+      {
+        id: newOpId(),
+        at: '2026-11-20T00:00:00.000Z',
+        change: { kind: 'member.claimed', memberId: ben },
+      },
+    ]);
+    render(<App />);
+
+    click('Keep your groups');
+    type('Email', 'ana@example.com');
+    click('Send me a code');
+    fireEvent.change(await screen.findByLabelText(/6-digit code/), {
+      target: { value: FAKE_EMAIL_CODE },
+    });
+    click('Confirm');
+    expect(await screen.findByText('ana@example.com')).toBeInTheDocument();
+
+    await waitFor(() => expect(ledgerOf(groupId).me).toBe(ben));
   });
 });
 
