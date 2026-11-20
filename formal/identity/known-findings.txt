@@ -1,6 +1,7 @@
 # Properties the code breaks today. Each is a finding, reported with its counterexample in
 # .agents/skills/identity-model/SKILL.md. Remove a line once the code is fixed; never to make
 # a run pass.
+TwoTabs LinkKeepsWorking
 TwoTabs NoOrphanedMember
 TwoPhones NoOrphanedMember
-TwoTabs LinkKeepsWorking
+TwoPhones CarryKeepsAccountName
