@@ -30,12 +30,11 @@ Suite: `src/features/group-ledger/logic/fold.properties.test.ts`.
 | never loses an edit silently: an op over a version its author never saw is flagged, and Restore brings that version back | Two friends edit one expense and one edit vanishes with no "replaced" row and no way back. |
 | puts the ledger back as it was when the undo of the op just written is applied                                           | Undo leaves the ledger different from before, or moves the entry.                          |
 | moves only the merged member's balance into the member it joins when every entry is in the group's currency              | Merging a duplicate friend changes a third person's balance or the group's total.          |
-| lets no two phones be the same member while nobody merges members                                                        | Two phones both act as the same person.                                                    |
+| lets no two phones be the same member, merges included                                                                   | Two phones both act as the same person.                                                    |
 
-Two properties fail on the code today. They live in the `ledger fold properties the code breaks today` block as `it.fails`, each with its smallest counterexample as a fixed example, so they fail on every run:
+One property fails on the code today. It lives in the `ledger fold properties the code breaks today` block as `it.fails`, with its smallest counterexample as a fixed example, so it fails on every run:
 
 - **Merge in a foreign currency moves a cent to a bystander.** A ¥3 expense, ¥1 each for m0, m1 and m2, paid by m0, at 0.005 SGD per yen, is 2 SGD cents. m2 is even. Merge m0 into m1 and m2 owes 1 cent. `entryEffect` rounds the converted total across the shares it is given, and a merge (`resolveEntry` in `fold.ts`) turns three shares into two.
-- **A merge makes two phones the same member.** u2 claims m2, u0 claims m3, then m3 is merged into m2. `stepClaim` checks "first to claim keeps the member" only when a claim is made, so after the merge both phones are m2.
 
 When a fix lands, its `it.fails` turns red. Change it to `it`, move it into the main block, and add its mutant.
 
@@ -58,7 +57,7 @@ Last synced at commit `0cfd319`: the properties were confirmed to describe these
 | `src/features/group-ledger/logic/fold.ts`                                                  | `foldLedger`, `apply`, `resolveEntry`, `resolveBasis`, `resolveKeys`    |
 | `src/features/group-ledger/logic/entryLifecycle.ts`                                        | `stepEntry`                                                             |
 | `src/features/group-ledger/logic/memberLifecycle.ts`                                       | `stepMembers`, `resolveMember`, `activeMembers`                         |
-| `src/features/group-ledger/logic/claims.ts`                                                | `stepClaim`                                                             |
+| `src/features/group-ledger/logic/claims.ts`                                                | `stepClaim`, `settleClaimsAfterMerge`                                   |
 | `src/features/group-ledger/logic/balances.ts`                                              | `entryEffect`, `computeBalances`                                        |
 | `src/features/group-ledger/logic/post.ts`                                                  | `paidBy`, `totalCents`                                                  |
 | `src/features/group-ledger/logic/settleUp.ts`                                              | `settleUp`                                                              |

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MemberId } from '@features/group-ledger/domain/types';
-import { stepClaim, type ClaimBook } from './claims';
+import { settleClaimsAfterMerge, stepClaim, type ClaimBook } from './claims';
 import { ana, ben, cat } from './testHelpers';
 
 const same = (id: MemberId) => id;
@@ -34,5 +34,46 @@ describe('stepClaim', () => {
         ['u2', ana],
       ]),
     );
+  });
+});
+
+describe('settleClaimsAfterMerge', () => {
+  it('keeps the merged member for whoever claimed first, and asks the other who they are', () => {
+    const before = claims([
+      ['u1', ana],
+      ['u2', ben],
+    ]);
+
+    expect(settleClaimsAfterMerge(before, benIsAna)).toEqual(
+      claims([
+        ['u1', ana],
+        ['u2', null],
+      ]),
+    );
+  });
+
+  it('counts first from the claim each user holds now, not their first claim ever', () => {
+    const u1MovedLater = stepClaim(
+      stepClaim(stepClaim(claims([]), 'u1', cat, same)!, 'u2', ben, same)!,
+      'u1',
+      ana,
+      same,
+    )!;
+
+    expect(settleClaimsAfterMerge(u1MovedLater, benIsAna)).toEqual(
+      claims([
+        ['u2', ben],
+        ['u1', null],
+      ]),
+    );
+  });
+
+  it('leaves claims alone when no two meet in one member', () => {
+    const before = claims([
+      ['u1', ana],
+      ['u2', cat],
+    ]);
+
+    expect(settleClaimsAfterMerge(before, benIsAna)).toBe(before);
   });
 });

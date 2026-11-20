@@ -346,14 +346,24 @@ describe('ledger fold properties', () => {
     );
   });
 
-  it('lets no two phones be the same member while nobody merges members', () => {
-    fc.assert(
-      fc.property(logArb, (ops) => {
-        fc.pre(ops.every((op) => op.change?.kind !== 'member.merged'));
-        noTwoPhonesAreTheSameMember(ops);
-      }),
-      runs,
-    );
+  // u2 is m2 and u0 is m3. u0 merges m3 into m2: u2 claimed first and keeps m2, and u0 is asked
+  // who it is.
+  const claimedTwiceByAMerge: [ConfirmedOp[]] = [
+    [
+      confirmed(1, created, PHONES[0]),
+      confirmed(2, { kind: 'member.put', member: makeMember(MEMBERS[2]) }, PHONES[0]),
+      confirmed(3, { kind: 'member.put', member: makeMember(MEMBERS[3]) }, PHONES[0]),
+      confirmed(4, { kind: 'member.claimed', memberId: MEMBERS[2] }, PHONES[2]),
+      confirmed(5, { kind: 'member.claimed', memberId: MEMBERS[3] }, PHONES[0]),
+      confirmed(6, { kind: 'member.merged', from: MEMBERS[3], into: MEMBERS[2] }, PHONES[0]),
+    ],
+  ];
+
+  it('lets no two phones be the same member, merges included', () => {
+    fc.assert(fc.property(logArb, noTwoPhonesAreTheSameMember), {
+      ...runs,
+      examples: [claimedTwiceByAMerge],
+    });
   });
 });
 
@@ -399,25 +409,6 @@ describe('ledger fold properties the code breaks today', () => {
       });
     },
   );
-
-  // u2 is m2 and u0 is m3. u0 merges m3 into m2, and both phones are now m2.
-  const claimedTwiceByAMerge: [ConfirmedOp[]] = [
-    [
-      confirmed(1, created, PHONES[0]),
-      confirmed(2, { kind: 'member.put', member: makeMember(MEMBERS[2]) }, PHONES[0]),
-      confirmed(3, { kind: 'member.put', member: makeMember(MEMBERS[3]) }, PHONES[0]),
-      confirmed(4, { kind: 'member.claimed', memberId: MEMBERS[2] }, PHONES[2]),
-      confirmed(5, { kind: 'member.claimed', memberId: MEMBERS[3] }, PHONES[0]),
-      confirmed(6, { kind: 'member.merged', from: MEMBERS[3], into: MEMBERS[2] }, PHONES[0]),
-    ],
-  ];
-
-  it.fails('lets no two phones be the same member, merges included', () => {
-    fc.assert(fc.property(logArb, noTwoPhonesAreTheSameMember), {
-      ...runs,
-      examples: [claimedTwiceByAMerge],
-    });
-  });
 });
 
 /**

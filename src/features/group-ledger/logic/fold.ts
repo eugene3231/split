@@ -12,7 +12,11 @@ import type {
   OpId,
   UserId,
 } from '@features/group-ledger/domain/types';
-import { stepClaim, type ClaimBook } from '@features/group-ledger/logic/claims';
+import {
+  settleClaimsAfterMerge,
+  stepClaim,
+  type ClaimBook,
+} from '@features/group-ledger/logic/claims';
 import { ABSENT, stepEntry, type EntryState } from '@features/group-ledger/logic/entryLifecycle';
 import { asMemberId, byCodeUnit } from '@features/group-ledger/logic/ids';
 import {
@@ -226,6 +230,7 @@ function apply(state: Folding, op: Op, position: number): Outcome | null {
       );
       if (step === null) return null;
       state.members = step.book;
+      state.claims = settleClaimsAfterMerge(state.claims, (id) => resolveMember(state.members, id));
       return { what: step.what, replaced: null, undo: step.undo };
     }
     case 'member.claimed': {

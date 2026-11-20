@@ -67,11 +67,18 @@ const MUTANTS = [
     to: 'resolved[resolve(id)] = amounts[id];',
   },
   {
-    property: 'while nobody merges members',
+    property: 'merges included',
     why: 'a claim on a member another phone holds is taken anyway',
     file: `${LOGIC}/claims.ts`,
     from: 'if (heldByAnother) return null;',
     to: '',
+  },
+  {
+    property: 'merges included',
+    why: 'a merge that brings two phones into one member keeps both',
+    file: `${LOGIC}/claims.ts`,
+    from: 'if (losers.length === 0) return claims;',
+    to: 'return claims;',
   },
 ];
 
