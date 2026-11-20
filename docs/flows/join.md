@@ -91,7 +91,7 @@ Rule: "They are never in the group as a name the server gave a friend first" hol
 
 Two things the full model in `formal/identity/` found, outside this one-friend chart:
 
-- If the friend later signs in to an email that already has an account, the Ana they picked stays with the anonymous user they were, and the group asks "Who are you?" again with Ana shown as Taken. See `docs/flows/account.md`.
+- If the friend later signs in to an email that already has an account, Ana is handed over to that account. A name picked in another tab while the code is being checked is not, and stays with the anonymous user they were. See `docs/flows/account.md`.
 - If, during one sync of the group, another tab of the phone signs in to an account and then signs out, the group can say "This link stopped working" though the link works, until the phone next syncs that group.
 
 The chart comes from `formal/flows/join/Join.tla` and its view; run the pstack `/statechart` skill on `Join.tla` with `Join.cfg` and `view.mjs` to draw it again.

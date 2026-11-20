@@ -8,14 +8,18 @@ export const state = (v) => {
       return 'Sending the code';
     case 'code-sent':
       return 'Code sent to the email';
+    case 'releasing':
+      return 'Handing your name over';
     case 'checking':
+      if (v.name === 'released') return 'Checking the code, name handed over';
+      if (v.mode === 'sign-in' && v.name === 'anon')
+        return 'Checking the code, a name picked meanwhile';
       return 'Checking the code';
     case 'finding':
-      return 'Signed in, groups coming back';
+      return 'Signed in, groups and name coming back';
     case 'linked':
-      return v.name === 'orphan'
-        ? 'Signed in, own name shows as Taken'
-        : 'Signed in with the email';
+      if (v.name === 'orphan') return 'Signed in, own name shows as Taken';
+      return 'Signed in with the email';
   }
 };
 
@@ -31,15 +35,21 @@ export const step = (action, from, to) => {
     case 'YouEnterEmail':
       return 'you tap Keep my groups and enter your email';
     case 'CodeNotSent':
-      return "the code can't be sent";
+      return null;
     case 'CodeSent':
       return 'a 6-digit code is emailed';
     case 'YouCancel':
-      return 'you cancel';
+      return null;
     case 'YouEnterTheCode':
       return 'you enter the code';
+    case 'ReleaseReachesServer':
+      return 'the server has it';
+    case 'ReleaseNoSignal':
+      return 'no signal: your name is taken back, try again';
+    case 'YouPickInAnotherTab':
+      return 'you pick a name in another tab';
     case 'WrongCode':
-      return 'the code is wrong';
+      return from.name === 'anon' && from.mode === 'sign-in' ? null : 'the code is wrong';
     case 'CodeAccepted':
       if (from.mode === 'link') return 'the code is right [new email: it joins this phone]';
       return 'the code is right [email has an account: the phone switches to it]';

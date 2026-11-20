@@ -27,10 +27,12 @@ CONSTANTS
   Phones,       \* e.g. {p1, p2}
   TwoTabs,      \* TRUE: a home tab and a group tab per phone. FALSE: one tab does both
   MaxUser,      \* new user ids are 1..MaxUser; Ben is 0
-  MaxOps,       \* bound on claims a phone submits
+  MaxOps,       \* op ids the person's own claims may use; carrying names adds up to 4 more
+  ClaimDuringSignIn, \* FALSE: nobody picks a name on the phone while its sign-in code is checked
   Members,      \* the group's members, e.g. {"ana", "ben"}
   Broken        \* "none", or a deliberately broken variant: "no-adopt", "sign-out-forgets",
-                \* "no-find-add", "claim-steals", "no-reenter", "no-session-lock"
+                \* "no-find-add", "claim-steals", "no-reenter", "no-session-lock", "no-release",
+                \* "reclaim-early", "reclaim-ignores-own"
 
 Ben == 0
 NoUser == -1
@@ -72,27 +74,31 @@ VARIABLES
   badStamp,     \* a change went out as a user other than the "you" its tab had seen
   everHeld,     \* the phone held G at some point
   signedInHad,  \* the phone signed in to the account while the account was in G
-  replacedAnon  \* signInAnonymously replaced a session the phone had stored
+  replacedAnon, \* signInAnonymously replaced a session the phone had stored
+  nameReplaced  \* carryNames.reclaim claimed for an account that already held another member
 
 server == <<emailOwner, members, slog, nextUser, nextOp>>
 phone == <<sess, held, memberAs, outbox, confirmed, pulled>>
 tab == <<seen, upToDate, acct, loadSt, anonWait, find, run, runUser, requested, syncSt, join>>
-ghost == <<badStamp, everHeld, signedInHad, replacedAnon>>
+ghost == <<badStamp, everHeld, signedInHad, replacedAnon, nameReplaced>>
 vars == <<server, phone, tab, ghost>>
 
 Linked(u) == u # NoUser /\ u = emailOwner
 SessionOf(u) == [u |-> u, linked |-> Linked(u)]
 NoSession == [u |-> NoUser, linked |-> FALSE]
+\* accountMachine EmailSignIn idle. `carried` is the name carryNames.release gave up (sign-in).
+Idle == [step |-> "idle", mode |-> None, linkUser |-> NoUser, carried |-> None]
 
 (***************************************************************************)
-(* logic/fold.ts foldLedger, member.claimed: an author's claim moves them  *)
-(* to the member, unless another author holds it (isHeldByAnother).        *)
+(* logic/fold.ts foldLedger -> logic/claims.ts stepClaim: an author's claim *)
+(* moves them to the member (or to nobody), unless another author holds    *)
+(* it: the first to claim keeps a member. No merges here.                  *)
 (***************************************************************************)
 RECURSIVE FoldClaims(_, _)
 FoldClaims(s, c) ==
   IF s = <<>> THEN c
   ELSE LET op == Head(s)
-           heldByAnother == \E a \in Authors : a # op.a /\ c[a] = op.m
+           heldByAnother == op.m # None /\ \E a \in Authors : a # op.a /\ c[a] = op.m
        IN FoldClaims(Tail(s),
             IF heldByAnother /\ Broken # "claim-steals" THEN c
             ELSE [c EXCEPT ![op.a] = op.m])
@@ -154,7 +160,7 @@ Init ==
   /\ pulled = [p \in Phones |-> FALSE]
   /\ seen = [k \in TabIds |-> NoSession]
   /\ upToDate = [k \in TabIds |-> TRUE]
-  /\ acct = [k \in TabIds |-> [step |-> "idle", mode |-> None, linkUser |-> NoUser]]
+  /\ acct = [k \in TabIds |-> Idle]
   /\ loadSt = [k \in TabIds |-> IF k[2] = Home THEN "todo" ELSE "done"]
   /\ anonWait = [k \in TabIds |-> FALSE]
   /\ find = [k \in TabIds |-> FALSE]
@@ -167,6 +173,7 @@ Init ==
   /\ everHeld = [p \in Phones |-> FALSE]
   /\ signedInHad = [p \in Phones |-> FALSE]
   /\ replacedAnon = FALSE
+  /\ nameReplaced = FALSE
 
 (***************************************************************************)
 (* Sessions                                                                *)
@@ -211,7 +218,7 @@ AnonSignedIn(p, t) ==
   /\ Resolve(k, u)
   /\ replacedAnon' = (replacedAnon \/ sess[p] # NoUser)
   /\ UNCHANGED <<emailOwner, members, slog, nextOp, held, memberAs, outbox, confirmed, pulled,
-                 acct, requested, syncSt, join, badStamp, everHeld, signedInHad>>
+                 acct, requested, syncSt, join, badStamp, everHeld, signedInHad, nameReplaced>>
 
 \* getSession finds the session another tab stored, and this tab's waiters take it.
 SessionFound(p, t) ==
@@ -252,28 +259,112 @@ SendCode(p, t) ==
   /\ ~Linked(sess[p])
   /\ acct' = [acct EXCEPT ![k] =
         IF emailOwner = NoUser
-          THEN [step |-> "code-sent", mode |-> "link", linkUser |-> sess[p]]
-          ELSE [step |-> "code-sent", mode |-> "sign-in", linkUser |-> NoUser]]
+          THEN [Idle EXCEPT !.step = "code-sent", !.mode = "link", !.linkUser = sess[p]]
+          ELSE [Idle EXCEPT !.step = "code-sent", !.mode = "sign-in"]]
   /\ UNCHANGED <<server, phone, seen, upToDate, loadSt, anonWait, find, run, runUser, requested,
                  syncSt, join, ghost>>
 
-\* verifyOtp stores the session it returns, and accountStore takes it ('code-accepted').
-\* Link: the email joins the user that asked (email_change). Sign-in: the phone becomes the owner.
-VerifyCode(p, t) ==
+\* Link: verifyOtp (email_change) attaches the email to the user that asked, stores the session
+\* it returns, and accountStore takes it ('code-accepted'). A wrong code changes nothing.
+VerifyLink(p, t) ==
   LET k == <<p, t>>
-      a == acct[k]
-      u == IF a.mode = "link" THEN a.linkUser ELSE emailOwner
+      u == acct[k].linkUser
   IN
-  /\ a.step = "code-sent"
-  /\ a.mode = "link" => emailOwner = NoUser
-  /\ emailOwner' = IF a.mode = "link" THEN a.linkUser ELSE emailOwner
+  /\ acct[k].step = "code-sent" /\ acct[k].mode = "link"
+  /\ emailOwner = NoUser
+  /\ emailOwner' = u
   /\ WriteSess(p, u, k, TRUE)
-  /\ acct' = [acct EXCEPT ![k] = [step |-> "idle", mode |-> None, linkUser |-> NoUser]]
+  /\ acct' = [acct EXCEPT ![k] = Idle]
   /\ Become(k, [u |-> u, linked |-> TRUE])
-  /\ signedInHad' = [signedInHad EXCEPT ![p] = signedInHad[p] \/ (a.mode = "sign-in" /\ u \in members)]
   /\ UNCHANGED <<members, slog, nextUser, nextOp, held, memberAs, outbox, confirmed, pulled,
-                 loadSt, anonWait, run, runUser, requested, syncSt, join, badStamp, everHeld,
-                 replacedAnon>>
+                 loadSt, anonWait, run, runUser, requested, syncSt, join, ghost>>
+
+\* Appends a member.claimed for m (None is "nobody") to the device log and syncs this tab's
+\* engine: groupActions.claim -> GroupSync.submit, as sync/carryNames.ts `claim` does.
+SubmitClaim(p, k, m) ==
+  /\ outbox' = [outbox EXCEPT ![p] = Append(outbox[p], [id |-> nextOp, m |-> m])]
+  /\ nextOp' = nextOp + 1
+  /\ SyncNowSet(k)
+
+\* Sign-in, accountStore.verifyEmailCode up to its first await: 'code-entered', then
+\* carryNames.release as the user the store shows: the name it holds in G is given up
+\* (member.claimed null), and every group's syncNow is awaited.
+ReleaseNames(p, t) ==
+  LET k == <<p, t>>
+      m == IF held[p] /\ seen[k].u # NoUser THEN Me(p, t) ELSE None
+  IN
+  /\ acct[k].step = "code-sent" /\ acct[k].mode = "sign-in"
+  /\ acct' = [acct EXCEPT ![k].step = "releasing", ![k].carried = m]
+  /\ IF m # None /\ Broken # "no-release"
+       THEN SubmitClaim(p, k, None)
+       ELSE UNCHANGED <<outbox, nextOp, run, requested>>
+  /\ UNCHANGED <<emailOwner, members, slog, nextUser, sess, held, memberAs, confirmed, pulled,
+                 seen, upToDate, loadSt, anonWait, find, runUser, syncSt, join, ghost>>
+
+\* The awaited syncs have ended (this tab's engine is no longer running). If a give-up is
+\* still in the outbox, carryNames.restore claims the name back and the store refuses the
+\* code as offline, without checking it.
+ReleaseDone(p, t) ==
+  LET k == <<p, t>>
+      m == acct[k].carried
+      sent == m = None \/ outbox[p] = <<>>
+  IN
+  /\ acct[k].step = "releasing"
+  /\ run[k] = "none"
+  /\ IF sent
+       THEN /\ acct' = [acct EXCEPT ![k].step = "checking"]
+            /\ UNCHANGED <<outbox, nextOp, run, requested>>
+       ELSE /\ acct' = [acct EXCEPT ![k].step = "code-sent", ![k].carried = None]
+            /\ SubmitClaim(p, k, m)
+  /\ UNCHANGED <<emailOwner, members, slog, nextUser, sess, held, memberAs, confirmed, pulled,
+                 seen, upToDate, loadSt, anonWait, find, runUser, syncSt, join, ghost>>
+
+\* backend.verifyEmailCode refuses the code: carryNames.restore claims the name back as the
+\* same user, and the store asks for the code again ('code-refused').
+WrongCode(p, t) ==
+  LET k == <<p, t>>
+      m == acct[k].carried
+  IN
+  /\ acct[k].step = "checking"
+  /\ acct' = [acct EXCEPT ![k].step = "code-sent", ![k].carried = None]
+  /\ IF m # None THEN SubmitClaim(p, k, m) ELSE UNCHANGED <<outbox, nextOp, run, requested>>
+  /\ UNCHANGED <<emailOwner, members, slog, nextUser, sess, held, memberAs, confirmed, pulled,
+                 seen, upToDate, loadSt, anonWait, find, runUser, syncSt, join, ghost>>
+
+\* verifyOtp (email) stores the account's session and the store takes it ('code-accepted'),
+\* which asks for findGroups; the store then awaits it before reclaiming.
+VerifySignIn(p, t) ==
+  LET k == <<p, t>>
+      u == emailOwner
+  IN
+  /\ acct[k].step = "checking"
+  /\ WriteSess(p, u, k, TRUE)
+  /\ acct' = [acct EXCEPT ![k].step = "finding"]
+  /\ Become(k, [u |-> u, linked |-> TRUE])
+  /\ signedInHad' = [signedInHad EXCEPT ![p] = signedInHad[p] \/ u \in members]
+  /\ UNCHANGED <<emailOwner, members, slog, nextUser, nextOp, held, memberAs, outbox, confirmed,
+                 pulled, loadSt, anonWait, run, runUser, requested, syncSt, join, badStamp,
+                 everHeld, replacedAnon, nameReplaced>>
+
+\* carryNames.reclaim, once findGroups (myGroups, then syncAllGroups awaited) has ended: fold
+\* as the account; claim the carried name only if the account holds no member in G and
+\* nobody holds the name. Records whether the account's name on the server gets replaced.
+Reclaim(p, t) ==
+  LET k == <<p, t>>
+      m == acct[k].carried
+      a == seen[k].u
+      claims == m # None /\ (Me(p, t) = None \/ Broken = "reclaim-ignores-own")
+                /\ m \notin Taken(p, t)
+  IN
+  /\ IF Broken = "reclaim-early"
+       THEN acct[k].step \in {"finding", "syncing-all"}
+       ELSE acct[k].step = "syncing-all" /\ run[k] = "none"
+  /\ acct' = [acct EXCEPT ![k] = Idle]
+  /\ IF claims THEN SubmitClaim(p, k, m) ELSE UNCHANGED <<outbox, nextOp, run, requested>>
+  /\ nameReplaced' = (nameReplaced \/ (claims /\ ServerClaims[a] \notin {None, m}))
+  /\ UNCHANGED <<emailOwner, members, slog, nextUser, sess, held, memberAs, confirmed, pulled,
+                 seen, upToDate, loadSt, anonWait, find, runUser, syncSt, join, badStamp,
+                 everHeld, signedInHad, replacedAnon>>
 
 \* signOut({scope: 'local'}) drops the stored session, then accountStore calls load.
 SignOut(p, t) ==
@@ -287,10 +378,11 @@ SignOut(p, t) ==
   /\ held' = IF Broken = "sign-out-forgets" THEN [held EXCEPT ![p] = FALSE] ELSE held
   /\ signedInHad' = [signedInHad EXCEPT ![p] = FALSE]
   /\ UNCHANGED <<server, memberAs, outbox, confirmed, pulled, seen, acct, anonWait, find, run,
-                 runUser, requested, syncSt, join, badStamp, everHeld, replacedAnon>>
+                 runUser, requested, syncSt, join, badStamp, everHeld, replacedAnon, nameReplaced>>
 
 \* sync/accountStore.ts adoptAccountGroups: myGroups as the phone's user adds what it is in,
-\* then syncAllGroups. Assumes myGroups answers (no signal is not modelled here).
+\* then syncAllGroups. Assumes myGroups answers (no signal is not modelled here). A sign-in
+\* waiting on it (verifyEmailCode awaits the 'code-accepted' dispatch) then waits for the syncs.
 FindGroups(p, t) ==
   LET k == <<p, t>>
       nowHeld == held[p] \/ (sess[p] \in members /\ Broken # "no-find-add")
@@ -301,8 +393,10 @@ FindGroups(p, t) ==
   /\ held' = [held EXCEPT ![p] = nowHeld]
   /\ everHeld' = [everHeld EXCEPT ![p] = everHeld[p] \/ nowHeld]
   /\ IF nowHeld THEN SyncNowSet(k) ELSE UNCHANGED <<run, requested>>
-  /\ UNCHANGED <<server, sess, memberAs, outbox, confirmed, pulled, seen, upToDate, acct,
-                 loadSt, anonWait, runUser, syncSt, join, badStamp, signedInHad, replacedAnon>>
+  /\ acct' = IF acct[k].step = "finding" THEN [acct EXCEPT ![k].step = "syncing-all"] ELSE acct
+  /\ UNCHANGED <<server, sess, memberAs, outbox, confirmed, pulled, seen, upToDate,
+                 loadSt, anonWait, runUser, syncSt, join, badStamp, signedInHad, replacedAnon,
+                 nameReplaced>>
 
 (***************************************************************************)
 (* Joining (hooks/useJoinGroup.ts) and claiming (components/group/WhoAreYou) *)
@@ -329,7 +423,7 @@ Joined(p, t) ==
   /\ SyncNowSet(k)
   /\ UNCHANGED <<emailOwner, slog, nextUser, nextOp, sess, memberAs, outbox, confirmed, pulled,
                  seen, upToDate, acct, loadSt, anonWait, find, runUser, syncSt, badStamp,
-                 signedInHad, replacedAnon>>
+                 signedInHad, replacedAnon, nameReplaced>>
 
 \* No signal: JoinScreen says joining needs a signal; "Try again" retries.
 JoinOffline(p, t) ==
@@ -352,9 +446,9 @@ Claim(p, t, m) ==
   LET k == <<p, t>> IN
   /\ held[p] /\ pulled[p]
   /\ seen[k].u # NoUser
+  /\ ClaimDuringSignIn \/ acct[<<p, Home>>].step \in {"idle", "code-sent"}
   /\ Me(p, t) = None
   /\ m \notin Taken(p, t)
-  /\ nextOp <= MaxOps
   /\ outbox' = [outbox EXCEPT ![p] = Append(outbox[p], [id |-> nextOp, m |-> m])]
   /\ nextOp' = nextOp + 1
   /\ SyncNowSet(k)
@@ -420,7 +514,7 @@ RunPush(p, t) ==
             /\ requested' = [requested EXCEPT ![k] = FALSE]
             /\ UNCHANGED <<slog, badStamp>>
   /\ UNCHANGED <<emailOwner, members, nextUser, nextOp, phone, seen, upToDate, acct, loadSt,
-                 anonWait, find, runUser, join, everHeld, signedInHad, replacedAnon>>
+                 anonWait, find, runUser, join, everHeld, signedInHad, replacedAnon, nameReplaced>>
 
 \* pushPending's reenter = enterAsUser: joins as the stored session, records the run's user.
 RunReenter(p, t) ==
@@ -457,7 +551,12 @@ Next ==
   \E p \in Phones :
     \/ Load(p, Home)
     \/ SendCode(p, Home)
-    \/ VerifyCode(p, Home)
+    \/ VerifyLink(p, Home)
+    \/ ReleaseNames(p, Home)
+    \/ ReleaseDone(p, Home)
+    \/ WrongCode(p, Home)
+    \/ VerifySignIn(p, Home)
+    \/ Reclaim(p, Home)
     \/ SignOut(p, Home)
     \/ OpenLink(p, GroupTab)
     \/ Joined(p, GroupTab)
@@ -512,6 +611,13 @@ NoOrphanedMember ==
 
 \* 7. A phone makes one anonymous user: signInAnonymously never replaces a stored session.
 OneAnonymousUserPerPhone == ~replacedAnon
+
+\* 8. Carrying a name over on sign-in never takes the account off a member it already holds.
+CarryKeepsAccountName == ~nameReplaced
+
+\* Release, restore and reclaim add ops on every try, so retrying a sign-in could grow the log
+\* without end: TLC stops exploring past this many op ids.
+OpBound == nextOp <= MaxOps + 4
 
 TypeOK ==
   /\ sess \in [Phones -> Users \cup {NoUser}]
