@@ -170,6 +170,23 @@ describe('sync machine', () => {
     expect(state).toBe('idle');
   });
 
+  it('stops a pull of several pages when storage keeps none of them, rather than pulling in a loop', () => {
+    const { effects, state } = drive([
+      asked,
+      sessionOk,
+      pulled(confirmedOf(2), true),
+      stored(0),
+      pulled(confirmedOf(4).slice(2), true),
+      stored(0),
+    ]);
+
+    expect(state).toBe('idle');
+    expect(effects.filter((effect) => effect.type === 'pull')).toEqual([
+      { type: 'pull', afterSeq: 0 },
+      { type: 'pull', afterSeq: 2 },
+    ]);
+  });
+
   it('pulls from the first op it could not read, once', () => {
     const world = reads({ confirmed: confirmedOf(5, 3) });
 

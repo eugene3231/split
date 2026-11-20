@@ -41,6 +41,8 @@ export type RunStep =
       afterSeq: number;
       last: number;
       more: boolean;
+      /** How long the stored log was before this page, to tell a full store from a cut one. */
+      storedBefore: number;
       pushFailure: BackendFailure | null;
     };
 
@@ -362,7 +364,13 @@ function stepRun(
     const last = result.value.ops.at(-1);
     if (!last) return reachedHead(machine, again, step.pushFailure, reads);
     const { afterSeq, pushFailure } = step;
-    const confirming = { at: 'confirming' as const, afterSeq, last: last.seq, pushFailure };
+    const confirming = {
+      at: 'confirming' as const,
+      afterSeq,
+      last: last.seq,
+      storedBefore: reads.confirmed().length,
+      pushFailure,
+    };
     return {
       machine: withStep(machine, again, { ...confirming, more: result.value.more }),
       effects: [{ type: 'confirm', ops: result.value.ops }],
@@ -375,9 +383,14 @@ function stepRun(
       machine: withStep(held, again, { at: 'pulling', afterSeq, pushFailure: step.pushFailure }),
       effects: [{ type: 'pull', afterSeq }],
     });
-    // Another tab wrote back a log shorter than where this page starts, so this tab's write
-    // kept only the part before the gap. A store that is full leaves it at `afterSeq`: no retry.
-    if (event.held < step.afterSeq) return pull(event.held);
+    // Stored short of where this page starts. When the write kept nothing, the store is full:
+    // stop, since pulling the page again would store nothing again. Otherwise another tab wrote
+    // back a shorter log and this tab's write kept only the part before the gap: pull again.
+    if (event.held < step.afterSeq) {
+      if (event.held === step.storedBefore)
+        return reachedHead(held, again, step.pushFailure, reads);
+      return pull(event.held);
+    }
     if (step.more) return pull(step.last);
     return reachedHead(held, again, step.pushFailure, reads);
   }

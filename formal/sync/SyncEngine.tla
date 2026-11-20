@@ -308,10 +308,15 @@ ConfirmWrite(t) ==
         left == outbox[p] \ retired
         last == r.net.after + Len(r.net.ops)
         held == Len(merged)
-        \* stepSync 'confirmed': a write cut short below this page's start pulls again from there.
-        cut == held < r.net.after /\ Variant # "snapshot-shrink-check"
+        \* stepSync 'confirmed': stored short of this page's start. A write that kept nothing
+        \* (the stored log is as long as before the page, `storedBefore`) is taken for a full store
+        \* and ends the run; any other short write was cut by another tab and pulls again.
+        short == held < r.net.after
+        full == short /\ held = Len(r.net.readBuf)
+        cut == short /\ ~full /\ Variant # "snapshot-shrink-check"
         kept == [r EXCEPT !.heldHead = IF held > @ THEN held ELSE @]
-        next == CASE cut -> [kept EXCEPT !.net = Send("pull", <<>>, held, FALSE)]
+        next == CASE full -> Settle(kept, IF r.pushFailed THEN "retry" ELSE "ok")
+                  [] cut -> [kept EXCEPT !.net = Send("pull", <<>>, held, FALSE)]
                   [] r.net.more -> [kept EXCEPT !.net = Send("pull", <<>>, last, FALSE)]
                   [] OTHER -> Settle(kept, IF r.pushFailed THEN "retry" ELSE "ok")
         wrote == Hear(tab, t, FALSE)
