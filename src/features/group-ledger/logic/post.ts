@@ -71,6 +71,29 @@ export function postReceipt(
   return post(header, owed, { kind: 'receipt', receipt: storedReceipt(receipt) });
 }
 
+/**
+ * An edited receipt, keeping the cents it was saved with while nothing that splits it changed:
+ * same items, charges and shares, only the name, payer or rate. A merge since it was saved would
+ * otherwise split the same receipt over fewer people and move a cent onto someone outside it.
+ */
+export function keepSavedCents(entry: ExpenseEntry, saved: ExpenseEntry | null): ExpenseEntry {
+  if (saved === null || saved.basis.kind !== 'receipt' || entry.basis.kind !== 'receipt') {
+    return entry;
+  }
+  const splitOf = (receipt: StoredReceipt) => canonicalJson({ ...receipt, name: '' });
+  if (splitOf(entry.basis.receipt) !== splitOf(saved.basis.receipt)) return entry;
+  return { ...entry, owed: saved.owed };
+}
+
+/** JSON with every object's keys sorted, so two values compare equal however they were built. */
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(value, (_key, inner: unknown) =>
+    inner !== null && typeof inner === 'object' && !Array.isArray(inner)
+      ? Object.fromEntries(Object.entries(inner).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+      : inner,
+  );
+}
+
 function storedReceipt(receipt: StoredReceipt): StoredReceipt {
   return {
     id: receipt.id,

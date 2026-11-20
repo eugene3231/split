@@ -402,6 +402,79 @@ describe('a group', () => {
     await waitFor(() => expect(ledgerOf(groupId).entries).toEqual([]));
   });
 
+  function postSharedReceipt(groupId: GroupId, cents: string, title: string) {
+    const members = ledgerOf(groupId).members;
+    const everyone = Object.fromEntries(members.map((member) => [member.id, 1]));
+    const entry = postReceipt(
+      {
+        id: newEntryId(),
+        title,
+        date: asLocalDate('2026-11-19'),
+        currency: 'SGD',
+        rate: 1,
+        payment: { payer: members[0].id, others: {} },
+      },
+      makeReceipt({
+        name: title,
+        items: [
+          makeItem({ amountInput: cents, assignment: { shares: everyone, unassignedShare: 0 } }),
+        ],
+      }),
+      members,
+    );
+    if (!entry) throw new Error('receipt did not post');
+    groupSyncFor(groupId)?.submit({ kind: 'entry.put', entry, base: null });
+    return entry;
+  }
+
+  const toSaveStep = () => {
+    while (!screen.queryByTestId('save-receipt-to-group')) {
+      fireEvent.click(screen.getByTestId('wizard-continue-btn'));
+    }
+  };
+
+  it('keeps the payer picked on a receipt after going back a step and returning', async () => {
+    const groupId = makeGroup(['Ben']);
+    const [, ben] = ledgerOf(groupId).members.map((member) => member.id);
+    const entry = postSharedReceipt(groupId, '30.00', 'Dinner');
+    render(<App />);
+    go(`/g/${groupId}/e/${entry.id}`);
+
+    toSaveStep();
+    fireEvent.change(screen.getByLabelText('Paid by'), { target: { value: ben } });
+    fireEvent.click(screen.getByTestId('wizard-back-btn'));
+    toSaveStep();
+    fireEvent.click(screen.getByTestId('save-receipt-to-group'));
+
+    await waitFor(() =>
+      expect(ledgerOf(groupId).entries[0].entry).toMatchObject({ payment: { payer: ben } }),
+    );
+  });
+
+  it('saves a receipt opened after a merge with the cents it already had', async () => {
+    const groupId = makeGroup(['Ben', 'Cat']);
+    // $10.01 three ways is 334, 334 and 333: the extra cents go to the two lowest ids. Merging
+    // those two gives 668 and 333, which splitting the receipt again would make 667 and 334.
+    const [first, second] = ledgerOf(groupId)
+      .members.map((member) => member.id)
+      .toSorted();
+    const entry = postSharedReceipt(groupId, '10.01', 'Snacks');
+    groupSyncFor(groupId)?.submit({ kind: 'member.merged', from: first, into: second });
+    const before = ledgerOf(groupId).entries[0].entry;
+    render(<App />);
+    go(`/g/${groupId}/e/${entry.id}`);
+
+    toSaveStep();
+    fireEvent.click(screen.getByTestId('save-receipt-to-group'));
+
+    expect(await screen.findByText('Saved Snacks')).toBeInTheDocument();
+    const after = ledgerOf(groupId).entries[0];
+    expect(after.rev).not.toBe(entry.id);
+    if (before.kind !== 'expense' || after.entry.kind !== 'expense')
+      throw new Error('not an expense');
+    expect(after.entry.owed).toEqual(before.owed);
+  });
+
   it('opens a saved receipt in the receipt editor and saves it back with a new payer', async () => {
     const groupId = makeGroup(['Ben']);
     const [ana, ben] = ledgerOf(groupId).members.map((member) => member.id);

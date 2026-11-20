@@ -7,6 +7,7 @@ import type { StoredReceipt } from '@features/group-ledger/domain/types';
 import { asEntryId, asLocalDate } from './ids';
 import { parseChange } from './codec';
 import {
+  keepSavedCents,
   paidBy,
   postAmounts,
   postReceipt,
@@ -295,5 +296,35 @@ describe('postReceipt properties', () => {
         },
       ),
     );
+  });
+});
+
+describe('keepSavedCents', () => {
+  const receipt = makeReceipt({ items: [makeItem('a', '10.01', { [ana]: 1, [ben]: 1 })] });
+  const saved = postReceipt(header, receipt, members)!;
+  const movedCent = { ...saved, owed: { [ana]: 500, [ben]: 501 } };
+
+  it('keeps the cents a receipt was saved with when only its name or payer changed', () => {
+    const renamed = postReceipt(
+      { ...header, title: 'Supper', payment: { payer: ben, others: {} } },
+      { ...receipt, name: 'Supper' },
+      members,
+    )!;
+
+    expect(keepSavedCents(renamed, movedCent).owed).toEqual(movedCent.owed);
+  });
+
+  it('splits the receipt again once an item changes', () => {
+    const changed = postReceipt(
+      header,
+      { ...receipt, items: [makeItem('a', '12.00', { [ana]: 1, [ben]: 1 })] },
+      members,
+    )!;
+
+    expect(keepSavedCents(changed, movedCent).owed).toEqual(changed.owed);
+  });
+
+  it('leaves a new receipt as posted', () => {
+    expect(keepSavedCents(saved, null)).toBe(saved);
   });
 });

@@ -4,7 +4,7 @@ import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
 import { TOO_BIG, entryFits, receiptRate } from '@features/group-ledger/logic/expenseForm';
 import { newEntryId, todayLocalDate } from '@features/group-ledger/logic/ids';
 import { memberLabel } from '@features/group-ledger/logic/describe';
-import { postReceipt } from '@features/group-ledger/logic/post';
+import { keepSavedCents, postReceipt } from '@features/group-ledger/logic/post';
 import { showToast } from '@features/group-ledger/stores/toastStore';
 import { actionBarButtonClass } from '@features/group-ledger/components/ui/classes';
 import { Icon } from '@features/group-ledger/components/ui/IconButton';
@@ -29,6 +29,7 @@ export function GroupReceiptEditor({ group, editing }: GroupReceiptEditorProps) 
   const back = () => navigate({ kind: 'group', groupId: ledger.groupId });
   const initial = editing ? initialReceipt(editing.entry) : undefined;
   const [base] = useState(() => editing && receiptDraftBase(draftKey, editing.rev));
+  const [payer, setPayer] = useState<MemberId>(() => editing?.entry.payment.payer ?? ledger.me);
 
   return (
     <ReceiptEditor
@@ -42,6 +43,8 @@ export function GroupReceiptEditor({ group, editing }: GroupReceiptEditorProps) 
           members={members}
           editing={editing}
           base={base}
+          payer={payer}
+          onPayerChange={setPayer}
           receipt={receipt}
           draftKey={draftKey}
         />
@@ -56,21 +59,32 @@ interface SaveToGroupProps {
   editing: { entry: ExpenseEntry; rev: OpId } | null;
   /** The revision the draft began on; null for a new receipt. */
   base: OpId | null;
+  /** Held by the editor, which stays mounted across steps, so going back keeps the pick. */
+  payer: MemberId;
+  onPayerChange: (payer: MemberId) => void;
   receipt: SavedReceipt;
   draftKey: string;
 }
 
-function SaveToGroup({ group, members, editing, base, receipt, draftKey }: SaveToGroupProps) {
+function SaveToGroup({
+  group,
+  members,
+  editing,
+  base,
+  payer,
+  onPayerChange,
+  receipt,
+  draftKey,
+}: SaveToGroupProps) {
   const { ledger, act } = group;
   const rates = useCurrencyStore((state) => state.exchangeRates);
   const [entryId] = useState(() => editing?.entry.id ?? newEntryId());
-  const [payer, setPayer] = useState<MemberId>(() => editing?.entry.payment.payer ?? ledger.me);
   const saved = editing && {
     currency: editing.entry.currency,
     override: initialReceipt(editing.entry)?.exchangeRateOverride ?? null,
     rate: editing.entry.rate,
   };
-  const entry = postReceipt(
+  const posted = postReceipt(
     {
       id: entryId,
       title: receipt.name.trim() || 'Receipt',
@@ -87,6 +101,7 @@ function SaveToGroup({ group, members, editing, base, receipt, draftKey }: SaveT
     receipt,
     members,
   );
+  const entry = posted && keepSavedCents(posted, editing?.entry ?? null);
 
   const fits = entry !== null && entryFits(entry);
 
@@ -108,7 +123,7 @@ function SaveToGroup({ group, members, editing, base, receipt, draftKey }: SaveT
           label="Paid by"
           value={payer}
           options={members.map((member) => ({ value: member.id, label: member.name }))}
-          onChange={setPayer}
+          onChange={onPayerChange}
           className="flex min-w-0 flex-1 flex-col justify-center rounded-2xl py-1 pl-3 hover:bg-white/10"
         >
           <span className="text-xs text-white/60">Paid by</span>
