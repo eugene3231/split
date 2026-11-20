@@ -1,4 +1,4 @@
-import { useHoldAppUpdate } from '@features/group-ledger/hooks/useHoldAppUpdate';
+import { useHoldAppUpdate } from '@shared/hooks/useHoldAppUpdate';
 import { useState } from 'react';
 import type { CurrencyCode } from '@shared/constants';
 import type { EditingExpense } from '@features/group-ledger/domain/types';

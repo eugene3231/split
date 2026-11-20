@@ -1,3 +1,4 @@
+import { useHoldAppUpdate } from '@shared/hooks/useHoldAppUpdate';
 import type { ReactNode } from 'react';
 import { useShallow } from 'zustand/shallow';
 import {
@@ -38,6 +39,8 @@ export function WizardLayout({
   children,
   footer,
 }: WizardLayoutProps) {
+  // A picked receipt photo and a scan on its way live only in memory, so a reload loses them.
+  useHoldAppUpdate();
   const { people, receipts } = useReceiptStore(
     useShallow((state) => ({ people: state.people, receipts: state.receipts })),
   );

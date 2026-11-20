@@ -27,6 +27,7 @@ import { DEFAULT_GEMINI_MODEL } from '@features/receipt-scanner/constants';
 import { useGeminiStore } from '@features/split-workspace/stores/geminiStore';
 import { quickSplitStore } from '@features/split-workspace/stores/receiptStore';
 import { savePersistedDraft } from '@features/split-workspace/logic/draftStorage';
+import { appUpdateHeld } from '@shared/logic/appUpdateHold';
 import { navigate } from '@shared/routing';
 import App from '../App';
 import { makeItem, makeReceipt } from '../tests/integration/testHelpers';
@@ -718,6 +719,21 @@ describe('a group', () => {
     });
 
     expect(screen.getByLabelText('What was it for?')).toHaveValue('Team lunch');
+  });
+
+  it('holds an app update while a receipt wizard is open, since a picked photo or a scan lives only in memory', () => {
+    const groupId = makeGroup(['Ben']);
+    render(<App />);
+
+    go('/split');
+    const quickSplit = appUpdateHeld();
+    go(`/g/${groupId}/receipt`);
+    const groupReceipt = appUpdateHeld();
+    go('/');
+
+    expect(quickSplit).toBe(true);
+    expect(groupReceipt).toBe(true);
+    expect(appUpdateHeld()).toBe(false);
   });
 
   it('cancels a new receipt back to the group', () => {

@@ -1,4 +1,4 @@
-import { useHoldAppUpdate } from '@features/group-ledger/hooks/useHoldAppUpdate';
+import { useHoldAppUpdate } from '@shared/hooks/useHoldAppUpdate';
 import { useState } from 'react';
 import type { OpId, TransferEntry } from '@features/group-ledger/domain/types';
 import type { MyGroup } from '@features/group-ledger/hooks/useGroup';
