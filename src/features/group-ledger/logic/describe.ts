@@ -188,8 +188,12 @@ export interface ShareWords {
 }
 
 /** What an entry did to this phone's member, in group currency: "you lent" $9.00. */
-export function describeMyShare(entry: Entry, ledger: MyLedger): ShareWords {
-  const cents = entryEffect(entry)[ledger.me] ?? 0;
+export function describeMyShare(
+  entry: Entry,
+  ledger: MyLedger,
+  effect: Record<MemberId, Cents> = entryEffect(entry),
+): ShareWords {
+  const cents = effect[ledger.me] ?? 0;
   const direction = directionOf(cents);
   const transfer = entry.kind === 'transfer';
   const label = {

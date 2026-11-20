@@ -2,6 +2,7 @@ import type { CurrencyCode } from '@shared/constants';
 import type {
   Activity,
   ActivityWhat,
+  Cents,
   Change,
   Entry,
   EntryId,
@@ -17,8 +18,9 @@ import {
   stepClaim,
   type ClaimBook,
 } from '@features/group-ledger/logic/claims';
+import { entryEffect } from '@features/group-ledger/logic/balances';
 import { ABSENT, stepEntry, type EntryState } from '@features/group-ledger/logic/entryLifecycle';
-import { asMemberId, byCodeUnit } from '@features/group-ledger/logic/ids';
+import { asMemberId, byCodeUnit, memberIdsOf } from '@features/group-ledger/logic/ids';
 import {
   activeMember,
   activeMembers,
@@ -117,7 +119,12 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
     entries: [...state.entries.values()]
       .filter((head) => head.kind === 'live')
       .sort((a, b) => byCodeUnit(b.entry.date, a.entry.date) || b.position - a.position)
-      .map(({ entry, rev, pending }) => ({ entry: current(entry), rev, pending })),
+      .map(({ entry, rev, pending }) => ({
+        entry: current(entry),
+        effect: merged ? resolveEffect(entryEffect(entry), resolve) : entryEffect(entry),
+        rev,
+        pending,
+      })),
     me: liveMember(state.claims.get(me) ?? null),
     claimed: new Set([...state.claims.values()].map(liveMember).filter((id) => id !== null)),
     activity: activity
@@ -129,6 +136,18 @@ export function foldLedger(log: GroupLog, self: UserId | null): Ledger | null {
       }))
       .reverse(),
   };
+}
+
+function resolveEffect(
+  effect: Record<MemberId, Cents>,
+  resolve: (id: MemberId) => MemberId,
+): Record<MemberId, Cents> {
+  const resolved: Record<MemberId, Cents> = {};
+  for (const id of memberIdsOf(effect)) {
+    const into = resolve(id);
+    resolved[into] = (resolved[into] ?? 0) + effect[id];
+  }
+  return resolved;
 }
 
 function resolveWhat(what: ActivityWhat, current: (entry: Entry) => Entry): ActivityWhat {

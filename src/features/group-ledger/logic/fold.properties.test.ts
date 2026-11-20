@@ -365,17 +365,9 @@ describe('ledger fold properties', () => {
       examples: [claimedTwiceByAMerge],
     });
   });
-});
 
-/**
- * Properties the code breaks today. Each runs its smallest counterexample first, so it fails on
- * every run; `it.fails` keeps the suite green while that is so. Once the code is fixed the test
- * turns red: change `it.fails` back to `it` and move it up. Never loosen one to make it pass.
- */
-describe('ledger fold properties the code breaks today', () => {
   // A ¥3 expense, ¥1 each for m0, m1 and m2, paid by m0, at 0.005 SGD per yen: 2 SGD cents in
-  // all. m2 is even. Merging m0 into m1 rounds the 2 cents across two shares instead of three,
-  // and m2 owes 1 cent though m2 was not part of the merge.
+  // all. m2 is even. Merging m0 into m1 must leave m2 even: the effect is worked out before the merge.
   const roundingAcrossAMerge: [ConfirmedOp[], number, number] = [
     [
       confirmed(1, created, PHONES[0]),
@@ -400,15 +392,12 @@ describe('ledger fold properties the code breaks today', () => {
     0,
   ];
 
-  it.fails(
-    "moves only the merged member's balance into the member it joins, in any currency",
-    () => {
-      fc.assert(fc.property(phoneLogArb, fc.nat(), fc.nat(), mergeMovesOnlyTheMergedBalance), {
-        ...runs,
-        examples: [roundingAcrossAMerge],
-      });
-    },
-  );
+  it("moves only the merged member's balance into the member it joins, in any currency", () => {
+    fc.assert(fc.property(phoneLogArb, fc.nat(), fc.nat(), mergeMovesOnlyTheMergedBalance), {
+      ...runs,
+      examples: [roundingAcrossAMerge],
+    });
+  });
 });
 
 /**

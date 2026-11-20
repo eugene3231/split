@@ -147,6 +147,12 @@ export interface GroupLog {
 
 export interface PostedEntry {
   entry: Entry;
+  /**
+   * What the entry does to each member's balance, in group cents. Worked out from the entry as it
+   * was written and only then moved onto the members it merged into, so a merge never rounds a
+   * foreign-currency entry again and moves a cent onto someone outside it.
+   */
+  effect: Record<MemberId, Cents>;
   /** The op that wrote this revision. Pass it as `base` when editing or removing. */
   rev: OpId;
   pending: boolean;

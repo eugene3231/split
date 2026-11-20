@@ -34,8 +34,7 @@ export function computeBalances(ledger: Ledger): Record<MemberId, Cents> {
   const balances: Record<MemberId, Cents> = Object.fromEntries(
     ledger.members.map((member) => [member.id, 0]),
   );
-  for (const { entry } of ledger.entries) {
-    const effect = entryEffect(entry);
+  for (const { effect } of ledger.entries) {
     for (const id of memberIdsOf(effect)) {
       balances[id] = (balances[id] ?? 0) + effect[id];
     }

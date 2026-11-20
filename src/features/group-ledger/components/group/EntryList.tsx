@@ -36,9 +36,9 @@ export function EntryList({ group }: { group: MyGroup }) {
 
 function EntryRow({ group, posted }: { group: MyGroup; posted: PostedEntry }) {
   const { ledger } = group;
-  const { entry } = posted;
+  const { entry, effect } = posted;
   const groupId = ledger.groupId;
-  const share = describeMyShare(entry, ledger);
+  const share = describeMyShare(entry, ledger, effect);
   const { title, detail } = describeEntryRow(entry, ledger);
 
   return (

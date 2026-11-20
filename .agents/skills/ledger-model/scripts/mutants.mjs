@@ -80,6 +80,13 @@ const MUTANTS = [
     from: 'if (losers.length === 0) return claims;',
     to: 'return claims;',
   },
+  {
+    property: 'in any currency',
+    why: "a merged entry's effect is worked out after the merge, rounding a converted total again",
+    file: `${LOGIC}/fold.ts`,
+    from: 'effect: merged ? resolveEffect(entryEffect(entry), resolve) : entryEffect(entry),',
+    to: 'effect: entryEffect(current(entry)),',
+  },
 ];
 
 const originals = new Map();
